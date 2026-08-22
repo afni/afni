@@ -26,7 +26,7 @@ extern "C" {
 
 
 
-/* Differents type coding for images and buffers.
+/* Different type coding for images and buffers.
  */
 typedef enum {
   TYPE_UNKNOWN /* unknown type */,
@@ -56,7 +56,7 @@ typedef double             r64;
 
 
 
-/* Typedef Booleen
+/* Typedef Boolean
  */
 #ifdef False
    #undef False

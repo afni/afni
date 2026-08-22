@@ -162,7 +162,7 @@ if args.overwrite:
 
 if os.path.isfile(OutGroupTab):
     print("")
-    print("Output file exisits!")
+    print("Output file exists!")
     print(OutGroupTab)
     print("You may want -overwrite")
     print("")

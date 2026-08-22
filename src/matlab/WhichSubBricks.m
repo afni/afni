@@ -39,7 +39,7 @@ FuncName = 'WhichSubBricks';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 indx = zeros(1,InfoStat.DATASET_RANK(2));

@@ -756,7 +756,7 @@ static MRI_IMAGE * mri_fft_3Dconvolve_OMP( MRI_IMAGE *aim , MRI_IMAGE *bim )
    nxa = aim->nx ; nya = aim->ny ; nza = aim->nz ;
    nxb = bim->nx ; nyb = bim->ny ; nzb = bim->nz ;
 
-   /* FFT and output dimensions (sum, bumped up for FFT effiency) */
+   /* FFT and output dimensions (sum, bumped up for FFT efficiency) */
 
    Lxx = (nxa > 1 && nxb > 1) ? NEXTUP(nxa+nxb) : 0 ;
    Lyy = (nya > 1 && nyb > 1) ? NEXTUP(nya+nyb) : 0 ;

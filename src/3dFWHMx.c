@@ -156,6 +156,9 @@ int main( int argc , char *argv[] )
       "  -out ttt    = Write output to file 'ttt' (3 columns of numbers).\n"
       "                If not given, the sub-brick outputs are not written.\n"
       "                Use '-out -' to write to stdout, if desired.\n"
+      "                Note that this option outputs the 'Classic' (which\n"
+      "                means simply Gaussian, *not* ACF) parameters for each\n"
+      "                sub-brick.\n"
       "\n"
       ">>>>>\n"
       "  -compat     = Be compatible with the older 3dFWHM, where if a\n"
@@ -472,7 +475,7 @@ int main( int argc , char *argv[] )
    }
 
    if( demed && corder ){
-     demed = 0 ; WARNING_message("-demed is overriden by -corder") ;
+     demed = 0 ; WARNING_message("-demed is overridden by -corder") ;
    }
 
    if( corder < 0 ){

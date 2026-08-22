@@ -25,7 +25,7 @@ Computer Generation, Inc.,
 gary@compgen.com
 www.compgen.com/widgets
 
-Thanks to Contributers:
+Thanks to Contributors:
 J Satchell, Eric Marttila 
 */
 /* Revision History:
@@ -607,7 +607,7 @@ static void Enter_event(Widget w, XtPointer client_data, XEvent * xevent, Boolea
 	if(event->mode != NotifyNormal)
 		return;
 
-	/* if a help was recently popped down, don't delay in poping up
+	/* if a help was recently popped down, don't delay in popping up
 	   help for next watched widget
 	*/
 	if ((event->time -  cw->liteClue.HelpPopDownTime) > 
@@ -885,7 +885,7 @@ Func:	This function may be used to enable clues for insensitive
 	watched widgets. Normally, XtAppMainLoop (which calls
 	XtDispatchEvent) will not deliver EnterNotify and LeaveNotify
 	events to widgets that are not sensitive (XtSetSensitive). This
-	prevents clues from poping up for these widgets. To bypass this
+	prevents clues from popping up for these widgets. To bypass this
 	limitation, you can break out XtAppMainLoop and add a call to
 	XcgLiteClueDispatchEvent ass follows:
 

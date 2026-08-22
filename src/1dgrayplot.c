@@ -143,7 +143,7 @@ int main( int argc , char * argv[] )
 
    machdep() ;
 
-   /* 28 Feb 2003: scan for -ps flage NOW */
+   /* 28 Feb 2003: scan for -ps flag NOW */
 
    for( jj=1 ; jj < argc ; jj++ )
      if( strcmp(argv[jj],"-ps") == 0 ){ out_ps = 1; break; }
@@ -253,7 +253,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
    mp = PLOT_tsgray( npt , nts , ymask , yar ) ;
 
    if( mp != NULL )
-      (void) memplot_to_topshell( dc->display , mp , killfunc ) ;
+      (void) memplot_to_topshell( dc->display , mp , (void_func *)killfunc ) ;
 
    return ;
 }

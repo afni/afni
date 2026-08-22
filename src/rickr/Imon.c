@@ -23,7 +23,7 @@ static char g_history[] =
     " 1.3  December 13, 2002\n"
     "   - compile as standalone (include mcw_glob, but not mcw_malloc)\n"
     "   - added l_THD_filesize (local copy of THD_filesize)\n"
-    "   - removed dependance on mrilib.h and r_idisp.h\n"
+    "   - removed dependence on mrilib.h and r_idisp.h\n"
     "\n"
     " 2.0  January 15, 2003\n"
     "   - rtfeedme feature\n"
@@ -118,7 +118,7 @@ static char g_history[] =
 */
 
 /*----------------------------------------------------------------------
- * Imon - monitor real-time aquisition of I-files
+ * Imon - monitor real-time acquisition of I-files
  *
  *     This program is intended to be run during a scanning session
  *     on a GE scanner, to monitor the collection of I-files.  The
@@ -1213,7 +1213,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( (p->opts.nice < IFM_MIN_NICE_INC) ||
                  (p->opts.nice > IFM_MAX_NICE_INC) )
             {
-                fprintf( stderr, "error: nice incrment must be in [%d,%d]\n",
+                fprintf( stderr, "error: nice increment must be in [%d,%d]\n",
                          IFM_MIN_NICE_INC, IFM_MAX_NICE_INC );
                 errors++;
             }
@@ -2636,7 +2636,7 @@ static int nap_time_from_tr( float tr )
  * Given p->flist, search from index start for an image with
  * geh.zoff equal to zoff.
  *
- * return   index : upon succes         (start <= index <= p->nused)
+ * return   index : upon success        (start <= index <= p->nused)
  *             -1 : not found
  *             -2 : error
  * ----------------------------------------------------------------------
@@ -2693,7 +2693,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
     if ( (((gS.nused + 1) < run) || (gS.runs[run].volumes < seq_num)) &&
          ( func_failure == 0 ) )
     {
-        fprintf( stderr, "** warning: CSR - stats inconsistancy!\n" );
+        fprintf( stderr, "** warning: CSR - stats inconsistency!\n" );
         func_failure = 1;
 
         return -1;
@@ -2962,7 +2962,7 @@ static int find_fl_file_index( param_t * p, char * file )
 }
 
 /* ----------------------------------------------------------------------
- * return the number of occurances of 'target' in 'str' of length 'len'
+ * return the number of occurrences of 'target' in 'str' of length 'len'
  * ----------------------------------------------------------------------
 */
 static int str_char_count( char * str, int len, char target )

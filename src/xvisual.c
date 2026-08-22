@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #define MAIN
@@ -89,7 +89,7 @@ int main( int argc , char * argv[] )
         XVisualInfo     vinfo;          /* template for find visual */
         Visual          *vis ;          /* the Visual itself */
         XVisualInfo     *vinfo_list;    /* returned list of visuals */
-        int             count;          /* number of matchs (only 1?) */
+        int             count;          /* number of matches (only 1?) */
         int             vid , stat ;
         Widget          fred , fff ;
 

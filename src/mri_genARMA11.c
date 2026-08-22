@@ -1,8 +1,9 @@
 #include "mrilib.h"
-#include "zgaussian.c"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+// ADD INIT FOR ZGAUSS
 
 #undef  MTYPE
 #define MTYPE double
@@ -71,12 +72,12 @@ static rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    for( ii=1 ; ii < nt ; ii++ ){
      itt  = TAU(ii) ;                            /* 'time' of the i'th index */
      jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
-     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+     for( jj=jbot ; jj < ii ; jj++ ){              /* scan to find bandwidth */
        jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
-     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+     if( jbot == ii ){      /* a purely diagonal row/column (inter-run gap?) */
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
@@ -125,11 +126,18 @@ MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg )
    MRI_IMAGE *outim ;
    float     *outar , *vv ;
    float zfac=0.0f , tfac=0.0f , zhat , denom ;
+
+   /* def seed: use wall clock (always changes); user can set from cmd line */
+   uint32_t rseed = 0;
+
 #if 0
    long seed=0 ;
    seed = (long)time(NULL)+(long)getpid() ;
    srand48(seed) ;
 #endif
+
+   /* apply the seed to initialize for Gaussian calcs */
+   zgaussian2_init( rseed );
 
 ENTRY("mri_genARMA11") ;
 
@@ -163,7 +171,7 @@ ENTRY("mri_genARMA11") ;
    rvec  = (double *)malloc(sizeof(double)*nlen) ;
 
    for( kk=0 ; kk < nvec ; kk++ ){
-     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
+     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian2() ;
      if( tdof > 0.0f ){
        for( ii=0 ; ii < nlen ; ii++ ){
          zhat = rvec[ii]*zfac ;

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -164,7 +164,7 @@ void SC_Syntax(void)
     "\n"
     "-thresh t tname  = Use threshold statistic from file tname. \n"
     "                   Only voxels whose threshold statistic is greater \n"
-    "                   than t in abolute value will be considered. \n"
+    "                   than t in absolute value will be considered. \n"
     "                     [If file tname contains more than 1 sub-brick, \n"
     "                     the threshold stat. sub-brick must be specified!]\n"
     "-nclust n        = This specifies the maximum number of clusters for \n"

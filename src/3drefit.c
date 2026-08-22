@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -541,6 +541,7 @@ int main( int argc , char *argv[] )
    int geom_change = 0;              /* 04 Nov 2011 [drg] */
    int do_checkaxes = 0 ;            /* 27 Jun 2014 [RWCox] */
    int obl_recenter = 0 ;            /* 17 Mar 2020 [rickr] */
+   int retval = 0;                   /*  2 Sep 2022 [rickr] */
 
 #define VINFO(x) do{ if(verb)ININFO_message(x) ; } while(0)
 
@@ -1588,7 +1589,7 @@ fprintf(stderr,"\n") ; }
 
    if( new_tags || shift_tags ){                     /* 08 May 2006 [rickr] */
       if( new_tags && shift_tags )
-         SynErr("Cant' use -shift_tags with -d{xyz}tag") ;
+         SynErr("Can't use -shift_tags with -d{xyz}tag") ;
       if( new_orient )
          SynErr("Can't use -orient with -shift_tags or -d{xyz}tags") ;
       if( shift_tags && !dxorg && !dyorg && !dzorg )
@@ -1960,20 +1961,24 @@ fprintf(stderr,"\n") ; }
       /* set the space of the dataset */
       if(space) {
          int old_vtype = dset->view_type ;
-         /* check if trying to assign a non-orig space to orig view data */
+         /* check if trying to assign a non-orig space to orig view data,
+            ... and as of 2025-12-15, do it with less whining */
          if( strcmp("orig",VIEW_codestr[old_vtype]) == 0 ) {
             if(strncmp(spacename, "ORIG", 4)!=0){
-               WARNING_message("Changing the space of an ORIG view dataset may cause confusion!");
-               WARNING_message(" NIFTI copies will be interpreted as TLRC view (not TLRC space).");
-               WARNING_message(" Consider changing the view of the dataset to TLRC view also");
+               //WARNING_message("Changing the space of an ORIG view dataset may cause confusion!");
+               //WARNING_message(" NIFTI copies will be interpreted as TLRC view (not TLRC space).");
+               if( new_view == 0 )
+                  WARNING_message("Consider updating the view also: -view tlrc");
             }
          }
-         /* check if trying to assign orig space to tlrc view data */
+         /* check if trying to assign orig space to tlrc view data,
+            ... and as of 2025-12-15, do it with less whining */
          else if( strcmp("tlrc",VIEW_codestr[old_vtype]) == 0 ) {
             if(strncmp(spacename, "ORIG", 4)==0){
-               WARNING_message("Changing the space of a TLRC view dataset to an ORIG type may cause confusion!");
-               WARNING_message(" NIFTI copies will be interpreted as ORIG view.");
-               WARNING_message(" Consider changing the view of the dataset to ORIG view also");
+               //WARNING_message("Changing the space of a TLRC view dataset to an ORIG type may cause confusion!");
+               //WARNING_message(" NIFTI copies will be interpreted as ORIG view.");
+               if( new_view == 0 )
+                  WARNING_message("Consider updating the view also: -view orig");
             }
          }
          /* actually update the space */
@@ -2415,8 +2420,9 @@ fprintf(stderr,"\n") ; }
         }
         THD_force_ok_overwrite(1);             /* 24 Sep 2007 */
         THD_set_quiet_overwrite(1);
-        THD_write_3dim_dataset( THD_filepath(argv[iarg]),NULL ,
-                                dset , write_output ) ;
+        if( ! THD_write_3dim_dataset( THD_filepath(argv[iarg]),NULL ,
+                                      dset , write_output ) )
+           retval = 1;  /* note failure for exit status */
       }
       THD_delete_3dim_dataset( dset , False ) ;
 
@@ -2427,7 +2433,7 @@ fprintf(stderr,"\n") ; }
    /*--- DONE ---*/
 
    INFO_message("3drefit processed %d datasets",ndone) ;
-   exit(0) ;
+   exit(retval) ;
 }
 
 /* read float values from string or file into float attribute */

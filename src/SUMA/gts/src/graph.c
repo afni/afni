@@ -1222,7 +1222,7 @@ gfloat gts_graph_edges_cut_weight (GtsGraph * g)
  * line number at which they appear in @fp.
  *
  * Returns: 0 if the lecture was successful, the line number at which
- * an error occured otherwise (in which case the @error field of @fp
+ * an error occurred otherwise (in which case the @error field of @fp
  * is set).  
  */
 guint gts_graph_read_jostle (GtsGraph * g, GtsFile * fp)
@@ -1368,7 +1368,7 @@ void gts_graph_write (GtsGraph * g, FILE * fp)
  *
  * Reads a graph from a file.
  *
- * Returns: the new #GtsGraph or %NULL if an error occured (in which
+ * Returns: the new #GtsGraph or %NULL if an error occurred (in which
  * case the @error field of @fp is set).
  */
 GtsGraph * gts_graph_read (GtsFile * fp)

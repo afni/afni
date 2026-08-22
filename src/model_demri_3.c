@@ -125,7 +125,8 @@ MODEL_interface * initialize_model ()
     M->min_constr[1] = 0.0;  M->max_constr[1] = 0.99;
     M->min_constr[2] = 0.0;  M->max_constr[2] = 0.99;
   
-    M->call_func = &signal_model; /* set the signal model generator callback */
+    /* set the signal model generator callback */
+    M->call_func = (void_func *)&signal_model;
 
     return (M);
 }
@@ -286,7 +287,7 @@ void signal_model (
         if( (nbad % nprint) == 0 )
         {
             char mesg[128];
-            sprintf(mesg, "\n** MD3: %d bad results (occurance %d):", rv, nbad);
+            sprintf(mesg, "\n** MD3: %d bad results (occurrence %d):",rv,nbad);
             disp_demri_params(mesg, &P);
             if( nprint < 10e+6 ) nprint <<= 1;  /* slower and slower */
         }

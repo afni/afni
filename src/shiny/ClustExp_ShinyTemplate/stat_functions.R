@@ -117,7 +117,7 @@ stat_plot_fun <- function(plot.df,prefix,p_val,stat.info,clust.lab,
   plotly.layout <- list("toImage","hoverCompareCartesian",
                         "hoverClosestCartesian", "toggleSpikelines")
 
-  ## ttests ##############################################
+  ## t-tests ##############################################
   if(stat.info %in% c("Ttest","Zscore")){
 
     ## make color list

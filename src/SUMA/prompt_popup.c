@@ -188,7 +188,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_prompt_popup_ParseInput(char *argv[],int 
 
     kar = 1;
     brk = NOPE;
-    while (kar < argc) { /* loop accross command ine options */
+    while (kar < argc) { /* loop across command line options */
         if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
             ps->hverb = 1;
             usage_prompt_popup(ps);

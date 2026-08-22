@@ -84,7 +84,7 @@ GtsHSplit * gts_hsplit_new (GtsHSplitClass * klass, GtsSplit * vs)
  * @hsurface: a #GtsHSurface.
  *
  * Collapses the #GtsSplit defined by @hs, updates the expandable and
- * collapsable priority heaps of @hsurface.  
+ * collapsible priority heaps of @hsurface.  
  */
 void gts_hsplit_collapse (GtsHSplit * hs,
 			  GtsHSurface * hsurface)
@@ -100,7 +100,7 @@ void gts_hsplit_collapse (GtsHSplit * hs,
 
   hsurface->nvertex--;
   hs->nchild = 0;
-  HEAP_REMOVE_HSPLIT (hsurface->collapsable, hs);
+  HEAP_REMOVE_HSPLIT (hsurface->collapsible, hs);
   HEAP_INSERT_HSPLIT (hsurface->expandable, hs);
 
   vs = GTS_SPLIT (hs);
@@ -111,7 +111,7 @@ void gts_hsplit_collapse (GtsHSplit * hs,
 
   parent = hs->parent;
   if (parent && ++parent->nchild == 2)
-    HEAP_INSERT_HSPLIT (hsurface->collapsable, parent);
+    HEAP_INSERT_HSPLIT (hsurface->collapsible, parent);
 }
 
 /**
@@ -136,7 +136,7 @@ void gts_hsplit_expand (GtsHSplit * hs,
   hsurface->nvertex++;
   hs->nchild = 2;
   HEAP_REMOVE_HSPLIT (hsurface->expandable, hs);
-  HEAP_INSERT_HSPLIT (hsurface->collapsable, hs);
+  HEAP_INSERT_HSPLIT (hsurface->collapsible, hs);
 
   vs = GTS_SPLIT (hs);
   if (GTS_IS_HSPLIT (vs->v1))
@@ -146,7 +146,7 @@ void gts_hsplit_expand (GtsHSplit * hs,
 
   parent = hs->parent;
   if (parent && parent->nchild-- == 2)
-    HEAP_REMOVE_HSPLIT (hsurface->collapsable, parent);
+    HEAP_REMOVE_HSPLIT (hsurface->collapsible, parent);
 }
 
 static void hsurface_destroy (GtsObject * object)
@@ -159,8 +159,8 @@ static void hsurface_destroy (GtsObject * object)
   g_slist_free (hs->roots);
   if (hs->expandable)
     gts_eheap_destroy (hs->expandable);
-  if (hs->collapsable)
-    gts_eheap_destroy (hs->collapsable);
+  if (hs->collapsible)
+    gts_eheap_destroy (hs->collapsible);
   g_ptr_array_free (hs->split, TRUE);
 
   (* GTS_OBJECT_CLASS (gts_hsurface_class ())->parent_class->destroy) (object);
@@ -175,7 +175,7 @@ static void hsurface_init (GtsHSurface * hsurface)
 {
   hsurface->s = NULL;
   hsurface->roots = NULL;
-  hsurface->expandable = hsurface->collapsable = NULL;
+  hsurface->expandable = hsurface->collapsible = NULL;
   hsurface->split = g_ptr_array_new ();
   hsurface->nvertex = 0;
 }
@@ -214,7 +214,7 @@ GtsHSurfaceClass * gts_hsurface_class (void)
  * @expand_key: a #GtsKeyFunc used to order the priority heap of expandable 
  * #GtsHSplit.
  * @expand_data: data to be passed to @expand_key.
- * @collapse_key: a #GtsKeyFunc used to order the priority heap of collapsable
+ * @collapse_key: a #GtsKeyFunc used to order the priority heap of collapsible
  * #GtsHSplit.
  * @collapse_data: data to be passed to @collapsed_key.
  *
@@ -241,7 +241,7 @@ GtsHSurface * gts_hsurface_new (GtsHSurfaceClass * klass,
   hsurface = GTS_HSURFACE (gts_object_new (GTS_OBJECT_CLASS (klass)));
   hsurface->s = psurface->s;
   hsurface->expandable = gts_eheap_new (expand_key, expand_data);
-  hsurface->collapsable = gts_eheap_new (collapse_key, collapse_data);
+  hsurface->collapsible = gts_eheap_new (collapse_key, collapse_data);
   g_ptr_array_set_size (hsurface->split, psurface->split->len);
 
   while (gts_psurface_remove_vertex (psurface))
@@ -282,7 +282,7 @@ GtsHSurface * gts_hsurface_new (GtsHSurfaceClass * klass,
     gts_split_expand (vs, psurface->s, psurface->s->edge_class);
 
     if (hs->nchild == 2)
-      HEAP_INSERT_HSPLIT (hsurface->collapsable, hs);
+      HEAP_INSERT_HSPLIT (hsurface->collapsible, hs);
   }
 
   hsurface->nvertex = gts_surface_vertex_number (hsurface->s);

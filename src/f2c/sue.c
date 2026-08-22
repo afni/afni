@@ -6,7 +6,7 @@ long f__recloc;
 #ifdef KR_headers
 c_sue(a) cilist *a;
 #else
-c_sue(cilist *a)
+int c_sue(cilist *a)
 #endif
 {
 	if(a->ciunit >= MXUNIT || a->ciunit < 0)

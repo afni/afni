@@ -17,8 +17,9 @@ static int local_fileexists(const char* fname)
 int main( int argc , char *argv[] )
 {
    nifti_image *nim ;
-   int iarg=1 , outmode=1 , ll , argn=1, usegzip=0;
-   char *tmpstr;
+   int          iarg=1 , outmode=1 , argn=1, usegzip=0;
+   char        *tmpstr;
+   size_t       ll;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf("Usage: nifti1_test [-n2|-n1|-na|-a2] infile [prefix]\n"

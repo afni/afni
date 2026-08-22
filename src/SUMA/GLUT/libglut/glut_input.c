@@ -507,7 +507,7 @@ __glutUpdateInputDeviceMask(GLUTwindow * window)
   }
 }
 
-glutDeviceGet(GLenum param)
+int glutDeviceGet(GLenum param)
 {
   probeDevices();
   switch (param) {

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #include "mrilib.h"
@@ -21,7 +21,7 @@ int main( int argc , char *argv[] )
               "  dy pixels downwards\n"
               "  phi degrees clockwise\n"
               "  -linear means to use bilinear interpolation (default is bicubic)\n"
-              "  -Fourier means to use Fourier interpolaion\n"
+              "  -Fourier means to use Fourier interpolation\n"
               "Values outside the input_image are taken to be zero.\n" ) ;
       exit(0) ;
    }

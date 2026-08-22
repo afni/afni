@@ -214,6 +214,8 @@ printf(
 "\n",
 author );
 
+PRINT_COMPILE_DATE;
+
 return 0;
 }
 

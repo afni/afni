@@ -85,6 +85,9 @@ void usage_ROI2dataset_Main (int detail)
 "                            are not part of any ROI will get\n"
 "                            a default label of 0 unless you\n"
 "                            specify your own padding label.\n"
+"                         *** You may also set MAX_INDEX to \n"
+"                         d:DSET.niml.dset which sets MAX_INDEX\n"
+"                         to match DSET.niml.dset\n"
 "    -pad_label padding_label: Use padding_label (an integer) to\n"
 "                            label nodes that do not belong\n"
 "                            to any ROI. Default is 0.\n"
@@ -136,7 +139,7 @@ int main (int argc,char *argv[])
    olabel = 0;
    keepsep = 0;
    nodups = 0;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /* SUMA_LH("Parsing command line..."); */
       
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -371,7 +374,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
 
-      /* Now go throught the ROIs and load them if possible into ROIv */
+      /* Now go throughout the ROIs and load them if possible into ROIv */
       SUMA_LHv("Cycling over %d rois\n", N_tROI);
       for (ii=0; ii < N_tROI; ++ii) {
          if (!Parent_idcode_str) {

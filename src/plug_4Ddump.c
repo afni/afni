@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #include "afni.h"
@@ -12,7 +12,7 @@
 #endif
 
 /* -----------------------START---------------------------------*/
-/* definition and decleration part to suport the main algorithm */
+/* definition and declaration part to support the main algorithm */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,7 +45,7 @@ typedef struct {
 
 
 /***********************************************************************
-  Plugin to extract 3D+time time courses whos index or xyz corrdinates 
+  Plugin to extract 3D+time time courses whos index or xyz coordinates 
   match a certain criterion
 ************************************************************************/
 typedef struct 
@@ -82,7 +82,7 @@ static char helpstring[] =
   "                               4D Dump Plugin\n\n"
   "This plugin allows the extraction of selected FMRI time series into an ascii file. \n"
   "The time series to be extracted are specified either by their AFNI index or \n"
-  "by their AFNI XYZ corrdinates.\n\n"
+  "by their AFNI XYZ coordinates.\n\n"
   "Plugin Inputs\n"
   "   1- Data :\n"
   "      3D+time    -> Chooser for 3D+time data set.\n"
@@ -112,7 +112,7 @@ static char helpstring[] =
   "   5- Output :\n"
   "      Filename   -> Name of the ascii file where the time series are written.\n"
   "                    If no output filename is specified, the ouput is the prefix\n"
-  "                    of the 3D+time input brick with the extenstion '.4Ddump' appended to it.\n"
+  "                    of the 3D+time input brick with the extension '.4Ddump' appended to it.\n"
   "                    A LOG file, 'Filename.log' is also written to disk.\n"
   "                    The log file contains all the parameters settings used\n"
   "                    for generating 'Filename'.\n"
@@ -123,7 +123,7 @@ static char helpstring[] =
   "       the option i x y z ts[1] ts[2] .... to know which time series came from which voxel\n\n"
   "If you have/find questions/comments/bugs about the plugin, \n"
   "send me an E-mail: ziad@image.bien.mu.edu\n\n"
-  "                          Ziad Saad Jan 6 97, lastest update Feb 23 98.\n\n"
+  "                          Ziad Saad Jan 6 97, last update Feb 23 98.\n\n"
 ;
 
 /*--------------------- strings for output format --------------------*/
@@ -172,8 +172,8 @@ static int filexists (char *f_name);
 
 static int f_file_size (char *f_name);
 
-static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
-                         generic_func * user_func , void * user_data );
+static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore ,
+                 int detrend , generic_func * user_func , void * user_data );
 
 /*---------------------------- global data ---------------------------*/
 
@@ -206,7 +206,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "4D Dump" ,
                                 "Extract voxel time courses given their index or XYZ coordinates" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , EXTRACT_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)EXTRACT_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 
@@ -559,7 +560,7 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    /*------------- ready to compute new dataset -----------*/
 
 	PLUTO_4D_to_nothing (old_dset , ud->ignore , ud->dtrnd ,
-                             EXTRACT_tsfunc , (void *)ud );
+                        (generic_func *)EXTRACT_tsfunc , (void *)ud );
 
 	fclose (ud->outlogfile);
 	fclose (ud->outwritets);
@@ -733,8 +734,8 @@ static void indexTOxyz (extract_data* ud, int ncall, int *xpos , int *ypos , int
 	
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
-/* Only errors that happen during runtime  are handeled here,   */
-/* the others are handeled instantaneously, and need not be 	*/
+/* Only errors that happen during runtime  are handled here,   */
+/* the others are handled instantaneously, and need not be 	*/
 /* logged 																		 */
 /* ************************************************************ */
 
@@ -748,7 +749,7 @@ void error_report (extract_data* ud, int ncall )
 			{
 				
 				default:
-					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",ud->errcode);
+					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english language ! ",ud->errcode);
 					break;
 			}	
 		fprintf (ud->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );
@@ -784,7 +785,7 @@ void writets (extract_data * ud,float * ts, int ncall)
 	}
 
 /* *************************************************************** */
-/* function to extract x y z colums form a matrix format  file */
+/* function to extract x y z columns form a matrix format  file */
 /* *************************************************************** */
 static fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, int ncols, int *nrows, int *Err)
 {/*extract_xyz*/
@@ -1058,8 +1059,8 @@ static void disp_vect (float *v,int l)
 /*    (adapted from BDW's function PLUTO_4D_to_typed_fith 			 */
 /* *************************************************************** */
 
-static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int detrend ,
-                         generic_func * user_func, void * user_data )
+static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore ,
+                      int detrend , generic_func * user_func, void * user_data )
 {
 
    byte    ** bptr = NULL ;  /* one of these will be the array of */

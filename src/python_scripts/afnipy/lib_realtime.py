@@ -136,8 +136,7 @@ class RTInterface:
 
       if errs: return None
       if not data:
-         if self.verb > 0:
-            print('** failed recv() of %d bytes from data socket' % nbytes)
+         if self.verb > 0: print('-- socket has been closed')
          return None
 
       if self.verb > 4:
@@ -210,7 +209,7 @@ class RTInterface:
       """peek at and print out the next nbytes of data"""
       data = self.read_nbytes_from_data_socket(nbytes,flag=socket.MSG_PEEK)
       if not data:
-         print('** failed to peek ahead')
+         if self.verb > 1: print('** failed to peek ahead')
          return
 
       if show or self.verb > 4:
@@ -231,7 +230,7 @@ class RTInterface:
 
       odata = self.bytes_to_ord(data)
       if self.verb > 2:
-         print('++ recieved as magic_hi: %s' % UTIL.data_to_hex_str(odata))
+         print('++ received as magic_hi: %s' % UTIL.data_to_hex_str(odata))
 
       # test whether we have magic, start by ignoring the last byte
       for ind in range(g_magic_len-1):

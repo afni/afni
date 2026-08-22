@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -256,7 +256,11 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    }
 
    if( dkptr->storage_mode == STORAGE_BY_NIFTI ){   /* 28 Aug 2003 */
-     THD_load_nifti( blk ) ;
+     /* check for failure  [2 Sep 2022 rickr] */
+     if( THD_load_nifti( blk ) ) {
+        STATUS("failed to load NIFTI dataset file") ;
+        RETURN( False );
+     }
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
        THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #undef MAIN
@@ -245,7 +245,8 @@ ENTRY("AFNI_func_setthresh_CB") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
-   MCW_choose_string(w,"Enter threshold",NULL,AFNI_func_setthresh_final_CB,cd) ;
+   MCW_choose_string(w,"Enter threshold",NULL,
+                     (gen_func *)AFNI_func_setthresh_final_CB,cd) ;
    EXRETURN ;
 }
 
@@ -292,7 +293,8 @@ ENTRY("AFNI_func_setpval_CB") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
 
-   MCW_choose_string( w, "Enter p-value", NULL, AFNI_func_setpval_final_CB,cd ) ;
+   MCW_choose_string( w, "Enter p-value", NULL,
+                     (gen_func *) AFNI_func_setpval_final_CB,cd ) ;
    EXRETURN ;
 }
 
@@ -378,7 +380,7 @@ ENTRY("AFNI_func_setqval_CB") ;
    ifix = (im3d->vinfo->fix_qval) ? 1 : 0 ;
 
    MCW_choose_stuff( w , "FDR q-value Settings" ,
-                     AFNI_func_setqval_final_CB , im3d ,
+                     (gen_func *)AFNI_func_setqval_final_CB , im3d ,
                        MSTUF_STRING  , "Set q-value"  ,
                        MSTUF_STRLIST , "Keep fixed? " , 2 , ifix , yesno ,
                      MSTUF_END ) ;
@@ -1384,7 +1386,7 @@ void AFNI_make_descendants( THD_sessionlist *ssl )
    return ;
 }
 
-/** In this routine, each occurence of vbase was originally VIEW_ORIGINAL_TYPE **/
+/** In this routine, each occurrence of vbase was originally VIEW_ORIGINAL_TYPE **/
 
 void AFNI_make_descendants_old( THD_sessionlist *ssl , int vbase )
 {
@@ -2633,7 +2635,7 @@ STATUS("threshold-ization and alpha-ization") ;
        /* in the following code,
           note that alcode==0 implies ALFA() = 0.0 implies not visible,
           whereas alcode==1 or ==2 implies 0 < ALFA() < 1 implies translucent */
- 
+
        case MRI_short:{
          register float thb=thbot , tht=thtop , aa ; register int rej, vvz ;
          register short *ar_thr = MRI_SHORT_PTR(im_thr) ;
@@ -2829,7 +2831,7 @@ ENTRY("AFNI_ttatlas_overlay") ;
    nov = 0;
    for( at_sbi=0; at_sbi < at_nsb; at_sbi++) { /* loop over bricks */
 
-      /* extract atlas slice from volumne #at_sbi */
+      /* extract atlas slice from volume #at_sbi */
       b1im = AFNI_slice_flip( n,at_sbi,RESAM_NN_TYPE,ax_1,ax_2,ax_3,
                               atlas_ovdset);
       if( b1im == NULL ) continue ; /* this is bad */
@@ -3705,7 +3707,7 @@ if( first ){
    MCW_set_browse_select( browse_select ) ;
 
    MCW_choose_strlist( wpar , label , num_str , init_str , strlist ,
-                       cbfun , (XtPointer)im3d ) ;
+                       (gen_func *)cbfun , (XtPointer)im3d ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -4193,7 +4195,7 @@ STATUS("creating new dialog") ;
       im3d->vwid->file_dialog =
          XtVaCreatePopupShell(
            "menu" , xmDialogShellWidgetClass , im3d->vwid->top_shell ,
-              XmNtitle , "GPL AFNI" ,
+              XmNtitle , "AFNI" ,
               XmNdeleteResponse , XmDO_NOTHING ,
               XmNinitialResourcesPersistent , False ,
               XmNkeyboardFocusPolicy , XmEXPLICIT ,
@@ -4674,7 +4676,7 @@ ENTRY("AFNI_read_Web_CB") ;
     "Complete http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):\n"
     "Examples: ftp://afni.nimh.nih.gov/AFNI/data/astrip+orig.HEAD\n"
     "          https://afni.nimh.nih.gov/afni/norm305.mnc.gz"
-     , NULL , AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
+     , NULL , (gen_func *)AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
 
    EXRETURN ;
 }
@@ -5611,7 +5613,8 @@ ENTRY("AFNI_write_many_dataset_CB") ;
 #if 1
    MCW_choose_multi_strlist( w , "Datasets to Write" , mcwCT_multi_mode ,
                              num_dset , NULL , strlist ,
-                             AFNI_do_many_writes , (XtPointer) idclist ) ;
+                             (gen_func *)AFNI_do_many_writes ,
+                             (XtPointer) idclist ) ;
 #else
    { THD_string_array *sar ;  /*** This code is for experiments only! ***/
      INIT_SARR(sar) ;
@@ -5763,7 +5766,8 @@ ENTRY("AFNI_saveas_dataset_CB") ;
      BEEPIT ; WARNING_message("SaveAs code improperly executed") ; EXRETURN ;
    }
 
-   MCW_choose_string( w, label, NULL, AFNI_saveas_finalize_CB, NULL ) ;
+   MCW_choose_string( w, label, NULL,
+                      (gen_func *)AFNI_saveas_finalize_CB, NULL ) ;
 
    EXRETURN ;
 }
@@ -5903,7 +5907,7 @@ ENTRY("AFNI_write_dataset_CB") ;
                  "**        Original View.                          **\n"
                  "**   -- It isn't allowed to overwrite data that   **\n"
                  "**        is not warped from some other dataset.  **\n"
-                 "**   -- An internal program error has occured!    **\n"
+                 "**   -- An internal program error has occurred!   **\n"
                  "****************************************************"  ,
               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
@@ -6568,19 +6572,23 @@ ENTRY("AFNI_autorange_label") ;
 /* ININFO_message("  old style rrr = %g",rrr) ; */
 
    /* Get the autorange as a percentage point of the nonzero values */
-
-   if( im3d->fim_now->int_cmap == CONT_CMAP && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
+   /* (if we have a functional dataset)         [11 Jan 2024 rickr] */
+   if( ISVALID_3DIM_DATASET(im3d->fim_now)
+        && im3d->fim_now->int_cmap == CONT_CMAP
+        && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
      MRI_IMAGE *qim=NULL ; float qval ;
-     if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now) < 66666666 )
+     if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now)
+                                                        < 66666666 )
        DSET_load(im3d->fim_now) ;
      if( DSET_LOADED(im3d->fim_now) ){
        qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
      } else if( im3d->fim_now->warp_parent != NULL &&
                 DSET_LOADED(im3d->fim_now->warp_parent) ){
-       qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now->warp_parent) ;
+       qim = THD_extract_float_brick(im3d->vinfo->fim_index,
+                                     im3d->fim_now->warp_parent) ;
      }
      if( qim != NULL ){
-       qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC ) ;
+       qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC);
        mri_free(qim) ;
        if( qval > 0.0f ) rrr = qval ;
      }
@@ -7074,7 +7082,7 @@ ENTRY("AFNI_tips_CB") ;
        inf = (char *)malloc(sizeof(char)*(strlen(fpt)+16)) ;
        strcpy(inf,"file:") ; strcat(inf,fpt) ; free(fpt) ;
        tips_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
-                                  AFNI_tips_killfun , NULL  ,
+                                  (void_func *)AFNI_tips_killfun , NULL  ,
                                   NULL, 0   ) ;
        free(inf) ; tips_open = 1 ; EXRETURN ;
      }
@@ -7124,7 +7132,7 @@ void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
 
 #undef  FORUM_LINK
 #define FORUM_LINK \
- "https://afni.nimh.nih.gov/afni/community/board/"
+ "https://discuss.afni.nimh.nih.gov"
 
 void AFNI_forum_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
@@ -7248,6 +7256,18 @@ void AFNI_papers_CB( Widget w , XtPointer cd , XtPointer cbd )
    return ;
 }
 
+/*--------------------------------------------------------------------*/
+
+void AFNI_redraw_CB( Widget w , XtPointer cd , XtPointer cbd ) /* Dec 2025 */
+{
+   int cc ; Three_D_View *qq3d ;
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+     qq3d = GLOBAL_library.controllers[cc] ;
+     if( IM3D_OPEN(qq3d) ) AFNI_redraw_controller( qq3d ) ;
+   }
+   return ;
+}
+
 /*---------------------------------------------------------------
   Callback for all actions in the misc menu
 -----------------------------------------------------------------*/
@@ -7293,7 +7313,7 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char *inf ;
 STATUS("getting anat info") ;
-      inf = THD_dataset_info( im3d->anat_now , 0 ) ;
+      inf = THD_dataset_info( im3d->anat_now , 0 , 1 ) ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->anat_now,0) == NULL ){
             inf = THD_zzprintf( inf , "\n*** Not loaded into memory.\n") ;
@@ -7320,7 +7340,7 @@ STATUS("getting anat info") ;
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char *inf ;
 STATUS("getting func info") ;
-      inf = THD_dataset_info( im3d->fim_now , 0 ) ;
+      inf = THD_dataset_info( im3d->fim_now , 0 , 1 ) ;
 STATUS("got func info") ;
       if( inf != NULL ){
          if( DSET_ARRAY(im3d->fim_now,0) == NULL ){
@@ -7979,7 +7999,7 @@ ENTRY("AFNI_hidden_CB") ;
               ? "Enter IJK input filename:"
               : "Enter XYZ input filename:" ,
 
-            NULL , AFNI_hidden_pts_CB , cd ) ;
+            NULL , (gen_func *)AFNI_hidden_pts_CB , cd ) ;
    }
 
    /****----- Write points -----****/
@@ -8006,7 +8026,7 @@ ENTRY("AFNI_hidden_CB") ;
               ? "Enter IJK output filename:"
               : "Enter XYZ output filename:" ,
 
-            NULL , AFNI_hidden_pts_CB , cd ) ;
+            NULL , (gen_func *)AFNI_hidden_pts_CB , cd ) ;
    }
 
    /****----- Show points -----****/
@@ -8405,7 +8425,7 @@ ENTRY("AFNI_hidden_EV") ;
          else if( !NO_frivolities && event->button == Button5 ) AFNI_alter_controller_bg(im3d,1.041667f) ;
 #endif
       }
-      break ;
+      break ;  /* end of ButtonPress */
 
       /*----- take key press [09 Sep 2002] -----*/
 
@@ -8442,11 +8462,25 @@ ENTRY("AFNI_hidden_EV") ;
              AFNI_hidden_CB( im3d->vwid->prog->hidden_gamberi_pb ,
                              (XtPointer)im3d , NULL ) ;
            break ;
-         }
-      }
-      break ;
-   }
 
+#if 0
+           case ' ':  /*--- refresh windows [Dec 2025] ---*/
+           {
+             int cc ; Three_D_View *qq3d ;
+             for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+               qq3d = GLOBAL_library.controllers[cc] ;
+               if( IM3D_OPEN(qq3d) ) AFNI_redraw_controller( qq3d ) ;
+             }
+           }
+           break ;
+#endif
+
+        }
+     }  /* end of KeyPress */
+
+   } /* end of ev>-type switch */
+
+   SHOW_AFNI_READY ;
    EXRETURN ;
 }
 

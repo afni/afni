@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------
@@ -20,7 +20,7 @@ Added ability to use sub-brick selectors on input datasets.
 Modified output to scale each sub-brick to shorts/bytes separately
   [RW Cox, Mar 1999]
 
-Modifed sub-brick selection of type "-b3 name+view" to mangle dataset
+Modified sub-brick selection of type "-b3 name+view" to mangle dataset
 into form "name+view[3]", since that code works better on 3D+time.
 Modified TS_reader to use new mri_read_1D() function, instead of
 mri_read_ascii().
@@ -45,6 +45,7 @@ Removed the '-b3' type of input from the help menu
 static int                CALC_datum = ILLEGAL_TYPE ;
 static int                CALC_nvox  = -1 ;
 static PARSER_code *      CALC_code  = NULL ;
+static char *             CALC_expr  = NULL;
 static int                ntime[26] ;
 static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
@@ -178,7 +179,7 @@ int remove_isolated_stuff( int nnx, int nny, int nnz, float *far, int maxite ) ;
 
 /*--------------------------------------------------------------------
   Read a time series file into TS variable number ival.
-  Returns -1 if an error occured, 0 otherwise.
+  Returns -1 if an error occurred, 0 otherwise.
 ----------------------------------------------------------------------*/
 
 int TS_reader( int ival , char *fname )
@@ -199,7 +200,7 @@ int TS_reader( int ival , char *fname )
 
 /*--------------------------------------------------------------------
   Read a time series file into IJK variable number ival.
-  Returns -1 if an error occured, 0 otherwise.
+  Returns -1 if an error occurred, 0 otherwise.
 ----------------------------------------------------------------------*/
 
 int IJKAR_reader( int ival , char *fname )  /* 22 Feb 2005 */
@@ -476,6 +477,7 @@ void CALC_read_opts( int argc , char * argv[] )
          if( nopt >= argc )
             ERROR_exit("need argument after -expr!\n") ;
          PARSER_set_printout(1) ;  /* 21 Jul 2003 */
+         CALC_expr = argv[nopt] ;  /* store, to evaluate warnings */
          CALC_code = PARSER_generate_code( argv[nopt++] ) ;
          if( CALC_code == NULL )
             ERROR_exit("illegal expression -- see the help for details") ;
@@ -888,7 +890,7 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
 
    if( CALC_taxis_num > 0 ){  /* 28 Apr 2003 */
      if( ntime_max > 1 ){
-       WARNING_message("-taxis %d overriden by dataset input(s)\n",
+       WARNING_message("-taxis %d overridden by dataset input(s)\n",
                        CALC_taxis_num) ;
      } else {
        ntime_max = CALC_taxis_num ;
@@ -903,11 +905,13 @@ DSET_DONE: continue;  /*** target for various goto statements above ***/
                    or if an undefined symbol is used.   */
 
    for (ids=0; ids < 26; ids ++){
-      if( VAR_DEFINED(ids) && !CALC_has_sym[ids] )
-         WARNING_message("input '%c' is not used in the expression\n" ,
-                 abet[ids] ) ;
-
-      else if( !VAR_DEFINED(ids) && CALC_has_sym[ids] ){
+      if( VAR_DEFINED(ids) && !CALC_has_sym[ids] ) {
+         /* warn if non-trivial expression  [25 Dec 2025 rickr] */
+         if( CALC_expr &&
+             ( strcmp(CALC_expr, "0") && strcmp(CALC_expr, "1") ) )
+               WARNING_message("input '%c' is not used in the expression\n" ,
+                               abet[ids] ) ;
+      } else if( !VAR_DEFINED(ids) && CALC_has_sym[ids] ){
 
          if( ((1<<ids) & PREDEFINED_MASK) == 0 ){
             WARNING_message( "symbol %c is used but not defined\n" , abet[ids] ) ;
@@ -1031,7 +1035,7 @@ void CALC_Syntax(void)
     "   The spatial meaning of (x,y,z) is discussed in the 'COORDINATES'     \n"
     "   section of this help listing (far below).                            \n"
     "\n"
-    "8. Some datsets are 'short' (16 bit) integers with a scalar attached,   \n"
+    "8. Some datasets are 'short' (16 bit) integers with a scalar attached,   \n"
     "   which allow them to be smaller than float datasets and to contain    \n"
     "   fractional values.                                                   \n"
     "\n"
@@ -1064,7 +1068,7 @@ void CALC_Syntax(void)
     "     3dcalc -a 'TT_Daemon::amygdala' -b 'CA_N27_ML::amygdala' \\\n"
     "            -expr 'step(a)+2*step(b)'  -prefix compare.maps             \n"
     "\n"
-    "   (see 'whereami -help' for more information on atlases)               \n"
+    "   (see 'whereami_afni -help' for more information on atlases)               \n"
     "\n"
     "10. Convert a dataset from AFNI short format storage to NIfTI-1 floating\n"
     "    point (perhaps for input to an non-AFNI program that requires this):\n"
@@ -1305,7 +1309,7 @@ void CALC_Syntax(void)
     "\n"
     " As an example, consider a short dataset with a scalar of 0.0001. This  \n"
     " could represent values between -32.768 and +32.767, at a resolution of \n"
-    " 0.001.  One could represnt the difference between 4.916 and 4.917, for \n"
+    " 0.001.  One could represent the difference between 4.916 and 4.917, for \n"
     " instance, but not 4.9165. Each number has 15 bits of accuracy, plus a  \n"
     " sign bit, which gives 4-5 decimal places of accuracy. If this is not   \n"
     " enough, then it makes sense to use the larger type, float.             \n"
@@ -2285,8 +2289,11 @@ int main( int argc , char *argv[] )
            for( ii=0 ; ii < ntime_max ; ii++ ){
              gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
              gtop  = MAX( gtop , gtemp ) ;
-             if( gtemp == 0.0 )
-               WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             if( gtemp == 0.0 ) {
+               /* warn if zero was not explicitly asked for [15 Dec 2025] */
+               if( CALC_expr && strcmp(CALC_expr, "0") )
+                  WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             }
            }
          }
 
@@ -2303,8 +2310,11 @@ int main( int argc , char *argv[] )
 
            if( ! CALC_gscale ){
              gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
-             if( gtop == 0.0 )
-               WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             if( gtop == 0.0 ) {
+               /* warn if zero was not explicitly asked for [15 Dec 2025] */
+               if( CALC_expr && strcmp(CALC_expr, "0") )
+                  WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
+             }
            }
 
            /* compute scaling factor for this brick into fimfac */

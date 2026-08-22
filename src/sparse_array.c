@@ -82,7 +82,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
     long kout = 0;
 
     /* only try to free the histogram if we have reason
-       to beleive that it exists */
+       to believe that it exists */
     if (histogram != NULL )
     {
         /* iterate through the histogram bins */
@@ -495,7 +495,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
       
                     /* remove the references from the histogram,
                        this is super important considering we don't want
-                       to accidently free any nodes that are on the sparse_array
+                       to accidentally free any nodes that are on the sparse_array
                        when we free the histogram later */
                     histogram[ kout ].nodes = NULL;
                     histogram[ kout ].tail = NULL;

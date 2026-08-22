@@ -35,7 +35,7 @@ extern "C" {
 
 typedef struct {
   int    nx ,  ny ,  nz ;  /* Grid dimensions */
-  float *xd , *yd , *zd ;  /* Displacments (in index space) */
+  float *xd , *yd , *zd ;  /* Displacements (in index space) */
   float *hv , *je , *se ;  /* Various auxiliary volumes */
   int   use_amat ;         /* Whether to use amat */
   mat44 amat , amati ;     /* Affine component of warp (and its inverse) */

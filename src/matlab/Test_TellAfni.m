@@ -54,7 +54,7 @@ if (err),
    return;
 end
 
-%switch to relevant datsets
+%switch to relevant datasets
 i = 1;
 cs(i) = NewCs('Set_Anatomy', 'A', 'ARzsspgrax'); i = i + 1;
 cs(i) = NewCs('open_window', '', 'axialimage', 'mont=2x2:8 keypress=v geom=500x500+800+50'); i = i+1;

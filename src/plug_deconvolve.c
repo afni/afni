@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1998-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1998-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -120,7 +120,7 @@
            graph options menu.
   Date:    06 May 2002
 
-  Mod:     Fixed bug in show_options rountine that would cause program crash 
+  Mod:     Fixed bug in show_options routine that would cause program crash 
            when the baseline was set to "None".
   Date:    03 Oct 2002
 
@@ -227,7 +227,9 @@ static char * DC_main( PLUGIN_interface * ) ;  /* the entry point */
 static void DC_Fit (int nt, double to, double dt, float * vec, char ** label) ;
 static void DC_Err (int nt, double to, double dt, float * vec, char ** label) ;
 static void DC_IRF (int nt, double to, double dt, float * vec, char ** label) ;
-static int calculate_results();
+static int calculate_results(int nt, double dt, float * vec, int * NN,
+                             int * nfit, float * fit, char ** label,
+                             float ** fitts, float ** errts);
 
 
 
@@ -241,7 +243,7 @@ static int plug_q;          /* total number of parameters in the base model */
 static int plug_qp;         /* number of poly. trend baseline parameters */
 static int plug_NFirst;     /* first image from input 3d+time dataset to use */
 static int plug_NLast;      /* last image from input 3d+time dataset to use */
-static int plug_IRF;        /* which impulse response fuction to plot */
+static int plug_IRF;        /* which impulse response function to plot */
 static int initialize;      /* flag for perform initialization */
 static int prev_nt;         /* previous time series length */
 static char * IRF_label;    /* label of stimulus for IRF plot */
@@ -318,7 +320,7 @@ static void initialize_options ()
   plug_qp     = 0;        /* number of poly. trend baseline parameters */
   plug_NFirst = 0;        /* first image from input 3d+time dataset to use */
   plug_NLast  = 32767;    /* last image from input 3d+time dataset to use */
-  plug_IRF    = -1;       /* which impulse response fuction to plot */
+  plug_IRF    = -1;       /* which impulse response function to plot */
   initialize  = 0;        /* flag for perform initialization */
   prev_nt     = 0;        /* previous time series length */
   IRF_label   = malloc (sizeof(char)*MAX_NAME_LENGTH);   MTEST (IRF_label);
@@ -425,7 +427,7 @@ static void reset_options ()
   plug_qp     = 0;        /* number of poly. trend baseline parameters */
   plug_NFirst = 0;        /* first image from input 3d+time dataset to use */
   plug_NLast  = 32767;    /* last image from input 3d+time dataset to use */
-  plug_IRF    = -1;       /* which impulse response fuction to plot */
+  plug_IRF    = -1;       /* which impulse response function to plot */
   initialize  = 0;        /* flag for perform initialization */
   prev_nt     = 0;        /* previous time series length */
   strcpy (IRF_label, " ");       /* label of stimulus for IRF plot */
@@ -543,7 +545,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    plint = PLUTO_new_interface ("Deconvolution" ,
 	   "Control DC_Fit, DC_Err, and DC_IRF Deconvolution Functions" ,
-	   helpstring, PLUGIN_CALL_VIA_MENU, DC_main);
+	   helpstring, PLUGIN_CALL_VIA_MENU, (cptr_func *)DC_main);
 
    global_plint = plint ;  /* make global copy */
 
@@ -1285,7 +1287,7 @@ static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
   int N;              /* first image from input 3d+time dataset to use */
   int nfit;                /* number of fit parameters */
   float fit[MAX_XVARS];    /* fit parameters (regression coefficients) */
-  int np;                  /* length of estimated impulse reponse function */
+  int np;                  /* length of estimated impulse response function */
   int ip;                  /* impulse response function parameter index */
   int q;                   /* number of parameters in the baseline model */
   int it;                  /* array index */

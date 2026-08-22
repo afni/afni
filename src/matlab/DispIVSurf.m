@@ -107,7 +107,7 @@ function [err,FigHndls] = DispIVSurf (NodeList,FaceSetList,UsedNodeSet,ITvect,Fi
 %  err = 0 no problem
 %  err = 1 Error somewhere
 %
-% FigHndls is a structure containing handles to the various relevant obejects in the figure window
+% FigHndls is a structure containing handles to the various relevant objects in the figure window
 %  The fields of FigHndls are :
 %     Fig (The whole window)
 %     Patch (The patches handle)
@@ -122,7 +122,7 @@ FuncName = 'DispIVSurf';
 err = 1;
 FigHndls = [];
 
-%setup defualts
+%setup defaults
 	if (nargin < 6),
 		DispOpt = [];
 	end
@@ -261,11 +261,11 @@ FigHndls = [];
 	elseif ((Nit - Nnd) == 1),
 		%remove one point from ITvect
 		ITvect = ITvect(1:Nit-1);
-		ErrEval(FuncName,'Wrn_ITvect and Nodelist size missmatch, removed last point from ITvect.\n');
+		ErrEval(FuncName,'Wrn_ITvect and Nodelist size mismatch, removed last point from ITvect.\n');
 	elseif ((Nit - Nnd) == -1),
 		%add a point to ITvect
 		ITvect = [ITvect ; DispOpt.MaskValue];
-		ErrEval(FuncName,'Wrn_ITvect and Nodelist size missmatch, add an empty point to ITvect.\n');
+		ErrEval(FuncName,'Wrn_ITvect and Nodelist size mismatch, add an empty point to ITvect.\n');
 	end
 	
 	
@@ -360,7 +360,7 @@ FigHndls = [];
 		set (FigHndls.Patch,'EdgeColor','none');
 	end
 
-%decide on the view based on the dimention of the display	
+%decide on the view based on the dimension of the display	
 
 if (isempty(DispOpt.View)),	
 	switch DispOpt.Dim,
@@ -392,7 +392,7 @@ else
 end
 
 %Check for axes size and units
-if (DispOpt.verbose),	fprintf (1,'%s verbose: Seting Axes properties\n', FuncName);	end
+if (DispOpt.verbose),	fprintf (1,'%s verbose: Setting Axes properties\n', FuncName);	end
 	
 	FigHndls.Axes = gca;
 	if (~isfield(DispOpt,'AxesSize') | isempty(DispOpt.AxesSize)),	

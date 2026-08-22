@@ -5,8 +5,8 @@
 */
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -125,7 +125,7 @@ int main( int argc , char * argv[] )
  "             large early images in the program.  Do something like\n"
  "                3dTsmoothR -hamming 13 'fred+orig[4..$]'\n"
  "             to eliminate the first 4 images (say).\n"
- " The following options determing how the general filters treat\n"
+ " The following options determining how the general filters treat\n"
  " time points before the beginning and after the end:\n"
  "  -EXTEND = BEFORE: use the first value; AFTER: use the last value\n"
  "  -ZERO   = BEFORE and AFTER: use zero\n"

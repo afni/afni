@@ -30,7 +30,7 @@ extern "C" {
  * GLUT_API_VERSION=3  glutMenuStatus added.
  *
  */
-#ifndef GLUT_API_VERSION  /* allow this to be overriden */
+#ifndef GLUT_API_VERSION  /* allow this to be overridden */
 #define GLUT_API_VERSION		3
 #endif
 
@@ -55,7 +55,7 @@ extern "C" {
  *
  * GLUT_XLIB_IMPLEMENTATION=5  mjk's GLUT 3.1 images.
  */
-#ifndef GLUT_XLIB_IMPLEMENTATION  /* allow this to be overriden */
+#ifndef GLUT_XLIB_IMPLEMENTATION  /* allow this to be overridden */
 #define GLUT_XLIB_IMPLEMENTATION	6
 #endif
 

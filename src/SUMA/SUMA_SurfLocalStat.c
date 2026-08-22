@@ -11,7 +11,7 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
       "     Local statistics are those computed over the neighborhood of\n"
       "     each node, possibly restricted to a mask.\n"
       "\n"
-      "     Neighborhoods and distances are defined on a trangulated surface\n"
+      "     Neighborhoods and distances are defined on a triangulated surface\n"
       "     mesh.  They will differ between smoothwm and pial, for example.\n"
       "     The neighborhood of a given node is defined by nodes within a\n"
       "     specified distance of the given node (along the surface).\n"
@@ -133,7 +133,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
    ncode = 0;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SurfLocalStat(ps);

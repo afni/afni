@@ -130,7 +130,7 @@ of images.)
 Problem (C) is addressed by zero-padding the EPI datasets in the slice-
 direction.  In this way, if the EPI data from session 2 covers a somewhat
 different patch of brain than from session 1, the bricks can still be made
-to overlap, as long as the zero-padding is large enough to accomodate the
+to overlap, as long as the zero-padding is large enough to accommodate the
 required data shifts.  Zero-padding can be done in one of 3 ways:
  (1) At dataset assembly time, in to3d (using the -zpad option); or
  (2) At any later time, using the program 3dZeropad; or

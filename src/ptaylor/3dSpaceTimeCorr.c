@@ -29,6 +29,11 @@ void usage_SpaceTimeCorr(int detail)
 "  3dSpaceTimeCorr\n"
 "  v1.2 (PA Taylor, Aug. 2019)\n"
 "\n"
+" **************************************************************************\n"
+" *  NB: This program is quite slow. Please see its MUCH MUCH MUCH faster  *\n"
+" *  implementation, which is unimaginatively named SpaceTimeCorr2.        *\n"
+" **************************************************************************\n"
+"\n"
 "  This program is for calculating something *similar* to the (Pearson)\n"
 "   correlation coefficient between corresponding voxels between two data\n"
 "   sets, which is what 3dTcorrelate does.  However, this is program \n"
@@ -70,7 +75,7 @@ void usage_SpaceTimeCorr(int detail)
 "    where:\n"
 "\n"
 "  -insetA FILEA  :one 4D data set.\n"
-"  -insetB FILEB  :another 4D data set; must have same spatial dimesions as\n"
+"  -insetB FILEB  :another 4D data set; must have same spatial dimensions as\n"
 "                  FILEA, as well as same number of time points.\n"
 "\n"
 "  -mask MASK     :optional mask.  Highly recommended to use for speed of\n"
@@ -108,6 +113,12 @@ void usage_SpaceTimeCorr(int detail)
 "        -insetB SUB_02.nii.gz             \\\n"
 "        -mask   mask_GM.nii.gz            \\\n"
 "        -prefix stcorr_01_02              \\\n"
+"\n"
+"\n"
+" **************************************************************************\n"
+" *  NB: This program is quite slow. Please see its MUCH MUCH MUCH faster  *\n"
+" *  implementation, which is unimaginatively named SpaceTimeCorr2.        *\n"
+" **************************************************************************\n"
 "\n"
 "____________________________________________________________________________\n"
           );
@@ -267,7 +278,7 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Need both insetA and insetB to be input!");
    
    // check dataset fitting:
-   i = CompareSetDims(insetTIMEA, insetTIMEB, 4);
+   i = CompareSetDims(insetTIMEA, insetTIMEB, 3);
    
    if ( !MASK )
       WARNING_message("No mask input-- "

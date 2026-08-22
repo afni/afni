@@ -3,7 +3,7 @@
 # python3 status: compatible
 
 import sys, os
-import copy, glob
+import copy, glob, re
 from afnipy import afni_util as UTIL
 from afnipy import lib_vars_object as VO
 
@@ -14,6 +14,9 @@ g_ttpp_tests = ['-AminusB', '-BminusA']
 g_valid_atomic_types = [int, float, str, list]
 g_simple_types = [int, float, str]
 g_subject_sort_key = None
+
+G_SUBJ_ENTRY = 1    # flags for if subject or session are found
+G_SESS_ENTRY = 2
 
 def comment_section_string(comment, length=70, cchar='-'):
    """return a string of the form:
@@ -266,30 +269,122 @@ class Subject(object):
 
    _sort_key = None             # attribute key used in compare()
    _order    = 1                # 1 for normal, -1 for reverse
+   reg_sub   = re.compile('sub-[0-9]+')     # patterns for sub/ses searches
+   reg_ses   = re.compile('ses-[0-9]+')
+
+   # global variable names
+   var_sub   = '${subj}'
+   var_ses   = '${sess}'
+   var_sid   = '${subj}'        # or e.g. ${subj}_${sess}
 
    def __init__(self, sid='', dset='', atrs=None):
 
       self.sid   = sid          # subject ID (string)
+                                # perhaps equal to subj, or subj_sess
       self.dset  = dset         # dset name (string: existing filename)
+      self.vset  = ''           # dset, but with variables for subj, sess
       self.atrs  = None         # attributes (VarsObject instance)
 
       self.ddir  = '.'          # split dset name into directory and file
       self.dfile = ''
+      self.vdir  = '.'          # same pair, but with variables
+      self.vfile = ''
       self.maxlinelen = 0       # if set, maximum line len for subj in command
                                 # rcr - todo
 
-      dir, file = os.path.split(dset)   # and update them
-      if dir: self.ddir = dir
+      # BIDS fields, they might be used to control sid
+      self.bids_sub  = ''       # sub-[0-9]+, if found
+      self.bids_ses  = ''       # ses-[0-9]+, if found
+
+      self.bids_lev  = 0        # binary level 0,1,2,3: no B, sub-, ses-, both
+      self.bids_flev = 0        # binary level in just file
+      self.bids_errs = 0        # errors found in BIDS aspects
+
+      # get to work ...
+      sdir, file = os.path.split(dset)   # and update them
+      if sdir: self.ddir = sdir
       self.dfile = file
+
+      # set any BIDS fields, and set vset based on what is found
+      self.set_bids_info(dset)
+      self.set_vset_from_vars()
 
       # init to empty, and merge if something is passed
       self.atrs = VO.VarsObject('subject %s' % sid)
       if atrs != None: self.atrs.merge(atrs)
 
+   def set_vset_from_vars(self):
+      """set self.vset, vdir, vfile from self.dset, etc.,
+         replacing sub/ses with self.var_sub/ses
+      """
+      self.vset = self.dset
+      if self.bids_sub != '':
+         self.vset = self.vset.replace(self.bids_sub, self.var_sub)
+         self.vdir = self.vdir.replace(self.bids_sub, self.var_sub)
+         self.vfile = self.vfile.replace(self.bids_sub, self.var_sub)
+      if self.bids_ses != '':
+         self.vset = self.vset.replace(self.bids_ses, self.var_ses)
+         self.vdir = self.vdir.replace(self.bids_ses, self.var_ses)
+         self.vfile = self.vfile.replace(self.bids_ses, self.var_ses)
+
+   def set_bids_info(self, fname):
+      """try to set all bids fields (bids_*) from fname
+
+         b_lev  : 0 if no BIDS, +1 if sub, +2 if ses
+         b_flev : same, but just in trailing file name
+
+         return 0 on success
+      """
+
+      # ---------- subject
+      m = self.reg_sub.search(fname)
+
+      # special case, if no subject, just bail
+      if m is None:
+         return 0
+
+      # have a subject in the given path
+      self.bids_lev |= G_SUBJ_ENTRY
+      self.bids_sub = m.group()
+
+      # check in file, too
+      sdir, sfile = os.path.split(fname) # separate dir and file
+
+      m = self.reg_sub.search(sfile)
+      if m is not None:
+         self.bids_flev |= G_SUBJ_ENTRY
+
+         # verify: initial subject should match the file-level subject
+         ss = m.group()
+         if self.bids_sub != ss:
+            self.bids_errs += 1
+            print("** warning: conflicting subject IDs in %s" % fname)
+
+      # ---------- session
+      m = self.reg_ses.search(fname)
+      if m is not None:
+         self.bids_lev |= G_SESS_ENTRY
+         self.bids_ses = m.group()
+
+         # check session in file
+         m = self.reg_ses.search(sfile)
+         if m is not None:
+            self.bids_flev |= G_SESS_ENTRY
+
+            # verify: initial session should match the file-level session
+            ss = m.group()
+            if self.bids_ses != ss:
+               self.bids_errs += 1
+               print("** conflicting sessions in path, %s" % fname)
+
+      return self.bids_errs
+
    def show(self):
       natr = self.atrs.count()-1  # do not include name
-      print("Subject %s, dset %s, natr = %d" % (self.sid, self.dset, natr))
+      print("Subject %s, natr = %d" % (self.sid, natr))
+      print("   dset = %s" % self.dset)
       print("   ddir = %s\n   dfile = %s\n" % (self.ddir, self.dfile))
+      print("   bsub = %s, bses = %s\n" % (self.bids_sub, self.bids_ses))
       if natr > 0:
          self.atrs.show('  attributes: ')
 
@@ -381,20 +476,25 @@ class SubjectList(object):
                               % (len(newSL.subjects), olen))
       return newSL
 
-   def show(self, mesg=''):
+   def show(self, mesg='', verb=-1):
+      if verb == -1: verb = self.verb
+
       if mesg: mstr = " (%s)" % mesg
       else:    mstr = ''
       print("SubjectList: %s%s" % (self.name, mstr))
       print("  nsubj = %d, natrs = %d, ndisp_atrs = %d" % \
                (len(self.subjects), len(self.atrl), len(self.disp_atrs)))
-      print("  atrl      = %s" % self.atrl)
-      print("  disp_atrs = %s" % self.disp_atrs)
+      print("  common_dir   = %s" % self.common_dir)
+      print("  common_dname = %s" % self.common_dname)
+      print("  atrl         = %s" % self.atrl)
+      print("  disp_atrs    = %s" % self.disp_atrs)
 
       if len(self.subjects) == 0: return
 
       print("  subject sort key: %s" % self.subjects[0]._sort_key)
-      for subj in self.subjects:
-         subj.show()
+      if verb > 1:
+         for subj in self.subjects:
+            subj.show()
 
    def add(self, subj):
       """add the subject to the list and update the atrl list"""
@@ -418,11 +518,127 @@ class SubjectList(object):
          if self.verb > 1:
             print('++ setting common dir, %s = %s' % (cname, cdir))
 
-   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=0):
+   def set_ids_from_dsets(self, prefix='', suffix='', hpad=0, tpad=0, dpre=2,
+                          method='default'):
+       """choose new or old way of setting IDs
+
+          method bids    : go after sub-*, ses-*
+                 vary    : old way: look for varying part, and pad
+                 default : first try BIDS, then vary
+       """
+
+       # if not forcing the old way, first try BIDS
+       if method != 'vary':
+          rv = self.set_sids_from_bids()
+          if rv > 0:
+             return 0  # success
+          elif rv < 0:
+             return 1  # failure
+
+          # else 0 (no BIDS): return if forcing BIDS, else use old way
+          if method == 'bids':
+             return 1  # so failure
+
+       return self.old_set_ids_from_dsets(prefix=prefix, suffix=suffix,
+                                          hpad=hpad, tpad=tpad, dpre=dpre)
+
+   def set_sids_from_bids(self, try_ses=1):
+      """if we can, set each s.sid (and s.var_sid?) based on BIDS info
+
+         For example, if s.vset values are identical we might be able to use
+         s.bids_sub, but might need a long form if ses is in filename tail.
+
+         try_ses: if set, try to include session in the sid
+                - e.g. in a paired t-test or one with covariates, exclude it
+         todo: make an option for this
+
+         return > 1 if we're done, 0, if not, -1 on error
+      """
+
+      # if BIDS variables do not make dsets constant, cannot just use BIDS
+      if not UTIL.vals_are_constant([s.vset for s in self.subjects]):
+         return 0
+
+      if self.verb > 2:
+         print("== vset vals: %s" % [s.vset for s in self.subjects])
+
+      # base most choices on the first subject
+      s = self.subjects[0]
+
+      # if we don't have BIDS subject IDs, forget BIDS
+      if s.bids_sub == '':
+         return 0
+
+      # -------------------------------------------------------------------
+      # all datasets have ${subj}, so use ${subj}, ${subj}_${sess}, or fail
+      # (failure means sid's are not unique, even if try_ses is set)
+      # -------------------------------------------------------------------
+
+      # make note of all current subject IDs
+      sid_list = [s.bids_sub for s in self.subjects]
+
+      # include ${sess} if in vfile, or if sids are not unique
+      # (save try_ses for later, so one can see verbose messages)
+      do_ses = 0
+      if s.vfile.find(s.var_ses) >= 0:
+         if self.verb > 1:
+            print("-- including session in IDs, since in file name")
+         do_ses = 1
+      elif not UTIL.vals_are_unique(sid_list):
+         if self.verb > 1:
+            print("-- including session in IDs, since subjects not unique")
+         do_ses = 1
+
+      # and possibly turn if off
+      if do_ses and not try_ses:
+         if self.verb > 1:
+            print("-- excluding session in IDs, at request")
+         do_ses = 0
+
+      # ------------------------------------------------------------
+      # actual effect:
+      #
+      # if including session, put it in sid and var_sid
+      # else, sid is just bids_sub
+      if do_ses:
+         for s in self.subjects:
+            s.sid = '%s_%s' % (s.bids_sub, s.bids_ses)
+         s.var_sid = '%s_%s' % (s.var_sub, s.var_ses)
+      else:
+         for s in self.subjects:
+            s.sid = s.bids_sub
+
+      # ------------------------------------------------------------
+      # now be sure those subject IDs are unique
+
+      sid_list = [s.sid for s in self.subjects]
+
+      # if these are not unique, we have failed
+      uniq = UTIL.vals_are_unique(sid_list)
+      if not uniq and not try_ses:
+         print('** failed to set IDs from dsets, labels not unique:\n  %s' \
+               % sid_list)
+         return -1
+
+      if self.verb > 1:
+         if uniq: vtype = 'valid'
+         else:    vtype = 'non-unique'
+         s = self.subjects[0]
+         print("++ have %s SIDs, with var %s" % (vtype, s.var_sid))
+         print("-- file names have form %s" % s.vset)
+         s.show()
+
+      # else, success
+      return 1
+
+   def old_set_ids_from_dsets(self, prefix='', suffix='',
+                              hpad=0, tpad=0, dpre=2):
       """use the varying part of the dataset names for subject IDs
 
          If hpad > 0 or tpad > 0, expand into the head or tail of the dsets.
          If prefix or suffix is passed, apply them.
+
+         result: set subj.sid for each subject in self.subjects
 
          return 0 on success, 1 on error
       """
@@ -440,7 +656,7 @@ class SubjectList(object):
 
       slist = UTIL.list_minus_glob_form(dlist, hpad, tpad, keep_dent_pre=dpre)
 
-      # in the case of diretories, check for success
+      # in the case of directories, check for success
       # (maybe we can try to skip past them, that might be okay)
       for index in range(len(slist)):
          if '/' in slist[index]:
@@ -627,6 +843,385 @@ class SubjectList(object):
       cmd += '\n'
 
       return cmd
+
+   def make_datatable_text(self, subjlists, condlists=[], bsubs=None, 
+                           tsvfile='', sep='  ', shell=0, verb=1):
+      """create text for a -dataTable file
+
+            subjlists      - one list, or one list per condition
+                           * in condition-major order (first cond is slowest)
+          * condlists      - NEW: if present, 1 list per factor, of that length
+                           - option (multiple): -factors SET NAME1 NAME2 ...
+                           - cond-major order, first moves slowest, last fastest
+            bsubs          - beta sub-bricks (1 list of sub-brick selectors)
+            tsvfile        - TSV-style file that to be used to:
+                             1. restrict subjects (use only matching subjects)
+                             2. include table line in output datatable
+                             ** MUST have a header line, and subjects first
+            sep            - column separator for table
+                             (if has tab, no uniformity)
+            shell          - if shell form, include line wrapper
+            verb           - verbose level
+
+    *** decide on -dsets (subjlists), -factors (factors), -subs_betas (bsubs)
+
+        - make a fully factorialized condition table
+           - must match order of -dsets and condition-major order labels
+           - there will be one such table of rows, per subject
+             (unless that subject is missing data for specific factor levels)
+        - ntcond = total number of conditions = product of condition lengths
+                 = length of full condition table
+
+        - make a complete list of all subjects (across all conditions)
+
+        - create complete datatable
+           - for each subject
+              - for each cond table row
+                 - if that subject is in the row, add that dataset
+                   (or if just one set of subject datasets)
+
+                   SUBJ  factors ... for this row (cond table row)  DSET
+
+        - if ntcond == 1:
+          - must have len(subjlists) == 1
+          - omit any condition column(s)
+          - do not need condlists
+          - bsubs can be empty or have 1 value
+
+        - if len(subjlists) == 1: all conditions in one dset
+             - so len(bsubs) must equal ntcond
+        - else: len(subjlists) > 1: one condition/beta per subj list
+             - must have len(subjlists) == ntcond
+             - if len(bsubs) == 0: omit sub-brick selection
+             - else if len(bsubs) == 1: use same selector for every volume
+             - else: must have: len(bsubs) == ntcond == len(subjlists)
+
+      todo: resulting format len(factors) rows per subject:
+                subj    factor  input
+      todo: ponder data path (since no variable can be in table)
+            - ponder set_common_dir
+      todo: import table from Justin
+            - convert to subject dictionary
+            - be sure each such subject is in full list
+            - restrict union subject list to this table
+            - insert these columns into the full table
+
+         return None on failure, -dataTable on success
+      """
+
+      if verb > 1:
+         print('-- make_datatable_text, %d slist, %d clists' \
+               % (len(subjlists), len(condlists)))
+
+      if bsubs == None: pass # okay here
+      if len(subjlists) == 0:
+         print("** make_datatable: have no subject lists")
+         return None
+
+      dtable = self.make_datatable(subjlists, condlists=condlists,
+                       bsubs=bsubs, tsvfile=tsvfile, verb=verb)
+      if len(dtable) == 0:
+         if verb > 1: print("** failed make_datatable")
+         return ''
+
+      # to make this pretty, dupe table based on max col lengths
+      # (change any \t character pairs to actual tabs)
+      # (if tab in sep, do not make uniform)
+      sep = sep.replace('\\t', '\t')
+      if '\t' in sep:
+         dunif = dtable
+      else:
+         dunif = _make_uniform_col_widths(dtable)
+
+      lines = []
+      if shell: wstr = '%s\\' % sep
+      else:     wstr = ''
+      for row in dunif:
+         lines.append(sep.join(row) + wstr)
+
+      return '\n'.join(lines) + '\n'
+
+   def make_datatable(self, subjlists, condlists=[], bsubs=None, tsvfile='',
+                      verb=1):
+      """return a 2-D list: subject x condition (N == product of condl lengths)
+         ([] on failure)
+
+            subjlists   : array of SubjectList instances (for IDs and dsets)
+            condlists   : lists of [TYPE, c1, c2, ...] factor lists
+            bsubs       : beta sub-brick labels for the factor combinations
+            tsvfile     : file name for Subj and extra subject columns
+            verb        : verbosity level (def 1)
+
+         - get complete, sorted list of subjects
+         - if tsvfile, restrict complete list to those in tsv
+         - convert subjlists to list of dictionaries { subj:dataset }
+         - get fully factorialized condition table
+            - ntcond = total number of cases = product of condition lengths
+
+         - verify condition table size against len(bsubs) len(subjlists)
+
+         - create complete datatable
+            - each subject has ntcond rows, where they have data
+              row:  SUBJ  TSVDATA  factors for this row (cond table row)  DSET
+                    SUBJ    : one of subj_all
+                    TSVDATA : if tsvfile, include subject columns
+                    factors : all factors from condlists
+                    DSET    : actual input DSET
+      """
+
+      if verb > 1: print('-- make_datatable' )
+
+      if len(subjlists) == 0:
+         print("** make_datatable: have no subject lists")
+         return []
+
+      # create full union subject list
+      subj_all = self.get_all_subjs_from_lists(subjlists, verb=verb)
+      if len(subj_all) == 0:
+         print("** make_datatable: failed get_all_subjs_from_lists")
+         return []
+
+      # if TSV, restrict subj_all, and get TSV data
+      # (subj_all subjects missing from TSV is an error)
+      TSV = None
+      if tsvfile != '':
+         subj_all, TSV = self.reconcile_tsv_w_subjects(subj_all, tsvfile,
+                                                       verb=verb)
+         if len(subj_all) == 0:
+            print("** make_datatable: failed reconcile_tsv_w_subjects")
+            return []
+
+      # create subject dictionary list, similar array of { subj:dataset } dicts
+      SDL = self.slists2dictlist(subjlists)
+      if len(SDL) == 0:
+         print("** make_datatable: failed slists2dictlist")
+         return []
+
+      # now make a complete 2-D table of contrast labels
+      clabs, CT = get_factorial_cond_table(condlists, skip0=1, verb=verb)
+      if len(CT) == 0:
+         print("** make_datatable: failed get_factorial_cond_table")
+         return []
+
+      # check CT length: match either # subjlists or # bsubs
+      if self.check_CT_len(CT, subjlists, bsubs, verb=verb):
+         return []
+
+      # merge, each subject tries to insert an entire condition table
+      DT = self.combine_subjects_n_factors(subj_all, SDL, TSV, clabs, CT,
+                                           bsubs, verb=verb)
+
+      return DT
+
+   def reconcile_tsv_w_subjects(self, subjects, tsvfile, verb=1):
+      """return updated subject list and TSV table with header and subjects
+
+         - read tsvfile (must have header, column 0 must be subjects)
+         - new subjects list will be those in tsvfile
+           (each in tsvfile must currently be in subjects list)
+      """
+
+      tsvdata = UTIL.read_tsv_file(tsvfile, verb=verb)
+      ntrows = len(tsvdata)
+      if ntrows == 0:
+         print("** reconcile: TSV file for datatable seems empty")
+         return [], []
+      if ntrows == 1:
+         print("** reconcile: TSV file for datatable has only a header row?!?")
+         return [], []
+      ntcols = len(tsvdata[0])
+      if ntcols < 1:
+         print("** reconcile: TSV file for datatable has no columns")
+         return [], []
+
+      if verb > 1:
+         print("-- reconcile: have %d x %d TSV table" % (ntrows, ntcols))
+
+      # be sure every subject is in current subjects list
+      newsubjects = []
+      for tind, trow in enumerate(tsvdata):
+         if tind == 0:
+            continue
+         if trow[0] not in subjects:
+            print("** reconcile: TSV subj %s (#%d) not found from dsets" \
+                  % (trow[0], tind))
+            return [], []
+         newsubjects.append(trow[0])
+
+      if verb > 1:
+         print("-- reconcile: reducing %d dset subjects down to %d TSV ones" \
+               % (len(subjects), len(newsubjects)))
+
+      # all subjects are found, return info from TSV file
+      return newsubjects, tsvdata
+
+   def combine_subjects_n_factors(self, subj_all, SDL, TSV, clabs, CT, bsubs,
+                                  shell=0, verb=1):
+      """for each subject x condition, create a row of text items
+         - include the TSV entry columns, if given
+
+          shell  : make the output in shell form
+      """
+
+      if verb > 2:
+         print("-- combining subjects and factor table, have TSV = %s" \
+               % (TSV is not None))
+
+      # create key lists for quick access
+      keys = [d.keys() for d in SDL]
+
+      # if 0 or 1 bsub, make note
+      if bsubs is None: nb = 0
+      else:             nb = len(bsubs)
+      if   nb == 0: select = ''
+      elif nb == 1:
+         if shell:  select = '"[%s]"' % bsubs[0]
+         else:      select = '[%s]' % bsubs[0]
+      else:         select = 'eatmorecheese'
+
+      # count missing subjects per condition set
+      missing = [0] * len(CT)
+
+      # make_DT_header, init with TSV header or else just 'Subj'
+      # - these 3 pieces match
+      if TSV is not None:
+         header = TSV[0] # 2 pieces, 'Subj' plus TSV extras
+      else:
+         header = ['Subj']
+      header.extend(clabs)
+      header.append('InputFile')
+      if verb > 2: print("++ DT header: %s" % header)
+
+      DT = [header]
+      nslists = len(SDL)
+      for sind, subj in enumerate(subj_all):
+         for ic, cline in enumerate(CT):
+            # try to find the dataset
+            if nslists == 1:
+               if subj in keys[0]: dset = SDL[0][subj]
+               else:               dset = ''
+            else:
+               if subj in keys[ic]: dset = SDL[ic][subj]
+               else:                dset = ''
+            # if no data, skip this row
+            if dset == '':
+               missing[ic] += 1
+               if verb > 2: print("-- no data for %s, conds %s" % (subj, cline))
+               continue
+
+            # do we want a volume selection?
+            if nb < 2:  dset += select
+            elif shell: dset += '"[%s]"' % bsubs[ic]
+            else:       dset += '[%s]' % bsubs[ic]
+
+            # formulate row: subj, TSV_cols..., factor_labels..., inputfile
+            drow = [subj]
+
+            # insert TSV columns
+            if TSV is not None:
+               if subj != TSV[sind+1][0]:
+                  print("** TSV/data mismatch for subj %d = %s" % (sind, subj))
+                  return []
+               drow.extend(TSV[sind+1][1:])
+
+            drow.extend(cline)
+            drow.append(dset)
+            DT.append(drow)
+
+      if verb > 1:
+         print("-- num missing subjects per factor set: %s" \
+               % ', '.join(['%s' % m for m in missing]))
+
+      return DT
+
+   def check_CT_len(self, CT, subjlists, bsubs, verb=1):
+      """check total number of condition sets against subject lists or bsubs
+
+        - if ntcond == 1:
+          - need len(subjlists) == 1
+          - bsubs can be empty or have 1 value
+
+        - else
+          - if len(subjlists) == 1: all conditions in one dset
+               - so need len(bsubs) == ntcond
+          - else: len(subjlists) > 1: one condition/beta per subj list
+               - must have len(subjlists) == ntcond
+               - if len(bsubs) == 0: omit sub-brick selection
+               - else if len(bsubs) == 1: use same selector for every volume
+               - else: must have: len(bsubs) == ntcond == len(subjlists)
+
+        return 0 on success, else error
+      """
+      ntcond = len(CT)
+      nslist = len(subjlists)
+      if bsubs is None: nbsubs = 0
+      else:             nbsubs = len(bsubs)
+
+      if verb > 1: print("-- check_CT_len: have %d cond, %s slists, %s bsubs" \
+                         % (ntcond, nslist, nbsubs))
+
+      # have one condition/factor
+      if ntcond == 1:
+         if nslist != 1:
+            print("** check_CT_len: 1 cond set but %d subj lists" % nslist)
+            return 1
+         if nbsubs > 1:
+            print("** check_CT_len: 1 cond set but %d beta subs" % nbsubs)
+            return 1
+         return 0 # seems okay
+
+      # we have multiple condition/factor sets...
+      if nslist == 1:
+         # check bsubs, since all condition volumes in each subject dataset
+         if nbsubs != ntcond:
+            print("** check_CT_len: %d cond sets but %d beta subs" \
+                  % (ntcond, nbsubs))
+            return 1
+         return 0 # seems okay
+
+      # multiple subjlists and multiple condition sets
+      if ntcond != nslist:
+         print("** check_CT_len: %d cond sets but %d subj lists" \
+               % (ntcond, nslist))
+         return 1
+
+      # verify nbsubs
+      if nbsubs != 0 and nbsubs != 1 and nbsubs != ntcond:
+         print("** check_CT_len: %d cond sets but %d bsubs" \
+               % (ntcond, nbsubs))
+         return 1
+
+      return 0
+
+   def slists2dictlist(self, subjlists):
+      """convert the subject lists to a list of {sid:dset} dictionaries
+
+         not soooo crypically terse
+      """
+      SDL = []
+      for slist in subjlists:
+         SDL.append( {subj.sid:subj.dset for subj in slist.subjects} )
+      return SDL
+
+   def get_all_subjs_from_lists(self, subjlists, verb=1):
+      """given a list of SubjectList instances, return a combined list of
+         all subjects across all SubjectLists
+      """
+      everyone = []
+      for slist in subjlists:
+         everyone.extend([subj.sid for subj in slist.subjects])
+      ulist = UTIL.get_unique_sublist(everyone)
+      ulist.sort()
+      del(everyone)
+
+      if verb > 1:
+         slens = [str(len(ss.subjects)) for ss in subjlists]
+         print("-- subjlist lengths = %s" % ' '.join([str(c) for c in slens]))
+         print("   total unique subjects = %s" % len(ulist))
+         if verb > 3:
+            print("== all subjects\n   %s" % ' '.join(ulist))
+
+      return ulist
 
    def make_anova3_command(self, bsubs=None, prefix=None, subjlists=None,
                            options=None, factors=[], verb=1):
@@ -1274,6 +1869,105 @@ class SubjectList(object):
       if errs: return None
 
       return sstr
+
+# general functions, could go elsewhere
+def get_factorial_cond_table(condlists, skip0=0, verb=1):
+   """given a list of condition levels, return a fully factorized table,
+      plus the condition labels
+      (so of length the product of the conditions)
+
+      - the table should be in condition-major order (first to last)
+      - if skip0: element 0 of each list should be skipped, as it is a label
+                  (if skip0 == 0, returned label list is empty)
+
+      for example:
+        condlists = [ ['color', 'blue', 'red', 'orange'],
+                      ['sex',   'M', 'F'],
+                      ['emot',  'happy', 'sad'] ]
+      return 
+        [     'color',  'sex', 'emot' ],
+
+        [
+            [ 'blue',   'M',   'happy' ],
+            [ 'blue',   'M',   'sad' ],
+            [ 'blue',   'F',   'happy' ],
+            [ 'blue',   'F',   'sad' ],
+            [ 'red',    'M',   'happy' ],
+            [ 'red',    'M',   'sad' ],
+            ...
+            [ 'orange', 'M',   'happy' ],
+            [ 'orange', 'M',   'sad' ],
+            ...
+        ]
+   """
+   # chat
+   if verb > 1:
+      clens = [len(cc) for cc in condlists]
+      print("-- clist lengths = %s" % ' '.join([str(c-1) for c in clens]))
+      if verb > 2:
+         print("-- all condition lists:")
+         for clist in condlists:
+            print('   %s : %s' % (clist[0], ', '.join(clist[1:])))
+
+   # real work
+   CT = []
+   clens = [len(cc) for cc in condlists]
+   row = [0] * len(condlists) # computational 
+   _dt_nest_conds(CT, condlists, len(condlists), clens, 0, row, skip0)
+
+   # and get labels
+   if skip0: labels = [clist[0] for clist in condlists]
+   else:     lebels = []
+
+   # chat
+   if verb > 1:
+      print("-- have complete factorization table, length %s" % len(CT))
+      if verb > 2:
+         for row in CT:
+            print(row)
+
+   return labels, CT
+
+def _dt_nest_conds(CT, clist, nclist, clens, cind, row, skip0):
+   """recursive: if done, append row to table
+                 else, for each factor level, insert this factor and recur
+
+      recursively fill CT with every (ordered) combination of factor levels
+   """
+   # if we are fully nested, add the current row to the table
+   # (we *could* move this to the loop, but it seems more readable this way)
+   if cind == nclist:
+      CT.append(row[:])
+      return
+  
+   # else, for each factor level, set at row position and recur to next posn
+   # (skip position 0)
+   if skip0: flist = clist[cind][1:]
+   else:     flist = clist[cind]
+   for level in flist:
+      row[cind] = level
+      _dt_nest_conds(CT, clist, nclist, clens, cind+1, row, skip0)
+
+   return
+
+def _make_uniform_col_widths(dtable):
+   """return a new table where every string is expanded to the max col width
+   """
+   maxlens = [0] * len(dtable[0])
+   for row in dtable:
+      for ind, val in enumerate(row):
+         l = len(val)
+         if l > maxlens[ind]:
+            maxlens[ind] = l
+
+   newtable = []
+   for row in dtable:
+      newrow = []
+      for ind, val in enumerate(row):
+         newrow.append("%-*s" % (maxlens[ind], val))
+      newtable.append(newrow)
+
+   return newtable
 
 if __name__ == '__main__':
    print('** this is not a main program')

@@ -12,6 +12,10 @@
   [PT: Nov 5, 2018] Don't know why this is only happening *now*, but
   am moving the lpa/lpc cost functions into the main list under '-cost
   ccc' in the help; they are no longer classified as "experimental"
+
+  [PT: Dec 15, 2025] quiet warnings about not using -cmass when
+  _applying_ a transform (leave on for useful cases when estimating it)
+  ... and now also when the -allcostX* opts are used, because no dset is output
  */
 
 /*----------------------------------------------------------------------------*/
@@ -498,7 +502,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "* This program is a generalization of and improvement on the older\n"
      "    software 3dWarpDrive.\n"
      "\n"
-     "* For nonlinear transformations, see progam 3dQwarp.\n"
+     "* For nonlinear transformations, see program 3dQwarp.\n"
      "\n"
      "* 3dAllineate can also be used to apply a pre-computed matrix to a dataset\n"
      "  to produce the transformed output. In this mode of operation, it just\n"
@@ -507,7 +511,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "  writes it out, and stops.\n"
      "\n"
      "* If you are curious about the stepwise process used, see the section below\n"
-     "  titled 'SUMMARY of the Default Allineation Process'.\n"
+     "  titled: SUMMARY of the Default Allineation Process.\n"
      "\n"
      "=====----------------------------------------------------------------------\n"
      "NOTES: For most 3D image registration purposes, we now recommend that you\n"
@@ -718,7 +722,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
      "                        presumably for the purpose of resampling the source\n"
      "                        dataset to a new grid.\n"
      "\n"
-     "  * The -1Dmatrix_* options can be used to save and re-use the transformation *\n"
+     "  * The -1Dmatrix_* options can be used to save and reuse the transformation  *\n"
      "  * matrices.  In combination with the program cat_matvec, which can multiply *\n"
      "  * saved transformation matrices, you can also adjust these matrices to      *\n"
      "  * other alignments. These matrices can also be combined with nonlinear      *\n"
@@ -963,7 +967,7 @@ void Allin_Help(void)  /* moved here 15 Mar 2021 */
 
       printf(
      "\n"
-     " -cmass        = Use the center-of-mass calculation to determin an initial shift\n"
+     " -cmass        = Use the center-of-mass calculation to determine an initial shift\n"
      "                   [This option is OFF by default]\n"
      "                 can be given as cmass+a, cmass+xy, cmass+yz, cmass+xz\n"
      "                 where +a means to try determine automatically in which\n"
@@ -2425,13 +2429,13 @@ int main( int argc , char *argv[] )
      /*-----*/
 
      if( strcmp(argv[iarg],"-norefinal") == 0 ){ /* 14 Nov 2007 */
-       do_refinal = 0 ; iarg++ ; continue ;      /* SECRET OPTION */
+       do_refinal = 0 ; iarg++ ; continue ;      /* unSECRET OPTION */
      }
 
      /*-----*/
 
      if( strcmp(argv[iarg],"-allcost") == 0 ){   /* 19 Sep 2007 */
-       do_allcost = 1 ; iarg++ ; continue ;      /* SECRET OPTIONS */
+       do_allcost = 1 ; iarg++ ; continue ;      /* unSECRET OPTIONS */
      }
      if( strcmp(argv[iarg],"-allcostX") == 0 ){
        do_allcost = -1 ; iarg++ ; continue ;
@@ -3633,7 +3637,7 @@ int main( int argc , char *argv[] )
 
    if( dset_targ == NULL ){
      if( iarg >= argc )
-       ERROR_exit("no source datset on command line!?") ;
+       ERROR_exit("no source dataset on command line!?") ;
      dset_targ = THD_open_dataset( argv[iarg] ) ;
      if( dset_targ == NULL )
        ERROR_exit("Can't open source dataset '%s'",argv[iarg]) ;
@@ -4523,9 +4527,19 @@ STATUS("zeropad weight dataset") ;
          apply_1D,apply_nx);
 
      if( apply_ny < DSET_NVALS(dset_targ) )
-       WARNING_message(
-        "-1D*_apply '%s': %d isn't enough rows for source dataset -- last row will repeat",
-        apply_1D,apply_ny);
+       /* Dec 16, 2025: make info if there is only 1 vol in apply_ny,
+          as it might be common usage to apply a constant matrix
+          across multiple vols; only warn if apply_ny doesn't match
+          AND it isn't 1.
+       */
+       if( apply_ny == 1 )
+          INFO_message(
+            "-1D*_apply '%s': %d row for multivolume source dataset -- single row will repeat",
+            apply_1D,apply_ny);
+       else
+          WARNING_message(
+            "-1D*_apply '%s': %d isn't enough rows for source dataset -- last row will repeat",
+            apply_1D,apply_ny);
    }
 
    /*------------------------------------------------------------------------*/
@@ -4630,10 +4644,17 @@ STATUS("zeropad weight dataset") ;
    }
 
    if( !do_cmass ){         /* 26 Feb 2020 */
-     if( CMbad > 0 && CMbad < 100 ){
+     /* 15 Dec 2025, pt: when apply_1D is not NULL, we will _not_ warn
+        about not using -cmass, because it is irrelevant (since we are
+        applying, not calculating a shift); the shift itself is still
+        displayed, below.
+        ... and also, we might not likely need to apply these if 
+        an -allcostX* opt is being used, so we now also disable warn then
+      */
+     if( CMbad > 0 && CMbad < 100 && apply_1D == NULL && !(do_allcost<0) ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be large") ;
        WARNING_message("  - at least one is more than 20%% of search range") ;
-     } else if( CMbad >= 100 ){
+     } else if( CMbad >= 100 && apply_1D == NULL && !(do_allcost<0) ){
        WARNING_message("center of mass shifts (-cmass) are turned off, but would be TERRIBLY large!") ;
        WARNING_message("  - at least one is more than 50%% of search range") ;
      }
@@ -4891,9 +4912,12 @@ STATUS("zeropad weight dataset") ;
    /*****------ create shell of output dataset ------*****/
 
    if( prefix == NULL ){
-     WARNING_message("No output dataset will be calculated") ;
-     if( dxyz_mast > 0.0 )
-       WARNING_message("-mast_dxyz %g option was meaningless :-(",dxyz_mast) ;
+     /* 15 Dec 2025: do no warn if allcostX* is used */
+     if( !(do_allcost < 0) ) {
+       WARNING_message("No output dataset will be calculated") ;
+       if( dxyz_mast > 0.0 )
+         WARNING_message("-mast_dxyz %g option was meaningless :-(",dxyz_mast) ;
+     }
    } else {
      if( dset_mast == NULL ){ /* pick a master dataset to control output grid */
        if( dset_base != NULL ){
@@ -4928,7 +4952,7 @@ STATUS("zeropad weight dataset") ;
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
      /* do not let time info from master confuse things, we'll go back */
-     /* to ntt > 1 later, if approprate             [1 Jun 2020 rickr] */
+     /* to ntt > 1 later, if appropriate             [1 Jun 2020 rickr] */
      if( DSET_NUM_TIMES(dset_out) > 1 )
          EDIT_dset_items( dset_out ,   ADN_ntt , 1 , ADN_none ) ;
 
@@ -5287,8 +5311,11 @@ STATUS("zeropad weight dataset") ;
        int rr=kk ;
        if( rr >= apply_ny ){  /* 19 Jul 2007 */
          rr = apply_ny-1 ;
-         WARNING_message("Re-using final row of -1D*_apply '%s' for sub-brick #%d",
-                         apply_1D , kk ) ;
+         /* Dec 16, 2025: make warns only apply in odd mismatch cases,
+            not just for single matrix to apply to multiple volumes */
+         if( apply_ny != 1 )
+           WARNING_message("Reusing final row of -1D*_apply '%s' for sub-brick #%d",
+                           apply_1D , kk ) ;
        }
        stup.interp_code = final_interp ;  /* this IS the final operation */
        stup.smooth_code = 0 ;
@@ -5348,7 +5375,7 @@ STATUS("zeropad weight dataset") ;
 
        if( allcostX1D == NULL ){ /* just do init parameters == the old way */
 
-         PAR_CPY(val_init) ;   /* copy init parameters into the allpar arrary */
+         PAR_CPY(val_init) ;   /* copy init parameters into the allpar array */
          allcost = mri_genalign_scalar_allcosts( &stup , allpar ) ;
          PARINI("initial") ;
          INFO_message("allcost output: init #%d",kk) ;
@@ -5884,7 +5911,7 @@ STATUS("zeropad weight dataset") ;
      /*** if( powell_mm > 0.0f ) powell_set_mfac( 0.0f , 0.0f ) ; ***/
      /*** if( verb > 2 ) GA_do_params(0) ; ***/
 
-     /*** Optimzation is done, so do some cleanup and some output ***/
+     /*** Optimization is done, so do some cleanup and some output ***/
 
      if( verb > 1 ) ININFO_message("- Final    cost = %f ; %d funcs",stup.vbest,nfunc) ;
      if( verb > 1 || (verb==1 && kk==0) ) PARNOUT("Final fine fit") ; /* 30 Aug 2013 */
@@ -6781,7 +6808,8 @@ mri_genalign_set_pgmat(1) ;
    if( verb ){
       INFO_message("###########################################################");
    }
-   if( !do_cmass && CMbad > 0 ){ /* 26 Feb 2020 */
+   if( !do_cmass && CMbad > 0 && apply_1D == NULL && !(do_allcost<0) ){ 
+     /* conditions to warn updated on dates: 26 Feb 2020; 15 Dec 2025 */
      ININFO_message (" ") ;
      INFO_message   ("***********************************************************") ;
      WARNING_message("-cmass was turned off, but might have been needed :("       ) ;
@@ -6852,7 +6880,7 @@ MRI_IMAGE * mri_weightize( MRI_IMAGE *im, int acod, int ndil, float aclip, float
 
    /*-- blur a little: median then Gaussian;
           the idea is that the median filter smashes localized spikes,
-          then the Gaussian filter does a litte extra general smoothing. --*/
+          then the Gaussian filter does a little extra general smoothing. --*/
 
    mmm = (byte *)malloc( sizeof(byte)*nxyz ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ; /* mask */

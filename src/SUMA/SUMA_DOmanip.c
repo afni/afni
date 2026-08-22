@@ -83,7 +83,7 @@ SUMA_Boolean SUMA_isInodeLink (SUMA_INODE *IN, const char *HolderIDcode)
    \param IN (SUMA_INODE *) the linked inode
    \param HolderIDcode (const char *) the ID code that holds/contains IN
    \ret NULL if the link was broken or IN == NULL
-      IN if IN is not a link but an actuak Inode (meaning IN->ParentIDcode == HolderIDcode
+      IN if IN is not a link but an actual Inode (meaning IN->ParentIDcode == HolderIDcode
 
 
 */
@@ -2311,7 +2311,7 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = SO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one surface with labels patially matching %s.\n"
+               "Found more than one surface with labels partially matching %s.\n"
                "For example: surfaces %s, and %s .\n",
                               label,
                               SUMA_find_SOLabel_from_idcode(found, dov, N_dov),
@@ -2331,7 +2331,7 @@ char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = SO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one surface with labels patially matching %s.\n"
+               "Found more than one surface with labels partially matching %s.\n"
                "For example: surfaces %s, and %s .\n",
                               label,
                               SUMA_find_SOLabel_from_idcode(found, dov, N_dov),
@@ -2398,7 +2398,7 @@ char *SUMA_find_ADOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = ADO_ID(ADO); }
                else {
                   SUMA_S_Errv(
-               "Found more than one surface with labels patially matching %s.\n"
+               "Found more than one surface with labels partially matching %s.\n"
                "For example: surfaces %s, and %s .\n",
                               label,
                               ADO_LABEL(SUMA_whichADO(found, dov, N_dov)),
@@ -2445,7 +2445,7 @@ char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = VO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one volume with labels patially matching %s.\n"
+               "Found more than one volume with labels partially matching %s.\n"
                "For example: volumes %s, and %s .\n",
                               label,
                               SUMA_find_VOLabel_from_idcode(found, dov, N_dov),
@@ -2465,7 +2465,7 @@ char *SUMA_find_VOidcode_from_label (char *label, SUMA_DO *dov, int N_dov)
                if (!found) { found = VO->idcode_str; }
                else {
                   SUMA_S_Errv(
-               "Found more than one volume with labels patially matching %s.\n"
+               "Found more than one volume with labels partially matching %s.\n"
                "For example: volumes %s, and %s .\n",
                               label,
                               SUMA_find_VOLabel_from_idcode(found, dov, N_dov),
@@ -2892,9 +2892,7 @@ SUMA_SurfaceObject *SUMA_Contralateral_SO(SUMA_SurfaceObject *SO,
    if (SO->Side == SUMA_LEFT) findside = SUMA_RIGHT;
    else findside = SUMA_LEFT;
 
-   fprintf(stderr, "SUMA_Contralateral_SO: N_dov=%d\n", N_dov);
    for (i=0; i<N_dov; ++i) {
-      fprintf(stderr, "SUMA_Contralateral_SO: (i,SO->Group) =(%d, %s)\n", i, SO->Group);
       if (SUMA_isSO_G(dov[i], SO->Group)) {
          SOC = (SUMA_SurfaceObject *)dov[i].OP;
          if (SOC->Side == findside && !strcmp(SOC->State, SO->State) ) break;
@@ -2946,7 +2944,7 @@ SUMA_Boolean SUMA_isContralateral_name(char *s1, char *s2)
    /* If name is for live dsets from AFNI, make sure you cut after idcode_str */
    /* check for l or r only */
    if (sd[0] != 'l' && sd[0] != 'L' && sd[0] != 'r' && sd[0] != 'R') {
-      /* not begginning with l or r */
+      /* not beginning with l or r */
       SUMA_free(sd); SUMA_RETURN(NOPE);
    } else if (sd[1] == '\0') { /* make sure it is only l or r */
       SUMA_free(sd); SUMA_RETURN(YUP);
@@ -3822,7 +3820,7 @@ int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_do, SUMA_SurfaceObject *SO,
 \param Mask (int *) pointer to mask vector.
          0 if node belongs to no ROI
          n if node belongs to n ROIs
-      It is the calling function's responsability to make sure enough space is allocated for
+      It is the calling function's responsibility to make sure enough space is allocated for
       Mask and that cleanup is properly handled.
 \return N_added (int *)integer containing the number of nodes found in dROI.
       This variable is set to -1 when trouble occurs.

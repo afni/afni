@@ -21,8 +21,8 @@ R_IO_MODIFY_LINUX = yes
 
 # ------------------------------
 # python from C
-IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.7
-LDPYTHON = -lpython2.7
+# IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.7
+# LDPYTHON = -lpython2.7
 
 # ----------------------------------------------------------------------
 # X configuration

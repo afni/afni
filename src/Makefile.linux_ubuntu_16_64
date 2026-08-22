@@ -87,6 +87,24 @@ INSTALL_PREREQ = suma_gts
  GSLPROGS = balloon
 EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
 
+# ---------------------------------------------------------------------------
+# include libraries with versions that change often
+# (official build only, so non-exact systems do not require specific files)
+
+ifeq ($(AFNI_WHOMADEIT), official)
+
+# copy libgsl.so.19 locally, similarly for cblas
+EXTRA_INSTALL_FILES = /usr/lib/x86_64-linux-gnu/libgsl.so.19			 \
+                      /usr/lib/x86_64-linux-gnu/libgslcblas.so.0
+
+EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                         \
+                           chmod 755 libgsl.so.19 ;                   \
+                           chmod 755 libgslcblas.so.0 ;               \
+                         )
+endif
+# end official build
+
+# ---------------------------------------------------------------------------
 # for dynamic linking
 
 # LLIBS  = -lmri -lf2c -lXm -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) $(LGIFTI) -lm  -ldl -lc

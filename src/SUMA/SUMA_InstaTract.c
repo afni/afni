@@ -206,7 +206,7 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
    if (action == 1) { /* action == 1,  send data mode */
       if (!i_in) {
          fprintf (stderr,"You must call SUMA_SendToSuma with action 0 "
-                     "before action 1.\nNo Communcation cleanup done.\n");
+                     "before action 1.\nNo Communication cleanup done.\n");
          cs->Send = 0;
          return(0);
       }
@@ -311,7 +311,7 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
       NI_element *nel=NULL;
       if (i_in < 2) {
          fprintf (stderr,"You must call SUMA_SendToSuma with action 0 and 1"
-                     " before action 2.\nNo Communcation cleanup done.\n");
+                     " before action 2.\nNo Communication cleanup done.\n");
          cs->Send = 0;
          return(0);
       }
@@ -347,7 +347,7 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
 
 
          /* now wait till stream goes bad */
-         SUMA_Wait_Till_Stream_Goes_Bad(cs, 1000, 5000, 1);
+         Wait_Till_Stream_Goes_Bad(cs, 1000, 5000, 1);
           
          NI_stream_close(cs->NimlStream);
          cs->NimlStream = NULL;
@@ -365,6 +365,39 @@ int SendToSuma (COMM_STRUCT *cs, NI_group *ngru, int action)
    /* should not get here */
    fprintf (stderr,"Flow error.\nThis should not be\n");
    return(0);
+}
+
+/* A function to wait until open stream goes bad */
+/* (initially forgotten, using SUMA_ instead) [7 Mar 2025 rickr] */
+void Wait_Till_Stream_Goes_Bad(COMM_STRUCT *cs, int slp, int WaitMax, int verb)
+{
+   static char FuncName[]={"Wait_Till_Stream_Goes_Bad"};
+   int good = 1;
+   int WaitClose = 0;
+   int LocalHead = 0;
+
+   if (verb) fprintf (stderr,"\nWaiting for SUMA to close stream .\n");
+   while (good && WaitClose < WaitMax) {
+      if (NI_stream_goodcheck(cs->NimlStream, 1) <= 0) {
+         good = 0;
+      } else {
+         if (LocalHead)
+            fprintf(stderr,"Good Check OK. Sleeping for %d ms...", slp);
+         NI_sleep(slp);
+         if (verb) fprintf (stderr,".");
+         WaitClose += slp;
+      }
+   }
+
+   if (WaitClose >= WaitMax) {
+      if (verb)
+         fprintf(stderr,"\nFailed to detect closed stream after %d ms.\n"
+                        "Closing shop anyway...", WaitMax);
+   }else{
+      if (verb) fprintf (stderr,"Done.\n");
+   }
+
+   return;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -481,7 +514,7 @@ int InstaTract_niml_workproc( void *thereiselvis )
    It should call whatever function will do the live prob tracking
    and that would probably exist under ptaylor/
 
-   The bloc beteen "PT Replace Section Begin" and "PT Replace Section End"
+   The bloc between "PT Replace Section Begin" and "PT Replace Section End"
    is what you'll need to replace.
 
    I am sure you will need to pass this function numerous options, 
@@ -742,7 +775,7 @@ int main( int argc , char *argv[] )
       asking it to jump node 28, you can run:
          DriveSuma -echo_nel_stdout -com viewer_cont '-key:v28' j
       
-      You need not send anthing at this stage, but I left these here for
+      You need not send anything at this stage, but I left these here for
       illustration. More useful back and forth is in function
             InstaTract_process_NIML_data()
    */ 

@@ -51,7 +51,7 @@ set nn   = 0
 
 # counts for the alist
 set anum = $#alist
-set aqq  = ( `count -dig 1 1 $anum` )
+set aqq  = ( `count_afni -dig 1 1 $anum` )
 set asum = ( )
 foreach uuu ( $alist )
   set asum = ( $asum 0 )
@@ -59,7 +59,7 @@ end
 
 # counts for the blist
 set bnum = $#blist1
-set bqq  = ( `count -dig 1 1 $bnum` )
+set bqq  = ( `count_afni -dig 1 1 $bnum` )
 set bsum = ( )
 foreach uuu ( $blist1 )
   set bsum = ( $bsum 0 )
@@ -72,7 +72,7 @@ foreach uuu ( $alist $blist1 $blist2 )
   set gunk = ( $gunk -e $uuu )
 end
 
-# will acccumulate all unknown lines in to one file
+# will accumulate all unknown lines in to one file
 if( -f gsum.unk.txt ) \rm -f gsum.unk.txt
 touch gsum.unk.txt
 

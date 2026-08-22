@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 /*#define CLIPSECTIONS */
@@ -113,7 +113,7 @@ static int is_vect_null ( float * v , int npts );
 static int write_float (float *x,char *f_name,int n_points);
 
 
-/* definition and declaration part to suport the main algorithm */
+/* definition and declaration part to support the main algorithm */
 /* -----------------------END-----------------------------------*/
 
 #define free_well(a) { if ((a)) free((a)) ;  (a) = NULL; } 
@@ -1195,7 +1195,7 @@ static void f_mult (float *x,float *y,float *z,int ln)
 /* Important :
    Before you replace this function by a new version, make note of the following
    changes to the function in here: maxdel is changed from lng /3 to lng /2, 
-   and the funcion returns a 1, 2 or 3 in case of encoutered errors instead of 
+   and the function returns a 1, 2 or 3 in case of encountered errors instead of 
    a regular 1 
    Also the function does not output any warning messages to the screen 
    if the delay is larger than one 1/2 a segment length 
@@ -1288,9 +1288,24 @@ static int hilbertdelay_V2 (float *x,
       //return (0);
    }
 
-   
-   *del = NoWayDelay;              /* initialize to an unlikely value ...*/
-   *xcorCoef = NoWayxcorCoef;          
+   /* [BP: Jan 2, 2024] if x or y are NULL there's nothing more to do. This 
+      scenario occurs when when this function is called by 
+      hilbertdelay_V2reset. In this case del and xcorCoef pointers are also
+      NULL, which will cause a segfault when attempting to
+      dereference them in the next few lines of code, but because there's
+      nothing to evaluate, PT's logic re: 3dDelay above shouldn't apply.
+   */
+   if (x == NULL || y == NULL) {
+     return (0);
+   } 
+   else if (del == NULL || xcorCoef == NULL ) {
+     sprintf (buf,"Cannot evaluate with NULL delay or xcorr coef.\n");
+     error_message("hilbertdelay_V2",buf,0);
+     return (ERROR_OPTIONS);
+   } else {
+     *del = NoWayDelay;              /* initialize to an unlikely value ...*/
+     *xcorCoef = NoWayxcorCoef;          
+   }
 
 
    /*--------------------------------------------------------------------------*/
@@ -1534,7 +1549,7 @@ static int hilbertdelay_V2 (float *x,
 
    ifft (Rxx,m+1);          /*calculating autocorrelation of x*/
 
-   c_get (Pxy,Rxy,0,2*lng); /* seperation of real and imaginary parts, 
+   c_get (Pxy,Rxy,0,2*lng); /* separation of real and imaginary parts, 
                                only extract meaningful segment */
    c_get (Pxy,HRxy,1,2*lng);  
 

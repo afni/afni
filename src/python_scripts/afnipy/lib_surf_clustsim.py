@@ -205,7 +205,8 @@ class SurfClust(object):
       # try converting to absolute paths
       try: inputs = [ os.path.abspath(fname) for fname in inputs ]
       except:
-         msg = '** cannot convert inputs to asolute path names:\n   %s' % inputs
+         msg = '** cannot convert inputs to absolute path names:\n   %s' \
+               % inputs
          self.errors.append(msg)
          return 1
 
@@ -297,7 +298,7 @@ class SurfClust(object):
              '   echo "-- processing $#file_list files for p = $pthr"\n'  \
              '\n'                                                         \
              '   # process each file, counting through them\n'            \
-             '   foreach findex ( `count -digits 1 1 $#file_list` )\n'    \
+             '   foreach findex ( `count_afni -digits 1 1 $#file_list` )\n'   \
              '      set file = $file_list[$findex]\n'                     \
              '\n'                                                         \
              '      # print pacifier every 100 files\n'                   \
@@ -359,7 +360,7 @@ class SurfClust(object):
 
       cmd +=                                                                 \
         '# for each iteration block, process $itersize sets of p/z-scores\n' \
-        'foreach iter ( `count -digits 3 1 $niter` )\n\n'                    \
+        'foreach iter ( `count_afni -digits 3 1 $niter` )\n\n'                   \
         '   # track time for each iteration\n'                               \
         '   echo "== iter block $iter (size $itersize) @ `date`"\n\n'        \
         + cmd_3dcalc + cmd_v2s + cmd_ss + cmd_scale                          \
@@ -392,15 +393,15 @@ class SurfClust(object):
    def script_do_surfclust(self, indent=0):
       istr = ' '*indent
 
-      # time_str use is indended
+      # time_str use is indented
       if self.LV.time_str: tstr = '      ' + self.LV.time_str
       else:                tstr = ''
 
       clist = [ \
         '# compute cluster sizes (for each iteration and p/z-score)\n',
         '@ iminus1 = $itersize - 1   # want 0-based indices\n',
-        'foreach index ( `count -digits 1 0 $iminus1` )\n',
-        '   foreach pind ( `count -digits 1 1 $#pthr_list` )\n',
+        'foreach index ( `count_afni -digits 1 0 $iminus1` )\n',
+        '   foreach pind ( `count_afni -digits 1 1 $#pthr_list` )\n',
         '      # note corresponding p and z-values\n',
         '      set pthr = $pthr_list[$pind]\n',
         '      set zthr = $zthr_list[$pind]\n\n',
@@ -537,7 +538,7 @@ class SurfClust(object):
    def script_analysis_prep(self):
       """return a set of commands to:
             convert pthr_list to zthr_list
-            create a dummy time series of lenth itersize (if > 1)
+            create a dummy time series of length itersize (if > 1)
             divide (ceil) niter by itersize (if > 1)
       """
 

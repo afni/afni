@@ -1,5 +1,4 @@
 #include "mrilib.h"
-#include "zgaussian.c"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -33,6 +32,12 @@ static MTYPE corcut = 0.0001 ;
     * tau[i] is the 'true' time index of the i-th data point.  This
       lets you allow for censoring and for inter-run gaps.
     * If tau==NULL, tau[i] is taken to be i -- that is, no censoring/gaps.
+
+    [pt: 2026-08-13] Update this program to use a newer+faster
+    zgaussian2() function, for getting random Gaussian-distribution
+    values via the Ziggurat algorithm.  No functionality/outputs should really
+    change, just the speed.
+
 *//*------------------------------------------------------------------------*/
 
 rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
@@ -81,12 +86,12 @@ rcmat * rcmat_arma11( int nt, int *tau, MTYPE rho, MTYPE lam )
    for( ii=1 ; ii < nt ; ii++ ){
      itt  = TAU(ii) ;                            /* 'time' of the i'th index */
      jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
-     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwidth */
        jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
-     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+     if( jbot == ii ){      /* a purely diagonal row/column (inter-run gap?) */
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
@@ -152,12 +157,12 @@ rcmat * rcmat_arma_gen( int nt, int *tau, doublevec *corvec )
    for( ii=1 ; ii < nt ; ii++ ){
      itt  = TAU(ii) ;                            /* 'time' of the i'th index */
      jbot = ii-bmax ; if( jbot < 0 ) jbot = 0 ;      /* earliest allow index */
-     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwith */
+     for( jj=jbot ; jj < ii ; jj++ ){               /* scan to find bandwidth */
        jtt = itt - TAU(jj) ;                     /* 'time' difference i-to-j */
        if( jtt <= bmax ) break ;                /* if in OK region, stop now */
      }
      jbot = jj ;      /* this is the earliest index to be correlated with #i */
-     if( jbot == ii ){       /* a purely diagonal row/colum (inter-run gap?) */
+     if( jbot == ii ){      /* a purely diagonal row/column (inter-run gap?) */
        len[ii] = 1 ; rc[ii] = malloc(sizeof(MTYPE)) ; rc[ii][0] = 1.0 ;
        continue ;
      }
@@ -229,10 +234,15 @@ int main( int argc , char *argv[] )
    rcmat *rcm=NULL ;
    MRI_IMAGE *outim ;
    float     *outar , *vv ;
-   long seed=0 ;
+
+   /* def seed: use wall clock (always changes); user can set from cmd line */
+   uint32_t rseed = 0;
+   long lseed = 0;
 
    int do_arma31 = 0 , do_arma51 = 0 , do_arma11 = 1 ;
    double r1=0.0,t1=0.0 , r2=0.0,t2=0.0 , vrt=0.0 ;
+
+   mainENTRY("1dgenARMA11") ; machdep() ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -373,7 +383,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-seed") == 0 ){
        iarg++ ;
        if( iarg >= argc ) ERROR_exit("Need argument after option '%s'",argv[iarg-1]) ;
-       seed = (long)strtod(argv[iarg],NULL) ;
+       rseed = (uint32_t)strtod(argv[iarg],NULL) ;
        iarg++ ; continue ;
      }
 
@@ -462,11 +472,15 @@ int main( int argc , char *argv[] )
    outim = mri_new( nlen , nvec , MRI_float ) ; outar = MRI_FLOAT_PTR(outim) ;
    rvec  = (double *)malloc(sizeof(double)*nlen) ;
 
-   if( seed == 0 ) seed = (long)time(NULL)+(long)getpid() ;
-   srand48(seed) ;
+   /* apply the seed to initialize for Gaussian calcs */
+   zgaussian2_init( rseed );
+   /* ... and also the other random numbers used (NB: unlike in other
+      programs, lseed can include getpid() for its randomization) */
+   lseed = (rseed != 0) ? (long)rseed : (long)time(NULL)+(long)getpid() ;
+   srand48( lseed ) ;
 
    for( kk=0 ; kk < nvec ; kk++ ){
-     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
+     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian2() ;
      rcmat_lowert_vecmul( rcm , rvec ) ;
      vv = outar + kk*nlen ;
      if( do_norm ){

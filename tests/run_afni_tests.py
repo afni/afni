@@ -32,7 +32,7 @@ IMPORT_FAILURE_HELP = """
 
 If you are having issues importing you may want to confirm you have installed
 the required dependencies and activated the appropriate environment if you are
-using a tool for managing isolated environements (see 'run_afni_test.py
+using a tool for managing isolated environments (see 'run_afni_test.py
 --installation-help'). This will be something like... \nconda activate afni_dev
 """
 

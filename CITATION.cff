@@ -1,0 +1,47 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: AFNI
+message: >-
+  If you use this software, please cite it using the original AFNI
+  paper (Cox, 1996), described in this file. Additionally, several
+  methods, programs and datasets within AFNI have been described in
+  separate publications. For a list of these, please see:
+  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/citations.html.
+type: software
+authors:
+  - given-names: Robert
+    family-names: Cox
+    email: robertcox@mail.nih.gov
+    affiliation: 'SSCC, NIMH, NIH, USA'
+identifiers:
+  - type: url
+    value: 'https://pubmed.ncbi.nlm.nih.gov/8812068/'
+    description: Original AFNI software package publication
+repository-code: 'https://github.com/afni/afni'
+url: 'https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/'
+repository: >-
+  https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/published/citations.html
+abstract: >-
+  AFNI (Analysis of Functional NeuroImages) is a leading
+  software suite of C, Python, R programs and shell scripts
+  primarily developed for the analysis and display of
+  multiple MRI modalities: anatomical, functional MRI (FMRI)
+  and diffusion weighted (DW) data. It is freely available
+  (both as open source code and as precompiled binaries) for
+  research purposes. The software is made to run on
+  virtually any Unix system with X11 and Motif displays.
+  Binary packages are provided for MacOS and Linux systems
+  such as Fedora, CentOS/Red Hat and Ubuntu (which includes
+  the Windows Subsystem for Linux). 
+keywords:
+  - neuroimaging
+  - FMRI
+  - anatomical/structural MRI
+  - DWI
+  - multimodal
+  - statistical modeling
+  - processing and analysis
+  - visualization
+  - quality control

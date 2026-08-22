@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -235,8 +235,9 @@ ENTRY("THD_write_3dim_dataset") ;
      }
 
      free((void *)options.infile_name) ;
-     if( ii==0 ) error_count++ ;
-     RETURN( (RwcBoolean)ii ) ;
+     if( ii ) error_count++ ;
+     /* THD_write_nifti now returns 0 on success  [2 Sep 2022 rickr] */
+     RETURN( (RwcBoolean)(ii==0) ) ;
    }
 
    /*------ 21 Mar 2003: use the .3D format? -----*/

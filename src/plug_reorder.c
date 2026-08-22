@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #ifndef __MAIN_PLUGIN_REORDER_C__
@@ -173,7 +173,7 @@ plint = PLUTO_new_interface("Reorder",
 							"Reorders voxel time-courses within a 3D+Time BRIK",
 							helpstring,
 							PLUGIN_CALL_VIA_MENU,
-							REORDER_main);
+							(cptr_func *)REORDER_main);
 
    PLUTO_set_sequence( plint , "z:Kummer" ) ;
 

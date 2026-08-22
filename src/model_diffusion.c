@@ -1,11 +1,11 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 /*
-  Routine to initilize and calculate the diffusion model, fitting
+  Routine to initialize and calculate the diffusion model, fitting
   for So and D, where S is acquired as a function of b:
   S(b)  = So exp(-b/D) where b is given in mm^2/sec
 
@@ -66,7 +66,7 @@ MODEL_interface * initialize_model ()
 
 
   /*----- function which implements the model -----*/
-  mi->call_func = &signal_model;
+  mi->call_func = (void_func *)&signal_model;
 
 
   /*----- return pointer to the model interface -----*/

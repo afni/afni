@@ -40,7 +40,7 @@ FuncName = 'addsquare';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 X = [Pll(1) Pur(1) Pur(1) Pll(1)]';

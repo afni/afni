@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -69,7 +69,7 @@ if ( $status ) then
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
 # default location of viewer: user could modify!

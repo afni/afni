@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include <stdlib.h>
@@ -120,7 +120,7 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
    gp->handle_av =  new_MCW_arrowval( rcbox , "#" ,
                                       MCW_AV_downup , 2,MAX_GHANDS,4 ,
                                       MCW_AV_notext , 0 ,
-                                      GRAF_handle_CB , (XtPointer) gp ,
+                          (gen_func *)GRAF_handle_CB , (XtPointer) gp ,
                                       NULL,NULL ) ;
 
    gp->reset_pb = XtVaCreateManagedWidget(

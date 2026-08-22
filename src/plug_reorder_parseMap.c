@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #ifndef __PLUGIN_REORDER_PARSEMAP_C__
@@ -47,7 +47,7 @@
 
 		Each entry is either an 'EpochClass' or a '-'. The latter excludes the
 		point from the resulting reordering. 'EpochClass' is a single letter,
-		[a-zA-Z], which classifies the current epoch; the contatenated number
+		[a-zA-Z], which classifies the current epoch; the concatenated number
 		is an increasing value from 1 to the epoch length and is used mainly
 		to delimit contiguous instances of the same class. 
 

@@ -237,7 +237,7 @@ ENTRY("mri_unpurge") ;
    npix = fread( iar , (size_t)im->pixel_size , (size_t)im->nvox , fp ) ;
    fclose(fp); remove(im->fname); im->fondisk = 0; kill_purge(im->fname);
 
-   if( npix < (size_t)im->nvox ){  /* didn't get enuf data? */
+   if( npix < (size_t)im->nvox ){  /* didn't get enough data? */
      long long nb = ((long long)im->pixel_size) * ((long long)im->nvox) ;
      WARNING_message("mri_unpurge: Can't read %lld bytes from %s",nb,im->fname);
    } else if( PRINT_TRACING ){     /* debug tracing output? */

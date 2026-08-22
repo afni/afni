@@ -73,20 +73,21 @@ Global global;
 
 GIF_Color gif_cmap[256];
 
-ULONG GIF_Get_Code();
-void GIF_Decompress();
-void GIF_Get_Next_Entry();
-void GIF_Add_To_Table();
-void GIF_Send_Data();
+ULONG GIF_Get_Code(FILE *fp, FILE *fout);
+void GIF_Decompress(FILE *fp, FILE *fout);
+void GIF_Get_Next_Entry(FILE *fp);
+void GIF_Add_To_Table(register ULONG body, register ULONG next,
+                      register ULONG index);
+void GIF_Send_Data(register int index);
 void GIF_Clear_Table();
-void GIF_Screen_Header();
-void GIF_Image_Header();
-void GIF_Read_File();
-void GIF_Comment();
-void GIF_Loop();
-void GIF_GCL();
-void Calc_Trans();
-void set_offset();
+void GIF_Screen_Header(FILE *fp, FILE *fout, int first_time);
+void GIF_Image_Header(FILE *fp, FILE *fout, int first_time);
+void GIF_Read_File(FILE * fout, char *fname, int first_image);
+void GIF_Comment(FILE *fout, char *string);
+void GIF_Loop(FILE *fout, unsigned int repeats);
+void GIF_GCL(FILE * fout, unsigned int delay);
+void Calc_Trans(char * string);
+void set_offset(char * string);
 
 GIF_Screen_Hdr gifscrn;
 GIF_Image_Hdr gifimage;
@@ -114,14 +115,13 @@ void TheEnd()
  exit(0);
 }
 
-void TheEnd1(p)
-char *p;
+void TheEnd1(char *p)
 {
  fprintf(stderr,"%s",p);
  TheEnd();
 }
 
-Usage()
+void Usage()
 {
   fprintf(stderr,"\nUsage: whirlgif [-o outfile] [-loop [count]] [-time #delay]\n");
   fprintf(stderr,"\t[ -i listfile] file1 [ -time #delay] file2 ...\n");
@@ -129,9 +129,7 @@ Usage()
   exit(0);
 }
 
-main(argc,argv)
-int argc;
-char *argv[];
+int main(int argc, char *argv[])
 {
  FILE * infile, *fout;
  char temp[BIGSTRING];
@@ -261,6 +259,8 @@ char *argv[];
 
  fclose(fout);
  fprintf(stderr,"Processed %d files.\n",count);
+
+ return(0);
 }
 
 
@@ -270,11 +270,7 @@ char *argv[];
  * but eventually we'd like to optimize based on changes from
  * previous images(ie only a small section of the image changed.
  */
-void
-GIF_Read_File(fout,fname,first_image)
-FILE * fout;
-char *fname;
-int first_image;
+void GIF_Read_File(FILE * fout, char *fname, int first_image)
 {
  FILE *fp;
  int ret,i,exit_flag;
@@ -314,14 +310,13 @@ int first_image;
 
  /*** Setup ACTION for IMAGE */
 
- GIF_Decompress(fp,fout,0);
+ GIF_Decompress(fp,fout);
  fputc(0,fout);  /* block count of zero */
 
  fclose(fp);
 }
 
-void GIF_Decompress(fp,fout)
-FILE *fp,*fout;
+void GIF_Decompress(FILE *fp, FILE *fout)
 {
  register ULONG code,old;
 
@@ -372,8 +367,7 @@ FILE *fp,*fout;
  } while(code!=EOI);
 }
 
-void GIF_Get_Next_Entry(fp)
-FILE *fp;
+void GIF_Get_Next_Entry(FILE *fp)
 {
    /* table walk to empty spot */
  while(  (table[nextab].valid==1)
@@ -402,8 +396,8 @@ FILE *fp;
     index
 */     
 
-void GIF_Add_To_Table(body,next,index)
-register ULONG body,next,index;
+void GIF_Add_To_Table(register ULONG body, register ULONG next,
+                      register ULONG index)
 {
  if (index>MAXVAL)
  { 
@@ -418,8 +412,7 @@ register ULONG body,next,index;
  }
 }
 
-void GIF_Send_Data(index)
-register int index;
+void GIF_Send_Data(register int index)
 {
  register int i,j;
  i=0;
@@ -435,7 +428,7 @@ register int index;
   }
  } while(index>=0);
 
- /* now invert that string since we retreived it backwards */
+ /* now invert that string since we retrieved it backwards */
  i--;
  for(j=i;j>=0;j--)
  {
@@ -472,7 +465,7 @@ if (debug_flag) fprintf(stderr,"Initing Table...");
 /* 
  * clear table 
  */
-void GIF_Clear_Table()   
+void GIF_Clear_Table()
 {
  register int i;
 if (debug_flag) fprintf(stderr,"Clearing Table...\n");
@@ -480,9 +473,8 @@ if (debug_flag) fprintf(stderr,"Clearing Table...\n");
  GIF_Init_Table();
 }
 
-/*CODE*/
-ULONG GIF_Get_Code(fp,fout) /* get code depending of current LZW code size */
-FILE *fp,*fout;
+/* CODE - get code depending of current LZW code size */
+ULONG GIF_Get_Code(FILE *fp, FILE *fout)
 {
  ULONG code;
  register int tmp;
@@ -540,9 +532,7 @@ FILE *fp,*fout;
 /* 
  * read GIF header 
  */
-void GIF_Screen_Header(fp,fout,first_time)
-FILE *fp,*fout;
-int first_time;
+void GIF_Screen_Header(FILE *fp, FILE *fout, int first_time)
 {
  int temp,i;
 
@@ -600,9 +590,7 @@ int first_time;
  screen_was_last = TRUE;
 }
 
-void GIF_Image_Header(fp,fout,first_time)
-FILE *fp,*fout;
-int first_time;
+void GIF_Image_Header(FILE *fp, FILE *fout, int first_time)
 {
  int temp,tnum,i,r,g,b;
 
@@ -669,9 +657,7 @@ int first_time;
 /*
  *
  */
-int GIF_Get_Short(fp,fout,first_time)
-FILE *fp,*fout;
-int first_time;
+int GIF_Get_Short(FILE *fp, FILE *fout, int first_time)
 {
  register int temp,tmp1;
  temp=fgetc(fp);	 if (first_time==TRUE) fputc(temp,fout);
@@ -679,9 +665,7 @@ int first_time;
  return(temp|( (tmp1) << 8 ));
 }
 
-void GIF_Comment(fout,string)
-FILE *fout;
-char *string;
+void GIF_Comment(FILE *fout, char *string)
 {
 if(!string || !strlen(string))
         {
@@ -698,9 +682,7 @@ fputc(0,fout);
 /*
  * Write a Netscape loop marker.
  */
-void GIF_Loop(fout,repeats)
-FILE *fout;
-unsigned int repeats;
+void GIF_Loop(FILE *fout, unsigned int repeats)
 {
 UBYTE low=0,high=0;
 if(repeats) {
@@ -727,9 +709,7 @@ if(verbose) fprintf(stderr,"Wrote loop extension\n");
 /*
  * GIF_GCL - add a Control Label to set an inter-frame delay value.
  */
-void GIF_GCL(fout,delay)
-FILE * fout;
-unsigned int delay;
+void GIF_GCL(FILE * fout, unsigned int delay)
 {
 UBYTE low=0,high=0,flag=0;
 if(delay) {
@@ -759,8 +739,7 @@ if(debug_flag>1) {
 }
 
 
-void Calc_Trans(string)
-char * string;
+void Calc_Trans(char * string)
 {
 if(string[0] != '#') {
   global.trans.type=TRANS_MAP;
@@ -783,8 +762,7 @@ else
 if(debug_flag) fprintf(stderr,"DEBUG:Calc_trans is %d\n",global.trans.type);
 }
 
-void set_offset(string)
-char * string;
+void set_offset(char * string)
 {
 char *off_x,*off_y;
 off_x=(char *) strtok(string,",");

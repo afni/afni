@@ -352,7 +352,7 @@ def process_path_obj(path_obj, test_data_dir, logger=None):
 def try_data_download(file_fetch_list, test_data_dir, logger):
     try:
         global dl_lock
-        dl_lock.acquire(poll_intervall=1)
+        dl_lock.acquire(poll_interval=1)
         dl_dset = datalad.Dataset(str(test_data_dir))
         # Fetching the data
         process_for_fetching_data = Process(

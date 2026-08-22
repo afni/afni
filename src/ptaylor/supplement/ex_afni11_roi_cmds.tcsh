@@ -213,15 +213,15 @@ TEXTBLOCK
 
 
 # ... and use the center of mass (CM) locations of clusters for
-# identification in loaded atlases with 'whereami'
-whereami                                  \
+# identification in loaded atlases with 'whereami_afni'
+whereami_afni                                  \
    -tab                                   \
    -coord_file Clust_report.1D'[1,2,3]'   \
    > Clust_whereami_CM.1D
 
 # ... AND we could use the map of ROIs to find out locations, based on
-# overlaps in loaded atlases, also with whereami
-whereami                                  \
+# overlaps in loaded atlases, also with whereami_afni
+whereami_afni                                  \
    -omask Clust_map.nii.gz                  \
    > Clust_whereami_olap.1D
 

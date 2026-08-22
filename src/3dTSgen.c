@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*
@@ -761,7 +761,7 @@ void check_for_valid_inputs
       NLfit_error ("Must have minimum constraints <= maximum constraints");
   for (ip = 0;  ip < p;  ip++)
     if (min_sconstr[ip] > max_sconstr[ip])
-      NLfit_error("Must have mininum constraints <= maximum constraints");
+      NLfit_error("Must have minimum constraints <= maximum constraints");
       
 
   /*----- check whether any of the output files already exist -----*/

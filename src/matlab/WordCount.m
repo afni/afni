@@ -30,7 +30,7 @@ function [N] = WordCount (S,D)
 %Define the function name for easy referencing
 FuncName = 'WordCount';
 
-%initailize return variables
+%initialize return variables
 N = [];
 
 if (nargin == 1),

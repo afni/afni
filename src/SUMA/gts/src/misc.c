@@ -181,7 +181,7 @@ static gint next_char (GtsFile * f)
  * @f: a #GtsFile.
  *
  * Returns: the next character in @f or EOF if the end of the file is
- * reached or if an error occured.
+ * reached or if an error occurred.
  */
 gint gts_file_getc (GtsFile * f)
 {
@@ -265,7 +265,7 @@ guint gts_file_read (GtsFile * f, gpointer ptr, guint size, guint nmemb)
  *
  * Returns: the next character in @f in the scope defined by
  * @f->scope_max or EOF if the end of the file is reached or if an
- * error occured.
+ * error occurred.
  */
 gint gts_file_getc_scope (GtsFile * f)
 {
@@ -393,7 +393,7 @@ void gts_file_next_token (GtsFile * f)
  * @type: a #GtsTokenType.
  *
  * Finds and sets the first token of a type different from @type 
- * occuring after a token of type @type.
+ * occurring after a token of type @type.
  */
 void gts_file_first_token_after (GtsFile * f, GtsTokenType type)
 {

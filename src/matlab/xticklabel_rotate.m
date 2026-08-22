@@ -52,7 +52,7 @@ function hText = xticklabel_rotate(XTick,rot,varargin)
 % bfgkatz@hotmail.com
 % 23-05-03
 % Modified 03-11-06 after user comment
-%	Allow for exisiting XTickLabel cell array
+%	Allow for existing XTickLabel cell array
 % Modified 03-03-2006 
 %   Allow for labels top located (after user comment)
 %   Allow case for single XTickLabelName (after user comment)
@@ -186,7 +186,7 @@ else
     set(hText,'Rotation',rot,'HorizontalAlignment','left',varargin{:})  
 end
 
-% Adjust the size of the axis to accomodate for longest label (like if they are text ones)
+% Adjust the size of the axis to accommodate for longest label (like if they are text ones)
 % This approach keeps the top of the graph at the same place and tries to keep xlabel at the same place
 % This approach keeps the right side of the graph at the same place 
 

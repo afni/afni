@@ -434,7 +434,7 @@ def VarLists_to_Strings_for_MVM(var_list,
                     varQ_str+= "  %s" % x
                 else:
                     nc = len(var_iscateg[i])
-                    Nvartout+= nc-1              # individual ttests
+                    Nvartout+= nc-1              # individual t-tests
                     if CAT_PAIR_COMP :
                         Nvartout+= (nc*(nc-1))/2 # pairwise combinatorial
         else:
@@ -1355,7 +1355,7 @@ def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK, UNION=0):
 
 ####### [PT: Sep 1, 2020] the original version of this func after
 ####### 2to3; going back to replace the parts with end=' ' (see
-####### above), for backward compatability.
+####### above), for backward compatibility.
 #def FindGroupwiseTargets(All_sub_grid, ftype, ExternLabsOK, UNION=0):
 #    '''Take a list of 4-tuples representing subject data (and a string
 #    of what filetype it is), go through all, and find set of
@@ -1523,7 +1523,7 @@ def LoadInCSV(fname):
 
     idx = 0
 
-    # [PT: Sep 1, 2020] In order to have backwards compatability with
+    # [PT: Sep 1, 2020] In order to have backwards compatibility with
     # Python2, the """newline=''""" was removed from this open
     # command.  This doesn't appear to negatively affect Python3
     # results, so keeping like this now.

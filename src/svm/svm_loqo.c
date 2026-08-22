@@ -38,7 +38,7 @@ double opt_precision=DEF_PRECISION_LINEAR;
 
 /* /////////////////////////////////////////////////////////////// */
 
-void *my_malloc();
+void *my_malloc(size_t);
 
 double *optimize_qp(qp,epsilon_crit,nx,threshold,learn_parm)
 QP *qp;

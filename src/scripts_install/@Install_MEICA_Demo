@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
@@ -18,7 +18,7 @@ echo ""
 echo "Otherwise to run demos, see content of ./pkundu_meica_sample/README.txt"
 echo ""
 goto END
-   endif
+endif
 
 which curl
 if ($status) then
@@ -27,6 +27,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/tgz/pkundu_meica_sample.tgz
 endif
 tar xvzf pkundu_meica_sample.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract pkundu_meica_sample.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 cd pkundu_meica_sample
    echo "********************************************************"
    echo "Follow examples in ./pkundu_meica_sample/README.txt "

@@ -606,7 +606,7 @@ int main( int argc , char *argv[] )
 
    /*----- create output dataset -----*/
 
-   if( verb ) INFO_message("creating output datset in memory") ;
+   if( verb ) INFO_message("creating output dataset in memory") ;
 
    outset = EDIT_empty_copy(inset) ;
    EDIT_dset_items( outset ,

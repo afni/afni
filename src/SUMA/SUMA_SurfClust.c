@@ -95,7 +95,7 @@ void usage_SUMA_SurfClust (int detail)
 "                    indices in column 0 of output. Use this option\n"
 "                    if you are parsing .1D format datasets.\n"
 "     -out_fulllist: Output a value for all nodes of insurf.\n"
-"                    This option must be used in conjuction with\n"
+"                    This option must be used in conjunction with\n"
 "                    -out_roidset and/or out_clusterdset.\n"
 "                    With this option, the output files might\n"
 "                    be mostly 0, if you have small clusters.\n"
@@ -197,7 +197,7 @@ SUMA_SURFCLUST_OPTIONS *SUMA_SurfClust_ParseInput (char *argv[], int argc,
    outname = NULL;
    BuildMethod = SUMA_OFFSETS2_NO_REC;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SUMA_SurfClust(strlen(argv[kar]) > 3 ? 2:1);

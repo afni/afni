@@ -1,3 +1,4 @@
+
 //------------------------------------------------
 // MarchingCubes
 //------------------------------------------------
@@ -8,11 +9,13 @@
 // Thomas Lewiner thomas.lewiner@polytechnique.org
 // Math Dept, PUC-Rio
 //
-//
 // Translated to C by Ziad S. Saad November 30/04
+//
+// - The original translation was based on the 2002.07.13 code.
+//   This update for the 2002.08.12 code was provided by C Rorden.
 //________________________________________________
 
-
+#include <stdint.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
@@ -20,9 +23,8 @@
 #include <float.h>
 #include <stdlib.h>
 #include <math.h>
-#include "MarchingCubes.h"
 #include "LookUpTable.h"
-
+#include "MarchingCubes.h"
 // step size of the arrays of vertices and triangles
 #define ALLOC_SIZE 65536
 
@@ -32,6 +34,11 @@ void set_suma_debug(int dbg)
    debug = dbg;
    return;
 }
+int get_suma_debug(void)
+{
+   return debug;
+}
+
 //_____________________________________________________________________________
 // print cube for debug
 void print_cube(MCB *mcb) { printf( "\t%f %f %f %f %f %f %f %f\n", mcb->cube[0], mcb->cube[1], mcb->cube[2], mcb->cube[3], mcb->cube[4], mcb->cube[5], mcb->cube[6], mcb->cube[7]) ; }
@@ -267,10 +274,6 @@ void compute_intersection_points(MCB *mcb )
 }
 //_____________________________________________________________________________
 
-
-
-
-
 //_____________________________________________________________________________
 // Test a face
 // if face>0 return true if the face contains a part of the surface
@@ -287,11 +290,30 @@ int test_face( MCB *mcb, schar face )
   case -4 : case 4 :  A = mcb->cube[3] ;  B = mcb->cube[7] ;  C = mcb->cube[4] ;  D = mcb->cube[0] ;  break ;
   case -5 : case 5 :  A = mcb->cube[0] ;  B = mcb->cube[3] ;  C = mcb->cube[2] ;  D = mcb->cube[1] ;  break ;
   case -6 : case 6 :  A = mcb->cube[4] ;  B = mcb->cube[7] ;  C = mcb->cube[6] ;  D = mcb->cube[5] ;  break ;
+  default : printf( "Invalid face code %d %d %d: %d\n",  mcb->i,  mcb->j,  mcb->k, face ) ;  print_cube(mcb) ;  A = B = C = D = 0 ;
+  };
+
+  if( fabs( A*C - B*D ) < FLT_EPSILON )
+    return face >= 0 ;
+  return face * A * ( A*C - B*D ) >= 0  ;  // face and A invert signs
+}
+/*
+{
+  float A,B,C,D ;
+
+  switch( face )
+  {
+  case -1 : case 1 :  A = mcb->cube[0] ;  B = mcb->cube[4] ;  C = mcb->cube[5] ;  D = mcb->cube[1] ;  break ;
+  case -2 : case 2 :  A = mcb->cube[1] ;  B = mcb->cube[5] ;  C = mcb->cube[6] ;  D = mcb->cube[2] ;  break ;
+  case -3 : case 3 :  A = mcb->cube[2] ;  B = mcb->cube[6] ;  C = mcb->cube[7] ;  D = mcb->cube[3] ;  break ;
+  case -4 : case 4 :  A = mcb->cube[3] ;  B = mcb->cube[7] ;  C = mcb->cube[4] ;  D = mcb->cube[0] ;  break ;
+  case -5 : case 5 :  A = mcb->cube[0] ;  B = mcb->cube[3] ;  C = mcb->cube[2] ;  D = mcb->cube[1] ;  break ;
+  case -6 : case 6 :  A = mcb->cube[4] ;  B = mcb->cube[7] ;  C = mcb->cube[6] ;  D = mcb->cube[5] ;  break ;
   default : printf( "Invalid face code %d\n", face ) ;  print_cube(mcb) ;  A = B = C = D = 0 ;
   };
 
   return (face * A * ( A*C - B*D ) >= 0)  ;  // face and A invert signs
-}
+}*/
 //_____________________________________________________________________________
 
 
@@ -331,10 +353,10 @@ int test_interior( MCB *mcb, schar s )
   case 13 :
     switch( mcb->_case )
     {
-    case  6 : edge = tiling6 [mcb->config][15] ; break ;
-    case  7 : edge = tiling7 [mcb->config][13] ; break ;
-    case 12 : edge = tiling12[mcb->config][14] ; break ;
-    case 13 : edge = tiling13_5_1[mcb->config][mcb->subconfig][2] ; break ;
+    case  6 : edge = test6 [mcb->config][2] ; break ;
+    case  7 : edge = test7 [mcb->config][4] ; break ;
+    case 12 : edge = test12[mcb->config][3] ; break ;
+    case 13 : edge = tiling13_5_1[mcb->config][mcb->subconfig][0] ; break ;
     }
     switch( edge )
     {
@@ -435,30 +457,27 @@ int test_interior( MCB *mcb, schar s )
   if( Dt >= 0 ) test += 8 ;
   switch( test )
   {
-  case  0 : return (s>0) ;
-  case  1 : return (s>0) ;
-  case  2 : return (s>0) ;
-  case  3 : return (s>0) ;
-  case  4 : return (s>0) ;
-  case  5 : if( At * Ct <  Bt * Dt ) return (s>0) ; break ;
-  case  6 : return (s>0) ;
-  case  7 : return (s<0) ;
-  case  8 : return (s>0) ;
-  case  9 : return (s>0) ;
-  case 10 : if( At * Ct >= Bt * Dt ) return (s>0) ; break ;
-  case 11 : return (s<0) ;
-  case 12 : return (s>0) ;
-  case 13 : return (s<0) ;
-  case 14 : return (s<0) ;
-  case 15 : return (s<0) ;
+  case  0 : return s>0 ;
+  case  1 : return s>0 ;
+  case  2 : return s>0 ;
+  case  3 : return s>0 ;
+  case  4 : return s>0 ;
+  case  5 : if( At * Ct - Bt * Dt <  FLT_EPSILON ) return s>0 ; break ;
+  case  6 : return s>0 ;
+  case  7 : return s<0 ;
+  case  8 : return s>0 ;
+  case  9 : return s>0 ;
+  case 10 : if( At * Ct - Bt * Dt >= FLT_EPSILON ) return s>0 ; break ;
+  case 11 : return s<0 ;
+  case 12 : return s>0 ;
+  case 13 : return s<0 ;
+  case 14 : return s<0 ;
+  case 15 : return s<0 ;
   }
 
-  return (s<0) ;
+  return s<0 ;
 }
 //_____________________________________________________________________________
-
-
-
 
 //_____________________________________________________________________________
 // Process a unit cube
@@ -479,7 +498,7 @@ void process_cube( MCB *mcb)
   {
     char nt = 0 ;
     while( casesClassic[mcb->lut_entry][3*nt] != -1 ) nt++ ;
-    add_triangle(mcb, casesClassic[mcb->lut_entry], nt , -1) ;
+    add_triangle(mcb, casesClassic[mcb->lut_entry], nt, -1 ) ;
     return ;
   }
 
@@ -493,92 +512,94 @@ void process_cube( MCB *mcb)
     break ;
 
   case  1 :
-    add_triangle(mcb, tiling1[mcb->config], 1 , -1) ;
+    add_triangle(mcb, tiling1[mcb->config], 1, -1) ;
     break ;
 
   case  2 :
-    add_triangle(mcb, tiling2[mcb->config], 2 , -1) ;
+    add_triangle(mcb, tiling2[mcb->config], 2, -1) ;
     break ;
 
   case  3 :
     if( test_face(mcb, test3[mcb->config]) )
-      add_triangle(mcb, tiling3[mcb->config]     , 4 , -1) ; // 3.2
+      add_triangle(mcb,  tiling3_2[mcb->config], 4, -1) ; // 3.2
     else
-      add_triangle(mcb, tiling3[mcb->config] + 12, 2 , -1) ; // 3.1
+      add_triangle(mcb,  tiling3_1[mcb->config], 2, -1) ; // 3.1
     break ;
 
   case  4 :
     if( test_interior(mcb, test4[mcb->config]) )
-      add_triangle(mcb, tiling4[mcb->config]     , 2 , -1) ; // 4.1.1
+      add_triangle(mcb, tiling4_1[mcb->config], 2, -1) ; // 4.1.1
     else
-      add_triangle(mcb, tiling4[mcb->config] +  6, 6 , -1) ; // 4.1.2
+      add_triangle(mcb, tiling4_2[mcb->config], 6, -1) ; // 4.1.2
     break ;
 
   case  5 :
-    add_triangle(mcb, tiling5[mcb->config], 3 , -1) ;
+    add_triangle(mcb, tiling5[mcb->config], 3, -1) ;
     break ;
 
   case  6 :
     if( test_face(mcb, test6[mcb->config][0]) )
-      add_triangle(mcb, tiling6[mcb->config], 5 , -1) ; // 6.2
+      add_triangle(mcb, tiling6_2[mcb->config], 5, -1) ; // 6.2
     else
     {
       if( test_interior(mcb, test6[mcb->config][1]) )
-        add_triangle(mcb, tiling6[mcb->config] + 15, 3 , -1) ; // 6.1.1
+        add_triangle(mcb, tiling6_1_1[mcb->config], 3, -1) ; // 6.1.1
       else
-        add_triangle(mcb, tiling6[mcb->config] + 24, 7 , -1) ; // 6.1.2
+    {
+        v12 = add_c_vertex(mcb) ;
+        add_triangle(mcb, tiling6_1_2[mcb->config], 9 , v12) ; // 6.1.2
+      }
     }
     break ;
-
   case  7 :
     if( test_face(mcb, test7[mcb->config][0] ) ) mcb->subconfig +=  1 ;
     if( test_face(mcb, test7[mcb->config][1] ) ) mcb->subconfig +=  2 ;
     if( test_face(mcb, test7[mcb->config][2] ) ) mcb->subconfig +=  4 ;
-    switch( subconfig7[mcb->subconfig] )
+    switch( mcb->subconfig )
       {
       case 0 :
-        if( test_interior(mcb, test7[mcb->config][3]) )
-          add_triangle(mcb, tiling7[mcb->config] + 15, 9 , -1) ;
-        else
-          add_triangle(mcb, tiling7[mcb->config]     , 5 , -1) ;
-        break ;
+        add_triangle(mcb, tiling7_1[mcb->config], 3, -1) ; break ;
       case 1 :
-        v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling7[mcb->config] +  42, 9, v12 ) ; break ;
+        add_triangle(mcb, tiling7_2[mcb->config][0], 5, -1) ; break ;
       case 2 :
-        v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling7[mcb->config] +  69, 9, v12 ) ; break ;
+        add_triangle(mcb, tiling7_2[mcb->config][1], 5, -1) ; break ;
       case 3 :
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling7[mcb->config] +  96, 9, v12 ) ; break ;
+        add_triangle(mcb, tiling7_3[mcb->config][0], 9, v12 ) ; break ;
       case 4 :
-        add_triangle(mcb, tiling7[mcb->config] + 123, 5 , -1) ; break ;
+        add_triangle(mcb, tiling7_2[mcb->config][2], 5, -1) ; break ;
       case 5 :
-        add_triangle(mcb, tiling7[mcb->config] + 138, 5 , -1) ; break ;
+        v12 = add_c_vertex(mcb) ;
+        add_triangle(mcb, tiling7_3[mcb->config][1], 9, v12 ) ; break ;
       case 6 :
-        add_triangle(mcb, tiling7[mcb->config] + 153, 5 , -1) ; break ;
+        v12 = add_c_vertex(mcb) ;
+        add_triangle(mcb, tiling7_3[mcb->config][2], 9, v12 ) ; break ;
       case 7 :
-        add_triangle(mcb, tiling7[mcb->config] + 168, 3 , -1) ; break ;
+        if( test_interior(mcb, test7[mcb->config][3]) )
+          add_triangle(mcb, tiling7_4_2[mcb->config], 9, -1) ;
+        else
+          add_triangle(mcb, tiling7_4_1[mcb->config], 5, -1) ;
+        break ;
       };
     break ;
 
   case  8 :
-    add_triangle(mcb, tiling8[mcb->config], 2 , -1) ;
+    add_triangle(mcb, tiling8[mcb->config], 2, -1) ;
     break ;
 
   case  9 :
-    add_triangle(mcb, tiling9[mcb->config], 4 , -1) ;
+    add_triangle(mcb, tiling9[mcb->config], 4, -1) ;
     break ;
 
   case 10 :
     if( test_face(mcb, test10[mcb->config][0]) )
     {
       if( test_face(mcb, test10[mcb->config][1]) )
-        add_triangle(mcb, tiling10[mcb->config] + 60, 4 , -1) ; // 10.1.1
+        add_triangle(mcb, tiling10_1_1_[mcb->config], 4, -1) ; // 10.1.1
       else
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling10[mcb->config]     , 8, v12 ) ; // 10.2
+        add_triangle(mcb, tiling10_2[mcb->config], 8, v12 ) ; // 10.2
       }
     }
     else
@@ -586,31 +607,31 @@ void process_cube( MCB *mcb)
       if( test_face(mcb, test10[mcb->config][1]) )
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling10[mcb->config] + 24, 8, v12 ) ; // 10.2
+        add_triangle(mcb, tiling10_2_[mcb->config], 8, v12 ) ; // 10.2
       }
       else
       {
         if( test_interior(mcb, test10[mcb->config][2]) )
-          add_triangle(mcb, tiling10[mcb->config] + 48, 4 , -1) ; // 10.1.1
+          add_triangle(mcb, tiling10_1_1[mcb->config], 4, -1) ; // 10.1.1
         else
-          add_triangle(mcb, tiling10[mcb->config] + 72, 8 , -1) ; // 10.1.2
+          add_triangle(mcb, tiling10_1_2[mcb->config], 8, -1) ; // 10.1.2
       }
     }
     break ;
 
   case 11 :
-    add_triangle(mcb, tiling11[mcb->config], 4 , -1) ;
+    add_triangle(mcb, tiling11[mcb->config], 4, -1) ;
     break ;
 
   case 12 :
     if( test_face(mcb, test12[mcb->config][0]) )
     {
       if( test_face(mcb, test12[mcb->config][1]) )
-        add_triangle(mcb, tiling12[mcb->config] + 60, 4 , -1) ; // 12.1.1
+        add_triangle(mcb, tiling12_1_1_[mcb->config], 4, -1) ; // 12.1.1
       else
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling12[mcb->config]     , 8, v12 ) ; // 12.2
+        add_triangle(mcb, tiling12_2[mcb->config], 8, v12 ) ; // 12.2
       }
     }
     else
@@ -618,79 +639,79 @@ void process_cube( MCB *mcb)
       if( test_face(mcb, test12[mcb->config][1]) )
       {
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling12[mcb->config] + 24, 8, v12 ) ; // 12.2
+        add_triangle(mcb, tiling12_2_[mcb->config], 8, v12 ) ; // 12.2
       }
       else
       {
         if( test_interior(mcb, test12[mcb->config][2]) )
-          add_triangle(mcb, tiling12[mcb->config] + 48, 4 , -1) ; // 12.1.1
+          add_triangle(mcb, tiling12_1_1[mcb->config], 4, -1) ; // 12.1.1
         else
-          add_triangle(mcb, tiling12[mcb->config] + 72, 8 , -1) ; // 12.1.2
+          add_triangle(mcb, tiling12_1_2[mcb->config], 8, -1) ; // 12.1.2
       }
     }
     break ;
 
   case 13 :
-    if( test_face(mcb, test13[mcb->config][0] ) ) mcb->subconfig +=  1 ;
-    if( test_face(mcb, test13[mcb->config][1] ) ) mcb->subconfig +=  2 ;
-    if( test_face(mcb, test13[mcb->config][2] ) ) mcb->subconfig +=  4 ;
-    if( test_face(mcb, test13[mcb->config][3] ) ) mcb->subconfig +=  8 ;
-    if( test_face(mcb, test13[mcb->config][4] ) ) mcb->subconfig += 16 ;
-    if( test_face(mcb, test13[mcb->config][5] ) ) mcb->subconfig += 32 ;
+    if( test_face(mcb,  test13[mcb->config][0] ) ) mcb->subconfig +=  1 ;
+    if( test_face(mcb,  test13[mcb->config][1] ) ) mcb->subconfig +=  2 ;
+    if( test_face(mcb,  test13[mcb->config][2] ) ) mcb->subconfig +=  4 ;
+    if( test_face(mcb,  test13[mcb->config][3] ) ) mcb->subconfig +=  8 ;
+    if( test_face(mcb,  test13[mcb->config][4] ) ) mcb->subconfig += 16 ;
+    if( test_face(mcb,  test13[mcb->config][5] ) ) mcb->subconfig += 32 ;
     switch( subconfig13[mcb->subconfig] )
     {
       case 0 :/* 13.1 */
-        add_triangle(mcb, tiling13_1[mcb->config], 4 , -1) ; break ;
+        add_triangle(mcb,  tiling13_1[mcb->config], 4, -1) ; break ;
 
       case 1 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][0], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][0], 6, -1) ; break ;
       case 2 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][1], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][1], 6, -1) ; break ;
       case 3 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][2], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][2], 6, -1) ; break ;
       case 4 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][3], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][3], 6, -1) ; break ;
       case 5 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][4], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][4], 6, -1) ; break ;
       case 6 :/* 13.2 */
-        add_triangle(mcb, tiling13_2[mcb->config][5], 6 , -1) ; break ;
+        add_triangle(mcb,  tiling13_2[mcb->config][5], 6, -1) ; break ;
 
       case 7 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][0], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][0], 10, v12 ) ; break ;
       case 8 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][1], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][1], 10, v12 ) ; break ;
       case 9 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][2], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][2], 10, v12 ) ; break ;
       case 10 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][3], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][3], 10, v12 ) ; break ;
       case 11 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][4], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][4], 10, v12 ) ; break ;
       case 12 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][5], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][5], 10, v12 ) ; break ;
       case 13 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][6], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][6], 10, v12 ) ; break ;
       case 14 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][7], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][7], 10, v12 ) ; break ;
       case 15 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][8], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][8], 10, v12 ) ; break ;
       case 16 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][9], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][9], 10, v12 ) ; break ;
       case 17 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][10], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][10], 10, v12 ) ; break ;
       case 18 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
-        add_triangle(mcb, tiling13_3[mcb->config][11], 10, v12 ) ; break ;
+        add_triangle(mcb,  tiling13_3[mcb->config][11], 10, v12 ) ; break ;
 
       case 19 :/* 13.4 */
         v12 = add_c_vertex(mcb) ;
@@ -708,31 +729,32 @@ void process_cube( MCB *mcb)
       case 23 :/* 13.5 */
         mcb->subconfig = 0 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][0], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][0], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][0], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][0], 10, -1) ;
         break ;
       case 24 :/* 13.5 */
         mcb->subconfig = 1 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][1], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][1], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][1], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][1], 10, -1) ;
         break ;
       case 25 :/* 13.5 */
         mcb->subconfig = 2 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][2], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][2], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][2], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][2], 10, -1) ;
         break ;
       case 26 :/* 13.5 */
         mcb->subconfig = 3 ;
         if( test_interior(mcb, test13[mcb->config][6] ) )
-          add_triangle(mcb, tiling13_5_1[mcb->config][3], 6 , -1) ;
+          add_triangle(mcb, tiling13_5_1[mcb->config][3], 6, -1) ;
         else
-          add_triangle(mcb, tiling13_5_2[mcb->config][3], 10 , -1) ;
+          add_triangle(mcb, tiling13_5_2[mcb->config][3], 10, -1) ;
         break ;
+
 
       case 27 :/* 13.3 */
         v12 = add_c_vertex(mcb) ;
@@ -772,20 +794,20 @@ void process_cube( MCB *mcb)
         add_triangle(mcb, tiling13_3_[mcb->config][11], 10, v12 ) ; break ;
 
       case 39 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][0], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][0], 6, -1) ; break ;
       case 40 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][1], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][1], 6, -1) ; break ;
       case 41 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][2], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][2], 6, -1) ; break ;
       case 42 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][3], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][3], 6, -1) ; break ;
       case 43 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][4], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][4], 6, -1) ; break ;
       case 44 :/* 13.2 */
-        add_triangle(mcb, tiling13_2_[mcb->config][5], 6 , -1) ; break ;
+        add_triangle(mcb, tiling13_2_[mcb->config][5], 6, -1) ; break ;
 
       case 45 :/* 13.1 */
-        add_triangle(mcb, tiling13_1_[mcb->config], 4 , -1) ; break ;
+        add_triangle(mcb, tiling13_1_[mcb->config], 4, -1) ; break ;
 
       default :
         printf("Marching Cubes: Impossible case 13?\n" ) ;  print_cube(mcb) ;
@@ -793,10 +815,11 @@ void process_cube( MCB *mcb)
       break ;
 
   case 14 :
-    add_triangle(mcb, tiling14[mcb->config], 4 , -1) ;
+    add_triangle(mcb, tiling14[mcb->config], 4, -1) ;
     break ;
   };
 }
+
 //_____________________________________________________________________________
 
 
@@ -807,6 +830,7 @@ void add_triangle( MCB *mcb , const char* trig, char n, int v12 )
 //-----------------------------------------------------------------------------
 {
   int   t, tv[3] ;
+//printf( "+>> %d %d %d\n", mcb->i  , mcb->j , mcb->k);
 
   for( t = 0 ; t < 3*n ; t++ )
   {
@@ -1067,312 +1091,4 @@ int add_c_vertex( MCB *mcb)
 
   return (mcb->nverts-1) ;
 }
-//_____________________________________________________________________________
-
-
-
-//_____________________________________________________________________________
-//_____________________________________________________________________________
-
-
-
-
-//_____________________________________________________________________________
-// Grid exportation
-void writeISO(MCB *mcb, const char *fn )
-//-----------------------------------------------------------------------------
-{
-  unsigned char buf[sizeof(float)] ;
-   int i, j, k;
-  FILE *fp = fopen( fn, "wb" ) ;
-
-  // header
-  * (int*) buf = mcb->size_x ;
-  fwrite(buf, sizeof(float), 1, fp);
-  * (int*) buf = mcb->size_y ;
-  fwrite(buf, sizeof(float), 1, fp);
-  * (int*) buf = mcb->size_z ;
-  fwrite(buf, sizeof(float), 1, fp);
-
-  for(  i = 0 ; i < mcb->size_x ; i++ )
-  {
-    for(  j = 0 ; j < mcb->size_y ; j++ )
-    {
-      for(  k = 0 ; k < mcb->size_z ; k++ )
-      {
-        * (float*) buf = get_data( mcb, i,j,k ) ;
-        fwrite(buf, sizeof(float), 1, fp);
-      }
-    }
-  }
-
-  fclose(fp) ;
-}
-//_____________________________________________________________________________
-
-
-
-#if 0
-/* no need here*/
-//_____________________________________________________________________________
-// PLY exportation
-typedef struct PlyFace
-{
-  unsigned char nverts;    /* number of Vertex indices in list */
-  int *verts;              /* Vertex index list */
-} PlyFace;
-
-
-PlyProperty vert_props[]  = { /* list of property information for a PlyVertex */
-  {"x", Float32, Float32, offsetof( Vertex,x ), 0, 0, 0, 0},
-  {"y", Float32, Float32, offsetof( Vertex,y ), 0, 0, 0, 0},
-  {"z", Float32, Float32, offsetof( Vertex,z ), 0, 0, 0, 0},
-  {"nx", Float32, Float32, offsetof( Vertex,nx ), 0, 0, 0, 0},
-  {"ny", Float32, Float32, offsetof( Vertex,ny ), 0, 0, 0, 0},
-  {"nz", Float32, Float32, offsetof( Vertex,nz ), 0, 0, 0, 0}
-};
-
-PlyProperty face_props[]  = { /* list of property information for a PlyFace */
-  {"vertex_indices", Int32, Int32, offsetof( PlyFace,verts ),
-    1, Uint8, Uint8, offsetof( PlyFace,nverts )},
-};
-
-void writePLY(MCB *mcb, const char *fn, int bin )
-//-----------------------------------------------------------------------------
-{
-  PlyFile    *ply;
-  FILE       *fp = fopen( fn, "w" );
-
-  int          i ;
-  PlyFace     face ;
-  int         verts[3] ;
-  char       *elem_names[]  = { "vertex", "face" };
-  printf("Marching Cubes::writePLY(%s)...", fn ) ;
-  ply = write_ply ( fp, 2, elem_names, bin? PLY_BINARY_LE : PLY_ASCII );
-
-  /* describe what properties go into the PlyVertex elements */
-  describe_element_ply ( ply, "vertex", mcb->nverts );
-  describe_property_ply ( ply, &vert_props[0] );
-  describe_property_ply ( ply, &vert_props[1] );
-  describe_property_ply ( ply, &vert_props[2] );
-  describe_property_ply ( ply, &vert_props[3] );
-  describe_property_ply ( ply, &vert_props[4] );
-  describe_property_ply ( ply, &vert_props[5] );
-
-  /* describe PlyFace properties (just list of PlyVertex indices) */
-  describe_element_ply ( ply, "face", mcb->ntrigs );
-  describe_property_ply ( ply, &face_props[0] );
-
-  header_complete_ply ( ply );
-
-  /* set up and write the PlyVertex elements */
-  put_element_setup_ply ( ply, "vertex" );
-  for ( i = 0; i < mcb->nverts; i++ )
-    put_element_ply ( ply, ( void * ) &(mcb->vertices[i]) );
-  printf("   %d vertices written\n", mcb->nverts ) ;
-
-  /* set up and write the PlyFace elements */
-  put_element_setup_ply ( ply, "face" );
-  face.nverts = 3 ;
-  face.verts  = verts ;
-  for ( i = 0; i < mcb->ntrigs; i++ )
-  {
-    face.verts[0] = mcb->triangles[i].v1 ;
-    face.verts[1] = mcb->triangles[i].v2 ;
-    face.verts[2] = mcb->triangles[i].v3 ;
-    put_element_ply ( ply, ( void * ) &face );
-  }
-  printf("   %d triangles written\n", mcb->ntrigs ) ;
-
-  close_ply ( ply );
-  free_ply ( ply );
-  fclose( fp ) ;
-}
-//_____________________________________________________________________________
-
-
-
-//_____________________________________________________________________________
-// Open Inventor / VRML 1.0 ascii exportation
-void writeIV(MCB *mcb, const char *fn )
-//-----------------------------------------------------------------------------
-{
-  FILE *fp = fopen( fn, "w" ) ;
-  int   i ;
-
-  printf("Marching Cubes::exportIV(%s)...", fn) ;
-
-  fprintf( fp, "#Inventor V2.1 ascii \n\nSeparator { \n    ShapeHints {\n        vertexOrdering  COUNTERCLOCKWISE\n        shapeType       UNKNOWN_SHAPE_TYPE\n        creaseAngle     0.0\n    }\n Coordinate3 { \n point [  \n" ) ;
-  for ( i = 0; i < mcb->nverts; i++ )
-    fprintf( fp, " %f %f %f,\n", mcb->vertices[i].x, mcb->vertices[i].y, mcb->vertices[i].z ) ;
-  printf("   %d vertices written\n", mcb->nverts ) ;
-
-  fprintf( fp, "\n ] \n} \nNormal { \nvector [ \n" ) ;
-  for ( i = 0; i < mcb->nverts; i++ )
-    fprintf( fp, " %f %f %f,\n", mcb->vertices[i].nx, mcb->vertices[i].ny, mcb->vertices[i].nz ) ;
-
-  fprintf( fp, "\n ] \n} \nIndexedFaceSet { \ncoordIndex [ \n" ) ;
-  for ( i = 0; i < mcb->ntrigs; i++ )
-    fprintf( fp, "%d, %d, %d, -1,\n", mcb->triangles[i].v1, mcb->triangles[i].v2, mcb->triangles[i].v3 ) ;
-
-  fprintf( fp, " ] \n } \n } \n" ) ;
-  fclose( fp ) ;
-  printf("   %d triangles written\n", mcb->ntrigs ) ;
-}
-//_____________________________________________________________________________
-
-#endif
-
-void write1Dmcb(MCB *mcb)
-{
-   FILE *fp = fopen( "testNodes.1D", "w" ) ;
-   int   i ;
-
-   printf("Marching Cubes: export1D(test*.1D)...") ;
-   for ( i = 0; i < mcb->nverts; i++ )
-      fprintf( fp, " %f %f %f\n", mcb->vertices[i].x, mcb->vertices[i].y, mcb->vertices[i].z ) ;
-   printf("\n   %d vertices written\n", mcb->nverts ) ;
-   fclose(fp);
-   
-   fp = fopen( "testFaces.1D", "w" ) ;
-   for ( i = 0; i < mcb->ntrigs; i++ )
-    fprintf( fp, "%d %d %d\n", mcb->triangles[i].v3, mcb->triangles[i].v2, mcb->triangles[i].v1 ) ;
-   printf("   %d triangles written\n", mcb->ntrigs ) ;
-   printf("Suggested command for viewing:\n");
-   printf("quickspec -tn 1D testNodes.1D testFaces.1D && suma -spec quick.spec\n"); 
-   fclose(fp);
-}
-
-//_____________________________________________________________________________
-// Compute data
-void compute_data( MCB mc , int obj_type)
-//-----------------------------------------------------------------------------
-{
-  float x,y,z      ;
-  float sx,sy,sz   ;
-  float tx,ty,tz , val = 0 ;
-  int i, j, k;
-  float r,R, a, b, c, d;
-  int WriteVol = debug;
-  FILE *fid = NULL;
-  
-  if (obj_type < 0 || obj_type > 9) {
-   fprintf(stderr,"Bad obj_type. Value must be between 0 and 9\n");
-   return;
-  }
-  
-  if (WriteVol) {
-   char vname[200],vnamepref[200];
-   sprintf(vnamepref,"mc_shape_%d_vol%d", obj_type, mc.size_x);
-   sprintf(vname,"%s.1D", vnamepref);
-   printf(  "Creating object %d and writing its volume to %s.\n"
-            "To view the volume, use:\n"
-            "3dUndump -ijk -dimen %d %d %d -prefix %s %s && afni %s+orig.HEAD\n "
-            , obj_type, vname, mc.size_x, mc.size_y, mc.size_z, vnamepref, vname, vnamepref);
-   fid = fopen(vname, "w");
-  }
- 
-  r = 1.85f ;
-  R = 4 ;
-
-  sx     = (float) mc.size_x / 16 ;
-  sy     = (float) mc.size_y / 16 ;
-  sz     = (float) mc.size_z / 16 ;
-  tx     = (float) mc.size_x / (2*sx) ;
-  ty     = (float) mc.size_y / (2*sy) + 1.5f ;
-  tz     = (float) mc.size_z / (2*sz) ;
-
-  for(  k = 0 ; k < mc.size_z ; k++ )
-  {
-    z = ( (float) k ) / sz  - tz ;
-
-    for(  j = 0 ; j < mc.size_y ; j++ )
-    {
-      y = ( (float) j ) / sy  - ty ;
-
-      for(  i = 0 ; i < mc.size_x ; i++ )
-      {
-        x = ( (float) i ) / sx - tx ;
-        switch(obj_type) {
-         case 0: //cushin
-            val = z*z*x*x - z*z*z*z - 2*z*x*x + 2*z*z*z + x*x - z*z - (x*x - z)*(x*x - z) - y*y*y*y - 2*x*x*y*y - y*y*z*z + 2*y*y*z + y*y;
-            break;
-         case 1: //sphere
-            val = ( (x-2)*(x-2) + (y-2)*(y-2) + (z-2)*(z-2) - 1 ) * ( (x+2)*(x+2) + (y-2)*(y-2) + (z-2)*(z-2) - 1 ) * ( (x-2)*(x-2) + (y+2)*(y+2) + (z-2)*(z-2) - 1 );
-            break;
-         case 2: // plane
-            val = x+y+z -3;
-            break;
-         case 3: // cassini
-            val = (x*x + y*y + z*z + 0.45f*0.45f)*(x*x + y*y + z*z + 0.45f*0.45f) - 16*0.45f*0.45f*(x*x + z*z) - 0.5f*0.5f;
-            break;
-         case 4: // blooby
-            val = x*x*x*x - 5*x*x+ y*y*y*y - 5*y*y + z*z*z*z - 5*z*z + 11.8;
-            break;
-         case 5: // chair
-            val = (x*x+y*y+z*z-0.95f*25)*(x*x+y*y+z*z-0.95f*25)-0.8f*((z-5)*(z-5)-2*x*x)*((z+5)*(z+5)-2*y*y);
-            break;
-         case 6: // cyclide
-            b = 2; d = 6; a = 2; c = 3;
-            val = ( x*x + y*y + z*z + b*b - d*d ) * ( x*x + y*y + z*z + b*b - d*d ) - 4 * ( ( a*x - c*d ) * ( a*x - c*d ) + b*b * y*y );
-            break;
-         case 7: // 2 torus
-            val = ( ( x*x + y*y + z*z + R*R - r*r ) * ( x*x + y*y + z*z + R*R - r*r ) - 4 * R*R * ( x*x + y*y ) ) *
-                  ( ( x*x + (y+R)*(y+R) + z*z + R*R - r*r ) * ( x*x + (y+R)*(y+R) + z*z + R*R - r*r ) - 4 * R*R * ( (y+R)*(y+R) + z*z ) ) ;
-            break;
-         case 8: // mc case
-            val =    - 26.5298*(1-x)*(1-y)*(1-z) + 81.9199*x*(1-y)*(1-z) - 100.68*x*y*(1-z) + 3.5498*(1-x)*y*(1-z)
-                     + 24.1201*(1-x)*(1-y)*  z   - 74.4702*x*(1-y)*  z   + 91.5298*x*y*  z  - 3.22998*(1-x)*y*  z ;
-            break;
-         case 9: // Drip
-            val = x*x + y*y - 0.5*( 0.995*z*z + 0.005 - z*z*z ) +0.0025;  // -0.0754+0.01, -0.0025 + 0.01, grid 40^3, [-1.5,1.5];
-            break;
-         /*case : // 
-            val = ;
-            break;
-         case : // 
-            val = ;
-            break;*/
-        }
-        set_data( &mc, val, i,j,k ) ;
-         if (WriteVol) { if (fid) fprintf(fid, "%d %d %d %f\n", i, j, k, val); }
-      }
-    }
-  }
-   if (WriteVol) {
-      fclose(fid); fid = NULL;
-   }
-}
-//_____________________________________________________________________________
-
-//_____________________________________________________________________________
-
-
-void z_compute_data( MCB mc , char *fname)
-{
-   FILE *fid=NULL;
-   float *v = NULL;
-   int cnt = 0, nv, ir, jr, kr;
-   
-   nv = mc.size_z*mc.size_y*mc.size_x;
-   v = (float *)malloc(sizeof(float)*nv);
-   fid = fopen(fname, "r");
-   if (!fid) {
-      fprintf(stderr,"Failed to open file\n");
-      exit(1);
-   }
-   for (cnt=0; cnt < nv; ++cnt) {
-      fscanf(fid, "%d %d %d %f\n", &ir, &jr, &kr, &(v[cnt]));
-      #if 0
-         fprintf(stderr, "%d %d %d %f\n", ir, jr, kr, (v[cnt]));
-      #endif
-      set_data( &mc, v[cnt], ir, jr, kr); 
-   }
-  
-  
-    
-  fclose(fid); fid = NULL; 
-  free(v); v = NULL;
-}
-
 

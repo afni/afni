@@ -80,7 +80,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "L1_Fit & Dtr" ,
                                 "Control L1_Fit and L1_Dtr Functions" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , L1F_main ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)L1F_main ) ;
 
    global_plint = plint ;  /* make global copy */
 

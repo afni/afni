@@ -666,7 +666,7 @@ class AP_Subject(object):
       return ostr + rstr
 
    def script_ap_apply_svar_1(self, vname, vtype=None, defval=None, oname=None):
-      """make one AP line based on varable name and type
+      """make one AP line based on variable name and type
            vtype:  if given, check type
            defval: if given, only apply if differs
            oname:  if given, actual afni_proc.py option name
@@ -1158,7 +1158,7 @@ class AP_Subject(object):
       return comment + '\n'.join(clist) + '\n\n'
 
    def subj_str_replace(self, instr):
-      """if appropraite, replace occuraces of sid with ${subj}
+      """if appropriate, replace occuraces of sid with ${subj}
          otherwise, just return input
          (and replace gid with ${gname})
       """
@@ -1574,7 +1574,7 @@ def update_svars_from_special(vname, svars, check_sort=0):
       if nf < 2: return 0       # nothing to do
 
       if check_sort: # try to sort by implied index list
-         dir, snames, gstr = UTIL.flist_to_table_pieces(fnames)
+         dname, snames, gstr = UTIL.flist_to_table_pieces(fnames)
          indlist = UTIL.list_minus_glob_form(snames)
          apply = 0
          try:
@@ -1596,7 +1596,7 @@ def update_svars_from_special(vname, svars, check_sort=0):
       if nf < 2: return 0               # nothing to do
 
       # stim file names are more complex...
-      dir, snames, gstr = UTIL.flist_to_table_pieces(fnames)
+      dname, snames, gstr = UTIL.flist_to_table_pieces(fnames)
       stable = UTIL.parse_as_stim_list(snames)
 
       if len(stable) != nf: return 0    # nothing to do
@@ -1697,7 +1697,7 @@ helpstr_howto_program = """
 
       uber_align_test.py -help_howto_program
 
-   Note the secion under "Writing the GUI":
+   Note the section under "Writing the GUI":
 
       The current 'todo' list when adding a new variable interface to the GUI:
 """

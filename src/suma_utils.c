@@ -87,7 +87,7 @@ SUMA_MX_VEC *SUMA_NewMxNullVec(SUMA_VARTYPE tp, int N_dims, int *dims, byte firs
 
    mxv->tp = tp;
 
-   /* mutlipliers for first_dim_first */
+   /* multipliers for first_dim_first */
    mxv->fdfm[0] = mxv->dims[0];
    for (i=1; i<N_dims-1; ++i) {
       mxv->fdfm[i] = mxv->fdfm[i-1]*mxv->dims[i];
@@ -764,7 +764,7 @@ int SUMA_ParseInput_basics_eng (char *argv[], int argc)
 
    kar = 1;
    brk = 0;
-   while (kar < argc) { /* loop accross tracing and debugging
+   while (kar < argc) { /* loop across tracing and debugging
                            command line options */
       if ((strcmp(argv[kar], "-memdbg") == 0) ||
           (strcmp(argv[kar], "-yesmall") == 0) ) {
@@ -3019,7 +3019,7 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
    a null character is placed at the end.
 
    - For this function, the formatted length of newstring should not be > than MAX_APPEND-1
-   If that occurs, the string will be trunctated and no one should get hurt
+   If that occurs, the string will be truncated and no one should get hurt
 
    NOTE: DO NOT SEND NULL pointers in the variable argument parts or crashes will occur on SUN
    Such NULL pointers do not result in null vararg_ptr and cause a seg fault in vsnprintf
@@ -3077,11 +3077,11 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
                                        " ***Error reported by  vsnprintf"));
       }
       if (nout >= MAX_APPEND) {
-         SUMA_LH("String trunctated by vsnprintf");
+         SUMA_LH("String truncated by vsnprintf");
          SUMA_StringAppend(SS,sbuf);
          SUMA_RETURN(SUMA_StringAppend(SS,
                                        "\nWARNING: "
-                                       "***Previous string trunctated because "
+                                       "***Previous string truncated because "
                                        "of its length. ***\n"));
       }
       SUMA_LH("Calling StringAppend on %s", sbuf);
@@ -3151,7 +3151,7 @@ static ENV_SPEC envlist[] = {
       "SUMA_AbsThreshold",
       "YES" },
    {  "Threshold scale precision. 2 is the minimum allowed. \n"
-      " This value might be overriden in SUMA.",
+      " This value might be overridden in SUMA.",
       "SUMA_ThresholdScalePower",
       "2" },
    {  "Center of Rotation is based on nodes used in the mesh and not \n"
@@ -3164,7 +3164,7 @@ static ENV_SPEC envlist[] = {
    {  "Warn if 1D file looks like it needs a transpose",
       "SUMA_1D_Transpose_Warn",
       "YES" },
-   {  "Adjust roation and translation factor of mouse with changes \n"
+   {  "Adjust rotation and translation factor of mouse with changes \n"
       " in zoom levels ",
       "SUMA_AdjustMouseMotionWithZoom",
       "YES" },
@@ -3583,7 +3583,7 @@ int SUMA_EnvEquals(char *env, char *sval, byte ci, char *sep)
    for (i=0; i<sar->num; ++i) {
          if (LocalHead)
       fprintf(SUMA_STDERR,
-              "%s: Comapring %s to %s\n", FuncName, sval, sar->str[i]);
+              "%s: Comparing %s to %s\n", FuncName, sval, sar->str[i]);
       if ( (ci && !(strcasecmp(sval,sar->str[i]))) ||
            !strcmp(sval, sar->str[i]) ) {
          sar = SUMA_free_NI_str_array(sar);

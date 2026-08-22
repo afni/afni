@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -315,7 +315,7 @@ void BUCK_read_opts( int argc , char * argv[] )
          if (strlen(argv[nopt])-ii > THD_MAX_NAME-1) {
             ERROR_exit( "Too long a sub-brick selection for '%s'\n"
                         "Maximum limit is %d, have %d\n"
-                  "Consider using '[1dcat FF.1D]' or '[count ...]' methods\n"
+                  "Consider using '[1dcat FF.1D]' or '[count_afni ...]' methods\n"
                   "for sub-brick selection. See 3dTcat -help for details.\n",
                         argv[nopt], THD_MAX_NAME-1, strlen(argv[nopt])-ii);
          }
@@ -636,7 +636,7 @@ int main( int argc , char * argv[] )
      angle = dset_obliquity_angle_diff(new_dset, DSUB(iv), OBLIQ_ANGLE_THRESH);
      if (angle > 0.0) {
        WARNING_message(
-          "dataset %s has an obliquity difference of %f degress with %s\n",
+          "dataset %s has an obliquity difference of %f degrees with %s\n",
           new_dset ,
           angle, DSUB(iv) );
      }

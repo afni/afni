@@ -17,7 +17,7 @@ void SUMA_CreateIcosahedron_usage ()
 "        The area a = 5 sqrt(3) l^2 \n"
 "        The volume v = 5/12 (3+sqrt(5)) l^3 \n"
 "\n"
-"   -rd recDepth: recursive (binary) tesselation depth for icosahedron \n"
+"   -rd recDepth: recursive (binary) tessellation depth for icosahedron \n"
 "       (optional, default:3) \n"
 "       (recommended to approximate number of nodes in brain: 6\n"
 "       let rd2 = 2 * recDepth\n"
@@ -25,8 +25,8 @@ void SUMA_CreateIcosahedron_usage ()
 "       Ntri  = 20 * 2^rd2\n"
 "       Nedge = 30 * 2^rd2\n"
 "\n"
-"   -ld linDepth: number of edge divides for linear icosahedron tesselation\n"
-"       (optional, default uses binary tesselation).\n"
+"   -ld linDepth: number of edge divides for linear icosahedron tessellation\n"
+"       (optional, default uses binary tessellation).\n"
 "       Nvert = 2 + 10 * linDepth^2\n"
 "       Ntri  = 20 * linDepth^2\n"
 "       Nedge = 30 * linDepth^2\n"
@@ -109,7 +109,7 @@ int main (int argc, char *argv[])
    ToSphere = 0;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command line options */
+   while (kar < argc) { /* loop across command line options */
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_CreateIcosahedron_usage ();
          exit (1);
@@ -226,7 +226,7 @@ int main (int argc, char *argv[])
          kar ++;
       }
       
-   }/* loop accross command ine options */
+   }/* loop across command line options */
    histnote = SUMA_HistString (NULL, argc, argv, NULL);
    
    if (LocalHead) 

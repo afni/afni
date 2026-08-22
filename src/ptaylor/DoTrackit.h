@@ -10,7 +10,7 @@
 #define CONV (PI/180)
 #define PIo2 (PI/2)
 #define TWOPI (PI*2)
-#define EPS_MASK (0.001) // theshold for masked data to be ignored
+#define EPS_MASK (0.001) // threshold for masked data to be ignored
 #define EPS_L (0.00001)
 #define MINEIG (0) // minimum allowed eigenvalue
 

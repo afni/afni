@@ -11,6 +11,7 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs,
 int SUMA_VisibleMDOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *MDO_IDs);
 int SUMA_Selectable_ADOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs);
 int SUMA_is_iDO_Selectable(int dov_id);
+int SUMA_ADOs_WithUniqueSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs);
 int SUMA_ADOs_WithSurfCont (SUMA_DO *dov, int N_dov, int *dov_IDs);
 int SUMA_NextSO (SUMA_DO *dov, int n_dov, char *idcode, 
                  SUMA_SurfaceObject *SOnxt);

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -851,7 +851,7 @@ void MRG_Syntax(void)
     "  -gsmax     = Combine datasets by taking max signed intensity\n"
     "                 (e.g., -7 and 2 combine to -7)\n"
     "  -gcount    = Combine datasets by counting number of 'hits' in\n"
-    "                  each voxel (see below for defintion of 'hit')\n"
+    "                  each voxel (see below for definition of 'hit')\n"
     "  -gorder    = Combine datasets in order of input:\n"
     "                * If a voxel is nonzero in dataset #1, then\n"
     "                    that value goes into the voxel.\n"

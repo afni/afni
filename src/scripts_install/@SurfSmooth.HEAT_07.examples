@@ -1,4 +1,5 @@
-#!/bin/tcsh -fe 
+#!/usr/bin/env tcsh
+
 if ("$1" == "-h" || "$1" == "-help") goto HELP
 
 
@@ -9,7 +10,8 @@ else
    set pt = $1
 endif
 
-if ("$pt:t" != "suma_demo" || ("$pt:t" == "" && "$pt:h:t" == "suma_demo")) then
+set ppt = `dirname $pt`
+if ("$pt:t" != "suma_demo" || ("$pt:t" == "" && "$ppt:t" == "suma_demo")) then
    echo "path $pt does not point to suma_demo"
    echo "If you don't have suma_demo directory, install it"
    echo "by following the commands specified in `basename $0` -help"
@@ -45,6 +47,10 @@ set echo
                   -grid_parent ${pt}/${ipref}.DEL+orig.BRIK   \
                   -map_func    ave  \
                   -out_niml ${ipref}.DEL.niml.dset
+if ( $status ) then
+   goto BEND
+endif
+
 unset echo
 
    set l = `prompt_user -pause "\
@@ -64,6 +70,10 @@ set echo
                   -grid_parent ${pt}/${ipref}+orig.BRIK   \
                   -map_func    ave  \
                   -out_niml ${ipref}.niml.dset
+if ( $status ) then
+   goto BEND
+endif
+
 unset echo
                  
 
@@ -132,7 +142,11 @@ SurfSmooth     -met HEAT_07   \
                -detrend_master   \
                -output ${prefout}   \
                -target_fwhm 7 | tee ${prefout}.log
+if ( $status ) then
+   goto BEND
+endif
 unset echo
+
 set avelist = ($avelist ${prefout}.niml.dset )
     
    set l = `prompt_user -pause "\
@@ -214,6 +228,9 @@ foreach dset ($avelist)
    set pref = $dset:r:r
    echo "ConvertDset -input ${dset}'{5779}' -o_1Dpt_stdout > ${pref}_node${node}.1D"
    ConvertDset -input ${dset}'{5779}' -o_1Dpt_stdout > ${pref}_node${node}.1D
+   if ( $status ) then
+      goto BEND
+   endif
    set nl = ($nl ${pref}_node${node}.1D)
 end
 1dcat $nl | 1dplot -nopush -one -stdin &
@@ -319,7 +336,7 @@ To visualize results, you can launch suma with:\n\
 Then load datasets:\n\
    DemoSubj*.DEL_smd[1-4]*.niml.dset and *.Full.DEL.niml.dset\n\
    using SUMA's control surface interface and switch between datasets \n\
-   to view the reuslts.\n\
+   to view the results.\n\
    You probably want to turn on '1 Only' to avoid confusion.\n\
 \n\
 Or you can cut and paste the commands echoed to the screen \n\
@@ -349,7 +366,7 @@ echo '                -load_dset $ds -surf_label lh.smoothwm.asc -1_only y'
 echo '   end'
 echo ""
 echo "That will load the datasets in question for you. Scroll through them via"
-echo "The Switch Dset interace in the Surface Controller"
+echo "The Switch Dset interface in the Surface Controller"
 echo ""
 echo "For more info on automation, see @DriveSuma and @DriveAfni."
 echo "--"
@@ -377,7 +394,10 @@ STEND:
    echo ""
    echo "Stopped by user"
    goto END
-   
+
+
+BEND:
+exit 1
 
 END:
-
+exit 0

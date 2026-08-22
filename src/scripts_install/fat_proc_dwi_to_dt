@@ -1,4 +1,4 @@
-#!/bin/tcsh 
+#!/usr/bin/env tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -28,7 +28,7 @@
 #
 #set version   = "1.7";    set rev_dat   = "March 10, 2017"
 #   + fix when res struct and dwi don't have same origin to start
-#   + add QC snapshot of b0 edges overlayed on orig anat
+#   + add QC snapshot of b0 edges overlaid on orig anat
 #
 #set version   = "1.8";    set rev_dat   = "Apr 13, 2017"
 #   + alter I/O to be consistent across progs
@@ -110,7 +110,7 @@ if ( $status ) then
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
 # default location of viewer: user could modify!

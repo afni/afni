@@ -632,7 +632,7 @@ double svd_random2(long *iy) {
  **************************************************************/
 /**************************************************************
 
-   Funtions used
+   Functions used
    -------------
 
    UTILITY	dmax, dmin
@@ -2113,7 +2113,7 @@ int lanso(SMat A, long iterations, long dimensions, double endl,
    eta      orthogonality estimate of Lanczos vectors at step j
    oldeta   orthogonality estimate of Lanczos vectors at step j-1
    bet      array to hold off-diagonal of T
-   ll       number of intitial Lanczos vectors in local orthog.
+   ll       number of initial Lanczos vectors in local orthog.
               (has value of 0, 1 or 2)			
    enough   stop flag			
 
@@ -2226,7 +2226,7 @@ long lanczos_step(SMat A, long first, long last, double *wptr[],
    Description
    -----------
 
-   Funtion updates the eta recurrence
+   Function updates the eta recurrence
 
    Arguments
    ---------
@@ -2292,7 +2292,7 @@ void ortbnd(double *alf, double *eta, double *oldeta, double *bet, long step,
 
    (input)
    n        dimension of the eigenproblem for matrix B		
-   ll       number of intitial Lanczos vectors in local orthog.
+   ll       number of initial Lanczos vectors in local orthog.
    r        residual vector to become next Lanczos vector
    q        current Lanczos vector			
    ra       previous Lanczos vector

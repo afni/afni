@@ -834,7 +834,7 @@ void THD_vectim_quantile( MRI_vectim *mrv , float *vec , float *dp )
 /*---------------------------------------------------------------------*/
 /* 04 May 2012: Distances. */
 /* Special parameters:
-   abs: 0 --> Euclidian distance
+   abs: 0 --> Euclidean distance
         1 --> City Block distance
    xform: String flags for transforming distance.
             If string contains "n_scale", scale distance by number
@@ -1067,10 +1067,10 @@ int bsearch_int( int tt , int nar , int *ar )
 
    targ = tt ; ii = 0 ; jj = nar-1 ;      /* setup */
 
-        if( targ <  ar[0]  ) return -1 ;  /* not found */
+   if     ( targ <  ar[0]  ) return -1 ;  /* not found */
    else if( targ == ar[0]  ) return  0 ;  /* at start! */
 
-        if( targ >  ar[jj] ) return -1 ;  /* not found */
+   if     ( targ >  ar[jj] ) return -1 ;  /* not found */
    else if( targ == ar[jj] ) return jj ;  /* at end!   */
 
    /* at the start of this loop, we've already checked
@@ -1129,6 +1129,7 @@ ENTRY("THD_vectim_to_dset") ;
        THD_insert_series( mrv->ivec[kk] , dset ,
                           nvals , MRI_float , var , 0 ) ;
      }
+     free(var) ; /* oops [12 Jul 2024] */
    }
 
    EXRETURN ;
@@ -1346,9 +1347,18 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      for( ii=1 ; ii < nvals && vpt[ii] == vz ; ii++ ) ; /*nada*/
      if( ii == nvals ) nbad++ ;
    }
-   if( nbad > 0 && nvals > 1 )
-     WARNING_message("%s :: %d vector%s constant",
+   if( nbad > 0 && nvals > 1 ){
+     /* 16 Dec 2025: be quieter about warnings, with some
+        cases moved to "just" info msgs. We start warns-> info for
+        3dTproject usage, but might expand further.
+     */
+     if (strcmp(fname,"3dTproject input data") == 0)
+       INFO_message("%s :: %d vector%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+     else
+       WARNING_message("%s :: %d vector%s constant",
+                     fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+   }
 
    /* scan each time point for constancy */
 
@@ -1359,9 +1369,15 @@ void THD_check_vectim( MRI_vectim *mv , char *fname )
      }
      if( jj == nvec ) nbad++ ;
    }
-   if( nbad > 0 && nvec > 1 )
-     WARNING_message("%s :: %d volume%s constant",
+   if( nbad > 0 && nvec > 1 ){
+     /* 5 Jan 2026: less warns (3dTproject now, may expand later) */
+     if (strcmp(fname,"3dTproject input data") == 0)
+       INFO_message("%s :: %d volume%s constant",
                      fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+     else
+       WARNING_message("%s :: %d volume%s constant",
+                     fname , nbad , (nbad==1) ? " is" : "s are" ) ;
+   }
    return ;
 }
 

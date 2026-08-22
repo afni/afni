@@ -98,12 +98,12 @@ PLUGIN_interface* PLUGIN_init( int ncall )
   if( ALLOW_realtime ) {
     plint = PLUTO_new_interface("RT 3dsvm",
         "Set Real-Time Options for 3dsvm - An AFNI SVM-Light Plugin",
-        help_contribution_string, PLUGIN_CALL_VIA_MENU, ASL_main);
+        help_contribution_string, PLUGIN_CALL_VIA_MENU, (cptr_func *)ASL_main);
     PLUTO_add_hint( plint , "Perform real-time SVM analysis" );
   }
   else {
     plint = PLUTO_new_interface("3dsvm", "3dsvm - An AFNI SVM Light Plugin",
-    help_contribution_string, PLUGIN_CALL_VIA_MENU, ASL_main);
+    help_contribution_string, PLUGIN_CALL_VIA_MENU, (cptr_func *)ASL_main);
     PLUTO_add_hint( plint , "Perform SVM analysis");
   }
 
@@ -1185,7 +1185,9 @@ void svm_rt_callback(void *junk)
 
           /* -- extract last sub-brik that was sent to afni
                 and calculate dot product with bucket (if available) -- */
+
           for( iw=0; iw<GLOBAL_svm_vars.n_wvec; iw++ ) {
+            rt_dist[iw] = 0.0f;
           }
 
           if( rt_datum == MRI_short ) 
@@ -1385,7 +1387,7 @@ void svm_rt_callback(void *junk)
       else {
         /* should never get here */
         snprintf(rt_errorString, LONG_STRING, 
-            "What happend?! Real-time train type is unknown!");
+            "What happened?! Real-time train type is unknown!");
         fprintf(stderr, "CB: 3dsvm (RT_FINISHED, RT_TRAIN): ERROR: %s\n", rt_errorString);
         snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
         PLUTO_popup_transient( plint , err);
@@ -1455,12 +1457,12 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
   GLOBAL_svm_vars.bucket_predict = 0;
 
   /* Cameron cradock to let us now if initializations from the BEGIN
-     phase of the callback have occured */
+     phase of the callback have occurred */
   GLOBAL_svm_vars.initialized = 0;
  
   /* --- setting global afni callback function to be invoked as
   * svm_rt_callback(void *junk) - junk will be NULL --- */
-  GLOBAL_library.realtime_callback = svm_rt_callback;
+  GLOBAL_library.realtime_callback = (gen_func *)svm_rt_callback;
 
   /* --- allocate and initialize myargv, myargc in GLOBAL_svm_vars  */
   /* afni's real-time callback functionality is not set up to pass
@@ -1522,7 +1524,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
         /* first lets open the dataset */
         if(( bucket = THD_open_dataset( options->modelWeightFile )) == NULL )
         {
-            snprintf( errorString, LONG_STRING, "Could not open bucket datset: %s!",
+            snprintf( errorString, LONG_STRING, "Could not open bucket dataset: %s!",
                        options->modelWeightFile );
             free2c( GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc );
             return 1;

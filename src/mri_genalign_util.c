@@ -410,8 +410,8 @@ ENTRY("GA_interp_varp1") ;
 
 /*============================================================================*/
 /* Interpolation with weighted (tapered) sinc in 3D.
-   Funcion GA_interp_wsinc5s() uses a spherical mask (really slow).
-   Funcion GA_interp_wsinc5p() uses a cubical mask (pretty slow).
+   Function GA_interp_wsinc5s() uses a spherical mask (really slow).
+   Function GA_interp_wsinc5p() uses a cubical mask (pretty slow).
    Function setup_wsinc5() allows control via environment variables (once):
      AFNI_WSINC5_TAPERCUT  = between 0 and 0.8, sets start point for tapering
                              (0 = most tapering, 0.8 = least tapering)

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -15,7 +15,7 @@ extern SUMA_Boolean SUMA_Register_Widget_Help(Widget w, int type, char *name,
 #ifdef  USE_QQQQ
 /*--------------------------------------------------------------------*/
 
-static void AFNI_qqqq_CB( Widget w , XtPointer cd , XtPointer cbd )
+static void AFNI_qqqq_CB( Widget w, XtPointer cd , XtPointer cbd )
 {
    Three_D_View *im3d = (Three_D_View *)cd ;
 
@@ -362,6 +362,7 @@ ENTRY("AFNI_make_widgets") ;
    vwid->parent = im3d ;
 
    vwid->butx = vwid->buty = 9 ; /* 17 May 2005 */
+   vwid->top_form_height   = 0 ;
 
 #ifdef USING_LESSTIF
    /* In Lesstif, using form spacing, shifts the
@@ -395,7 +396,19 @@ STATUS("creating top_form") ;
                               NULL, s); s = NULL; /* Do not free s */
    vwid->file_dialog = NULL ; /* Mar 1997 */
 
-   /* create pixmaps, if desired */
+   /* handler for change of top_form shape [Dec 2025] */
+
+   if( needsX11Redraw() ){
+     XtInsertEventHandler( vwid->top_form ,      /* handle events in top_form */
+                           StructureNotifyMask , /* resize/Configure events */
+                           FALSE ,               /* nonmaskable events? */
+                           AFNI_vwidtopform_EV , /* handler */
+                           (XtPointer) im3d ,    /* client data */
+                           XtListTail            /* last in queue */
+                         ) ;
+   }
+
+   /*--------- create pixmaps, if desired ---------*/
 
 #if defined(WANT_LOGO_BITMAP) || defined(WANT_AFNI_BITMAP)
    {  Pixel bg_pix=0  , fg_pix  ;  /* colors: from control window */
@@ -623,7 +636,7 @@ STATUS("WANT_AFNI_BITMAP") ;
 
 #endif  /* WANT_AFNI_BITMAP */
    }
-#endif  /* if WANT any of the BITMAPs */
+#endif  /*--------- if WANT any of the BITMAPs ---------*/
 
    if( afni16_pixmap[num_entry-1] != XmUNSPECIFIED_PIXMAP )
      XtVaSetValues( vwid->top_form , XmNbackgroundPixmap,afni16_pixmap[num_entry-1] , NULL ) ;
@@ -1017,7 +1030,8 @@ STATUS("making imag->rowcol") ;
             NULL ) ;
       XtAddCallback( imag->pop_talto_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
-      if( TT_retrieve_atlas_dset("TT_Daemon",0) ){
+//      if( TT_retrieve_atlas_dset("TT_Daemon",0) ){
+      if( TT_retrieve_atlas_dset(Current_Atlas_Default_Name(),0) ) {
          imag->pop_whereami_pb =        /* 10 Jul 2001 */
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -1046,8 +1060,9 @@ STATUS("making imag->rowcol") ;
         if( first ){
           first = 0 ;
           fprintf(stderr,
-           "\n++ WARNING: Can't find TTatlas+tlrc or TTatlas.nii.gz dataset for 'whereami'!\n"
-             "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n" ) ;
+        "\n++ WARNING: Can't find default atlas (%s) dataset for 'whereami_afni'!\n"
+        "++--------- See https://afni.nimh.nih.gov/pub/dist/data/\n",
+        Current_Atlas_Default_Name() ) ;
         }
       }
       imag->pop_whereami_twin = NULL ;
@@ -1313,9 +1328,9 @@ STATUS("making imag->crosshair_av") ;
                           ii ,                        /* initial selection */
                           MCW_AV_readtext ,           /* ignored but needed */
                           0 ,                         /* ditto */
-                          AFNI_crosshair_visible_CB , /* callback when changed */
+              (gen_func *)AFNI_crosshair_visible_CB , /* CB  when changed */
                           (XtPointer) im3d ,          /* data for above */
-                          MCW_av_substring_CB ,       /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,       /* text creation routine*/
                           AFNI_crosshair_av_label     /* data for above */
                         ) ;
 
@@ -1371,11 +1386,12 @@ STATUS("making imag->crosshair_color_av") ;
                            im3d->vinfo->crosshair_ovcolor ,/* init value */
                            MCW_AV_readtext ,               /* readonly text */
                            0 ,                             /* 0 decimal shift */
-                           AFNI_crosshair_color_CB ,       /* click routine */
+               (gen_func *)AFNI_crosshair_color_CB ,       /* click routine */
                            (XtPointer) im3d ,              /* data for above */
-                           MCW_DC_ovcolor_text ,           /* text routine */
+               (str_func *)MCW_DC_ovcolor_text ,           /* text routine */
                            (XtPointer) im3d->dc            /* data for text */
                          ) ;
+
 
       (void) MCW_DC_ovcolor_text( imag->crosshair_color_av ,
                                   im3d->dc ) ;    /* set color now! */
@@ -1387,7 +1403,7 @@ STATUS("making imag->crosshair_color_av") ;
       imag->crosshair_color_av =
          new_MCW_colormenu( imag->crosshair_rowcol , "Color " , im3d->dc ,
                             1 , last_color , im3d->vinfo->crosshair_ovcolor ,
-                            AFNI_crosshair_color_CB , (XtPointer) im3d ) ;
+                (gen_func *)AFNI_crosshair_color_CB , (XtPointer) im3d ) ;
    }
 
    imag->crosshair_color_av->parent     = (XtPointer) im3d ;
@@ -1430,7 +1446,7 @@ STATUS("making imag->crosshair_gap_av") ;
                         im3d->vinfo->crosshair_gap , /* init value */
                         MCW_AV_editext ,             /* input/output text */
                         0 ,                          /* 0 decimal shift */
-                        AFNI_crosshair_gap_CB ,      /* click routine */
+            (gen_func *)AFNI_crosshair_gap_CB ,      /* click routine */
                         (XtPointer) im3d ,           /* data */
                         NULL , NULL
                       ) ;
@@ -1489,7 +1505,7 @@ STATUS("making imag->time_index_av") ;
                         im3d->vinfo->time_index ,    /* init value */
                         MCW_AV_editext ,             /* input/output text */
                         0 ,                          /* 0 decimal shift */
-                        AFNI_time_index_CB ,         /* click routine */
+            (gen_func *)AFNI_time_index_CB ,         /* click routine */
                         (XtPointer) im3d ,           /* data */
                         NULL , NULL
                       ) ;
@@ -2588,9 +2604,9 @@ STATUS("making marks->rowcol") ;
             marks->ov_pcolor ,      /* init value */
             MCW_AV_readtext ,       /* readonly text display */
             0 ,                     /* 0 decimal shift */
-            AFNI_marks_disp_av_CB , /* click routine */
+(gen_func *)AFNI_marks_disp_av_CB , /* click routine */
             (XtPointer) im3d ,      /* data */
-            MCW_DC_ovcolor_text ,   /* text routine */
+(str_func *)MCW_DC_ovcolor_text ,   /* text routine */
             (XtPointer) im3d->dc    /* data */
           ) ;
       marks->disp_pcolor_av->fastdelay  = 333 ;  /* slow down repeat action */
@@ -2601,7 +2617,7 @@ STATUS("making marks->rowcol") ;
       marks->disp_pcolor_av =
          new_MCW_colormenu( marks->disp_rowcol , "Pcolor" , im3d->dc ,
                             0 , last_color , marks->ov_pcolor ,
-                            AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
+                (gen_func *)AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
    }
 
    marks->disp_pcolor_av->parent = (XtPointer) im3d ;
@@ -2626,9 +2642,9 @@ STATUS("making marks->rowcol") ;
             marks->ov_scolor ,      /* init value */
             MCW_AV_readtext ,       /* readonly text display */
             0 ,                     /* 0 decimal shift */
-            AFNI_marks_disp_av_CB , /* click routine */
+(gen_func *)AFNI_marks_disp_av_CB , /* click routine */
             (XtPointer) im3d ,      /* data */
-            MCW_DC_ovcolor_text ,   /* text routine */
+(str_func *)MCW_DC_ovcolor_text ,   /* text routine */
             (XtPointer) im3d->dc    /* data */
           ) ;
       marks->disp_scolor_av->fastdelay  = 333 ;  /* slow down repeat action */
@@ -2639,7 +2655,7 @@ STATUS("making marks->rowcol") ;
       marks->disp_scolor_av =
          new_MCW_colormenu( marks->disp_rowcol , "Scolor" , im3d->dc ,
                             0 , last_color , marks->ov_scolor ,
-                            AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
+                (gen_func *)AFNI_marks_disp_av_CB , (XtPointer) im3d ) ;
    }
 
    marks->disp_scolor_av->parent = (XtPointer) im3d ;
@@ -2667,7 +2683,7 @@ STATUS("making marks->rowcol") ;
          marks->ov_size ,        /* init value */
          MCW_AV_editext ,        /* input/output text display */
          0 ,                     /* 0 decimal shift */
-         AFNI_marks_disp_av_CB , /* routine to call after click */
+(gen_func *)AFNI_marks_disp_av_CB , /* routine to call after click */
          (XtPointer) im3d ,      /* data to pass */
          NULL ,                  /* routine to call for text display */
          NULL                    /* data for text display routine */
@@ -2698,7 +2714,7 @@ STATUS("making marks->rowcol") ;
          marks->ov_gap ,         /* init value */
          MCW_AV_editext ,        /* input/output text display */
          0 ,                     /* 0 decimal shift */
-         AFNI_marks_disp_av_CB , /* routine to call after click */
+(gen_func *)AFNI_marks_disp_av_CB , /* routine to call after click */
          (XtPointer) im3d ,      /* data to pass */
          NULL ,                  /* routine to call for text display */
          NULL                    /* data for text display routine */
@@ -3178,9 +3194,9 @@ STATUS("making func->rowcol") ;
            im3d->vinfo->thr_sign , /* init value */
            MCW_AV_editext ,        /* input/output text display */
            0 ,                     /* 0 decimal shift */
-           AFNI_func_thrsign_CB ,  /* routine to call after click */
+(gen_func *)AFNI_func_thrsign_CB , /* routine to call after click */
            (XtPointer) im3d ,      /* data to pass */
-           MCW_av_substring_CB ,   /* text creation routine */
+(str_func *)MCW_av_substring_CB ,  /* text creation routine */
            thr_sign_label          /* data for above */
         ) ;
       MCW_reghint_children( func->thr_sign_av->wrowcol ,
@@ -3203,9 +3219,9 @@ STATUS("making func->rowcol") ;
            mm             ,             /* init value */
            MCW_AV_editext ,             /* input/output text display */
            0 ,                          /* 0 decimal shift */
-           AFNI_func_alpha_CB ,         /* routine to call after click */
+(gen_func *)AFNI_func_alpha_CB ,        /* routine to call after click */
            (XtPointer) im3d ,           /* data to pass (viewer) */
-           MCW_av_substring_CB ,        /* text creation routine */
+(str_func *)MCW_av_substring_CB ,       /* text creation routine */
            thr_alpha_label              /* data for above */
         ) ;
       MCW_reghint_children( func->thr_alpha_av->wrowcol ,
@@ -3228,9 +3244,9 @@ STATUS("making func->rowcol") ;
            0                          , /* init value */
            MCW_AV_editext ,             /* input/output text display */
            0 ,                          /* 0 decimal shift */
-           AFNI_func_floor_CB ,         /* routine to call after click */
+(gen_func *)AFNI_func_floor_CB ,        /* routine to call after click */
            (XtPointer)im3d ,            /* data to pass */
-           MCW_av_substring_CB ,        /* text creation routine */
+(str_func *)MCW_av_substring_CB ,       /* text creation routine */
            thr_floor_label              /* data for above */
         ) ;
       MCW_reghint_children( func->thr_floor_av->wrowcol ,
@@ -3415,8 +3431,8 @@ STATUS("making func->rowcol") ;
                                         AVOPT_STYLE ,
                                         0,THR_top_expon,0 ,
                                         MCW_AV_notext , 0 ,
-                                        AFNI_thresh_top_CB , (XtPointer)im3d ,
-                                        AFNI_thresh_tlabel_CB , NULL ) ;
+                            (gen_func *)AFNI_thresh_top_CB , (XtPointer)im3d ,
+                            (str_func *)AFNI_thresh_tlabel_CB , NULL ) ;
    BBOX_set_wsubtype(NULL) ;
 
    im3d->vinfo->func_thresh_top = 1.0 ;
@@ -3693,9 +3709,9 @@ STATUS("making func->rowcol") ;
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             AFNI_palette_av_CB ,  /* callback when changed */
+                 (gen_func *)AFNI_palette_av_CB ,  /* callback when changed */
                              (XtPointer)im3d ,     /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
 
@@ -3707,7 +3723,7 @@ STATUS("making func->rowcol") ;
                            PALTAB_NUM(GPT)-1 ,     /* new maxval */
                            0 ,                     /* new inival */
                            0 ,                     /* new decim? */
-                           AFNI_palette_label_CB , /* text routine */
+               (str_func *)AFNI_palette_label_CB , /* text routine */
                            NULL                    /* text data */
                         ) ;
    } else {
@@ -3729,9 +3745,9 @@ STATUS("making func->rowcol") ;
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             AFNI_palette_tran_CB, /* callback when changed */
+                 (gen_func *)AFNI_palette_tran_CB, /* callback when changed */
                              (XtPointer)im3d ,     /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
 
@@ -3756,9 +3772,9 @@ STATUS("making func->rowcol") ;
                              0 ,                   /* initial selection */
                              MCW_AV_readtext ,     /* ignored but needed */
                              0 ,                   /* ditto */
-                             AFNI_palette_tran_CB, /* callback when changed */
+                 (gen_func *)AFNI_palette_tran_CB, /* callback when changed */
                              (XtPointer)im3d ,     /* data for above */
-                             MCW_av_substring_CB , /* text creation routine */
+                 (str_func *)MCW_av_substring_CB , /* text creation routine */
                              AFNI_dummy_av_label   /* data for above */
                            ) ;
 
@@ -3787,7 +3803,7 @@ STATUS("making func->rowcol") ;
                           npane ,                     /* number panes */
                           sel_height / npane ,        /* init pane height */
                           pmin , pmax ,               /* value range */
-                          AFNI_inten_pbar_CB ,        /* callback */
+              (gen_func *)AFNI_inten_pbar_CB ,        /* callback */
                           (XtPointer)im3d ,           /* callback data */
                           AFNI_yesenv("AFNI_PBAR_THREE") ) ; /* bigthree mode? */
 
@@ -3859,8 +3875,8 @@ STATUS("making func->rowcol") ;
                         NPANE_MIN , NPANE_MAX+1 ,
                         (func->inten_pbar->bigmode) ? NPANE_MAX+1 : npane ,
                         MCW_AV_notext , 0 ,
-                        AFNI_inten_av_CB , func->inten_pbar ,
-                        AFNI_inten_av_texter,NULL ) ;
+            (gen_func *)AFNI_inten_av_CB , func->inten_pbar ,
+            (str_func *)AFNI_inten_av_texter,NULL ) ;
 
    if( AVOPT_STYLE == MCW_AV_optmenu )
       AVOPT_columnize( func->inten_av , 2 ) ;
@@ -3964,9 +3980,9 @@ STATUS("making func->rowcol") ;
                                0 ,                        /* initial selection */
                                MCW_AV_readtext ,          /* ignored but needed */
                                0 ,                        /* ditto */
-                               AFNI_vedit_CB  ,           /* callback when changed */
+                   (gen_func *)AFNI_vedit_CB  ,           /* callback when changed */
                                (XtPointer)im3d ,          /* data for above */
-                               MCW_av_substring_CB ,      /* text creation routine */
+                   (str_func *)MCW_av_substring_CB ,      /* text creation routine */
                                options_vedit_label        /* data for above */
                              ) ;
      for( ibut=0 ; ibut < nopt ; ibut++ )
@@ -4351,9 +4367,9 @@ STATUS("making func->rowcol") ;
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
-                          AFNI_bucket_CB ,        /* callback when changed */
+              (gen_func *)AFNI_bucket_CB ,        /* callback when changed */
                           (XtPointer)im3d ,       /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
@@ -4362,7 +4378,7 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->anat_buck_av->wrowcol ,
                          "Use this to choose which\n"
-                         "sub-brick of the overlay\n"
+                         "sub-brick of the underlay\n"
                          "dataset to display (='ULay').\n"
                          "(The sub-brick labels are\n"
                          " assigned when the dataset\n"
@@ -4388,9 +4404,9 @@ STATUS("making func->rowcol") ;
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
-                          AFNI_bucket_CB ,        /* callback when changed */
+              (gen_func *)AFNI_bucket_CB ,        /* callback when changed */
                           (XtPointer)im3d ,       /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
@@ -4425,9 +4441,9 @@ STATUS("making func->rowcol") ;
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* ditto */
-                          AFNI_bucket_CB ,        /* callback when changed */
+              (gen_func *)AFNI_bucket_CB ,        /* callback when changed */
                           (XtPointer)im3d ,       /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           AFNI_dummy_av_label     /* data for above */
                         ) ;
 
@@ -4597,7 +4613,7 @@ STATUS("making func->rowcol") ;
          (int) (im3d->vinfo->fim_range) ,  /* init value */
          MCW_AV_editext ,                  /* input/output text display */
          0 ,                               /* decimal shift */
-         AFNI_range_av_CB ,                /* routine to call when button */
+(gen_func *)AFNI_range_av_CB ,             /* routine to call when button */
          (XtPointer) im3d ,                /* is pressed, and its data */
          NULL,NULL                         /* no special display */
       ) ;
@@ -4623,7 +4639,8 @@ STATUS("making func->rowcol") ;
                              hrc , "Rota" ,
                              MCW_AV_downup , 0,0,0 ,
                              MCW_AV_notext , 0 ,
-                             AFNI_range_rotate_av_CB , (XtPointer) func->inten_pbar ,
+                 (gen_func *)AFNI_range_rotate_av_CB ,
+                 (XtPointer) func->inten_pbar ,
                              NULL,NULL ) ;
    func->range_rotate_av->parent = (XtPointer) im3d ;
    MCW_reghelp_children( func->range_rotate_av->wrowcol ,
@@ -4709,9 +4726,10 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->fim_dset_label , "Dataset to be FIM-ed") ;
 #endif
 
-   /* 25 Jul 2001: a toggle box to show the TT Atlas */
+   /* 25 Jul 2001: a toggle box to show the Atlas regions set by
+    * AFNI_ATLAS_COLORS */
 
-   { char *see_ttatlas_label[1] = { "See TT Atlas Regions" } ;
+   { char *see_ttatlas_label[1] = { "See Atlas Regions" } ;
      func->see_ttatlas_bbox =
       new_MCW_bbox( func->options_rowcol ,
                     1 , see_ttatlas_label ,
@@ -4726,7 +4744,7 @@ STATUS("making func->rowcol") ;
 
      MCW_reghelp_children( func->see_ttatlas_bbox->wrowcol ,
                            "This button determines whether to show\n"
-                           "the Talairach-Tournoux Atlas regions,\n"
+                           "the Show Atlas regions,(set by AFNI_ATLAS_COLORS)\n"
                            "which are controlled by the 'Atlas Colors'\n"
                            "item on the image viewing window popup menu."
                          ) ;
@@ -4852,8 +4870,8 @@ STATUS("making dmode->rowcol") ;
                              LAST_RESAM_TYPE ,
                              im3d->vinfo->anat_resam_mode ,
                              MCW_AV_readtext , 0 ,
-                             AFNI_resam_av_CB , (XtPointer) im3d ,
-                             AFNI_resam_texter , NULL ) ;
+                 (gen_func *)AFNI_resam_av_CB , (XtPointer) im3d ,
+                 (str_func *)AFNI_resam_texter , NULL ) ;
 
    dmode->anat_resam_av->parent     = (XtPointer) im3d ;
    dmode->anat_resam_av->allow_wrap = 1 ;         /* wrap values */
@@ -4889,7 +4907,7 @@ STATUS("making dmode->rowcol") ;
          (int)(10*INIT_resam_vox) ,       /* init value */
          MCW_AV_editext ,                 /* input/output text display */
          1 ,                              /* decimal shift */
-         AFNI_resam_vox_av_CB ,           /* routine to call when button */
+(gen_func *)AFNI_resam_vox_av_CB ,        /* routine to call when button */
          (XtPointer) im3d ,               /* is pressed, and its data */
          NULL,NULL                        /* no special display */
       ) ;
@@ -4963,8 +4981,8 @@ STATUS("making dmode->rowcol") ;
                              LAST_RESAM_TYPE ,
                              im3d->vinfo->func_resam_mode ,
                              MCW_AV_readtext , 0 ,
-                             AFNI_resam_av_CB , (XtPointer) im3d ,
-                             AFNI_resam_texter , NULL ) ;
+                 (gen_func *)AFNI_resam_av_CB , (XtPointer) im3d ,
+                 (str_func *)AFNI_resam_texter , NULL ) ;
 
    dmode->func_resam_av->parent     = (XtPointer) im3d ;
    dmode->func_resam_av->allow_wrap = 1 ;       /* wrap values */
@@ -5005,8 +5023,8 @@ STATUS("making dmode->rowcol") ;
                              LAST_RESAM_TYPE ,
                              im3d->vinfo->thr_resam_mode ,
                              MCW_AV_readtext , 0 ,
-                             AFNI_resam_av_CB , (XtPointer) im3d ,
-                             AFNI_resam_texter , NULL ) ;
+                 (gen_func *)AFNI_resam_av_CB , (XtPointer) im3d ,
+                 (str_func *)AFNI_resam_texter , NULL ) ;
 
    dmode->thr_resam_av->parent     = (XtPointer) im3d ;
    dmode->thr_resam_av->allow_wrap = 1 ;       /* wrap values */
@@ -6215,6 +6233,28 @@ STATUS("making prog->rowcol") ;
       MCW_set_widget_bg( prog->hidden_papers_pb,"#0044aa",0) ;
       MCW_set_widget_fg( prog->hidden_papers_pb,"#ffff00") ;
 
+      /*----------*/
+
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+      /*----------*/
+
+      prog->hidden_redraw_pb =             /* 25 Dec 2025 */
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+               LABEL_ARG("*Redraw All Viewers*") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+      XtAddCallback( prog->hidden_redraw_pb , XmNactivateCallback ,
+                     AFNI_redraw_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_redraw_pb,"#882200",0) ;
+      MCW_set_widget_fg( prog->hidden_redraw_pb,"#ffffff") ;
+
 #ifdef  USE_QQQQ
       /*----------*/
       { Widget qqqb =
@@ -6305,6 +6345,52 @@ Three_D_View * AFNI_find_open_controller(void)
    return NULL ;  /* should be impossible */
 }
 
+/*------------------------------------------------------------------------*/
+/* Redraw a controller and any of its open image/graph viewers. [Dec 2025]
+ *------------------------------------------------------------------------*/
+
+void AFNI_redraw_controller( Three_D_View *im3d ){
+
+ENTRY("AFNI_redraw_controller") ;
+
+   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   /* if we don't need to do this, bail */
+   if( ! needsX11Redraw() ) EXRETURN ;
+
+#if 0
+fprintf(stderr, "AFNI_redraw_controller\n") ;
+#endif
+
+   /* redraw the controller from the very tippy top level widget */
+
+   forceExpose( im3d->vwid->top_form,0 ) ;
+
+   /* force an Expose on all image viewers (top level widgets) */
+
+   if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0) ;
+   if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0) ;
+   if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0) ;
+
+   /* graph viewers */
+
+#if 1
+   /* this code works well with DIRECT_DRAW in afni_graph.c */
+   if( im3d->g123 ) forceExpose(im3d->g123->fdw_graph, 0) ;
+   if( im3d->g231 ) forceExpose(im3d->g231->fdw_graph, 0) ;
+   if( im3d->g312 ) forceExpose(im3d->g312->fdw_graph, 0) ;
+#else
+   /* this code is more brute force, but does work if forceExpose does not */
+   if( im3d->g123 ) GRA_handle_keypress( im3d->g123, " " , NULL ) ;
+   if( im3d->g231 ) GRA_handle_keypress( im3d->g231, " " , NULL ) ;
+   if( im3d->g312 ) GRA_handle_keypress( im3d->g312, " " , NULL ) ;
+#endif
+
+   /* How to redraw any plugins etc? Good question. Hope it's not needed! */
+
+   EXRETURN ;
+}
+
 /*-------------------------------------------------------------------*/
 /*! Popup a message, somewhere, anywhere [05 Mar 2002].
 ---------------------------------------------------------------------*/
@@ -6380,7 +6466,7 @@ ENTRY("new_AFNI_controller") ;
    im3d->fimdata = myXtNew( AFNI_fimmer_type ); ADDTO_KILL(im3d->kl,im3d->fimdata);
    CLEAR_FIMDATA(im3d) ;
 
-   strcpy( im3d->window_title , "GPL AFNI" ) ;
+   strcpy( im3d->window_title , "AFNI" ) ;
 
    if( shell != NULL ){
       im3d->vwid->top_shell = shell ;
@@ -7248,7 +7334,7 @@ ENTRY("AFNI_misc_button") ;
 #endif
                              " Save Layout       = Save windows layout/setup\n"
                              " Run Script        = Run an AFNI script file\n"
-                             " License Info      = GPL & Copyright notice\n"
+                             " License Info      = Copyright notice\n"
                              " Version Check     = Check AFNI version\n"
                              " Message of the Day= Fetch current AFNI MotD\n"
                              " Purge Memory      = Of dataset BRIKs\n"
@@ -7528,7 +7614,7 @@ ENTRY("AFNI_misc_button") ;
             NULL ) ;
    XtAddCallback( dmode->misc_license_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
-   MCW_register_hint( dmode->misc_license_pb,"Display GPL & Copyright Notice" );
+   MCW_register_hint( dmode->misc_license_pb,"Display Copyright Notice" );
 
    if( !ALLOW_realtime ){    /* 01 May 2000: only if not doing realtime */
       dmode->misc_vcheck_pb =
@@ -8052,6 +8138,46 @@ ENTRY("AFNI_sesslab_EV") ;
 
    }
 
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* what to do when the topform of an AFNI controller is resized [Dec 2025] */
+/*-------------------------------------------------------------------------*/
+
+void AFNI_vwidtopform_EV( Widget w , XtPointer cd ,
+                               XEvent *ev , RwcBoolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   static int busy=0 ;
+
+ENTRY("AFNI_vwidtopform_EV") ;
+
+   if( busy || !IM3D_OPEN(im3d) ) EXRETURN ;
+
+   busy = 1 ;
+
+   switch( ev->type ){
+
+     case ConfigureNotify:{
+        int hold , hnew ;
+        hold = im3d->vwid->top_form_height ;
+        MCW_widget_geom( im3d->vwid->top_form, NULL, &hnew, NULL, NULL) ;
+        if( abs(hnew-hold) > 9 ){
+          FIX_TOPFORM_HEIGHT(im3d) ;
+        } else {
+          if( needsX11Redraw() )
+             forceExpose( im3d->vwid->top_form , 0 ) ;
+        }
+        XSync( XtDisplay(im3d->vwid->top_form) , False) ;
+     }
+     break ;
+
+     /** No other event types (at this time) */
+
+   }
+
+   busy = 0 ;
    EXRETURN ;
 }
 

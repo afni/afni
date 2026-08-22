@@ -19,7 +19,7 @@ __glutWarning(char *format,...)
 
   va_start(args, format);
   fprintf(stderr, "GLUT: Warning in %s: ",
-    __glutProgramName ? __glutProgramName : "(unamed)");
+    __glutProgramName ? __glutProgramName : "(unnamed)");
   vfprintf(stderr, format, args);
   va_end(args);
   putc('\n', stderr);
@@ -32,7 +32,7 @@ __glutFatalError(char *format,...)
 
   va_start(args, format);
   fprintf(stderr, "GLUT: Fatal Error in %s: ",
-    __glutProgramName ? __glutProgramName : "(unamed)");
+    __glutProgramName ? __glutProgramName : "(unnamed)");
   vfprintf(stderr, format, args);
   va_end(args);
   putc('\n', stderr);
@@ -46,7 +46,7 @@ __glutFatalUsage(char *format,...)
 
   va_start(args, format);
   fprintf(stderr, "GLUT: Fatal API Usage in %s: ",
-    __glutProgramName ? __glutProgramName : "(unamed)");
+    __glutProgramName ? __glutProgramName : "(unnamed)");
   vfprintf(stderr, format, args);
   va_end(args);
   putc('\n', stderr);

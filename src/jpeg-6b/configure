@@ -623,7 +623,7 @@ cross_compiling=$ac_cv_prog_cc_cross
 cat > conftest.$ac_ext <<EOF
 #line 625 "configure"
 #include "confdefs.h"
-main(){return(0);}
+int main(){return(0);}
 EOF
 if { (eval echo configure:629: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   ac_cv_prog_cc_works=yes
@@ -638,7 +638,26 @@ else
   cat conftest.$ac_ext >&5
   ac_cv_prog_cc_works=no
 fi
-rm -fr conftest*
+
+# rickr - stuff for debugging
+echo ""
+echo "== configure: saving debug info into save.rr"
+rm -fr save.rr
+mkdir -p save.rr
+r_ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS'
+set -x
+echo $r_ac_link > save.rr/ac.link
+echo CC ${CC-cc} CFLAGS $CFLAGS CPPFLAGS $CPPFLAGS LDFLAGS $LDFLAGS LIBS $LIBS \
+     >> save.rr/ac.link
+echo ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS \
+     >> save.rr/ac.link
+set +x
+echo ""
+
+# rickr - don't remove, but save (keep confdefs.h for later tests)
+# rm -fr conftest*
+mv conftest* save.rr
+cp confdefs.h save.rr
 
 echo "$ac_t""$ac_cv_prog_cc_works" 1>&6
 if test $ac_cv_prog_cc_works = no; then

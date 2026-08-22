@@ -591,7 +591,7 @@ qualityCheck <- as.integer(readline("Want to run a few quality check tests (0: n
 if (qualityCheck) {
 # the modulus of the eigenvalues (presumably less than 1 as stable condition) in the reverse characteristic polynomial; stable process is stationary, but the converse is not true
 #print("Quality check of the model:")
-if (prod(roots(fm)<1)) print("Eigenvalues of the companion coefficient matrix indciate that the VAR(p) process is stable and thus stationary") else print("The VAR(p) process seems unstable and thus is not stationary")
+if (prod(roots(fm)<1)) print("Eigenvalues of the companion coefficient matrix indicate that the VAR(p) process is stable and thus stationary") else print("The VAR(p) process seems unstable and thus is not stationary")
 print("-----------------")
 print("Normality testing of the residuals")
 print(normality.test(fm))
@@ -877,7 +877,7 @@ nSubjs <- as.integer(readline("Number of subjects (e.g., 12)? "))     # number o
 #gfn <- vector('list', nSubjs)
 pathList <- vector('list', nSubjs)
 
-if (grpType==1) {  # Fisher tranformation not done since it doesn't seem to matter much in testing
+if (grpType==1) {  # Fisher transformation not done since it doesn't seem to matter much in testing
    print("Provide path coef files first:")
    print("-----------------")
    pathList <- readMultiFiles(nSubjs, 2, "subject path coef matrix")  #2: with header
@@ -890,7 +890,7 @@ if (grpType==1) {  # Fisher tranformation not done since it doesn't seem to matt
    runMeta <- TRUE
 }
 
-if (grpType==2) {  # Fisher tranformation not done since it doesn't seem to matter much in testing
+if (grpType==2) {  # Fisher transformation not done since it doesn't seem to matter much in testing
    pathList <- readMultiFiles(nSubjs, 2, "subject path coef matrix")  #2: with header
    zMat <- do.call(rbind, lapply(lapply(pathList, as.matrix), c))  # convert to matrix
    runMeta <- FALSE
@@ -1025,7 +1025,7 @@ zMat <- vector('list', nGrp)
 zSEMat <- vector('list', nGrp)
 DF <- vector('list', nGrp)
 
-for (ii in 1:nGrp) {  # Fisher tranformation not done since it doesn't seem to matter much in testing
+for (ii in 1:nGrp) {  # Fisher transformation not done since it doesn't seem to matter much in testing
 	nSubjs[ii] <- as.integer(readline(sprintf("Number of subjects in group %s (e.g., 12)? ", ii)))
    pathList[[ii]] <- vector('list', nSubjs[ii])
 	if (grpType==1 ) {   
@@ -1044,7 +1044,7 @@ for (ii in 1:nGrp) {  # Fisher tranformation not done since it doesn't seem to m
 #      DF[[ii]] <- as.integer(readline(sprintf("Degrees of freedom for the t-statistics in group %s? ", ii)))
       print("-----------------")
    }
-   if (grpType==2) {  # Fisher tranformation not done here since it doesn't seem to matter much in testing
+   if (grpType==2) {  # Fisher transformation not done here since it doesn't seem to matter much in testing
       pathList[[ii]] <- readMultiFiles(nSubjs[ii], 2, "subject path coef matrix")  #2: with header
       zMat[[ii]] <- do.call(rbind, lapply(lapply(pathList[[ii]], as.matrix), c))  # convert to matrix
       runMeta <- FALSE
@@ -1067,7 +1067,7 @@ for (ii in 1:nGrp) {  # Fisher tranformation not done since it doesn't seem to m
 	nROIsG[ii] <- dim(pathList[[ii]][[1]])[1]
 	if (ii>1) for (jj in 1:ii) if (nROIsG[jj]!=nROIsG[1]) {sprintf("Group %i has %i ROIs while group 1 has %i", jj, nROIsG[jj], nROIsG[1]); break}
 	roiNames[[ii]] <- names(pathList[[ii]][[1]])
-	if (ii>1) for (jj in 1:ii) if (!identical(roiNames[[ii]], roiNames[[1]])) {sprintf("Group %i has different ROI namess with group 1", jj, roiNames[[ii]]); break}
+	if (ii>1) for (jj in 1:ii) if (!identical(roiNames[[ii]], roiNames[[1]])) {sprintf("Group %i has different ROI names with group 1", jj, roiNames[[ii]]); break}
 #	if (pthType==0) zList[[ii]] <- lapply(pathList[[ii]], fisherz) # sapply(pathList[[ii]], fisherz, simplify = FALSE)
 #  if (pthType==1) zList[[ii]] <- lapply(pathList[[ii]], function(x) log(x^2))
 #  if (pthType==2) zList[[ii]] <- lapply(pathList[[ii]], log)

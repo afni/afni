@@ -167,7 +167,7 @@ endfunction()
 
 
 macro(set_os_flags src_file)
-  # sets os specific compile definintions for source files. This is currently
+  # sets os specific compile definitions for source files. This is currently
   # superfluous because debugging without these global flags set has not been done
   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set_source_files_properties(
@@ -246,12 +246,12 @@ endfunction()
 
 function(add_afni_library target_in)
   add_library(${ARGV})
+  # On Darwin, undefined symbols fail by default for regular libraries and
+  # executables.  Passing "-undefined error" is now deprecated by Apple ld.
   target_link_options(${target_in}
   PRIVATE
-  $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:GNU>:LINKER:--as-needed>
-  $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
+  $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--as-needed>
+  $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--no-undefined>
   )
   add_library(AFNI::${target_in} ALIAS ${target_in})
   add_afni_target_properties(${target_in})
@@ -259,16 +259,12 @@ endfunction()
 
 function(add_afni_executable target_in)
   add_executable(${ARGV})
+  # On Darwin, undefined symbols fail by default for regular libraries and
+  # executables.  Passing "-undefined error" is now deprecated by Apple ld.
   target_link_options(${target_in}
   PRIVATE
-  $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,error>
-  $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
-    )
-  target_link_options(${target_in}
-  PRIVATE 
-  $<$<C_COMPILER_ID:GNU>:LINKER:--as-needed>
+  $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--no-undefined>
+  $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--as-needed>
     )
   add_afni_target_properties(${target_in})
 endfunction()
@@ -284,6 +280,7 @@ function(add_afni_plugin target_in)
   $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,dynamic_lookup>
   $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,dynamic_lookup>
   $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,dynamic_lookup>
+  $<$<AND:$<C_COMPILER_ID:GNU>,$<BOOL:${APPLE}>>:LINKER:-undefined,dynamic_lookup>
     )
   if(RUN_PLUGIN_CHECK)
     add_library(checking_${target_in} $<TARGET_PROPERTY:${target_in},SOURCES>)
@@ -303,10 +300,7 @@ function(add_afni_plugin target_in)
     target_link_options(
       checking_${target_in}
       PRIVATE
-      $<$<C_COMPILER_ID:AppleClang>:LINKER:-undefined,error>
-      $<$<C_COMPILER_ID:Clang>:LINKER:-undefined,error>
-      $<$<C_COMPILER_ID:Intel>:LINKER:-undefined,error>
-      $<$<C_COMPILER_ID:GNU>:LINKER:--no-undefined>
+      $<$<AND:$<C_COMPILER_ID:GNU>,$<NOT:$<BOOL:${APPLE}>>>:LINKER:--no-undefined>
       )
   endif()
 endfunction()

@@ -204,7 +204,7 @@ class ShogunSVMClassifier(_SVMClassifier):
     Currently, distance machines such as the K-means classifier
     are not supported yet.
 
-    Information to paramters and additional options can be found on
+    Information to parameters and additional options can be found on
     http://www.shogun-toolbox.org/
 
     Note that some parts in this classifier might receive some

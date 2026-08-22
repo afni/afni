@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #ifndef _AFNI_HEADER_GRAPH_
@@ -633,6 +633,8 @@ typedef struct {
 
    int           thresh_fade ;                      /* Mar 2013 */
    MCW_bbox  *opt_tfade_bbox ;
+
+   int force_redraw ;                               /* Dec 2025 */
 
 } MCW_grapher ;
 

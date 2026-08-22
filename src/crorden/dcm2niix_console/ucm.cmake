@@ -10,7 +10,7 @@
 # The documentation can be found at the library's page:
 # https://github.com/onqtam/ucm
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5.0)
 
 include(CMakeParseArguments)
 
@@ -611,7 +611,7 @@ macro(ucm_add_target)
         # also set the name of the target output as the original one
         set_target_properties(${unity_target_name} PROPERTIES OUTPUT_NAME ${ARG_NAME})
         if(UCM_NO_COTIRE_FOLDER)
-            # reset the folder property so all unity targets dont end up in a single folder in the solution explorer of VS
+            # reset the folder property so all unity targets do not end up in a single folder in the solution explorer of VS
             set_target_properties(${unity_target_name} PROPERTIES FOLDER "")
         endif()
         set_target_properties(all_unity PROPERTIES FOLDER "CMakePredefinedTargets")

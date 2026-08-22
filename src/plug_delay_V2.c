@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #include "afni.h"
@@ -12,7 +12,7 @@
 #endif
 
 /* -----------------------START---------------------------------*/
-/* definition and decleration part to suport the main algorithm */
+/* definition and declaration part to support the main algorithm */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -170,7 +170,7 @@ static char helpstring[] =
   "                    The time series written to 'Filename.ts' do not contain the ignored samples,\n"
   "                    they are detrended and have zero mean.\n\n"
   "Random Comments/Advice:\n"
-  "Of course, the longer you time series, the better. It is generally recomended that\n"
+  "Of course, the longer you time series, the better. It is generally recommended that\n"
   "the largest delay be less than N/10, N being the length of the time series.\n"
   "The algorithm does go all the way to N/2, but that's not too good.\n\n"
   "Disclaimer: \n"
@@ -178,7 +178,7 @@ static char helpstring[] =
   "             I am not responsible for anything bad.\n\n"
   "If you have/find questions/comments/bugs about the plugin, \n"
   "send me an E-mail: ziad@image.bien.mu.edu\n\n"
-  "                          Ziad Saad June 20 97, lastest update Aug 21 00.\n\n"
+  "                          Ziad Saad June 20 97, last update Aug 21 00.\n\n"
   "[1] : Bendat, J. S. (1985). The Hilbert transform and applications to correlation measurements,\n"
   "       Bruel and Kjaer Instruments Inc.\n"
   "[2] : Bendat, J. S. and G. A. Piersol (1986). Random Data analysis and measurement procedures, \n"
@@ -266,7 +266,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Hilbert Delay98" ,
                "Time delay between FMRI and reference time series" ,
                helpstring ,
-               PLUGIN_CALL_VIA_MENU , DELAY_main  ) ;
+               PLUGIN_CALL_VIA_MENU , (cptr_func *)DELAY_main  ) ;
 
    global_plint = plint ;  /* make global copy */
 
@@ -703,7 +703,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
           ud->ignore ,               /* ignore count */
           1 ,   /* detrend = ON Let BOB do it*/
           NBUCKETS,					/*Number of values at each voxel*/
-			 DELAY_tsfuncV2 ,         /* timeseries processor (bucket version)*/
+(generic_func *)DELAY_tsfuncV2 , /* timeseries processor (bucket version)*/
 			 (void *)ud,          /* data for tsfunc */
 			 NULL, 0							) ; 
 										 
@@ -989,7 +989,7 @@ static void indexTOxyz (hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , 
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
 /* Only errors that happen during runtime (while delays are 	 */
-/* computed, are handeled here, the others are handeled  		 */
+/* computed, are handled here, the others are handled  		 */
 /* instantaneously, and need not be logged 							 */
 /* ************************************************************ */
 
@@ -1016,7 +1016,7 @@ static void error_report (hilbert_data_V2* ud, int ncall )
 					fprintf (ud->outlogfile,"Null time series vector ");
 					break;
 				default:
-					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",ud->errcode);
+					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english language ! ",ud->errcode);
 					break;
 			}	
 		fprintf (ud->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );

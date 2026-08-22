@@ -81,7 +81,7 @@ static void display_help(int detail)
           "                 volumes. Default is the same as jobname\n"
           "                 There are two output volumes, one for the cluster\n"
           "                 membership and one with distance measures.\n"
-          "                 The distance dataset, mostly for debugging puposes\n"
+          "                 The distance dataset, mostly for debugging purposes\n"
           "                 is formatted as follows:\n"
           "                 Sub-brick 0: Dc = 100*(1-Ci)+100*Di/(Dmax)\n"
           "                 with Ci the cluster number for voxel i, Di the \n"
@@ -653,7 +653,7 @@ int main(int argc, char **argv)
       } else {
          /* you'll need to read and catenate on the fly ... */
          ERROR_exit( "Not ready to deal with more than one input.\n"
-                     "Consdier catenating the input externally.\n"
+                     "Consider catenating the input externally.\n"
                      "Let me know if it becomes annoying ...\n");
       }
       

@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set Narg = $#
 
@@ -22,12 +22,15 @@ set nv = ( `3dnvals -all $fname` )
 
 3dTstat -tdiff -stdev -prefix __junk1.1D ${fname}\' >& /dev/null
 
+set stat = 0
 if ( $nv[4] > 1 ) then
   3dTstat -sos -prefix __junk2.1D __junk1.1D\'    >& /dev/null
   1deval -a __junk2.1D -expr 'sqrt(a)' 
+  set stat = $status
 else
   1dcat __junk1.1D
+  set stat = $status
 endif
 /bin/rm -f __junk?.1D
 
-exit 0
+exit $stat

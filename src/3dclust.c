@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -260,9 +260,9 @@ int main( int argc , char * argv[] )
   "                                                                        \n"
   "  -1Dformat   => Write output in 1D format (now default). You can       \n"
   "                 redirect the output to a .1D file and use the file     \n"
-  "                 as input to whereami for obtaining Atlas-based         \n"
+  "                 as input to whereami_afni for obtaining Atlas-based    \n"
   "                 information on cluster locations.                      \n"
-  "                 See whereami -help for more info.                      \n"
+  "                 See whereami_afni -help for more info.                 \n"
   " -no_1Dformat => Do not write output in 1D format.                      \n"
   "                                                                        \n"
   "  -quiet      => Suppress all non-essential output                      \n"

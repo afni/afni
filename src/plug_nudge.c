@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "vecmat.h"
@@ -60,7 +60,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Nudge Dataset" ,
                                 "Move bricks around" ,
                                 NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , NUD_main  ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)NUD_main  ) ;
 
    PLUTO_add_hint( plint , "Move bricks around" ) ;
 
@@ -398,9 +399,9 @@ static void NUD_make_widgets(void)
                           0 ,                     /* initial selection */
                           MCW_AV_readtext ,       /* ignored but needed */
                           0 ,                     /* decimal shift */
-                          NUD_brick_av_CB ,       /* callback when changed */
+              (gen_func *)NUD_brick_av_CB ,       /* callback when changed */
                           NULL ,                  /* data for above */
-                          MCW_av_substring_CB ,   /* text creation routine */
+              (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                           NUD_dummy_av_label      /* data for above */
                         ) ;
    MCW_reghelp_children( brick_av->wrowcol ,
@@ -425,7 +426,7 @@ static void NUD_make_widgets(void)
                         0 ,                     /* decimal shift */
                         NULL ,                  /* callback when changed */
                         NULL ,                  /* data for above */
-                        MCW_av_substring_CB ,   /* text creation routine */
+            (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                         REG_resam_strings       /* data for above */
                       ) ;
    MCW_reghint_children( interp_av->wrowcol , "Set interpolation method" ) ;
@@ -443,7 +444,7 @@ static void NUD_make_widgets(void)
                         0 ,                     /* decimal shift */
                         NULL ,                  /* callback when changed */
                         NULL ,                  /* data for above */
-                        MCW_av_substring_CB ,   /* text creation routine */
+            (str_func *)MCW_av_substring_CB ,   /* text creation routine */
                         YESNO_strings           /* data for above */
                       ) ;
    MCW_reghint_children( clip_av->wrowcol , "Clip after interpolation?" ) ;
@@ -617,6 +618,18 @@ static void NUD_make_widgets(void)
    print_pb = (Widget) NUD_actor[7].data ;
 
    /*** that's all ***/
+  if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( rowcol,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for nudge plugin window resize\n");
+   }
 
    XtManageChild(rowcol) ;
    XtRealizeWidget(shell) ; NI_sleep(1) ; /* will not be mapped */
@@ -1178,7 +1191,7 @@ static void NUD_choose_CB( Widget w, XtPointer client_data, XtPointer call_data 
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
    MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
-                       NUD_finalize_dset_CB , NULL     ) ;
+                       (gen_func *)NUD_finalize_dset_CB , NULL     ) ;
 
    return ;
 }
@@ -1282,7 +1295,7 @@ static void NUD_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
                       DSET_NVALS(dset)-1 ,      /* new maxval */
                       dset_ival ,               /* new inival */
                       0 ,                       /* new decim? */
-                      NUD_brick_av_label_CB ,   /* text routine */
+          (str_func *)NUD_brick_av_label_CB ,   /* text routine */
                       dset                      /* text data */
                     ) ;
 

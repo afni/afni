@@ -1,8 +1,8 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-# Nomenclature note. We have multiple spaces, with the folling abbrevs:
+# Nomenclature note. We have multiple spaces, with the following abbrevs:
 # + orig : original input dset space
 # + osh  : shifted version of original dset (by @Align_Centers)
 # + aff  : affine-aligned version of original dset (by align_epi_anat.py)
@@ -342,9 +342,34 @@ set progname = @animal_warper
 #          + change Urad in 3dUnifize to 14, from 30 (latter seems 
 #            waaaay too large for most animal dsets?)
 #   
-set version   = "3.52";   set rev_dat   = "Oct 27, 2021"
+#set version   = "3.52";   set rev_dat   = "Oct 27, 2021"
 #     + [PT] fix desc of opt name "-qw_opts" in help to what it actually is:
 #            "-extra_qw_opts".  Thanks, C Garin.
+#   
+#set version   = "3.6";   set rev_dat   = "Dec 1, 2022"
+#     + [PT] new opt '-init_scale ..' for pre-scaling input anatomical if
+#            it is much smaller/larger than the template (applied in AEA)
+#   
+#set version   = "3.61";   set rev_dat   = "Dec 2, 2022"
+#     + [PT] add QC image when using '-init_scale ..'
+#   
+#set version   = "4.00";   set rev_dat   = "Aug 6, 2024"
+#     + [PT, DRG] fix application of shift shifting.
+#   
+#set version   = "4.10";   set rev_dat   = "Mar 25, 2025"
+#     + [PT, DRG] avoid '-iwarp' in auto_warp.py
+#   
+#set version   = "4.11";   set rev_dat   = "Apr 08, 2026"
+#     + [PT] in some cases, the name of auto_warp.py's output warp
+#            can be different than what was originally assumed and widely
+#            seen. This code generalizes the ability to get the WARP
+#            dset correctly. It also passes along the '-keep_temp' 
+#            functionality to auto_warp.py
+#   
+set version   = "4.12";   set rev_dat   = "Apr 10, 2026"
+#     + [PT] replace 'gas' in var name with separate 'sed' cmd
+#            -> might be more stable across OSs (looking at you, troublesome
+#            macOS...)
 #   
 # --------------------------------------------------------------------
 # --------------------------------------------------------------------
@@ -398,6 +423,10 @@ set all_known_dset_abbrev = ( )
 set DO_ALIGN_CENTERS   = 1
 set align_centers_meth = "-grid" 
 
+set DO_INIT_SCALE      = 0           # [PT: Dec 1, 2022] overcome size mismatch
+set init_scale         = 1.0
+set opt_init_scale     = ""
+
 set feature_size       = "0.5"       # [PT: Dec 22, 2020] new default
 set feature_option     = "-feature_size $feature_size"
 set modesmooth         = "1"   # 1 voxel modal smoothing
@@ -412,10 +441,11 @@ set backup_ao          = ""
 set DO_ECHO            = ""
 
 # put all QC/ image prefixes here, so we refer more easily to them in help
-set iqc00 = init_qc_00.input+base
-set iqc01 = init_qc_01.input_sh+base
-set iqc02 = init_qc_02.input_aff+base
-set iqc03 = init_qc_03.input_NL+base
+set iqc00  = init_qc_00.input+base
+set iqc01  = init_qc_01.input_sh+base
+set iqc01b = init_qc_01.input_sh_scale+base      # if init scaling is used
+set iqc02  = init_qc_02.input_aff+base
+set iqc03  = init_qc_03.input_NL+base
 
 set qc00  = qc_00.wrpd_input+base
 set qc01  = qc_01.input+wrpd_base
@@ -602,6 +632,16 @@ while ($ac <= $#argv)
             exit 1
         endif
         set maxlev =  $argv[$ac]
+
+    else if ("$argv[$ac]" == "-init_scale") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set init_scale    = $argv[$ac]
+        set DO_INIT_SCALE = 1
 
     else if ("$argv[$ac]" == "-align_type") then
         set this_opt = "$argv[$ac]"
@@ -1061,11 +1101,11 @@ else
      -input    "${src_dset0}"                        \
      -orient   RAI                                   \
      -prefix   "${outdir}/${src_dset}"
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (cp src)"
-    exit 1
+   if ( ${status} ) then
+       echo "** ERROR: program failed (cp src)"
+       exit 1
+   endif
 endif
 
 # -------------------- setup BASE dset
@@ -1114,31 +1154,31 @@ else
    # original ${base_dset}, for gen_ss_review.py to get info via
    # afni_proc.py-generated script
    3dcopy "${base_dset}" ${outdir}/
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (copy base)"
-    exit 1
+   if ( ${status} ) then
+       echo "** ERROR: program failed (copy base)"
+       exit 1
+   endif
 endif
 
 # ------------------ copy atlas followers
 
 if ( ${#atlas_followers} != 0 ) then
    foreach ff ( ${atlas_followers} )
-     if ( ($ok_to_exist == 1) && \
-          (-f ${outdir}/`basename "${ff}"`) ) then
-         echo "++ Reusing ${outdir}/${ff}"
-     else
-         # Use 3dcopy here to tables/atlas_points/subbrick labels wd
-         # copy over
-         3dcopy "${ff}" ${outdir}/
-     endif
+      if ( ($ok_to_exist == 1) && \
+           (-f ${outdir}/`basename "${ff}"`) ) then
+          echo "++ Reusing ${outdir}/${ff}"
+      else
+          # Use 3dcopy here to tables/atlas_points/subbrick labels wd
+          # copy over
+          3dcopy "${ff}" ${outdir}/
 
-     if ( ${status} ) then
-        echo "** ERROR: program failed (copy atlas foll)"
-        exit 1
-     endif
-   end
+          if ( ${status} ) then
+             echo "** ERROR: program failed (copy atlas foll)"
+             exit 1
+          endif
+      endif
+    end
 endif
 
 # ----- SHOULD ALL FOLLOWERS BE COPIED HERE AS WELL ??? 
@@ -1258,13 +1298,15 @@ if ( ($ok_to_exist == 1) && \
      (-f ${animal_outs}) ) then
     set backup_ao = ${animal_outs:gas/.txt//}_mvd_${thedate}.txt
     \mv ${animal_outs} ${backup_ao}
+
+    if ( ${status} ) then
+        echo "** ERROR: program failed (cp backup rep)"
+        exit 1
+    endif
+
     echo "++ Moved old ${animal_outs} to: ${backup_ao}"
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (cp backup rep)"
-    exit 1
-endif
 
 if ( ($ok_to_exist == 1) && \
      (-f ${animal_ints}) ) then
@@ -1420,11 +1462,11 @@ else
     cat_matvec                                     \
           ${imed}/${srcsh_shft} -I                 \
         > ${imed}/${srcsh_shft_inv}
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (al cent inv)"
-    exit 1
+    if ( ${status} ) then
+        echo "** ERROR: program failed (al cent inv)"
+        exit 1
+    endif
 endif
 
 printf "%-37s : %s\n"                             \
@@ -1458,7 +1500,36 @@ if ( ( $ok_to_exist == "1" ) && \
    echo "++ Reusing affine transformation matrix"
 else
 
-   set aaa = ( -giant_move )
+   #set aaa = ( -giant_move )
+
+   if ( $DO_INIT_SCALE ) then
+      echo "++ Make pre_matrix for initial scale: ${init_scale}"
+
+      set premat_fname   = "${imed}/aea_pre_matrix.1D"
+      set opt_init_scale = "-pre_matrix ${premat_fname}"
+cat <<EOF > "${premat_fname}"
+${init_scale} 0.0 0.0 0.0
+0.0 ${init_scale} 0.0 0.0
+0.0 0.0 ${init_scale} 0.0
+EOF
+      # just for QC image-generating purposes
+      3dAllineate                                                  \
+         -overwrite                                                \
+         -1Dmatrix_apply "${premat_fname}"                         \
+         -input          "${imed}/${srcsh_dset}"                   \
+         -prefix         "${imed}/__tmp_INIT_SCALE.nii.gz"
+
+      set opref = QC/${iqc01b}${src_add}
+      @djunct_overlap_check                             \
+          -ulay    "${imed}/__tmp_INIT_SCALE.nii.gz"    \
+          -olay    "${base_dset}"                       \
+          -opacity 3                                    \
+          -prefix  ${opref}
+
+      if ( "${keep_temp}" != "1") then
+         \rm -rf "${imed}/__tmp_INIT_SCALE.nii.gz"
+      endif
+   endif
 
    # outputs a BRIK/HEAD file
    # [PT: July 8, 2021] allow '-giant_move' to be switched to other opts
@@ -1473,7 +1544,7 @@ else
     -dset1_strip  None                                              \
     -dset2_strip  None                                              \
     -cost $cost $rigidopt $feature_option $supersize ${aff_move}    \
-    -master_dset2  BASE
+    -master_dset2  BASE   ${opt_init_scale}
 
    if ( ${status} ) then
        echo "** ERROR: program failed (AEA)"
@@ -1534,12 +1605,17 @@ else
     # THIS is the aff matrix that goes from shft2 to template space,
     # and what we should use later; it should have NO translation
     # component
+    # [PT, DRG: Aug 5, 2024] fix how this is done, so that 
+    # after this is applied, the *_pshft_al2std.nii.gz will
+    # be essentially the same as *_shft_aff.nii.gz (just in
+    # ORIG and TLRC views, and on diff grids)
     cat_matvec -ONELINE                              \
-        "${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D" \
         "${imed}/${srcsh_prefix}_al2std_mat.aff12.1D"        \
+        "${imed}/${srcsh_prefix}_al2std_mat_TR_INV.aff12.1D" \
         >  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"
 
-    # Finally, make the new shifted dset
+    # Finally, make the new shifted dset; that should overlap
+    # well with base_dset
     3dcopy                                       \
         -overwrite                               \
         ${imed}/${srcsh_dset}                    \
@@ -1550,15 +1626,16 @@ else
         -dzorigin ${inv_transl[12]}              \
         ${imed}/${srcsh2_dset}
 
+    if ( ${status} ) then
+        echo "** ERROR: program failed (combine shifts)"
+        exit 1
+    endif
+
     # *** From this point onward, the shft2 space is the more important
     # jumping point between the original native space and the
     # base/template space***
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (combine shifts)"
-    exit 1
-endif
 
 printf "%-37s : %s\n"                                               \
         "Dset, 2nd-shifted to base"                                 \
@@ -1583,6 +1660,11 @@ if ( "$align_type" == "rigid_equiv" ) then
         ${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D -P             \
         > ${imed}/${affmat}
 
+    if ( ${status} ) then
+        echo "** ERROR: program failed (cat_matvec, affmat)"
+        exit 1
+    endif
+
     printf "%-37s : %s\n"                                           \
             "Matrix, rigid equiv xform"                             \
             "${affmat}"                                     \
@@ -1591,24 +1673,24 @@ else
     set affmat = ${srcsh2_prefix}_al2std_mat.aff12.1D
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (cat_matvec, affmat)"
-    exit 1
-endif
-
 ## put affine aligned data on template grid
 # similar to al2std dataset but with exactly same grid as the template
 if (($ok_to_exist == "1") && \
     (-f ${imed}/${srcsh2_prefix}_aff.nii.gz)) then
-   echo "++ Reusing affine transformed dataset"
+    echo "++ Reusing affine transformed dataset"
 else
-   3dAllineate -overwrite                                       \
-        -1Dmatrix_apply ${imed}/${affmat}                       \
-        -prefix ${imed}/${srcsh2_prefix}_aff.nii.gz             \
-        -base   "${base_dset}"                                  \
-        -master BASE                                            \
-        -source "${imed}/${srcsh2_dset}"
-        
+    3dAllineate -overwrite                                       \
+         -1Dmatrix_apply ${imed}/${affmat}                       \
+         -prefix ${imed}/${srcsh2_prefix}_aff.nii.gz             \
+         -base   "${base_dset}"                                  \
+         -master BASE                                            \
+         -source "${imed}/${srcsh2_dset}"
+
+    if ( ${status} ) then
+        echo "** ERROR: program failed (3dAllineate)"
+        exit 1
+    endif
+
     set opref = QC/${iqc02}${src_add}
     @djunct_overlap_check                             \
         -ulay   "${imed}/${srcsh2_prefix}_aff.nii.gz" \
@@ -1617,10 +1699,6 @@ else
         -prefix  ${opref}
 endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (3dAllineate)"
-    exit 1
-endif
 
 printf "%-37s : %s\n"                                      \
         "Input, aff-xformed to base"                       \
@@ -1734,20 +1812,74 @@ if ( ($ok_to_exist == "1") && \
      (-f ${srcsh2_prefix}_WARP.nii.gz) ) then
    echo "++ Reusing nonlinear WARP dataset"
 else
+   # keep temporary files within auto_warp.py wdir, too?
+   if ( "${keep_temp}" == "1") then
+      set opt_krf = "-keep_rm_files"
+   else
+      set opt_krf = ""
+   endif
+
    # nonlinear warping via auto_warp script
-   auto_warp.py  -overwrite                                      \
-      -base "${base_dset}"                                       \
+   # [PT: 25-03-2025] removing '-iwarp' here; see 3dNwarpCat, just below
+
+cat <<EOF > run_auto_warp.tcsh
+
+   auto_warp.py  -overwrite  ${opt_krf}                          \
+      -base "${base_dset}"  \
       -affine_input_xmat ID                                      \
       -qworkhard 0 2                                             \
       -input ${imed}/${srcsh2_prefix}_aff.nii.gz                 \
-      -output_dir ${awpy_dir}                                    \
-      -qw_opts -iwarp -maxlev ${maxlev} ${nlcostoption}          \
+      -output_dir ${awpy_dir}  \
+      -qw_opts -maxlev ${maxlev} ${nlcostoption}                 \
       $extra_qw_opts
+EOF
+
+   time tcsh run_auto_warp.tcsh |& tee log_auto_warp.txt
 
    if ( ${status} ) then
        echo "** ERROR: program failed (autowarp)"
        exit 1
    endif
+
+   # [PT: 25-03-2025] adding next cmd to avoid using '-iwarp' in
+   # auto_warp.py, above
+   cd ${awpy_dir}
+
+   echo "++ make inverse warp"
+
+   # [PT: 2026-04-07] apparently, the name of the warp might not be
+   # constant. So, we do some work here to find warp dset. Thanks to
+   # AFNI user pavanjella for pointing this out, and helping to
+   # troubleshoot.
+    
+   # Want to find exactly 1 
+   set dset_warp = `find . -type f -name "*qw_WARP.nii*" | cut -b3-`
+   if ( ${#dset_warp} != 1 ) then
+      echo "** ERROR: should find exactly 1 warp dset, but instead found"
+      echo "   ${#dset_warp} of them: ${dset_warp}"
+      exit 1
+   endif
+   
+   # make invwarp name
+   set bbb = `3dinfo -prefix_noext ${dset_warp}`
+   # trying to do this substitution with 'gas' might not be stable across OSs
+   set ccc = `echo ${bbb} | sed 's/qw_WARP/qw_WARPINV/g'`
+   set dset_iwarp = ${ccc}.nii
+    
+   # need to propagate this explicitly in many cases
+   set aspace = `3dinfo -space ${dset_warp}`
+   3dNwarpCat                                                  \
+      -overwrite                                               \
+      -warp1  "INV(${dset_warp})"                              \
+      -prefix "${dset_iwarp}"
+
+   if ( ${status} ) then
+       echo "** ERROR: program failed (inverse of autowarp)"
+       exit 1
+   endif
+
+   3drefit -space ${aspace} "${dset_iwarp}"
+   cd -
 
    # the awpy has the result dataset, copy the warped data, the warp,
    # inverse warp don't copy the warped dataset - combine the
@@ -1756,18 +1888,18 @@ else
    # THIS is a major output
    # from orig+shft2+aff -> base
    3dcopy -overwrite                                \
-        ${awpy_dir}/anat.*.qw_WARP.nii*             \
+        "${awpy_dir}/${dset_warp}"                  \
         ${srcsh2_prefix}_WARP.nii.gz
 
    # from base -> orig+shft2+aff
    3dcopy -overwrite                                \
-        ${awpy_dir}/anat.*.qw_WARPINV.nii*          \
+        "${awpy_dir}/${dset_iwarp}"                 \
         ${srcsh2_prefix}_WARPINV.nii.gz
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (autowarp cp)"
-    exit 1
+   if ( ${status} ) then
+       echo "** ERROR: program failed (autowarp cp)"
+       exit 1
+   endif
 endif
 
 # THIS is what should be given to afni_proc.py
@@ -1797,11 +1929,11 @@ else
         -warp1  "${srcsh2_prefix}_WARP.nii.gz"                     \
         -warp2  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"     \
         -prefix "${imed}/${srcsh2_prefix}_osh2base_WARP.nii.gz"
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (3dNwarpCat, osh2base)"
-    exit 1
+    if ( ${status} ) then
+        echo "** ERROR: program failed (3dNwarpCat, osh2base)"
+        exit 1
+    endif
 endif
 
 printf "%-37s : %s\n"                                             \
@@ -1825,16 +1957,31 @@ else
     # just be generic "TLRC)"
     set space = `3dinfo -space "${srcsh2_prefix}_WARPINV.nii.gz"`
 
+    # [PT: Apr 8, 2026] This is the concatenation of two transforms
+    # that have first been inverted and then concatenated; as noted in
+    # earlier changes, we will avoid this order of ops; now, first
+    # concatenate, then invert. While this will make very little diff
+    # in most cases, this order of ops is more generally appropriate
+    # to preserve diffeomorphic invertibility
+
     3dNwarpCat  -echo_edu                                          \
-        -warp1  "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
-        -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
+        -iwarp                                                     \
+        -warp2  "${imed}/${srcsh2_prefix}_al2std_mat.aff12.1D"     \
+        -warp1  "${srcsh2_prefix}_WARP.nii.gz"                     \
         -space  "${space}"                                         \
         -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
-endif
 
-if ( ${status} ) then
-    echo "** ERROR: program failed (3dNwarpCat, base2osh)"
-    exit 1
+    ### ... which replaces this OLD version:
+    #3dNwarpCat  -echo_edu                                          \
+    #    -warp1  "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+    #    -warp2  "${srcsh2_prefix}_WARPINV.nii.gz"                  \
+    #    -space  "${space}"                                         \
+    #    -prefix "${imed}/${srcsh2_prefix}_base2osh_WARP.nii.gz"
+
+    if ( ${status} ) then
+        echo "** ERROR: program failed (3dNwarpCat, base2osh)"
+        exit 1
+    endif
 endif
 
 printf "%-37s : %s\n"                                             \
@@ -2231,11 +2378,12 @@ else
                 exit 1
              endif
          else 
-             3dAllineate -overwrite                                                 \
-                 -final   NN                                                        \
-                 -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
-                 -source ${brainmask}                                               \
-                 -master ${imed}/${srcsh2_dset}                                     \
+             set amat = "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D"
+             3dAllineate -overwrite                                          \
+                 -final   NN                                                 \
+                 -1Dmatrix_apply "${amat}"                                   \
+                 -source ${brainmask}                                        \
+                 -master ${imed}/${srcsh2_dset}                              \
                  -prefix ${src_abbrev}_mask.nii.gz
 
              if ( ${status} ) then
@@ -2372,11 +2520,11 @@ else
       -Urad   14                          \
       -input  ${src_abbrev}_ns.nii.gz     \
       -prefix ${src_abbrev}_nsu.nii.gz
-endif
 
-if ( ${status} ) then
-   echo "** ERROR: program failed (nsu)"
-   exit 1
+   if ( ${status} ) then
+      echo "** ERROR: program failed (nsu)"
+      exit 1
+   endif
 endif
 
 printf "%-37s : %s\n"                      \
@@ -2417,9 +2565,10 @@ foreach ii ( `seq 1 1 ${#template_followers}` )
              exit 1
           endif
       else 
-          3dAllineate -overwrite                                                 \
-              -final   wsinc5                                                    \
-              -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+          set amat = "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D"
+          3dAllineate -overwrite                                     \
+              -final   wsinc5                                        \
+              -1Dmatrix_apply "${amat}"                              \
               -source ${template_dset}                               \
               -master ${imed}/${srcsh2_dset}                         \
               -prefix ${template_in_orig}
@@ -2525,9 +2674,10 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
               exit 1
            endif
        else 
-           3dAllineate -overwrite                                                 \
-               -final   NN                                                        \
-               -1Dmatrix_apply "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D" \
+           set amat = "${imed}/${srcsh2_prefix}_inv_al2std_mat.aff12.1D"
+           3dAllineate -overwrite                                     \
+               -final   NN                                            \
+               -1Dmatrix_apply "${amat}"                              \
                -source ${segm_dset}                                   \
                -master ${imed}/${srcsh2_dset}                         \
                -prefix ${segm_in_orig}
@@ -2583,13 +2733,14 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
           3dcopy -overwrite         \
               ${segm_in_orig}       \
               ${imed}/${segm_in_orig_pre}
-          \rm ${segm_in_orig}
 
           if ( ${status} ) then
              echo "** ERROR: program failed (base2osh atl/seg foll, cp)"
              echo "   ... for dset: ${segm_dset}"
              exit 1
           endif
+
+          \rm ${segm_in_orig}
 
           # this extra step done here to make sure the space is
           # correct (should be, from 3dNwarp*?)
@@ -2783,7 +2934,7 @@ foreach ii ( `seq 1 1 ${#all_tfollow}` )
 set oscript = surfaces/do_view_${surf_dir}.tcsh
 printf "" >  ${oscript}
 cat <<EOF >> ${oscript}
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # All files are defined here relative to the "surfaces/" directory
 # that originally contained this script.  This can be adapted to other
@@ -2828,10 +2979,10 @@ if ( $make_orig_surfaces == "1" ) then
         -iters 6                                                  \
         -matchorig                                                \
         ${templ_in_orig}
-   endif
 
-   if ( ${status} ) then
-      echo "** WARNING: program failed (templ surf, anisosmoo)"
+      if ( ${status} ) then
+         echo "** WARNING: program failed (templ surf, anisosmoo)"
+      endif
    endif
 
    # also remove any  small clusters for surface generation
@@ -2867,10 +3018,10 @@ if ( $make_orig_surfaces == "1" ) then
         -inset    ${imed}/${templ_in_origA}                     \
         -NN 2                                                   \
         -clust_nvox  ${minbrainvolume}
-   endif
 
-   if ( ${status} ) then
-      echo "** WARNING: program failed (templ surf, clust)"
+      if ( ${status} ) then
+         echo "** WARNING: program failed (templ surf, clust)"
+      endif
    endif
 
    if ( ($ok_to_exist == "1") && \
@@ -2883,10 +3034,10 @@ if ( $make_orig_surfaces == "1" ) then
         -o        surfaces/${templ_in_origG}                 \
         -noxform                                             \
         -Tsmooth 0.01 6
-   endif
 
-   if ( ${status} ) then
-      echo "** WARNING: program failed (templ surf, isosurf)"
+      if ( ${status} ) then
+         echo "** WARNING: program failed (templ surf, isosurf)"
+      endif
    endif
 
    printf "%-37s : %s\n"                                     \
@@ -2902,7 +3053,7 @@ if ( $make_orig_surfaces == "1" ) then
 set oscript = do_view_isosurf_${t_in_o_prefix}.tcsh
 printf "" >  ${oscript}
 cat <<EOF >> ${oscript}
-#!/bin/tcsh
+#!/usr/bin/env tcsh
     
     set bkgd_vol = "../${src_dset}"
     set dset_gii = "${templ_in_origG}"
@@ -3227,6 +3378,13 @@ Options ~1~
   -supersize          :allow for up to 50% size difference between subject
                        and template
 
+  -init_scale  IS     :useful if the input dset is much larger or smaller
+                       than the reference template.  'IS' is the approximate
+                       length ratio of the input to the template.  So, if 
+                       you align a baby shark (doo doo, doo doo doo doo) 
+                       brain to an adult shark template brain, you might 
+                       use this option with a value of 0.75, for example.
+
   -mode_smooth_size n :modal smoothing kernel size in voxels (not mm)
                        This determines the size of a spatial regularization
                        neighborhood for both ROI followers and segmentation
@@ -3368,6 +3526,16 @@ Outputs (we got plenty of 'em!) ~1~
     + Alignment data (TEM->INP)
       o INP_composite_linear_to_template_inv.1D - matrix, full affine part
       o INP_shft_WARPINV.nii.gz - NL part of warp (TEM grid)
+      o INP_base2osh_WARP.nii.gz - full warp (TEM grid)
+
+      NB: to warp from TEM->INP, it is better to _not_ concatenate two
+      previously inverted warps and use the result; instead, it is
+      better to concatenate the 'forward' TEM->INP warps and invert
+      the result. While the results should in general be similar, the
+      former will not necessarily preserve diffeomorphic invertibility
+      and in some cases could have undesirable oddities in the
+      resulting warp---the latter is safer. That is the method by which 
+      INP_base2osh_WARP.nii.gz was created, so that could be used.
 
   QC info ~2~
 
@@ -3395,6 +3563,10 @@ Outputs (we got plenty of 'em!) ~1~
 
     + ${iqc01}*.jpg
       [ulay] input source dset, center-shifted location
+      [olay] base dset
+
+    + ${iqc01b}*.jpg   (only created if using '-init_scale ..')
+      [ulay] same as previous ulay, but with init_scale value applied
       [olay] base dset
 
     + ${iqc02}*.jpg

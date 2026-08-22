@@ -1,31 +1,37 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
 	goto USAGE
 endif
 
 set noglob
 
+set basearg = 1
 set withpath=0
-set arlist=()
-foreach aa ($argv)
-   if ("$aa" == "-p") then
-      set withpath=1
-   else
-      set arlist = ($arlist "$aa")
-   endif
-end
 
-set PrefSuf = ''
-if ($#arlist > 1) then
-   set PrefSuf = $arlist[2]
+# check for with path option
+if ( "$argv[1]" == "-p" ) then
+    set withpath = 1
+    @ basearg += 1
 endif
 
-set cln = `echo "$arlist[1]" | cut -d \[ -f1`
+# note input dataset
+set inname = "$argv[$basearg]"
 
-set pt = `dirname $cln`
+# note any PrefSuf
+set PrefSuf = ''
+if ( $#argv > $basearg ) then
+   @ psarg = $basearg + 1
+   set PrefSuf = "$argv[$psarg]"
+endif
 
-#remove path
-set Nom = $cln:t
+# separate dir and file (and be careful of spaces)
+# (if there are tabs or multiple spaces, this might fail)
+set dname = "`dirname $inname`"
+set fname = "$inname:t"
+
+# remove any sub-brick selector
+set Nom = `echo "$fname" | awk -F[ '{print $1}'`
+
 #remove extension .HEAD or .BRIK
 set ext = $Nom:e
 set fext = ""

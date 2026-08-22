@@ -27,7 +27,7 @@ int main( int argc , char *argv[] )
       " -sample sss  = Read dataset 'sss' as the sample.  MANDATORY\n"
       " -input  iii  = Read dataset 'iii' as the input.   MANDATORY\n"
       " -mask   mmm  = Read dataset 'iii' as the mask.\n"
-      " -prefix ppp  = Use 'ppp' for the output datset prefix.\n"
+      " -prefix ppp  = Use 'ppp' for the output dataset prefix.\n"
       "\n"
       "Currently highly experimental! -- Zhark the nonGaussian\n"
       "\n"

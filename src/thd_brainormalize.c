@@ -445,7 +445,7 @@ ENTRY("partial_cliplevel") ;
      for( npos=0,ii=ncut ; ii < nhist ; ii++ ) npos += hist[ii]; /* number >= cut */
      nhalf = npos/2 ;
      for( kk=0,ii=ncut ; ii < nhist && kk < nhalf ; ii++ )  /* find median of */
-       kk += hist[ii] ;                                     /* valuess >= cut */
+       kk += hist[ii] ;                                     /* values >= cut */
      nold = ncut ;                                          /* last cut */
      ncut = mfrac * ii ;                                    /* new cut */
      qq++ ;
@@ -1451,7 +1451,7 @@ ENTRY("mri_brainormalize") ;
       Bp: Bottom limit for oblique posterior cut, the z coord
           is hBp mm from the topmost z coord  
       A: A very anterior point which along with Ba defines the cut 
-         line in the AI cut. Its y coord is offest by lA mm from 
+         line in the AI cut. Its y coord is offset by lA mm from 
          the centroid and its z coord is hCM mm from the top
       P: The poterior equivalent of A. 
       L, R: Lateral points, equivalent to A, and P   

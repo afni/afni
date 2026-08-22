@@ -20,7 +20,7 @@
 #**************************************************************
 Terminal security preferences
 The Terminal app needs extra permissions for programs like AFNI to look in some directories.
-Otherwise, you can get a spray of warnings everytime the afni GUI opens.
+Otherwise, you can get a spray of warnings every time the afni GUI opens.
 You can give the Terminal app more permissions in 
 Mac OS Preferences (Apple menu or Gear icon in dock, Security & Privacy,Privacy tab)
 Select the Lock to unlock settings. 

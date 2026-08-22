@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #ifdef USE_SUNPERF       /** for Solaris **/
@@ -236,7 +236,7 @@ void display_help_menu()
      "                     to indicate which voxels to analyze (a sub-brick \n"
      "                     selector is allowed)  [default = use all voxels] \n"
      "[-ignore num]      num   = skip this number of initial images in the  \n"
-     "                     time series for regresion analysis; default = 0  \n"
+     "                     time series for regression analysis; default = 0  \n"
      "               ****N.B.: default ignore value changed from 3 to 0,    \n"
      "                         on 04 Nov 2008 (BHO day).                    \n"
      "[-inTR]            set delt = TR of the input 3d+time dataset         \n"
@@ -419,7 +419,7 @@ void display_help_menu()
     "\n"
     "     * The following convolved functions are generally convolved with\n"
     "       the time series in AFNI_CONVMODEL_REF, allowing one to specify\n"
-    "       multiple event onsets, varying durations and varying resopnse\n"
+    "       multiple event onsets, varying durations and varying response\n"
     "       magnitudes.\n"
     "\n"
     "  ConvGamma                : Gamma Vairate Response Model\n"
@@ -1751,7 +1751,7 @@ void check_for_valid_inputs
       NLfit_error ("Must have minimum constraints <= maximum constraints");
   for (ip = 0;  ip < p;  ip++)
     if (min_sconstr[ip] > max_sconstr[ip])
-      NLfit_error("Must have mininum constraints <= maximum constraints");
+      NLfit_error("Must have minimum constraints <= maximum constraints");
 
 
   /*----- must have nbest <= nrand -----*/
@@ -1950,7 +1950,7 @@ void proc_finalize_shm_volumes(void)
                    "** POSSIBLY USEFUL ADVICE:\n"
                    "** Current max shared memory size = %u bytes.\n"
                    "** For information on how to change this, see\n"
-                   "**   https://afni.nimh.nih.gov/afni/parallize.htm\n"
+                   "**   https://afni.nimh.nih.gov/afni/parallelize.htm\n"
                    "** and also contact your system administrator.\n"
                    , smax ) ;
         }
@@ -2431,6 +2431,12 @@ void save_results
   float * s_array;         /* fitted signal model time series */
   float * n_array;         /* fitted noise model time series */
 
+  /* gcc-15 is picky about types, make new type  [9 Jun 2025 rickr] */
+  model_4_type typed_smodel = NULL;
+  model_4_type typed_nmodel = NULL;
+
+  typed_smodel = (model_4_type)smodel;
+  typed_nmodel = (model_4_type)nmodel;
 
   /*----- save regression results into volume data -----*/
   if (freg_vol != NULL)    freg_vol[iv] = freg;
@@ -2474,7 +2480,7 @@ void save_results
        s_array = (float *) malloc (sizeof(float) * (ts_length));
        MTEST (s_array);
 
-       smodel (par_full + r, ts_length, x_array, s_array);
+       typed_smodel (par_full + r, ts_length, x_array, s_array);
 
        for (it = 0;  it < ts_length;  it++)
          sfit_vol[it][iv] = s_array[it];
@@ -2489,7 +2495,7 @@ void save_results
     {
       n_array = (float *) malloc (sizeof(float) * (ts_length));
       MTEST (n_array);
-      nmodel (par_full, ts_length, x_array, n_array);
+      typed_nmodel (par_full, ts_length, x_array, n_array);
 
       for (it = 0;  it < ts_length;  it++)
      {
@@ -2503,7 +2509,7 @@ void save_results
      {
        s_array = (float *) malloc (sizeof(float) * (ts_length));
        MTEST (s_array);
-       smodel (par_full + r, ts_length, x_array, s_array);
+       typed_smodel (par_full + r, ts_length, x_array, s_array);
 
        for (it = 0;  it < ts_length;  it++)
          {
@@ -2544,12 +2550,14 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   float fbuf[MAX_STAT_AUX];           /* float buffer */
   float fimfac;                       /* scale factor for short data */
 /*  int output_datum;  */                 /* data type for output data */
-  short * tsp;                        /* 2nd sub-brick data pointer */
+  short * tsp=NULL;                   /* 2nd sub-brick data pointer */
+  float * fsp=NULL;                   /* float version of 2nd sub data */
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
   char label[THD_MAX_NAME];           /* label for output file history */
   int nbad;                           /* number of bad voxels in volume */
+  int outfloat;                       /* output stat as float? [14 Nov 2023] */
 
   /*----- read input dataset -----*/
   dset = THD_open_dataset (input_filename) ; /* was THD_open_one...*/
@@ -2579,7 +2587,11 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   if( output_datum == MRI_byte ) output_datum = MRI_short ;
 */
 
+  /* do not output MRI_shorts with float results  [14 Nov 2023 rickr] */
+  outfloat = (output_datum == MRI_float);
+
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
+  if( outfloat ) ibuf[1] = MRI_float;
 
   if (dendof == 0) func_type = FUNC_TT_TYPE;
   else func_type = FUNC_FT_TYPE;
@@ -2620,46 +2632,59 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   /*----- allocate memory for output data -----*/
   vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz );
   if (vdif == NULL)   NLfit_error ("Unable to allocate memory for vdif");
-  tsp  = (short *) malloc( sizeof(short) * nxyz );
-  if (tsp == NULL)   NLfit_error ("Unable to allocate memory for tsp");
+  if( outfloat ) {
+     fsp  = (float *) malloc( sizeof(float) * nxyz );
+     if (fsp == NULL) NLfit_error ("Unable to allocate memory for fsp");
+     memcpy(fsp, ftr, sizeof(float) * nxyz);
+  } else {
+     /* create tsp data for scaled short stats */
+     tsp  = (short *) malloc( sizeof(short) * nxyz );
+     if (tsp == NULL) NLfit_error ("Unable to allocate memory for tsp");
+  }
 
   /*----- attach bricks to new data set -----*/
   mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0));
-  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
 
+  if( outfloat ) {
+     mri_fix_data_pointer (fsp, DSET_BRICK(new_dset,1));
+     fimfac = 0.0;
+  } else {
+     mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
 
-  /*----- convert data type to output specification -----*/
-  fimfac = EDIT_coerce_autoscale_new (nxyz,
-                          MRI_float, ffim,
-                          output_datum, vdif);
-  if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
+     /* non-float: before attaching, convert float statistic to scaled short */
+
+     /*----- convert data type to output specification -----*/
+     fimfac = EDIT_coerce_autoscale_new (nxyz,
+                             MRI_float, ffim,
+                             output_datum, vdif);
+     if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
 
 #define TOP_SS  32700
 
-  if (dendof == 0)   /* t-statistic */
-    {
-      top = TOP_SS/FUNC_TT_SCALE_SHORT;
-      func_scale_short = FUNC_TT_SCALE_SHORT;
-    }
-  else               /* F-statistic */
-    {
-      top = TOP_SS/FUNC_FT_SCALE_SHORT;
-      func_scale_short = FUNC_FT_SCALE_SHORT;
-    }
+     if (dendof == 0)   /* t-statistic */
+       {
+         top = TOP_SS/FUNC_TT_SCALE_SHORT;
+         func_scale_short = FUNC_TT_SCALE_SHORT;
+       }
+     else               /* F-statistic */
+       {
+         top = TOP_SS/FUNC_FT_SCALE_SHORT;
+         func_scale_short = FUNC_FT_SCALE_SHORT;
+       }
 
-  for (ii = 0;  ii < nxyz;  ii++)
-    {
-      if (ftr[ii] > top)
-     tsp[ii] = TOP_SS;
-      else  if (ftr[ii] < -top)
-     tsp[ii] = -TOP_SS;
-      else  if (ftr[ii] >= 0.0)
-     tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
-      else
-     tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
+     for (ii = 0;  ii < nxyz;  ii++)
+       {
+         if (ftr[ii] > top)
+        tsp[ii] = TOP_SS;
+         else  if (ftr[ii] < -top)
+        tsp[ii] = -TOP_SS;
+         else  if (ftr[ii] >= 0.0)
+        tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
+         else
+        tsp[ii] = (short) (func_scale_short * ftr[ii] - 0.5);
 
-    }
-
+       }
+   } /* end !outfloat */
 
   /*----- write afni data set -----*/
   INFO_message("Writing combined dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
@@ -2670,7 +2695,8 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
 
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
-  fbuf[1] = 1.0 / func_scale_short ;
+  if( outfloat ) fbuf[1] = 0.0;
+  else           fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
   if( do_FDR && !AFNI_noenv("AFNI_AUTOMATIC_FDR") )

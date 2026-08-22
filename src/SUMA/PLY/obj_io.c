@@ -109,7 +109,7 @@ char *fetch_line ( FILE *fp )
   }
 /*
   Convert line-feed and tabs into spaces.
-  This guarentees that there will be a space before the
+  This guarantees that there will be a space before the
   null character at the end of the string.
 */
   str[BIG_STRING-2] = ' ';

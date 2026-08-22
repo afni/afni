@@ -5,7 +5,7 @@ dataset files across the Web, using the HTTP or FTP protocols.  There
 are two ways to use this, assuming you know a Web site from which you can
 get AFNI datasets.
 
-The first way is to specifiy individual datasets; for example
+The first way is to specify individual datasets; for example
 
   afni -dset http://some.web.site/~fred/elvis/anat+orig.HEAD
 

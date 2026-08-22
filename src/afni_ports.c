@@ -204,7 +204,7 @@ int init_ports_list(void) {
          }
       } else {
          WARNING_message("AFNI_NIML_FIRST_PORT must be >= 1025 and <= 6500\n"
-                        "Ingnoring value of %d\n", cc);
+                        "Ignoring value of %d\n", cc);
       }
    }
    
@@ -494,7 +494,7 @@ int is_npb_available(int npb)
    return(1);
 }
 
-/* find a block of ports that is useable */
+/* find a block of ports that is usable */
 int get_available_npb(void) 
 {
    int k = 0;

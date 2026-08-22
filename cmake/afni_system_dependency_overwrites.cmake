@@ -13,7 +13,7 @@
 #
 # We will consider the GLW C library as an example of the sort of issues we are
 # attempting to resolve here... This software made certain variables global for
-# downsteam users to use. AFNI uses these variables (widget drawing classes) but at some
+# downstream users to use. AFNI uses these variables (widget drawing classes) but at some
 # point (8 years ago) the symbol visibility was changed. Now, while neurodebian
 # distributes a version of GLW with these widget variables once more externally visible,
 # no other operating system package manager has been found that does this. The solution
@@ -36,4 +36,3 @@ if(NOT USE_SYSTEM_GLUT AND APPLE)
    message(WARNING [=[On OSX the only GLUT implementation supported is the one distributed with XQuartz]=])
    set(USE_SYSTEM_GLUT ON)
 endif()
-

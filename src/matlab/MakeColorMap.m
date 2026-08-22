@@ -3,7 +3,7 @@ function [err,M] = MakeColorMap (Fiducials,Ncols,Opt)
 %   [err,M] = MakeColorMap (Fiducials,Ncols,Opt)
 %
 %Purpose:
-%   returns the RGB colormap containing Ncols that vary linearily
+%   returns the RGB colormap containing Ncols that vary linearly
 %   from the first color in Fiducials to the last.
 %
 %Input Parameters:
@@ -70,7 +70,7 @@ function [err,M] = MakeColorMap (Fiducials,Ncols,Opt)
 %Define the function name for easy referencing
 FuncName = 'MakeColorMap';
 
-%initailize return variables
+%initialize return variables
 err = 1;
 M = [];
 

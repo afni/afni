@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "Usage 1: A script to parse an AFNI name"
    echo ""
@@ -18,13 +18,10 @@ if ("$bling" == "$1") then
     set bling = ""
 endif
 
-set anat_path = $anat_in:h
-if ( "$anat_path" == "${anat_in}" ) then
-    set anat_path = "."
-endif
+set anat_path = "`dirname $anat_in`"
 
-set ana_pref = `@GetAfniPrefix ${anat_in}`
-set ana_view = `@GetAfniView ${anat_in}`
+set ana_pref = `@GetAfniPrefix "${anat_in}"`
+set ana_view = `@GetAfniView "${anat_in}"`
 if ("$ana_view" == '' && "$bling" != '') then
     set ana_view = "----"
 endif

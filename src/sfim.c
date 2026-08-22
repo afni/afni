@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include <stdlib.h>
@@ -334,7 +334,7 @@ void SFIM_syntax( char * str )
     "\n"
     "  -prefix pname:  'pname' is the prefix for output image filenames for\n"
     "                  all states:  the i'th interval with task state name\n"
-    "                  'fred' will be writen to file 'pname.fred.i'.\n"
+    "                  'fred' will be written to file 'pname.fred.i'.\n"
     "              *** the default 'pname' is 'sfim'\n"
     "\n"
     "  Output files are the base-mean-removed averages for each non-base\n"

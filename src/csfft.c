@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /**** Complex-to-Complex in-place FFT functions.
@@ -9,7 +9,7 @@
       If USE_FFTN is enabled, any length is allowed;
       otherwise, limited to powers of 2 combined with
       powers of 3 and 5 (no more than 3^3 and 5^5, though).
-      The original csfft_cox() functions are somehwat faster when
+      The original csfft_cox() functions are somewhat faster when
       applicable, and so are used in preference to the FFTN functions.
       However, the interface is still via csfft_cox(), described below. ****/
 

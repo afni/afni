@@ -26,7 +26,7 @@ Usage :
    RetStrct =   SUMA_SurfNorm (NodeList, N_NodeList, FaceSetList,  N_FaceSetList );
    
    
-Input paramters : 
+Input parameters : 
 \param  NodeList (float *): N_NodeList x 3 vector containing the XYZ coordinates of each node
 \param  N_NodeList (int): number of nodes in NodeList
 \param  FaceSetList (int *): [N_FaceSetList x 3] vector (matrix prior to SUMA 1.2) of node indices forming each triangular facet (FaceSets). 
@@ -51,7 +51,7 @@ Side effects :
    if (RetStrct.NodeNormList) SUMA_free(RetStrct.NodeNormList);
 
 The node normals are obtained by averaging the normals of the surrounding facesets (ie facesets containing the node).
-This is an approximation and in special cases like a cube with a particular tesselation, the normals could be biased 
+This is an approximation and in special cases like a cube with a particular tessellation, the normals could be biased 
 in direction if the node is a member of more triangles on one side of the object than the other sides. 
 See Lab-book NIH-2, page 142 for an illustration or this miserable ascii rendition. 
                
@@ -300,7 +300,7 @@ Purpose :
 Usage : 
    RetStruct = SUMA_MemberFaceSets (int Nind, int * FaceSetList, int nFace, int FaceSetDim);
    
-Input paramters : 
+Input parameters : 
 \param  Nind (int) : Total number of nodes in Index. ( No value (node index) in FaceSetList can be > Nind-1 )
 \param  FaceSetList (int *) : The FaceSetList vector (used to be matrix, prior to SUMA 1.2), [nFace x FaceSetDim] 
 \param  nFace (int) : number of FaceSets in FaceSetList 

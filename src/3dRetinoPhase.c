@@ -190,18 +190,18 @@ char * Phase_Dirs_ulbl(int p) {
    return(ps);
 }
 
-int Dir_is_eccentricity(d) {
+int Dir_is_eccentricity(int d) {
    if (d == CONT || d == EXP) return(1);
    return(0);
 }
 
-int Dir_is_polar(d) {
+int Dir_is_polar(int d) {
    if (d == CLW || d == CCW) return(1);
    return(0);
 }
 
 
-int Dir2Type(p) {
+int Dir2Type(int p) {
    switch (p){
       case CONT:
       case EXP:
@@ -217,7 +217,7 @@ int Dir2Type(p) {
    }  
 }
 
-Show_RP_UD(RP_UD *u, char *str) {
+void Show_RP_UD(RP_UD *u, char *str) {
    if (str) {
       fprintf(stderr,"%s", str);
    }
@@ -617,7 +617,7 @@ static void RP_tsfunc( double tzero, double tdelta ,
    } else {
       val[0] =  phz[rpud->stk[1]];
    }
-   /* linear interpolation between closest frequecies for amplitude */
+   /* linear interpolation between closest frequencies for amplitude */
    val[1] = (  mag[rpud->stk[0]]*rpud->stw[0] + 
                mag[rpud->stk[1]]*rpud->stw[1] );
    val[1] *= val[1]; /* square for power*/
@@ -653,7 +653,7 @@ static void DEL_tsfunc( double tzero, double tdelta ,
                  "rpud %p, ud %p\n", rpud, ud);
    }
    
-   /* Now intialize */
+   /* Now initialize */
    if( val == NULL ){
       if (rpud->verb > 1) {
          INFO_message("First call npts=%d\n", npts);
@@ -1416,7 +1416,7 @@ Bring them back after testing. */
             }
             rpud.dt = DSET_TR_SEC(old_dset);
             if (rpud.dt > 100) {
-               ERROR_exit("TR of %f sec of %s is very suspicously high.\n"
+               ERROR_exit("TR of %f sec of %s is very suspiciously high.\n"
                        "Program assumes this is a mistake in the header.\n"
                        "You can use 3drefit's -TR option to fix the problem.\n",
                        rpud.dt, in_name[stype]);
@@ -1472,7 +1472,7 @@ Bring them back after testing. */
                           0 ,                    /* ignore count  */
                           1 ,                   /* linear detrend */
                           2 ,                   /* number of briks */
-                          RP_tsfunc,          /* timeseries processor */
+          (generic_func *)RP_tsfunc,          /* timeseries processor */
                           (void *)(&rpud),    /* data for tsfunc */
                           mmm,
                           0   /* Allow auto scaling of output */
@@ -1496,7 +1496,7 @@ Bring them back after testing. */
                              0 ,                    /* ignore count  */
                              1 ,                   /* linear detrend */
                              2 ,                   /* number of briks */
-                             DEL_tsfunc,          /* timeseries processor */
+             (generic_func *)DEL_tsfunc,          /* timeseries processor */
                              (void *)(&rpud),    /* data for tsfunc */
                              mmm,
                              0   /* Allow auto scaling of output */

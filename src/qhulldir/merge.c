@@ -117,7 +117,7 @@ void qh_premerge(vertexT *apex, realT maxcentrum, realT maxangle) {
       mark non-simplicial facets, facet->newmerge
       set qh.newvertext_list to qh.vertex_list
       add all vertices to qh.newvertex_list
-      if a pre-merge occured
+      if a pre-merge occurred
         set vertex->delridge {will retest the ridge}
         if qh.MERGEexact
           call qh_reducevertices()
@@ -2066,7 +2066,7 @@ void qh_mergecycle_neighbors(facetT *samecycle, facetT *newfacet) {
     for each facet in samecycle
       for each ridge in facet
         update facet pointers in ridge
-        skip ridges processed in qh_mergecycle_neighors
+        skip ridges processed in qh_mergecycle_neighbors
         free ridges between newfacet and samecycle
         free ridges between facets of samecycle (on 2nd visit)
         append remaining ridges to newfacet
@@ -2597,7 +2597,7 @@ void qh_mergeridges(facetT *facet1, facetT *facet2) {
         if apex
           rename facet1 to facet2 in its vertex neighbors
         else
-          delete facet1 from vertex neighors
+          delete facet1 from vertex neighbors
           if only in facet2
             add vertex to qh.del_vertices for later deletion
       for each ridge of facet1
@@ -2986,7 +2986,7 @@ boolT qh_reducevertices(void) {
   design:
     intersect vertices of all facet neighbors of vertex
     determine ridges for these vertices
-    if find a new vertex for vertex amoung these ridges and vertices
+    if find a new vertex for vertex among these ridges and vertices
       rename vertex to the new vertex
 */
 vertexT *qh_redundant_vertex(vertexT *vertex) {

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -284,7 +284,7 @@ void REG_syntax(void)
     "                    align the images.  The optional :0 indicates to\n"
     "                    skip the iteration of the method, and to use the\n"
     "                    simpler linear differential spatial alignment method.\n"
-    "                    ACCURACY: displacments of at most a few pixels.\n"
+    "                    ACCURACY: displacements of at most a few pixels.\n"
     "                *** This is the default method (without the :0).\n"
     "\n"
 

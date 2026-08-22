@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -256,7 +256,7 @@ char * COMPRESS_add_suffix( char * fname , int mm )
 
 /*--------------------------------------------------------------*/
 
-/*** open a file for readin, possibly using compresson ***/
+/*** open a file for reading, possibly using compresson ***/
 
 FILE * COMPRESS_fopen_read( char * fname )
 {
@@ -270,7 +270,7 @@ FILE * COMPRESS_fopen_read( char * fname )
 
    mm = COMPRESS_filecode( fname ) ;  /* find compression mode */
 
-   if( mm == COMPRESS_NOFILE ) return NULL ;  /* can't do nothin */
+   if( mm == COMPRESS_NOFILE ) return NULL ;  /* can't do nothing */
 
    if( mm == COMPRESS_NONE ){
       fp = fopen(fname,"r") ;   /* open it normally */

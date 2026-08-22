@@ -170,7 +170,7 @@ class Events(object):
       else:
          slist = g_seplist
 
-      # count occurances of each
+      # count occurrences of each
       scounts = [tstr.count(s) for s in slist]
       scmax = max(scounts)
 
@@ -257,7 +257,7 @@ class Events(object):
 
    def mod_field_val(self, field, oldval, newval,
                      where_field=None, where_val=None):
-      """In 'field' column, change 'oldval' entires to 'newval'.
+      """In 'field' column, change 'oldval' entries to 'newval'.
          If where_field and where_val, restrict this to such cases.
             todo: these could be lists
       """

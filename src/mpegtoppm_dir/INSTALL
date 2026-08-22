@@ -17,7 +17,7 @@ There are at least three ways to do it:
   included in this distribution.
 
 - natively on Windows using MSYS + MINGW (www.mingw.org) (MSYS is a
-  minimal build environnement to compile unixish projects under
+  minimal build environment to compile unixish projects under
   windows. It provides all the common unix tools like sh, gmake...)
 
 - or on Linux, using the mingw32 cross-compiler

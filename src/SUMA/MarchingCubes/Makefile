@@ -46,6 +46,7 @@ $(OBJDIR) :
 
 MC_OBJECTS = \
   $(OBJDIR)/MarchingCubes.o \
+  $(OBJDIR)/mc_ziad.o \
   $(OBJDIR)/main.o
 
 mc : $(OBJDIR) $(MC_OBJECTS)
@@ -62,6 +63,7 @@ MCGL_OBJECTS = \
   $(OBJDIR)/gl2ps.o \
   $(OBJDIR)/ply.o \
   $(OBJDIR)/MarchingCubes.o \
+  $(OBJDIR)/mc_ziad.o \
   $(OBJDIR)/mainGLUI.o
 
 
@@ -122,7 +124,7 @@ all :
 
 $(OBJDIR)/fparser.o: fparser.h
 $(OBJDIR)/LookUpTableTest.o: LookUpTable.h
-$(OBJDIR)/main.o: MarchingCubes.h
+$(OBJDIR)/main.o: MarchingCubes.h mc_ziad.h
 $(OBJDIR)/mainGLUI.o: csg.h fparser.h MarchingCubes.h
 $(OBJDIR)/MarchingCubes.o: MarchingCubes.h LookUpTable.h
 $(OBJDIR)/gl2ps.o: gl2ps.h

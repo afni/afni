@@ -8,7 +8,7 @@ if(NOT EXISTS ${BUILD_TESTS_DIR})
   )
 endif()
 
-# Cache directores can cause issues when running inside and outside of containers. Might
+# Cache directories can cause issues when running inside and outside of containers. Might
 # reconsider this if the slowdown is too great. message("Removing python cache
 # directories...") file(GLOB_RECURSE pycache_dirs
 # ${CMAKE_CURRENT_BINARY_DIR}/afni_tests/*_pycache_* ) if(NOT "" STREQUAL

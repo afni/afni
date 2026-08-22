@@ -164,7 +164,7 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
 "               underestimating the Local FWHM at most of the nodes.\n"
 "               The more FWHM/R exceeds 0.5, the more you will under-\n"
 "               estimate FWHM. Going for an excessive R however is not\n"
-"               very advantagious either. Large R is computationaly \n"
+"               very advantageous either. Large R is computationaly \n"
 "               expensive and if it is much larger than FWHM estimates,\n" 
 "               it will lead to a blurring of the local FWHM estimates.\n"
 "               Set R to -1 to allow the program\n"
@@ -228,7 +228,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
    ncode = 0;
    kar = 1;
    brk = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           usage_SurfFWHM(ps);
@@ -520,7 +520,7 @@ int main (int argc,char *argv[])
    }
 
    if( Opt->dmed && Opt->corder > -2){
-     Opt->dmed = 0 ; SUMA_S_Warn("-dmed is overriden by -corder") ;
+     Opt->dmed = 0 ; SUMA_S_Warn("-dmed is overridden by -corder") ;
    }
 
    if( Opt->corder == -1 ) Opt->corder = SDSET_VECNUM(din) / 30 ;
@@ -629,7 +629,7 @@ int main (int argc,char *argv[])
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       exit(1);   
    }
    

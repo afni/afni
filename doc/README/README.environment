@@ -152,7 +152,7 @@ Variable: AFNI_MESSAGE_PREFIX
 -----------------------------
 Most AFNI programs output various messages prefixed by '++', '**', and
 divers variations. If you are running several programs at once, you can
-pre-pend a string to these prefixes to distinguish them in the output
+prepend a string to these prefixes to distinguish them in the output
 terminal stream. For example, a csh script might look like so:
   foreach fred ( 1 2 3 4 )
     setenv AFNI_MESSAGE_PREFIX case$fred
@@ -368,6 +368,16 @@ the directory name are used for the display. If AFNI_SESSTRAIL
 is not set, then it is equivalent to setting it to 0 (which
 was the old method).
 
+---------------------------
+Variable: AFNI_SESSION_SORT
+---------------------------
+This is a string to set the sort order within the dataset choosers
+in the afni GUI. The allowed values are
+ALPHA    = alphabetical, case insensitive (A=a) (numeric,alpha Aa-Zz,underscore)
+REVALPHA = reverse alphabetical (reverse of ALPHA:underscore,zZ-aA,numeric)
+MRITYPE  = dataset type - anatomical, functional
+NONE     = no sorting at all, but order of filling is AFNI then NIFTI
+
 --------------------
 Variable: AFNI_HINTS
 --------------------
@@ -472,6 +482,13 @@ decide how much of the file to load. In this way, it is possible to
 deal with more files than you have swap space on your computer (since
 .BRIK files are mmap-ed in readonly mode, so they don't take up swap
 space, which is for saving modified memory pages).
+
+A potential penalty for using mmap is when reading is not linear, such as
+when reading over the time dimension.  There have been reported filesystem
+bottlenecks resulting from too much disk access, leading to processing times
+being 50-300 times as long as without mmap, akin to thrashing when one runs
+out of RAM.  This is highly dependent on FS caching and other configuration
+choices.
 
 The moral of the story: buy more memory, it's cheap. At the time
 I write this line [Aug 1998], I have a PC with 384 MB of RAM, and
@@ -1221,11 +1238,11 @@ can end up being moved to bizarre locations.
 -----------------------------
 Variable: AFNI_IMAGE_DATASETS
 -----------------------------
-If this YES/NO variable is not set to NO, then 2D image files
+If this YES/NO variable is set to YES, then 2D image files
 (*.png and *.jpg) will be read as datasets when the interactive
-AFNI program starts. That is, you have to set this variable explicitly
-to NO if you do not want image files read into the AFNI GUI at
-startup. Image files can be opened using the Axial image viewer.
+AFNI program starts.
+Image files can be opened when passed directly on the command line.
+Image files can also be opened using the Axial image viewer, aiv.
 
 ----------------------------
 Variable: AFNI_MINC_DATASETS
@@ -1671,6 +1688,31 @@ thin lines. The units are fractions of the image size, and the legal
 range is 0 .. 0.05 (which will be very thick lines, I assure you).
 This variable was introduced in March 2015 for Corianne (if there is
 such a person).
+
+---------------------------
+Variable: AFNI_CROSSHAIRGAP
+---------------------------
+This numeric variable lets you set the gap between the image viewer
+crosshairs.  The default value is 5 voxels. Allowable range is from -1
+(closed) to 19 voxels.
+
+--------------------------
+Variable: AFNI_OVCROSSHAIR
+--------------------------
+This variable controls the color of the crosshair in the image windows
+in Ye Olde Style: users provide an integer that maps to a color.  The
+color-by-number mapping is as follows:
+
+ 1: yellow     11: blue-cyan  21: rbgyr20_01  31: rbgyr20_11  41: salmon
+ 2: yell-oran  12: cyan       22: rbgyr20_02  32: rbgyr20_12  42: navy
+ 3: oran-yell  13: green      23: rbgyr20_03  33: rbgyr20_13  
+ 4: orange     14: limegreen  24: rbgyr20_04  34: rbgyr20_14  
+ 5: oran-red   15: violet     25: rbgyr20_05  35: rbgyr20_15  
+ 6: red        16: hotpink    26: rbgyr20_06  36: rbgyr20_16  
+ 7: dk-blue    17: white      27: rbgyr20_07  37: rbgyr20_17  
+ 8: blue       18: gry-dd     28: rbgyr20_08  38: rbgyr20_18  
+ 9: lt-blue1   19: gry-bb     29: rbgyr20_09  39: rbgyr20_19  
+10: lt-blue2   20: black      30: rbgyr20_10  40: rbgyr20_20  
 
 -----------------------------
 Variable: AFNI_CROSSHAIRS_OFF
@@ -2604,7 +2646,7 @@ If this variable is NOT set to anything, then it is the same as NO.
 
 MPEG filenames input to AFNI programs (as sources of images or as
 datasets) must end in ".mpg", ".MPG", ".mpeg", or ".MPEG". MPEG
-datasets will be read so that the individal images are displayed in an
+datasets will be read so that the individual images are displayed in an
 Axial image window.
 
 Note that decoding a long .mpg file that happens to be in your
@@ -2794,7 +2836,7 @@ sensitive):
 This variable replaces the 2 variables listed below. Again, this only
 controls the INITIAL setting of the widgets -- you can change them in
 the AFNI GUI later at any time. Setting this variable after AFNI
-starts (e.g., from plugout_drive) will have little discernable effect.
+starts (e.g., from plugout_drive) will have little discernible effect.
 
 -------------------------
 Variable: AFNI_FUNC_ALPHA
@@ -2863,7 +2905,7 @@ even when the overlay is a 'bucket' dataset without a time axis.
 ----------------------------
 Variable: AFNI_CLICK_MESSAGE
 ----------------------------
-If this veriable is set to NO, then the string
+If this variable is set to NO, then the string
   [---------------]
   [ Click in Text ]
   [ to Pop Down!! ]
@@ -2966,6 +3008,16 @@ and so force an elicitation of the NIfTI debug messages (for .nii
 files, that is).
 
 ------------------------------
+Variable: AFNI_NIFTI_WRITE_TYPE
+------------------------------
+AFNI defaults to writing NIFTI-2 only if any dimension exceeds the NIFTI-1
+limit of a (signed) short int (2^15-1 = 32767).  Otherwise it writes NIFTI-1.
+This variable will override the default behavior based on the value:
+   1   : write NIFTI-1
+   2   : write NIFTI-2
+   else: write as the default (based on dims)
+
+------------------------------
 Variable: AFNI_NIFTI_TYPE_WARN
 ------------------------------
 AFNI converts 'byte' NIFTI data types to 'short', and 'int' to
@@ -2978,7 +3030,7 @@ to see all conversion warnings.
 --------------------------
 Variable: AFNI_DEBUG_PLUG_VOL2SURF
 --------------------------
-Use this interger variable to initialize the debug level in
+Use this integer variable to initialize the debug level in
 plug_vol2surf. The current set of acceptable values is {0..5}.
 
 --------------------------
@@ -3070,7 +3122,7 @@ variable AFNI_RESCAN_METHOD to.
 Variable: AFNI_RESCAN_AT_SWITCH
 -------------------------------
 If this YES/NO variable is set to YES, then the interactive AFNI
-program will rescan all session directories everytime you click on
+program will rescan all session directories every time you click on
 either of the 'Overlay' or 'Underlay' buttons. Basically, this is just
 another way for you to avoid pressing the 'Rescan' buttons. (Unlike
 with AFNI_AUTO_RESCAN, the AFNI_RESCAN_METHOD settings are respected.)
@@ -3102,7 +3154,7 @@ Variable: AFNI_SELENIUM
 --------------------------
 If this YES/NO variable is set to YES, then the Selenium webdriver
 will be used to open a browser window in the places where AFNI uses
-webpages (whereami, help,...) The AFNI_WEB_BROWSER should be set to
+webpages (whereami_afni, help,...) The AFNI_WEB_BROWSER should be set to
 the browser of choice (Chrome,Firefox,Safari). The default browser
 will be chrome if the AFNI_WEB_BROWSER variable is not set. If
 AFNI_SELENIUM is not set or set to NO, AFNI will open the standard
@@ -3288,7 +3340,7 @@ than your monitor, and that would be hard to deal with.
 Variable: AFNI_CLUSTER_WAMIMAX (editable)
 ------------------------------
 This variable should be set to a number indicating the maximum number
-of clusters to get a 'whereami' report when the 'WamI' button is
+of clusters to get a 'whereami_afni' report when the 'WamI' button is
 pressed. Since the querying the diverse atlas datasets is slow,
 increasing this value much past its default value of 20 is not usually
 a good plan.
@@ -3491,7 +3543,7 @@ reasons, dating back to the old FD program from Medieval Times.
 Variable: AFNI_IMAGE_COLORSCALE
 -------------------------------
 This variable defines the colorscale used by the 'Colr' button
-at the top right of the AFNI image viwer window to colorize
+at the top right of the AFNI image viewer window to colorize
 the Underlay image -- the Overlay colorization is controlled
 from the colorscale on the 'Define Overlay' control pane.
 At this time [Oct 2019], only the following four color scales
@@ -4003,9 +4055,11 @@ AFNI_REALTIME_CHMERMODE = Number
 AFNI_REALTIME_CM_REG_MODE = Number
 
         If set, this variable controls the ChannelMerge registration mode.
-        Here: 0=none            : no merge registration
+        Here: 0=none            : no merge registration (register only channel 0)
               1=reg_merge       : register merged dastaset
+                                  (merge before registering)
               2=reg_chan        : apply merge xform to all channels
+                                  (register channels before merging)
         The default is 0.
 
 AFNI_REALTIME_MRG_CHANLIST = String
@@ -4257,7 +4311,7 @@ this purpose. Or just look at your data (please!).
 ###  ATLAS and WHEREAMI env variables   ###
 ###########################################
 
-N.B.: These variables control how AFNI and whereami make use of
+N.B.: These variables control how AFNI and whereami_afni make use of
       various atlases and template spaces. The variables may also
       affect how other AFNI programs use atlases as input datasets.
 
@@ -4266,8 +4320,8 @@ Variable: AFNI_ATLAS_LIST
 -------------------------
 This list contains the names of the atlases that should be queried
 when no specific atlas has been requested. For example, the afni GUI
-and whereami, by default, do not load all the atlases specified in the
-AFNI_atlas_spaces.niml file. If this variable is not set, the
+and whereami_afni, by default, do not load all the atlases specified in
+the AFNI_atlas_spaces.niml file. If this variable is not set, the
 TT_Daemon atlas and the cytoarchitectonic Eickhoff-Zilles in MNI_ANAT
 space are loaded. If the variable is set to a list like
 "TT_Daemon,DD_Desai_PM", then only these two atlases are loaded. The
@@ -4279,7 +4333,7 @@ be loaded.
 Variable: AFNI_TEMPLATE_SPACE_LIST
 ----------------------------------
 This list contains the names of the template spaces that are shown
-when whereami reports the coordinates among various spaces. By
+when whereami_afni reports the coordinates among various spaces. By
 default, the list contains "TLRC,MNI,MNI_ANAT". As with
 AFNI_ATLAS_LIST, this list may also be set to "ALL".
 
@@ -4295,7 +4349,7 @@ Variable: AFNI_JUMPTO_SPACE (editable)
 ----------------------------
 This variable sets which space to use in the AFNI GUI for "Jump to
 (spacename)" function where this would default to "MNI". Choose a
-valid spacename from the current list of spaces in "whereami
+valid spacename from the current list of spaces in "whereami_afni
 -show_spaces". The jump function transforms the user input coordinates
 from that space to the space of the dataset.
 
@@ -4313,12 +4367,12 @@ AFNI_ATLAS_PATH, the AFNI_PLUGINPATH or the standard PATH values.
 Variable: AFNI_PLUGINPATH
 -------------------------
 Described above, this variable is used for several purposes. For
-whereami, this variable sets the directory to load atlases and NIML
+whereami_afni, this variable sets the directory to load atlases and NIML
 files if not in the current directory. If this variable does not exist
 or the referred file does not exist, then the atlas is searched in the
 user's current PATH setting. If this is set, atlases will be found
 more quickly than searching all the directories of the entire
-PATH. Searches of the PATH variable for whereami usage stop at the
+PATH. Searches of the PATH variable for whereami_afni usage stop at the
 first occurrence of the searched file, so placing the AFNI directory
 earlier in the PATH will dramatically increase the speed that the file
 is found.
@@ -4326,7 +4380,7 @@ is found.
 ----------------------------------
 Variable: AFNI_WHEREAMI_DEC_PLACES (editable)
 ----------------------------------
-Sets precision for whereami output. Higher field data and animal
+Sets precision for whereami_afni output. Higher field data and animal
 atlases require higher precision. The default value used for focus
 point among template spaces is still 0 decimal places (closest mm),
 but animal data requires three decimal places. Value may range from 0
@@ -4338,7 +4392,7 @@ Variable: AFNI_WAMI_DEBUG
 This variable controls the output of detailed messages about various
 tasks involved in loading atlases, transformations and composing query
 results. By default, this information is not shown. This integer sets
-the debugging level in whereami routines. Currently used values range
+the debugging level in whereami_afni routines. Currently used values range
 from 0 to 3.
 
 ------------------------------
@@ -4351,7 +4405,7 @@ is not set.
 -------------------------------
 Variable: AFNI_WHEREAMI_NO_WARN
 -------------------------------
-Turns off warnings about various whereami features - like queries that
+Turns off warnings about various whereami_afni features - like queries that
 have reached their limit of returned results. By default, warnings are
 displayed only the first time a particular message is encountered.
 
@@ -4360,13 +4414,13 @@ Variable: AFNI_WHEREAMI_MAX_FIND (editable)
 --------------------------------
 By default, only the first nine structures are displayed within a
 particular atlas. You may increase or decrease this to show more or
-fewer structures in the whereami results.
+fewer structures in the whereami_afni results.
 
 -------------------------------
 Variable: AFNI_WHEREAMI_MAX_SEARCH_RAD (editable)
 -------------------------------
 
-By default, whereami searches a radius of 7.5 mm. Set a radius up to
+By default, whereami_afni searches a radius of 7.5 mm. Set a radius up to
 9.5 mm.
 
 -------------------------------
@@ -4378,20 +4432,21 @@ Minimum probability AFNI considers in probabilistic atlases
 Variable: AFNI_DEFAULT_STD_SPACE
 --------------------------------
 The default template space is assumed to be TLRC. This is used for
-coordinate input to whereami, the whereami GUI and for TLRC view
-datasets without a template space explicitly set in the dataset
-header.
+coordinate input to whereami_afni, the whereami functionality in the GUI 
+and for TLRC view datasets without a template space explicitly set in the 
+dataset header.
 
 --------------------------------
 Variable: AFNI_NIFTI_VIEW
 --------------------------------
 The default view extension used for output when creating AFNI format
-datasets from NIFTI datasets.This variable is only applicable for
+datasets from NIFTI datasets. This variable is only applicable for
 sform and qform codes that do not have clearly defined views
 (sform/qform code = 2). Set to "tlrc" or "orig". See also
 AFNI_DEFAULT_STD_SPACE and AFNI_NIFTI_PRIORITY. Note sform/qform code=5
 can be used for spaces other than MNI or TLRC including MNI_ANAT or D99
 spaces.
+If unset, the default is 'orig'.
 
 --------------------------------
 Variable: AFNI_NIFTI_PRIORITY
@@ -4443,12 +4498,13 @@ Variable: AFNI_ATLAS_NAME_TYPE
 -------------------------------
 Atlas region labels can be shown as either as a short name or with a
 longer, more descriptive name. Note that most atlases have only the
-short name available. The whereami GUI and command line can show either
-or both labels with this variable set to "longname", "both" or "name",
-where "name" is only the short, standard version. The overlay panel
-and image viewers can show this label too. The names are separated by
-a vertical pipe symbol if both are in the atlas header.
-The default is to show both names if they are available.
+short name available. The whereami GUI functionality and whereami_afni
+command line program can show either or both labels with this variable
+set to "longname", "both" or "name", where "name" is only the short,
+standard version. The overlay panel and image viewers can show this
+label too. The names are separated by a vertical pipe symbol if both
+are in the atlas header.  The default is to show both names if they
+are available.
 
 -------------------------
 Variable: AFNI_WEBBY_WAMI

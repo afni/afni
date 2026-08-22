@@ -41,6 +41,7 @@ ENTRY("THD_instacorr_tsprep") ;
    }
    nmmm  = mv->nvec ;
    ntime = mv->nvals ;  /* #dataset time points to process */
+   mv->ignore = 0 ;     /* 12 Jul 2024 */
 
    if( iset->despike ){
      int_pair ip ;
@@ -240,7 +241,10 @@ ENTRY("THD_instacorr_prepare") ;
 
    iset->mv = THD_instacorr_tsprep( iset , iset->dset ) ;
    if( iset->mv == NULL ) RETURN(0) ;
+   iset->mv_is_new = (iset->mv != NULL) ;  /* mark as a new timeseries vectim [12 Jul 2024] */
+
    iset->ev = THD_instacorr_tsprep( iset , iset->eset ) ;
+   iset->ev_is_new = (iset->ev != NULL) ;  /* 12 Jul 2024 */
 
    RETURN(nmmm) ;
 }

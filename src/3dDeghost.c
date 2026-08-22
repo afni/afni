@@ -73,7 +73,7 @@ int main( int argc , char *argv[] )
        "=======\n"
        "Would you believe me if I said magic? Would you accept secret algorithms\n"
        "known only to the Olmecs? How about something so ad hoc that it cannot\n"
-       "be described without embarrasment and shame?\n"
+       "be described without embarrassment and shame?\n"
        "\n"
        "-- Feb 2014 - Zhark the Phantasmal\n"
       , orfilt_len

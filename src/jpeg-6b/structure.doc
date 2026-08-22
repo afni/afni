@@ -887,7 +887,7 @@ extended memory by itself.  To support this, we will expect the main program
 or surrounding application to arrange to call self_destruct (typically via
 jpeg_destroy) upon abnormal termination.  This may require a SIGINT signal
 handler or equivalent.  We don't want to have the back end module install its
-own signal handler, because that would pre-empt the surrounding application's
+own signal handler, because that would preempt the surrounding application's
 ability to control signal handling.
 
 The IJG distribution includes several memory manager back end implementations.

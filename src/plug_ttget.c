@@ -280,7 +280,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "TT Atlas",
                                 "TT Atlas display",
                                 NULL,
-                                PLUGIN_CALL_VIA_MENU, TTget_main  ) ;
+                                PLUGIN_CALL_VIA_MENU, (cptr_func *)TTget_main );
 
    PLUTO_add_option( plint, "Mode", "MODE", TRUE ) ;
 
@@ -326,7 +326,7 @@ static char * TTget_main( PLUGIN_interface *plint )
      recv_key = -1 ;
    } else if( orient > 0 && recv_key < 0 ){
      recv_key = AFNI_receive_init( plint->im3d, RECEIVE_VIEWPOINT_MASK,
-                                   TTget_recv, NULL , "TTget_recv"      ) ;
+                                   (gen_func *)TTget_recv, NULL, "TTget_recv") ;
    }
 
    return NULL ;

@@ -374,7 +374,7 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
-		if( strcmp(argv[iarg],"-input") == 0 ){ // initial results of 3dDWItoDTI
+		if( strcmp(argv[iarg],"-input") == 0 ){ // initial results of 3dDWItoDT
 			if( ++iarg >= argc ) 
             ERROR_exit("Need argument after '-input'");
 
@@ -1018,7 +1018,7 @@ int Calc_DTI_uncert( float **UU,
       int i;
       int ithr;
       int nprog=0;
-      time_t t_start;
+      time_t t_start=time(NULL);  /* init to quiet whiny compiler */
 
       int POSDEF=0;
       int ii,kk,jj,ll;

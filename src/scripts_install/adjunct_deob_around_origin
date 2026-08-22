@@ -1,0 +1,443 @@
+#!/usr/bin/env tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "1.0";  set rev_dat   = "Feb 22, 2024"
+# + script to do deobliquing while preserving the coord origin
+#
+set version   = "1.1";  set rev_dat   = "Dec 08, 2025"
+# + fix case of no obliquity for output
+#
+# ----------------------------------------------------------------
+
+set this_prog = "adjunct_deob_around_origin"
+set prog_abbr = "adfo"
+#set tpname    = "${this_prog:gas///}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set input   = ""
+set prefix  = ""
+
+set odir    = $here
+set opref   = ""
+set wdir    = ""
+
+set obl_meth  = "-oblique_recenter"
+set DO_MATS   = 0                       # def: don't save matrices
+set omat      = "mmm"                   # to become output pref for matrices
+set pmat      = "mat.aff12.1D"          # postfix for 'forward' matrix
+set pmat_I    = "mat_INV.aff12.1D"      # postfix for inverse matrix
+
+set do_ow     = ""                      # def: don't overwrite output
+set DO_CLEAN  = 1                       # def: rm working dir
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
+    # --------- required
+
+    else if ( "$argv[$ac]" == "-input" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set input = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set prefix = "$argv[$ac]"
+        set opref  = `basename "$argv[$ac]"`
+        set odir   = `dirname  "$argv[$ac]"`
+
+    # --------- opt
+
+    else if ( "$argv[$ac]" == "-write_aff_mats" ) then
+        set DO_MATS = 1
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+
+        set tf = `python -c "print('/' in '${wdir}')"`
+        if ( "${tf}" == "True" ) then
+            echo "** ERROR: '-workdir ..' is a name only, no '/' allowed\n"
+            goto BAD_EXIT
+        endif
+
+    # can choose any of 3drefit's deobliquing styles
+    else if ( "$argv[$ac]" == "-oblique_origin" ) then
+        set obl_meth = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-oblique_recenter" ) then
+        set obl_meth = "$argv[$ac]"
+    else if ( "$argv[$ac]" == "-oblique_recenter_raw" ) then
+        set obl_meth = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set do_ow = "-overwrite"
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ======================== ** Verify + setup ** =========================
+# =======================================================================
+
+if ( "${prefix}" == "" ) then
+    echo "** ERROR: need to provide output name with '-prefix ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${input}" == "" ) then
+    echo "** ERROR: need to provide input dataset with '-input ..'"
+    goto BAD_EXIT
+endif
+
+# -----------------------------------------------------------------------
+# Check obliquity and av_space
+
+# Is the dset oblique? If not, just copy and exit
+set is_obl = `3dinfo -is_oblique "${input}"`
+
+if ( "${is_obl}" == "0" ) then
+    echo "++ Input dset is not oblique: just copying with 3dcopy."
+    3dcopy ${do_ow} "${input}" "${prefix}"
+
+    if ( $status ) then
+        echo "** ERROR: will not overwrite existing file"
+        goto BAD_EXIT
+    endif
+
+    if ( $DO_MATS ) then
+        set ppp    = `3dinfo -prefix_noext "${prefix}"`
+        set omat   = "${odir}/${ppp}_${pmat}"
+        set omat_I = "${odir}/${ppp}_${pmat_I}"
+        echo " 1 0 0 0  0 1 0 0  0 0 1 0" > "${omat}"
+        echo " 1 0 0 0  0 1 0 0  0 0 1 0" > "${omat_I}"
+    endif
+
+    goto DONE_MSG
+endif
+
+# This should always be "+orig", but sometimes there are header issues
+# (like [qs]form_code stuff
+set avsp = `3dinfo -av_space "${input}"`
+
+if ( "${avsp}" != "+orig" ) then
+    echo "+* WARN: input dataset is *not* in orig space."
+    echo "   That is surprising that it would have obliquity, then."
+endif
+# -----------------------------------------------------------------------
+
+# make workdir name, if nec
+if ( "${wdir}" == "" ) then
+    set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
+    set wdir     = __workdir_${prog_abbr}_${tmp_code}
+endif
+
+# check output directory, use input one if nothing given
+if ( ! -e "${odir}" ) then
+    echo "++ Making new output directory: ${odir}"
+    \mkdir -p "${odir}"
+endif
+
+# make the working directory
+if ( ! -e "${odir}/${wdir}" ) then
+    echo "++ Making working directory: ${odir}/${wdir}"
+    \mkdir -p "${odir}/${wdir}"
+else
+    echo "+* WARNING:  Somehow found a premade working directory (?):"
+    echo "      ${odir}/${wdir}"
+endif
+
+echo "++ Oblique method in 3drefit is: ${obl_meth}"
+
+# =======================================================================
+# =========================== ** Main work ** ===========================
+# =======================================================================
+
+# copy dset: *must* be to BRIK/HEAD format
+3dcopy   "${input}"         "${odir}/${wdir}/tmp"
+
+# additional work: output aff Xform that would move the deobliqued
+# dset to the same final location as `3dWarp -deoblique ..` would have
+# done on the input dset; this is part 1 of the work, and see below
+# for matrix calc
+if ( $DO_MATS ) then
+    3dWarp                                       \
+        -overwrite                               \
+        -deoblique                               \
+        -prefix     "${odir}/${wdir}/tmp_wdeob"  \
+        "${input}"
+
+    # need to save original matrix 
+    cat_matvec                                      \
+        -ONELINE                                    \
+        "${input}"::IJK_TO_DICOM_REAL               \
+        > "${odir}/${wdir}/tmp_input_real.aff12.1D"
+
+endif
+
+# move to working directory
+cd "${odir}/${wdir}"
+
+# do the deobliquing stuff
+3drefit  ${obl_meth}        tmp${avsp}
+3drefit  -deoblique         tmp${avsp}
+
+# done, copy back up 
+3dcopy ${do_ow} tmp${avsp}  "../${opref}"
+
+if ( $status ) then
+    echo "** ERROR: will not overwrite existing file"
+    goto BAD_EXIT
+endif
+
+if ( $DO_MATS ) then
+    set ppp = `3dinfo -prefix_noext "../${opref}"`
+    set omat     = "../${ppp}_${pmat}"
+    set omat_inv = "../${ppp}_${pmat_I}"
+    
+    # this creates the aff12 matrix to give to 3dAllineate to map the
+    # source=tmp${avsp} to overlay ~exactly on tmp_wdeob${avsp};
+    # it also creates the inverse
+    cat_matvec                                      \
+        -ONELINE                                    \
+        "tmp_input_real.aff12.1D" -I                \
+        "tmp${avsp}"::IJK_TO_DICOM_REAL             \
+        > "${omat}"
+    cat_matvec                                      \
+        -ONELINE                                    \
+        "tmp${avsp}"::IJK_TO_DICOM_REAL -I          \
+        "tmp_input_real.aff12.1D"                   \
+        > "${omat_inv}"
+endif
+
+# ---------------------------------------------------------------------
+
+# move out of wdir to the odir
+cd ..
+
+if ( $DO_CLEAN == 1 ) then
+    echo "++ Clean working dir"
+    \rm -rf ${wdir}
+else
+    echo "++ NOT removing temporary deobliquing working dir: ${wdir}"
+endif
+
+DONE_MSG: 
+
+cat <<EOF
+
+++ DONE. See the output:
+   ${prefix}
+
+EOF
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+Overview ~1~
+
+This is a simple program to wrap around the 3drefit functionality to 
+remove obliquity from a dataset whilst preserving its origin.
+
+In many cases, this is very useful to run on oblique anatomicals
+before processing.
+
+ver  = ${version}
+auth = PA Taylor, RC Reynolds (SSCC, NIMH, NIH)
+-------------------------------------------------------------------------
+
+Options ~1~
+
+-input                 : (req) input volumetric dataset name
+-prefix                : (req) output dataset name
+-oblique_origin        : style of preserving origin, via 3drefit 
+-oblique_recenter      : style of preserving origin, via 3drefit (def)
+-oblique_recenter_raw  : style of preserving origin, via 3drefit 
+-write_aff_mats        : write out affine matrix that would send output 
+                         dset here to same place `3dWarp -deoblique ..` 
+                         would send input (see Notes -> Affine Matrix)
+-workdir               : working directory name (just name, no path;
+                         will be subdirectory of the output location)
+-overwrite             : when writing output, overwrite any preexisting
+                         dataset (def: do not overwrite)
+-no_clean              : when done, do not remove temporary working
+                         directory (def: do remove working directory)
+-echo                  : run very verbosely (with 'set echo' on)
+-ver                   : display program version
+-help                  : show help
+-hview                 : show help in text editor
+
+-------------------------------------------------------------------------
+Notes ~1~
+
+Comment on functionality ~2~
+
+This program is mostly used to remove obliquity from an input
+dataset's header.  This is because obliquity presents some hassles,
+esp. when trying to view a dataset: the dataset FOV edges would not be
+parallel to the graphical viewer edges. To apply the obliquity and
+view data in the more global 'scanner coords' requires regridding of
+the data, which is a blurring process.  To ignore the obliquity and
+live in the more local 'FOV coords' means that xyz-based locations
+might not be well-centered nor match with other datasets.
+
+So, for some datasets (particularly anatomicals before processing
+begins) it is convenient to deoblique the data.  That is, to remove
+the extra obliquity considerations from the dset.  There are different
+ways to do it, each of which has some benefit but also some annoying
+properties. Two other basic programs in AFNI deoblique as follows:
+
++ '3drefit -deoblique ..'  _purges_ the obliquity information from the
+  header.  This does not regrid/blur the data, but it does tend to
+  throw off the coordinates, even drastically recentering the dset
+  with regards to where its coordinate origin in the scanner should
+  be.  That can be annoying for losing reasonable overlap with other
+  dsets.
+
++ '3dWarp -deoblique ..' _applies_ the obliquity information to the
+  dataset. This regrids/blurs the data, but it puts the data back into
+  the coordinates of the scanner and will help it overlap more
+  appropriately with other dsets acquired at the same time.
+
+This program deobliques by removing obliquity from the header *but* in
+a way that preserves the coordinate origin, (x, y, z) = (0, 0, 0).
+This means the dataset is not regridded/blurred.  And it also means
+that while the overlap with other datasets in the same scanner coords
+might not be perfect, it has a good chance of being quite
+decent---particularly as a starting point for real alignment by
+3dAllineate, 3dQwarp, or another similar program.  
+
+That is why in general we consider this program's functionality
+preferable to either 3drefit or 3dWarp.
+
+Affine Matrix ~2~
+
+If you add the '-write_aff_mats' option, the program will save a text
+file that contains the affine matrix that would transform the output
+dset to the same space as applying '3dWarp -deoblique ..' would send
+the input dset (see the prior note, above).  The matrix will be
+written to the same output directory as the main output, with the same
+prefix (sans extension) as the `-prefix ..` dset, and having the
+postfix '_${pmat}'. This program also creates the inverse affine
+matrix, having postfix '_${pmat_I}'.
+
+So, consider if you had run this program like:
+
+    adjunct_deob_around_origin        \
+        -input    DSET_IN             \
+        -prefix   DSET_OUT.nii.gz     \
+        -write_aff_mats
+
+We will compare results with the result of _applying_ the obliquity,
+too, from running this program:
+
+    3dWarp                                \
+        -deoblique                        \
+        -prefix     DSET_WARP_DEOB.nii.gz \
+        DSET_IN
+
+The matrix DSET_OUT_${pmat} can be applied as follows, for a source
+dset here called DSET_OUT.nii.gz:
+
+    3dAllineate                               \
+        -overwrite                            \
+        -1Dmatrix_apply DSET_OUT_${pmat} \
+        -prefix DSET_OUT_in_WARP_DEOB.nii.gz  \
+        -source DSET_OUT.nii.gz               \
+        -final  wsinc5
+
+
+After this, we would expect DSET_IN_in_WARP_DEOB.nii.gz to have very
+good alignment with a DSET_WARP_DEOB.nii.gz that was created with
+'3dWarp -deoblique ..'.  Check overlap:
+
+    afni DSET_WARP_DEOB.nii.gz DSET_IN_in_WARP_DEOB.nii.gz &
+
+Sidenote: Above, we have included the '-final wsinc5' option
+here, to provide sharp alignment for a floating point dataset. If
+applying the DSET_OUT_${pmat} matrix to an integer-valued atlas
+dataset, for example, one would not want that option, instead
+preferring '-final NN'.
+
+One could also apply the inverse matrix DSET_OUT_${pmat_I} to the
+DSET_WARP_DEOB.nii.gz dset, mapping it to the dset output by this
+prog, which might be called DSET_OUT.nii.gz, like:
+
+    3dAllineate                                    \
+        -overwrite                                 \
+        -1Dmatrix_apply  DSET_OUT_${pmat_I} \
+        -prefix DSET_WARP_DEOB_in_ADAO_DEOB.nii.gz \
+        -source DSET_WARP_DEOB.nii.gz              \
+        -final  wsinc5
+
+The output dset DSET_WARP_DEOB_in_ADAO_DEOB.nii.gz should have good
+alignment with DSET_OUT.nii.gz. Check overlap:
+
+    afni DSET_OUT.nii.gz DSET_WARP_DEOB_in_ADAO_DEOB.nii.gz &
+
+-------------------------------------------------------------------------
+
+Examples ~1~
+
+1) Basic usage:
+     adjunct_deob_around_origin                       \
+         -input   sub-001_T1w.nii.gz                  \
+         -prefix  sub-001_T1w_DEOB.nii.gz
+
+2) Different origin-preservation choice:
+     adjunct_deob_around_origin                       \
+         -oblique_recenter_raw                        \
+         -input   sub-001_T1w.nii.gz                  \
+         -prefix  sub-001_T1w_DEOB.nii.gz
+
+EOF
+
+# ----------------------------------------------------------------------
+
+goto GOOD_EXIT
+
+SHOW_VERSION:
+    echo "version  $version (${rev_dat})"
+    goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

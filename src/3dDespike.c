@@ -345,7 +345,7 @@ int main( int argc , char *argv[] )
              "                the '-NEW' processing by using the '-OLD' option.\n"
              "          -->>* For time series more than 500 points long, the\n"
              "                '-OLD' algorithm is tremendously slow.  You should\n"
-             "                use the '-NEW' algorith in such cases.\n"
+             "                use the '-NEW' algorithm in such cases.\n"
              "             ** At some indeterminate point in the future, the '-NEW'\n"
              "                method will become the default!\n"
              "          -->>* As of 29 Sep 2016, '-NEW' is the default if there\n"
@@ -646,11 +646,11 @@ int main( int argc , char *argv[] )
    if( do_NEW ){
      NEW_psinv = DES_get_psinv(nuse,nref,ref) ;
      if( verb )
-       INFO_message("Procesing time series with %s model fit algorithm",
+       INFO_message("Processing time series with %s model fit algorithm",
                     (use_des25) ? "NEW25" : "NEW" ) ;
    } else {
      if( verb )
-       INFO_message("Procesing time series with OLD model fit algorithm") ;
+       INFO_message("Processing time series with OLD model fit algorithm") ;
    }
 
    /*--- loop over voxels and do work ---*/
@@ -799,7 +799,7 @@ int main( int argc , char *argv[] )
           ssp[iv] = fq * var[iv] ;           /* spikiness s = how many sigma out */
         }
 
-        /* save spikiness in -ssave datset */
+        /* save spikiness in -ssave dataset */
 
         if( tset != NULL ){
           for( iv=0 ; iv < nuse ; iv++ ){

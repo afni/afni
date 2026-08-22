@@ -554,7 +554,7 @@ _ParserOnStack(Parser *parser, htmlEnum id)
 *	state:		parser state;
 * Returns:
 *	When current is not allowed, the id of the element that should be
-*	preceeding this one. If no suitable preceeding element can be deduced,
+*	preceding this one. If no suitable preceding element can be deduced,
 *	it returns -1. When the element is allowed, HT_ZTEXT is returned.
 *****/
 int
@@ -3522,7 +3522,7 @@ parseHTML(Parser *parser)
 						case '/':
 							/*
 							* only handle shorttags when requested. 
-							* We have a short tag if this / is preceeded by
+							* We have a short tag if this / is preceded by
 							* a valid character.
 							*/
 							if(isalnum(*(chPtr-1)))

@@ -29,18 +29,28 @@ int help_3dTsplit4D( )
       "   1. Write the 152 time point dataset, epi_r1+orig, to 152 single\n"
       "      volume datasets, out/epi.000+orig ... epi.151+orig.\n"
       "\n"
+      "         mkdir out\n"
       "         3dTsplit4D -prefix out/epi epi_r1+orig\n"
       "\n"
       "   2. Do the same thing, but write to 152 NIFTI volume datasets,\n"
       "      out/epi.000.nii ... out/epi.151.nii.  Include .nii in -prefix.\n"
       "\n"
+      "         mkdir out\n"
       "         3dTsplit4D -prefix out/epi.nii epi_r1+orig\n"
+      "\n"
+      "   3. Convert an AFNI stats dataset (betas, t-stats, F-stats) into\n"
+      "      a set of NIFTI volume datasets, including the volume labels\n"
+      "      in the file names.\n"
+      "\n"
+      "         3dTsplit4D -prefix stats.FT.nii -label_prefix stats.FT+tlrc\n"
       "\n"
       " -prefix PREFIX : Prefix of the output datasets\n"
       "                  Numbers will be added after the prefix to denote\n"
       "                  prior sub-brick.\n"
-      " -keep_datum    : output uses original datum (no conversion to float)\n"
       " -digits DIGITS : number of digits to use for output filenames\n"
+      " -keep_datum    : output uses original datum (no conversion to float)\n"
+      " -label_prefix  : include volume label in each output prefix\n"
+      " -bids_deriv    : format string for BIDS-Derivative-style naming\n"
       "\n\n"
       "Authored by: Peter Molfese, UConn"
       );
@@ -49,14 +59,97 @@ int help_3dTsplit4D( )
    return(0);
 }
 
+/* create an output prefix, the length of which might grow with label
+ *
+ *    prelim   : initial prefix
+ *    ndigits  : number of digits used for zero-padded index in the name
+ *    index    : index will be the second part of the name
+ *    label    : if set, include the label string, with space or #
+ *               replaced by _
+ *    ext      : if set, include .ext
+ *
+ * If prelim is NULL, free local memory and return NULL.
+ *
+ * return a stactic char pointer, that should not be freed
+ *                                     [12 Apr 2024 rickr]
+ */
+char * make_output_prefix(char *prelim, int ndigits, int index,
+                          char *label, char *ext, int do_bids_deriv)
+{
+   static char *sprefix=NULL, *slabel=NULL;
+   static int   splen  =0,     sllen=0;
+   int          lablen=0, extlen=0;   /* label and extension lengths */
+   char        *lp;                   /* for modifying label */
+   int          cp, osize;
+
+   /* if prelim is NULL, it is a request to free memory and return */
+   if ( !prelim ) {
+      free(sprefix); free(slabel);
+      splen = sllen = 0;
+      return NULL;  /* a happy NULL, in this case */
+   }
+
+   /* start by checking sizes */
+   if( label ) lablen = strlen(label);
+   if( ext )   extlen = strlen(ext);
+
+   /* account for possible: prefix, digits, label, extension, separators */
+   osize = strlen(prelim) + ndigits + lablen + extlen + 8;
+
+   /* if we need more memory, allocate or grow it */
+   if( osize > splen ) {
+      sprefix = (char *)realloc(sprefix, osize*sizeof(char));
+      if( ! sprefix ) ERROR_exit("failed to alloc %d bytes for prefix", osize);
+      splen = osize;
+   }
+
+   /* and for any label (since it may be modified) */
+   if( lablen > sllen ) {
+      slabel = (char *)realloc(slabel, lablen*sizeof(char));
+      if( ! slabel ) ERROR_exit("failed to alloc %d bytes for label", lablen);
+      sllen = lablen;
+   }
+
+   /* start with prefix and digits */
+   /* add . after prelim if following alpha or numeric char */
+   /* (and if not doing bids output) */
+   if ( isalnum(prelim[strlen(prelim)-1]) && ! do_bids_deriv )
+      sprintf(sprefix, "%s.%0*d", prelim, ndigits, index);
+   else
+      sprintf(sprefix, "%s%0*d", prelim, ndigits, index);
+
+   /* if there is a label, add it, replacing space or # with _ */
+   if( label ) {
+      /* copy and modify */
+      strcpy(slabel, label);
+      for(cp=0, lp=slabel; cp < lablen; cp++, lp++)
+        if( *lp == ' ' || *lp == '#' )
+          *lp = '_';
+      
+      /* and append .slabel to the final prefix */
+      strcat(sprefix, ".");
+      strcat(sprefix, slabel);
+   }
+
+   /* if there is a non-AFNI extension, use it       9 Dec 2016 [rickr] */
+   if( ext ) {
+      strcat(sprefix, ".");
+      strcat(sprefix, ext);
+   }
+
+   /* and return sprefix as the new prefix */
+   return sprefix;
+}
+
 /* a few updates    8 Dec 2016 [rickr] */
 
 int main( int argc, char *argv[] )
 {
    THD_3dim_dataset *iset, *oset;
-   float ffac;
    int   iarg=1, kk, nval;
-   int   datum=MRI_float, keep_datum=0, ndigits=0, prelen, smode;
+   int   datum=MRI_float, keep_datum=0, ndigits=0, smode;
+   int   do_label_prefix=0;
+   int   do_bids_deriv=0;
    char *prefix = "SPLIT";
    char *sub_prefix, newlabel[32];
    char *precopy=NULL, *exten=NULL;  /* copied prefix and any needed ext */
@@ -85,6 +178,10 @@ int main( int argc, char *argv[] )
             ERROR_exit("bad -digits '%s'", argv[iarg-1]);
       } else if( strcmp( argv[iarg], "-keep_datum") == 0 ) {
          keep_datum = 1;
+      } else if( strcmp( argv[iarg], "-label_prefix") == 0 ) {
+         do_label_prefix = 1;
+      } else if( strcmp( argv[iarg], "-bids_deriv") == 0 ) {
+         do_bids_deriv = 1;
       } else {
          ERROR_exit("unknown option %s", argv[iarg]);
       }
@@ -111,12 +208,7 @@ int main( int argc, char *argv[] )
    if( ndigits == 0 )
       ndigits = (int)(log(nval)/log(10)+1);
 
-   /* allocate sub_prefix */
-   kk = strlen(prefix) + ndigits + 4; /* full length of prefix, plus 2 extra */
-   sub_prefix = (char *)malloc(kk*sizeof(char));
-   if( ! sub_prefix ) ERROR_exit("failed to alloc %d bytes for prefix", kk);
-
-   /* make new prefix in case of non-AFNI writing, so it can be altered */
+   /* prep for a new prefix which can be altered */
    /* (precopy and exten will be used for actual output prefix) */
    precopy = nifti_strdup(prefix);
    exten = NULL;
@@ -138,14 +230,14 @@ int main( int argc, char *argv[] )
    for( kk=0 ; kk < nval ; kk++ )
    {
       /* MODIFY to make single brik output */
-      /* ALSO NEED TO CHANGE PREFIX EACH TIME! */
-      
-      /* if there is a non-AFNI extension, use it       9 Dec 2016 [rickr] */
-      if(exten) sprintf(sub_prefix, "%s.%0*d.%s", precopy, ndigits, kk, exten);
-      else      sprintf(sub_prefix, "%s.%0*d", precopy, ndigits, kk);
-      
-      //sub_prefix = strncat( prefix, itoa(kk), 10 );
 
+      /* create an output prefix */
+      sub_prefix = make_output_prefix(
+                        precopy, ndigits, kk,
+                        (do_label_prefix && DSET_HAS_LABEL(iset, kk)) ?
+                           DSET_BRICK_LABEL(iset, kk) : NULL,
+                        exten, do_bids_deriv);
+      
       // INFO_message("File Saved: %s", sub_prefix);
       if( kk == 0 || kk == (nval-1) )
          printf(" %s ", sub_prefix);
@@ -185,7 +277,8 @@ int main( int argc, char *argv[] )
       }
       
       DSET_write( oset );
-      if( ! THD_is_file(DSET_BRIKNAME(oset)) ) 
+      /* check HEAD file, as BRIK might have auto-gzip  [24 Sep 2024 rickr] */
+      if( ! THD_is_file(DSET_HEADNAME(oset)) ) 
          ERROR_exit("failed to write dataset %s", sub_prefix);
       //WROTE_DSET( oset );
       
@@ -197,6 +290,10 @@ int main( int argc, char *argv[] )
       if( inImage) mri_clear_and_free( inImage );
    }  /* for each volume */
    
+
+   /* and free the allocated memory */
+   make_output_prefix(NULL, 0, 0, NULL, NULL, 0);
+
    printf("\n...Done\n");
 
    exit(0);

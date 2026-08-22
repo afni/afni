@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #ifndef _MCW_3DVECMAT_
@@ -814,7 +814,7 @@ static THD_dvecmat tempA_dvm33 ;
                          tempA_dvm33.vv = DMATVEC(tempA_dvm33.mm,(A).vv) ,  \
                          NEGATE_DFVEC3(tempA_dvm33.vv) , tempA_dvm33       )
 
-    /* same for single precision stuctures */
+    /* same for single precision structures */
 
 static THD_vecmat  tempA_vm33 ;
 

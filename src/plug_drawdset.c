@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -98,7 +98,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
    plint = PLUTO_new_interface( "Draw Dataset" , NULL , NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , DRAW_main ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)DRAW_main ) ;
 
    PLUTO_add_hint( plint , "Interactive Dataset Editor" ) ;
 
@@ -601,7 +602,7 @@ void DRAW_make_widgets(void)
      /*** arrowvals to let user choose Copy method ***/
      copy_mode_av = new_MCW_optmenu( rc , NULL ,
                                      0 , 1 , 1 , 0 , NULL,NULL ,
-                                     MCW_av_substring_CB , cmode_label ) ;
+                         (str_func *)MCW_av_substring_CB , cmode_label ) ;
 
      MCW_reghint_children( copy_mode_av->wrowcol ,
                            "How to copy values from dataset" ) ;
@@ -612,7 +613,7 @@ void DRAW_make_widgets(void)
 
      copy_type_av = new_MCW_optmenu( rc , NULL ,
                                      0 , 1 , 0 , 0 , NULL,NULL ,
-                                     MCW_av_substring_CB , ctype_label ) ;
+                         (str_func *)MCW_av_substring_CB , ctype_label ) ;
 
      MCW_reghint_children( copy_type_av->wrowcol ,
                            "Copy is shown as overlay or underlay" ) ;
@@ -622,7 +623,7 @@ void DRAW_make_widgets(void)
 
      copy_datum_av= new_MCW_optmenu( rc , NULL ,
                                      0 , 3 , 0 , 0 , NULL,NULL ,
-                                     MCW_av_substring_CB , cdatum_label ) ;
+                         (str_func *)MCW_av_substring_CB , cdatum_label ) ;
 
      MCW_reghint_children( copy_datum_av->wrowcol ,
                            "Data storage type for copy" ) ;
@@ -688,7 +689,7 @@ void DRAW_make_widgets(void)
      value_av = new_MCW_arrowval( rc , "Value " ,
                                   MCW_AV_downup , -32767,32767,value_int ,
                                   MCW_AV_editext , 0 ,
-                                  DRAW_value_CB , NULL , NULL,NULL ) ;
+                      (gen_func *)DRAW_value_CB , NULL , NULL,NULL ) ;
 
      MCW_reghelp_children( value_av->wrowcol ,
                            "Use this to set the value that\n"
@@ -754,7 +755,7 @@ void DRAW_make_widgets(void)
 
    color_av = new_MCW_colormenu( rowcol , "Color " , dc ,
                                  1 , dc->ovc->ncol_ov - 1 , color_index ,
-                                 DRAW_color_CB , NULL ) ;
+                     (gen_func *)DRAW_color_CB , NULL ) ;
 
    MCW_reghelp_children( color_av->wrowcol ,
                          "Use this to set the color that is\n"
@@ -785,8 +786,8 @@ void DRAW_make_widgets(void)
 
      mode_av = new_MCW_optmenu( rc , "Mode  " ,
                               0 , NUM_modes-1 , mode_ival,0 ,
-                              DRAW_mode_CB , NULL ,
-                              MCW_av_substring_CB , mode_strings ) ;
+                  (gen_func *)DRAW_mode_CB , NULL ,
+                  (str_func *)MCW_av_substring_CB , mode_strings ) ;
 
      AVOPT_columnize( mode_av , 2 ) ;
 
@@ -833,11 +834,11 @@ void DRAW_make_widgets(void)
      rad_av = new_MCW_arrowval( rc             ,    /* parent */
                                 "R"            ,    /* label */
                                 MCW_AV_downup  ,    /* arrow directions */
-                                1              ,    /* min value (0.1 mm from decim) */
-                                999            ,    /* max value (99.9 mm) */
-                                40             ,    /* init value */
+                                1              ,    /* min value (0.01 mm from decim) */
+                                9999            ,   /* max value (99.99 mm) */
+                                400             ,   /* init value */
                                 MCW_AV_editext ,    /* input/output text display */
-                                1              ,    /* decimal shift */
+                                2              ,    /* decimal shift */
                                 NULL           ,    /* routine to call when button */
                                 NULL           ,    /* is pressed, and its data */
                                 NULL,NULL           /* no special display */
@@ -881,7 +882,7 @@ void DRAW_make_widgets(void)
      fillin_dir_av = new_MCW_optmenu( rc , "Linear Fillin " ,
                                       0 , NFILLIN_DIR-1 , 0 , 0 ,
                                       NULL , NULL ,
-                                      MCW_av_substring_CB , fillin_dir_strings ) ;
+                          (str_func *)MCW_av_substring_CB , fillin_dir_strings ) ;
 
 #if 0    /* Need big gaps. ZSS Aug. 2011 */
      fillin_gap_av = new_MCW_optmenu( rc , " Gap" ,
@@ -988,7 +989,7 @@ void DRAW_make_widgets(void)
       ttatlas_region_av = new_MCW_optmenu( rc , " " ,
                                            0 , nr-1 , 0 , 0 ,
                                            NULL,NULL ,
-                                           MCW_av_substring_CB ,
+                               (str_func *)MCW_av_substring_CB ,
                                            ttatlas_list->reg_label ) ;
       AVOPT_columnize( ttatlas_region_av , 3 ) ;
 
@@ -997,7 +998,8 @@ void DRAW_make_widgets(void)
       ttatlas_hemisphere_av = new_MCW_optmenu( rc , " Hemisphere(s)" ,
                                                0 , NHEMI-1 , NHEMI-1 , 0 ,
                                                NULL,NULL ,
-                                               MCW_av_substring_CB, HEMI_strings );
+                                   (str_func *)MCW_av_substring_CB,
+                                               HEMI_strings );
 
       /*** row of pushbuttons ***/
 
@@ -1029,6 +1031,18 @@ void DRAW_make_widgets(void)
    done_pb   = (Widget) DRAW_actor[6].data ;
 
    /*** that's all ***/
+   if( needsX11Redraw() ){   /* MacOS tahoe fix - determined in machdep.c at build */
+     XtInsertEventHandler( rowcol,  /* handle events in form */
+                           StructureNotifyMask ,    /* resizes (Configure events) */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for Draw Dataset plugin window resize\n");
+   }
 
    XtManageChild(rowcol) ;
    XtRealizeWidget(shell) ; NI_sleep(1) ; /* will not be mapped */
@@ -1210,7 +1224,7 @@ void DRAW_saveas_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( dset == NULL ){ XBell(dc->display,100) ; return ; }
 
    MCW_choose_string( saveas_pb , "Enter new prefix" ,
-                      NULL , DRAW_saveas_finalize_CB , NULL ) ;
+                      NULL , (gen_func *)DRAW_saveas_finalize_CB , NULL ) ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -1700,7 +1714,7 @@ void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
    MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
-                       DRAW_finalize_dset_CB , NULL     ) ;
+                       (gen_func *)DRAW_finalize_dset_CB , NULL     ) ;
 
    return ;
 }
@@ -1802,7 +1816,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
    if( ! recv_open ){
       recv_key = id = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK   |
                                                RECEIVE_DSETCHANGE_MASK ,  /* 31 Mar 1999 */
-                                         DRAW_receiver,NULL ,
+                                         (gen_func *)DRAW_receiver,NULL ,
                                         "DRAW_receiver" ) ;
 
       if( id < 0 ){
@@ -1893,6 +1907,9 @@ void DRAW_mode_CB( MCW_arrowval * av , XtPointer cd )
 
    ENABLE_rad_av ;
 
+   /* tahoe fix */
+   if( needsX11Redraw() ){ forceExpose(rowcol,0 ) ; }
+    
    return ;
 }
 
@@ -2199,7 +2216,7 @@ void DRAW_label_EV( Widget w , XtPointer cld ,
 
      if( bev->button == Button1 ){
        MCW_choose_string( w , "Enter Value-Label filename:" ,
-                          NULL , DRAW_label_getfile , NULL   ) ;
+                          NULL , (gen_func *)DRAW_label_getfile , NULL   ) ;
        return ;
      }
      if( bev->button != Button3 ) return ;
@@ -2253,7 +2270,8 @@ void DRAW_label_EV( Widget w , XtPointer cld ,
      /* let the user choose one */
 
      MCW_choose_strlist( w , "Value = Label" , nn ,
-                         ic , vl_strlist , DRAW_label_finalize , NULL ) ;
+                         ic , vl_strlist ,
+                         (gen_func *)DRAW_label_finalize , NULL ) ;
    }
 
    return ;
@@ -2906,7 +2924,7 @@ static void DRAW_undo_butlab( Widget w , int n )
      ny = 2nd dimension
      ix = start point
      jy = end point
-     ar = array, with 0's everwhere except 1's as barriers to flooding
+     ar = array, with 0's everywhere except 1's as barriers to flooding
 
    All filled points (starting with ix,jy) will get the value 2.
 -----------------------------------------------------------------------------*/
@@ -3798,8 +3816,8 @@ Atlas_chooser(Widget rc)
    /*** Atlas chooser ***/
    atlas_av = new_MCW_optmenu( rc , "Choose Atlas" ,
                                         0 , nr-1 , atlasind , 0 ,
-                                        choose_new_atlas_CB, NULL ,
-                                        MCW_av_substring_CB ,
+                            (gen_func *)choose_new_atlas_CB, NULL ,
+                            (str_func *)MCW_av_substring_CB ,
                                         atlas_names ) ;
 
     MCW_reghelp_children( atlas_av->wrowcol ,
@@ -3864,7 +3882,7 @@ choose_new_atlas_CB(MCW_arrowval *av , XtPointer cd )
    /*** Update region chooser ***/
    refit_MCW_optmenu( ttatlas_region_av ,
                       0 , nr-1 , 0 , 0 ,
-                      MCW_av_substring_CB ,
+                      (str_func *)MCW_av_substring_CB ,
                       ttatlas_list->reg_label ) ;
 
    AVOPT_columnize( ttatlas_region_av , 3 ) ;

@@ -621,7 +621,8 @@ PLUGIN_interface *PLUGIN_init(int ncall)
   CHECK_IF_ALLOWED("THRESHOLD","Threshold") ;  /* 30 Sep 2016 */
  
 /*set titles and entry point*/
-  plint = PLUTO_new_interface("Threshold", hint, help, PLUGIN_CALL_VIA_MENU, THRESH_main);
+  plint = PLUTO_new_interface("Threshold", hint, help, PLUGIN_CALL_VIA_MENU,
+                              (cptr_func *)THRESH_main);
   PLUTO_add_hint(plint, hint);
 /*first line of dialogue box: input dataset*/
   PLUTO_add_option(plint, input_label, input_label, TRUE);

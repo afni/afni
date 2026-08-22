@@ -1,12 +1,12 @@
 #include "mrilib.h"
 void usage_3dZeropad(int detail)
 {
-         printf("Usage: 3dZeropad [options] dataset\n"
+         printf("Usage: 3dZeropad [options] dataset ~1~\n"
  "** Adds planes of zeros to a dataset (i.e., pads it out).\n"
  "** A negative 'add' count means to cut a dataset down in size.\n"
  "   [Remember 3rd grade arithmetic, please.]\n"
  "\n"
- "Options:\n"
+ "Options: ~2~\n"
  "  -I n = adds 'n' planes of zero at the Inferior edge\n"
  "  -S n = adds 'n' planes of zero at the Superior edge\n"
  "  -A n = adds 'n' planes of zero at the Anterior edge\n"
@@ -20,8 +20,15 @@ void usage_3dZeropad(int detail)
  " -AP b = symmetrically to make the resulting volume have\n"
  " -IS c = 'a', 'b', and 'c' slices in the respective directions.\n"
  "\n"
+ " -pad2odds = add 0 or 1 plane in each of the R/A/S directions,\n"
+ "              giving each axis an odd number of slices\n"
  " -pad2evens = add 0 or 1 plane in each of the R/A/S directions,\n"
  "              giving each axis an even number of slices\n"
+ " -pad2mult N = add planes in each of the R/A/S directions,\n"
+ "              making each number of planes a multiple of N\n"
+ "     NB: for the -pad* opts, any padding will be applied on a side\n"
+ "         *away* from the coordinate origin. So, if the dset is RAI,\n"
+ "         padding would be applied to L and/or P and/or S sides.\n"
  "\n"
  " -mm   = pad counts 'n' are in mm instead of slices:\n"
  "         * each 'n' is an integer\n"
@@ -41,7 +48,7 @@ void usage_3dZeropad(int detail)
  " -prefix ppp = write result into dataset with prefix 'ppp'\n"
  "                 [default = 'zeropad']\n"
  "\n"
- "Nota Bene:\n"
+ "Nota Bene: ~1~\n"
  " * You can use negative values of n to cut planes off the edges\n"
  "     of a dataset.  At least one plane must be added/removed\n"
  "     or the program won't do anything.\n"
@@ -68,18 +75,131 @@ void usage_3dZeropad(int detail)
 
 }
 
+/* Function to take pad2mult int and figure out how many slices need
+  to be added along each axis, and which side to apply it to. The rule
+  for the latter is that it will apply it to slices *away* from the
+  header origin. So, if the DSET is RAI, AIR, RAI, etc, then slices
+  would be added only to L and/or P and/or S sides.
+
+  This function is longer than necessary, because it calculates stuff
+  to report in the terminal.
+
+  Inputs
+  ------
+  inset    : name of dset
+  pad2mult : the integer which must be a factor of the new, padded
+             matrix
+  add_R    : number of slices to add in R direction
+  add_L    : number of slices to add in L direction
+  [etc for other add_?]
+
+  Returns
+  -------
+  simply an integer with successful completion.
+  NB: the main 'output' is editing the values of add_? that were input
+*/
+int get_pad2mult_padding(THD_3dim_dataset *inset, int pad2mult,
+                         int *add_R, int *add_L, 
+                         int *add_A, int *add_P, 
+                         int *add_I, int *add_S);
+int get_pad2mult_padding(THD_3dim_dataset *inset, int pad2mult,
+                         int *add_R, int *add_L, 
+                         int *add_A, int *add_P, 
+                         int *add_I, int *add_S)
+{
+   THD_dataxes * iax = inset->daxes ;
+   int           ndrl, ndap, ndis ;
+   char          ori[4] = "   " ;
+   int           ii = 0 ;
+   int           rep_RL, rep_AP, rep_IS ;
+   char          rep_sli[4] = "LPS"; // def sides to add to (-> RAI dset)
+
+   // nvox along each axis
+   ndrl = DAXES_NUM(iax,ORI_R2L_TYPE) ;
+   ndap = DAXES_NUM(iax,ORI_A2P_TYPE) ;
+   ndis = DAXES_NUM(iax,ORI_I2S_TYPE) ;
+
+   // store header origin
+   ori[0]=ORIENT_typestr[iax->xxorient][0];
+   ori[1]=ORIENT_typestr[iax->yyorient][0];
+   ori[2]=ORIENT_typestr[iax->zzorient][0];
+   ori[3]='\0';
+
+   /* pad to odd: below add_L might switch to add_R, etc. */
+   if( pad2mult == 1 ) {
+      *add_L = 1-(ndrl % 2) ; /* same as 2even, but "negate" */
+      *add_P = 1-(ndap % 2) ;
+      *add_S = 1-(ndis % 2) ;
+   } else if ( pad2mult == 2 ) {
+      *add_L = ndrl % 2 ; /* add 1 if odd */
+      *add_P = ndap % 2 ;
+      *add_S = ndis % 2 ;
+   } else {
+      /* otherwise, we want to add the negative mod nvoxels
+         (but -v1 % m is negative, grrrrrr...) */
+      *add_L = (pad2mult - (ndrl % pad2mult)) % pad2mult;
+      *add_P = (pad2mult - (ndap % pad2mult)) % pad2mult;
+      *add_S = (pad2mult - (ndis % pad2mult)) % pad2mult;
+   }
+
+   /* store padding, for reporting below */
+   rep_RL = *add_L;
+   rep_AP = *add_P;
+   rep_IS = *add_S;
+
+   /* Check about switching add_L to add_R, etc.  That is, ensure that
+      if padding is done along a particular axis, that it is done on
+      side *away* from the matrix origin, by swapping the add_? value
+      if it is nonzero.
+   */
+   for ( ii=0 ; ii<3 ; ii++ )
+      if ( strncmp(ori+ii, "L",1) == 0 ) {
+         rep_sli[0] = 'R';
+         if ( *add_L ){
+            *add_R = *add_L;
+            *add_L = 0;
+         }
+      }
+   for ( ii=0 ; ii<3 ; ii++ )
+      if ( strncmp(ori+ii, "P",1) == 0 ) {
+         rep_sli[1] = 'A';
+         if ( *add_P ){
+            *add_A = *add_P;
+            *add_P = 0;
+         }
+      }
+   for ( ii=0 ; ii<3 ; ii++ )
+      if ( strncmp(ori+ii, "S",1) == 0 ) {
+         rep_sli[2] = 'I';
+         if ( *add_S ){
+            *add_I = *add_S;
+            *add_S = 0;
+         }
+      }
+
+   INFO_message("pad2mult %d: orient = %s, applying -%c %d -%c %d -%c %d\n",
+                pad2mult, ori, rep_sli[0], rep_RL, 
+                rep_sli[1], rep_AP, 
+                rep_sli[2], rep_IS);
+   return 0;
+}
+
+
 int main( int argc , char * argv[] )
 {
    int iarg ;
    THD_3dim_dataset *inset , *outset ;
    int add_I=0 , add_S=0 , add_A=0 , add_P=0 , add_L=0 , add_R=0 ;
    int RLsiz=0, APsiz=0, ISsiz=0 ; /* 23 Mar 2004 */
-   int add_any=0 , pad2evens=0;    /* 23 Oct 2019 [rickr] */
+   int add_any=0 ;
+   /* was pad2evens, now allow none, evens, odds, mult_N = 0,1,2,3... */
+   int pad2mult=0; /* 18 Jan 2024 [rickr] */
    char * prefix="zeropad" ;
 
    int add_z=0 ;   /* 07 Feb 2001 */
    int mm_flag=0 ; /* 13 Feb 2001 */
    int flag ;
+   int check=0; 
 
    THD_3dim_dataset *mset=NULL ; /* 14 May 2002 */
 
@@ -178,10 +298,24 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
-      /*- -pad2evens -*/
+      /*- -pad2* - handle many versions of this [18 Jan 2024 rickr] -*/
+      /* todo: add -pad2mult N */
 
+      if( strcmp(argv[iarg],"-pad2odds") == 0 ){
+         pad2mult = 1 ;
+         iarg++ ; continue ;
+      }
       if( strcmp(argv[iarg],"-pad2evens") == 0 ){
-         pad2evens = 1 ;
+         pad2mult = 2 ;
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-pad2mult") == 0 ){
+         int pad=0;
+         pad = (int)strtod(argv[++iarg],NULL) ;
+         if( pad <= 0 )
+            ERROR_exit("illegal pad2mult %d (from %s)", pad, argv[iarg]);
+	
+         pad2mult = pad ;
          iarg++ ; continue ;
       }
 
@@ -219,7 +353,7 @@ int main( int argc , char * argv[] )
 
       /*- what the hell? -*/
 
-      fprintf(stderr,"** 3dZeropad: Illegal option: %s\n",argv[iarg]) ; 
+      fprintf(stderr,"** 3dZeropad: Illegal option: %s\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1) ;
    }
@@ -228,17 +362,17 @@ int main( int argc , char * argv[] )
       ERROR_message("Too few options, try %s -help for details\n",argv[0]);
       exit(1);
    }
-   
+
    /*- check to see if the user asked for something, anything -*/
 
    add_any =  add_I || add_S || add_P || add_A || add_L || add_R
                     || add_z || RLsiz || APsiz || ISsiz ;
 
-   /* pad2evens should be used alone */
-   if( pad2evens && (add_any || mset) )
-      ERROR_exit("Cannot combine -pad2evens with other padding or master") ;
+   /* pad2mult should be used alone */
+   if( pad2mult && (add_any || mset) )
+      ERROR_exit("Cannot combine -pad2* with other padding or master") ;
 
-   if( mset == NULL && add_any == 0 && pad2evens == 0 ) {
+   if( mset == NULL && add_any == 0 && pad2mult == 0 ) {
       fprintf(stderr,"++ 3dZeropad: All inputs are zero? Making a copy!\n") ;
    }
 
@@ -278,20 +412,12 @@ int main( int argc , char * argv[] )
    }
 #endif
 
-   /*-- if pad2evens, decide on padding        [23 Oct 2019 rickr] --*/
+   /*-- if pad2mult, decide on padding         [23 Oct 2019 rickr] --*/
    /* do not worry about nx,ny,nz, focus on RL/AP,IS                 */
-   if( pad2evens ) {
-      THD_dataxes * iax = inset->daxes ;
-      int           ndr, nda, ndi ;
-      ndr = DAXES_NUM(iax,ORI_R2L_TYPE) ;
-      nda = DAXES_NUM(iax,ORI_A2P_TYPE) ;
-      ndi = DAXES_NUM(iax,ORI_I2S_TYPE) ;
-      add_R = ndr % 2 ; /* add 1 if odd */
-      add_A = nda % 2 ;
-      add_I = ndi % 2 ;
-      INFO_message("pad2evens: applying -R %d -A %d -I %d\n",
-                   add_R, add_A, add_I);
-   }
+   /* [PT: 27 Sep 2024] move pad2mult work to a function             */
+   if( pad2mult ) 
+      check = get_pad2mult_padding(inset, pad2mult, &add_R, &add_L, 
+                                   &add_A, &add_P, &add_I, &add_S);
 
    /*-- 14 May 2002: use master dataset now? --*/
 
@@ -489,5 +615,5 @@ int main( int argc , char * argv[] )
               "** 3dZeropad: Failed to write output!\n" ) ;
       exit(1) ;
    }
-   
+
 }

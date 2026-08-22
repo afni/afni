@@ -1043,7 +1043,7 @@ static void bisection_children (GtsGNodeSplit * ns, GtsGraphBisection * bg)
  * gts_graph_bisection_new:
  * @wg: a #GtsWGraph.
  * @ntry: the number of tries for the graph growing algorithm.
- * @mmax: the number of unsucessful moves for the refinement algorithm.
+ * @mmax: the number of unsuccessful moves for the refinement algorithm.
  * @nmin: the minimum number of nodes of the coarsest graph.
  * @imbalance: the maximum relative imbalance allowed between the
  * weights of both halves of the partition.
@@ -1180,7 +1180,7 @@ static void recursive_bisection (GtsWGraph * wg,
  * @wg: a #GtsWGraph.
  * @n: the number of bisection levels.
  * @ntry: the number of tries for the graph growing algorithm.
- * @mmax: the number of unsucessful moves for the refinement algorithm.
+ * @mmax: the number of unsuccessful moves for the refinement algorithm.
  * @nmin: the minimum number of nodes of the coarsest graph.
  * @imbalance: the maximum relative imbalance allowed between the
  * weights of both halves of the partition.

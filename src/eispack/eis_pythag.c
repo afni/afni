@@ -3,6 +3,7 @@
 	-lf2c -lm   (in that order)
 */
 
+#include <math.h>
 #include "f2c.h"
 
 doublereal pythag_(doublereal *a, doublereal *b)

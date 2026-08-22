@@ -1,5 +1,5 @@
 /*****************************************************************************
-   Details for this model are in prf_common_circular.c, #incuded.
+   Details for this model are in prf_common_circular.c, #included.
 
    This file now just holds functionality that is specific to the
    basic 4-parameter method.
@@ -69,7 +69,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[5] =     0.0;    mi->max_constr[5] =     1.0;
 
   /*----- function which implements the model -----*/
-  mi->call_func = conv_model;
+  mi->call_func = (void_func *)conv_model;
 
   return (mi);
 }

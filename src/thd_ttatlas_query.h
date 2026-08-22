@@ -122,8 +122,8 @@ typedef struct {
    float *prob; /*!< probability, if applicable, of being of a particular label */
    float *radius;   /*!< distance, search distance for reported label.*/
    char **longname; /*!< long name for label/atlas region */
-   char **webpage; /*!< webpages for a web-atlas for whereami location */
-   char **connpage; /*!< connection info webpages for a web-atlas for whereami location */
+   char **webpage; /*!< webpages for a web-atlas for whereami_afni location */
+   char **connpage; /*!< connection info webpages for a web-atlas for whereami_afni location */
 } ATLAS_ZONE;
 
 typedef struct {
@@ -204,6 +204,9 @@ typedef struct {
                                  
 #define ATL_DSET(xa) ( ( (xa) && (xa)->adh ) ? \
                         (xa)->adh->adset : NULL )
+
+#define ATL_DSETNAME(xa) ( ( (xa)  ) ? \
+                        (xa)->dset_name : NULL )
 
 #define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
                            (xa)->adh->params_set : 0 )                            
@@ -400,8 +403,6 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname);
 void CA_EZ_MPM_purge_atlas(void);
 void CA_EZ_PMaps_purge_atlas(void);
 void CA_EZ_ML_purge_atlas(void);
-char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac,
-                              WAMI_SORT_MODES Mode, ATLAS_LIST *atlas_list);
 char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               ATLAS_COORD ac, WAMI_SORT_MODES mode,
                               ATLAS_LIST *atlas_list);
@@ -504,9 +505,9 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str);   /* 
 int thd_LT_label_to_int_list(THD_3dim_dataset *dset,int_list *ilist,char *str); /* 22 Nov 2016 [rickr] */
 int known_atlas_label_to_int_list(int_list * ilist, char * str);
 
-
-char *elsevier_query(float xx, float yy, float zz, ATLAS *atlas);
-char *elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_type);
+// long defunct Elsevier server - code if 0'd if we need similar functionality
+// char *elsevier_query(float xx, float yy, float zz, ATLAS *atlas);
+// char *elsevier_query_request(float xx, float yy, float zz, ATLAS *atlas, int el_req_type);
 void wami_query_web(ATLAS *atlas, ATLAS_COORD ac, ATLAS_QUERY *wami);
 
 char * whereami_XML_get(char *data, char *name, char **next);

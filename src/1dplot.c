@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -167,7 +167,7 @@ void usage_1dplot(int detail)
      "              or just a single '-' to separate the xmulti 1D files\n"
      "              from the data files to be plotted.\n"
      "           ** If you don't provide enough xmulti columns for all the\n"
-     "              data files, the last xmulti column will be re-used.\n"
+     "              data files, the last xmulti column will be reused.\n"
      "           ** Useless but fun example:\n"
      "               1deval -num 100 -expr '(i-i)+z+gran(0,6)' > X1.1D\n"
      "               1deval -num 100 -expr '(i-i)+z+gran(0,6)' > X2.1D\n"
@@ -1649,7 +1649,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
    ng = (sep) ? (-nts) : (nts) ;
    ngx = (sepscl) ? (-nx) : (nx) ;
    plot_ts_lab( dc->display , ngx , xar , ng , yar ,
-                xlabel , ylabel , title , yname , killfunc ) ;
+                xlabel , ylabel , title , yname , (void_func *)killfunc ) ;
 
    return ;
 }

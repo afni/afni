@@ -31,7 +31,7 @@ static int cl1_fort(integer *k, integer *l, integer *m, integer *n,
   If cony == 0, then the input y[j] is ignored.
 
   The return value of the function is E = sum |z[i]-SUM[i]| >= 0
-  if everything worked, and is a negative number if an error occured.
+  if everything worked, and is a negative number if an error occurred.
 -----------------------------------------------------------------------*/
 
 float cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
@@ -164,7 +164,7 @@ float cl1_solve( int ndim, int nvec, float *z, float **A, float *y, int cony )
   The outputs are in y[] and rez[].
 
   The return value of the function is E = sum |z[i]-SUM[i]| >= 0
-  if everything worked, and is a negative number if an error occured.
+  if everything worked, and is a negative number if an error occurred.
 -----------------------------------------------------------------------*/
 
 float cl1_solve_res( int ndim, int nvec, float *z, float **A,
@@ -288,7 +288,7 @@ float cl1_solve_res( int ndim, int nvec, float *z, float **A,
   is as small as possible.
 
   The return value of the function is 0 if everything worked, and
-  nonzero if an error occured.  If the function worked, then the
+  nonzero if an error occurred.  If the function worked, then the
   coefficients are returned in ec[] (which must be allocated by
   the caller).
 

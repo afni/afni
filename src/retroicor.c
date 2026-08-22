@@ -206,7 +206,7 @@ MRI_IMAGE * RIC_ToRespPhase(MRI_IMAGE * resp, int winsize) {
        --but this is good enough and takes few brain cells to program */
     /* Added a fudge factor so that the first and last histogram bins are
        almost as wide as the others but not so wide that rounding the bin
-       number could cause it to refer to a nonexistant bin */
+       number could cause it to refer to a nonexistent bin */
     binfact = (RIC_HISTSIZE - 2 * RIC_HISTFUDGE) / maxr;
     binshift = 0.5 - RIC_HISTFUDGE;
     if (binfact <= 0.0 || binshift <= 0.0) {  /* Check just in case! */

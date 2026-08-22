@@ -20,6 +20,7 @@
  */
 
 #include <iopnm.h>
+#include <stdio.h>
 
 static int _VERBOSE_ = 1;
 
@@ -208,7 +209,7 @@ void *_readPnmImage( char *name,
   char string[256];
   int x=0, y=0, z=1, max=0;
   void *buf = (void*)NULL;
-  FILE *f, *fopen();
+  FILE *f;
   int xIsRead = 0;
   int yIsRead = 0;
   int maxIsRead = 0;
@@ -449,7 +450,7 @@ void _writePnmImage( char *name,
   char *proc="_writePnmImage";
   unsigned char *bufToWrite = (unsigned char *)buf;
   int max=0, i;
-  FILE *f, *fopen();
+  FILE *f;
   int sizeOfBuffer = x * y * z;
   int localz = z;
 

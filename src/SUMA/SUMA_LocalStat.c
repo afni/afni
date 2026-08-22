@@ -716,7 +716,7 @@ SUMA_DSET * SUMA_DsetAvgGradient(
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    SUMA_LHv("Have %d numeric columns of input.\n", N_icols);
@@ -907,7 +907,7 @@ SUMA_DSET *SUMA_DsetExtrema(
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NOPE);   
    }
    SUMA_LHv("Have %d numeric columns of input.\n", N_icols);
@@ -1175,6 +1175,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_Extrema (
    Clust->totalvalue = 0.0; Clust->totalabsvalue = 0.0;  
    Clust->minvalue = ToBeAssigned[dothisnode]; Clust->minnode = dothisnode;
    Clust->maxvalue = ToBeAssigned[dothisnode]; Clust->maxnode = dothisnode; 
+   Clust->minabsvalue = SUMA_ABS(Clust->minvalue);
+   Clust->maxabsvalue = SUMA_ABS(Clust->maxvalue);
    Clust->varvalue = 0.0;  Clust->centralnode = 0; 
    Clust->weightedcentralnode = 0;
    Clust->NodeList = (int *)SUMA_malloc((*N_TobeAssigned) * sizeof(int)); 
@@ -1318,7 +1320,7 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
    DListElmt *elm=NULL;
    float *ToBeAssigned=NULL;
    float mean;
-   int N_n, nc, i, kk, PureNothing=0;
+   int N_n=0, nc, i, kk, PureNothing=0;
    SUMA_CLUST_DATUM *Clust = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1947,7 +1949,7 @@ SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(
                Function will fill centralnode and weightedcentralnode
    \param UseSurfDist (int) 0: use distances along the surface 
                                (approximated by distances on the graph)
-                            1: use Euclidian distances. 
+                            1: use Euclidean distances.
    \return ans (int) : NOPE failed, YUP succeeded.
                        
 */
@@ -2468,7 +2470,7 @@ SUMA_DSET *SUMA_CalculateLocalStats(
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
          
    if (N_icols <= 0) {
-      SUMA_SL_Err("No approriate data columns in dset");
+      SUMA_SL_Err("No appropriate data columns in dset");
       SUMA_RETURN(NULL);   
    }
    

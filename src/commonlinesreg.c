@@ -23,9 +23,9 @@ NOTES
     1/ The current implementation aligns volumes made from unweaving the interlaced sections of a brick.
     2/ Two to three projection axes must be chosen:
         - ac: Axial and Coronal
-        - as: Axial and Sagital
-        - cs: Coronal and Sagital
-        - acs: Axial, Coronal and Sagital
+        - as: Axial and Sagittal
+        - cs: Coronal and Sagittal
+        - acs: Axial, Coronal and Sagittal
 
 */
 
@@ -171,7 +171,7 @@ int main( int argc, char *argv[] )  {
     // Get largest dimension from data set
     largestDimension=getLargestDimension(dodd);
 
-    // Free up intput dataset
+    // Free up input dataset
     DSET_delete(din);
 
     // Float projections
@@ -992,7 +992,7 @@ int float2DImage(THD_3dim_dataset *dset){
     int lastY = ny-1;
     int lastX = nx-1;
 
-    // Get mean value arount perimeter
+    // Get mean value around perimeter
     int offset=lastY*nx;
     for (x=0; x<nx; ++x){
         mean += indata[x]+indata[offset++];
@@ -1051,7 +1051,7 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
     int  nz, ny, nx, inInc, outInc, rows, cols, x;
     char *prefix=DSET_PREFIX(din);
     char *searchPath=DSET_DIRNAME(din);
-    char *outputCode=(projCode=='a')? "Axial" : ((projCode=='c')? "Coronal" : "Sagital");
+    char *outputCode=(projCode=='a')? "Axial" : ((projCode=='c')? "Coronal" : "Sagittal");
     char *outputFileName;
     int  outputFileExists=0, outPixelCount, start;
     THD_ivec3 iv_nxyz;
@@ -1091,7 +1091,7 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
     switch (projCode){
     case 'z':        // Axial projection
 
-        // Determine output dimansions
+        // Determine output dimensions
         rows=ny;
         cols=nx;
 
@@ -1112,7 +1112,7 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
         break;
     case 'y':       // Coronal projection
 
-        // Determine output dimansions
+        // Determine output dimensions
         rows=nz;
         cols=nx;
 
@@ -1136,9 +1136,9 @@ int makeProjection(THD_3dim_dataset *din, THD_3dim_dataset **dout, char projCode
             }
         }
         break;
-    case 'x':       // Sagital projection
+    case 'x':       // Sagittal projection
 
-        // Determine output dimansions
+        // Determine output dimensions
         rows=nz;
         cols=ny;
 

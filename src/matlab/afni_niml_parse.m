@@ -294,7 +294,7 @@ function [data,pos]=niml_parse_string_data_element(s, pos, vec_typ)
         error('no data to parse');
     end
 
-    % define delimeters
+    % define delimiters
     quote=uint8('"''');
     data_delim_char=uint8(';');
     ni_def=afni_ni_defs();
@@ -302,7 +302,7 @@ function [data,pos]=niml_parse_string_data_element(s, pos, vec_typ)
     % process white space
     pos=consume_whitespace_optionally(s, pos);
 
-    % if quote, process it and use quote as delimeter
+    % if quote, process it and use quote as delimiter
     has_quote=any(s(pos)==quote);
 
     if has_quote
@@ -315,7 +315,7 @@ function [data,pos]=niml_parse_string_data_element(s, pos, vec_typ)
     % start of data element in string representation
     start_pos=pos;
 
-    % take all characters until delimeter is found
+    % take all characters until delimiter is found
     while pos < n_s && ~any(s(pos)==delimeter_chars)
         pos=pos+1;
     end
@@ -399,9 +399,9 @@ function tf=starts_with(s, pos, needle)
                     strcmp(char(s(pos+(0:(n_needle-1)))),needle);
 
 function char_pos=find_char(s, pos, c, negate)
-    % finds the next character position after the first occurence
+    % finds the next character position after the first occurrence
     % of c in string s starting at pos. c can contain multiple characters,
-    % in which case the first occurence of either is matched.
+    % in which case the first occurrence of either is matched.
     % If negate==true, then the first non-occurence of c is returned.
     if nargin<4
         negate=false;
@@ -427,7 +427,7 @@ function char_pos=find_char(s, pos, c, negate)
 
 
 function next_pos=find_whitespace(s, pos)
-    % finds the next character position after the first occurence
+    % finds the next character position after the first occurrence
     % of whitespace in string s starting at pos.
     whitespace_characters=get_whitespace_characters();
     next_pos=find_char(s, pos, whitespace_characters, false);

@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 
 set extlist = ( 1D 1D.dset m nii asc ply 1D.coord 1D.topo coord topo srf)
 PARSE:   
@@ -96,7 +96,7 @@ WORK:
       endif
       if ($bad) then
          @ cnt ++
-         set cntstr = `count $cnt $cnt 1 -digits 3`
+         set cntstr = `count_afni $cnt $cnt 1 -digits 3`
          set tpref = ${pref}_v$cntstr
       endif
    end

@@ -35,7 +35,7 @@ static void TTRR_save_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 static void TTRR_load_CB  ( Widget , XtPointer , MCW_choose_cbs * ) ;
 static void fill_str(char * instr, char ch, int maxlength);
 /*----------------------------------------------------------------------------
-  Routine to create widgets for the TT atlas rendering controls
+  Routine to create widgets for the Show atlas rendering controls
 ------------------------------------------------------------------------------*/
 
 /***** definitions for the action area controls *****/
@@ -83,17 +83,16 @@ static char *METHOD_strings[NMETHOD] = {
 static char *HEMI_strings[NHEMI] = { HEMI_LEFT , HEMI_RIGHT , HEMI_BOTH } ;
 
 static char helpstring[] =
- "The default list includes the original Talairach Daemon database\n"
- "(kindly provided by Jack Lancaster and Peter Fox of RIC UTHSCSA,\n"
- "the cytoarchitectonic and macrolabel atlases provided by Simon\n"
- "Eickhoff and Karl Zilles, and the probabilistic atlases provided\n"
- "Rutvik Desai.\n"
+ "The atlas that is used by default for that is still the TT_Daemon\n"
+ "atlas, but it can be reset via the AFNI environment variable, \n"
+ "AFNI_ATLAS_COLORS. That will set the atlas used for that menu item\n"
+ "and for the \"Go to atlas location\".\n" 
  "\n"
- "In the database, voxels may have multiple labels for a particular\n"
- "atlas. For example, the voxels may a larger scale 'gyral' [G] name\n"
- "and a finer scale 'area' [A] name. A list of all the labels for the\n"
- "principal default atlas is presented here or from the command\n"
- "line program, 'whereami -show_atlas_code', for any atlas.\n"
+ "The Talairach daemon atlas with its two sub-bricks defines atlases\n"
+ "either gyral or area names\n"
+ "A list of all the labels for the principal default atlas is\n"
+ "presented here or from the command line program,\n"
+ "  'whereami_afni -show_atlas_code' for all atlases.\n"
   "\n"
   "Method:\n"
   "  To enable display of the selected regions, you must choose the\n"
@@ -122,7 +121,7 @@ static char helpstring[] =
   " * At this time, the Redraw button has no functionality;\n"
   "     after you change the color settings in this window, you must\n"
   "     force an image redisplay to see the changes.  In the 2D image\n"
-  "     viewers, you can do this by turning 'See TT Atlas Regions'\n"
+  "     viewers, you can do this by turning 'See Atlas Regions'\n"
   "     off and on;  in the volume renderer, you must press the 'Reload'\n"
   "     button to force the proper redisplay ('Draw' isn't enough).\n"
   " * The region rendering only works if the dataset being drawn in the\n"
@@ -218,8 +217,8 @@ ENTRY("TTRR_setup_widgets") ;
       XtVaAppCreateShell(
            "AFNI" , "AFNI" , topLevelShellWidgetClass , dc->display ,
 
-           XmNtitle             , "TT Atlas Rendering" , /* top of window */
-           XmNiconName          , "TT Atlas"           , /* label on icon */
+           XmNtitle             , "Atlas Rendering" , /* top of window */
+           XmNiconName          , "Show Atlas"           , /* label on icon */
 #if 0
            XmNmappedWhenManaged , False ,                /* must map it manually */
 #endif
@@ -252,7 +251,7 @@ ENTRY("TTRR_setup_widgets") ;
              NULL ) ;
 
    /**** Label to inform the cretinous user what he's looking at ****/
-   sprintf(TTRR_title, "-- Control atlas: %s colors --",Current_Atlas_Default_Name());
+   sprintf(TTRR_title, "-- Show atlas: %s colors --",Current_Atlas_Default_Name());
 
    xstr = XmStringCreateLtoR( TTRR_title, XmFONTLIST_DEFAULT_TAG ) ;
    label = XtVaCreateManagedWidget(
@@ -316,7 +315,7 @@ ENTRY("TTRR_setup_widgets") ;
    ttc->meth_av = new_MCW_optmenu( toprc , "Method" ,
                                    0 , NMETHOD-1 , 1 , 0 ,
                                    NULL,NULL ,
-                                   MCW_av_substring_CB, METHOD_strings ) ;
+                       (str_func *)MCW_av_substring_CB, METHOD_strings ) ;
 
    XtVaSetValues( ttc->meth_av->wrowcol ,
                     XmNleftAttachment , XmATTACH_FORM ,
@@ -329,7 +328,7 @@ ENTRY("TTRR_setup_widgets") ;
    ttc->hemi_av = new_MCW_optmenu( toprc , "Hemisphere(s)" ,
                                    0 , NHEMI-1 , NHEMI-1 , 0 ,
                                    NULL,NULL ,
-                                   MCW_av_substring_CB, HEMI_strings ) ;
+                       (str_func *)MCW_av_substring_CB, HEMI_strings ) ;
 
    XtVaSetValues( ttc->hemi_av->wrowcol ,
                     XmNrightAttachment, XmATTACH_FORM ,
@@ -429,7 +428,7 @@ ENTRY("TTRR_setup_widgets") ;
                0 ,                            /* first color */
                dc->ovc->ncol_ov - 1 ,         /* last color */
                0 ,                            /* initial color */
-               TTRR_av_CB,NULL                /* callback func,data */
+   (gen_func *)TTRR_av_CB,NULL                /* callback func,data */
             ) ;
 
          XtVaSetValues( ttc->reg_av[ttc->reg_num]->wrowcol ,
@@ -452,6 +451,20 @@ ENTRY("TTRR_setup_widgets") ;
    XtManageChild( ttc->workwin ) ;
    XtManageChild( frame ) ;
    XtManageChild( ttc->scrollw ) ;
+
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( toprc ,
+                           StructureNotifyMask ,    /* resizes */
+                           FALSE ,                  /* nonmaskable events? */
+                           AFNI_widget_expose_EV ,  /* handler */
+                           (XtPointer) NULL ,       /* client data - not used */
+                           XtListTail               /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for Show atlas color window resize\n");
+   }
+
    XtManageChild( toprc ) ;
    XtRealizeWidget( ttc->shell ) ; NI_sleep(5) ;
 
@@ -588,12 +601,12 @@ ENTRY("TTRR_action_CB") ;
    } else if( strcmp(wname,TTRR_load_label) == 0 ){
 
       MCW_choose_string( w , "Filename to load" , NULL ,
-                             TTRR_load_CB , NULL ) ;
+                 (gen_func *)TTRR_load_CB , NULL ) ;
 
    } else if( strcmp(wname,TTRR_save_label) == 0 ){
 
       MCW_choose_string( w , "Filename to save" , NULL ,
-                             TTRR_save_CB , NULL ) ;
+                 (gen_func *)TTRR_save_CB , NULL ) ;
    }
 
    EXRETURN ;
@@ -616,7 +629,7 @@ ENTRY("TTRR_delete_window_CB") ;
 }
 
 /*------------------------------------------------------------------------
-   Return the current state of the TT atlas colors in a static
+   Return the current state of the "show atlas colors" in a static
    struct (i.e., do NOT free() this!).
 --------------------------------------------------------------------------*/
 

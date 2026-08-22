@@ -29,7 +29,7 @@ g_history = """
     1.0  Dec 20, 2006 : initial release
     1.1  Dec 20, 2006 : added -regress_use_stim_files
     1.2  Dec 21, 2006 : help, start -ask_me, updated when to use -iresp/ideal
-    1.3  Dec 22, 2006 : change help to assumme ED's stim_times files exist
+    1.3  Dec 22, 2006 : change help to assume ED's stim_times files exist
     1.4  Dec 25, 2006 : initial -ask_me
     1.5  Dec 27, 2006 : ask_me help
     1.6  Dec 28, 2006 : -gltsym examples, min(a,b) in scale block
@@ -93,7 +93,7 @@ g_history = """
     1.34 Feb 17 2009 : added -regress_reml_exec and -regress_3dD_stop
     1.35 Mar 12 2009 :
         - if despiking and no regression mask, apply -nomask
-        - added 'MASKING NOTE', to suggest no regresion mask until group space
+        - added 'MASKING NOTE', to suggest no regression mask until group space
     1.36 Mar 24 2009 :
         * -regress_no_mask is now the default *
         - added -regress_apply_mask
@@ -265,7 +265,7 @@ g_history = """
     2.53 Jun 02 2011 :
         - added -regress_make_cbucket
         - include view in 3dcopy for single run extents mask
-          (so there are no missing view warnigns, done for J Jarcho)
+          (so there are no missing view warnings, done for J Jarcho)
         - make regress TSNR dataset by default (added option -compute_tsnr)
     2.54 Jun 03 2011: volreg tsnr is not default
         - added -volreg_compute_tsnr (def no), -regress_compute_tsnr (def yes)
@@ -521,7 +521,7 @@ g_history = """
         - added -blip_forward_dset
     4.67 Jun 16, 2016:
         - if NLwarp but EPI in orig space, do not apply (warn user)
-        - fix refit of blip median datsets
+        - fix refit of blip median datasets
     4.68 Jun 22, 2016: do nothing, but work really hard at it
         - apply EPI transformation steps using an array of transformations
           (to make future changes easier)
@@ -733,17 +733,113 @@ g_history = """
        - add -align_unifize_epi local method, -align_opts_eunif
        - create final_epi_unif volume, in case of EPI uniformity correction
     7.42 Jun 13, 2022: remove final_epi_unif, as it is already final EPI
-    7.43 Jul 26, 2022: copy label tabels of anat followers
+    7.43 Jul 26, 2022: copy label tables of anat followers
     7.44 Jul 30, 2022:
        - copy tlrc_base/template to results directory
        - add opt -tlrc_copy_base
     7.45 Aug 17, 2022: if 'tlrc' block and -regress_ROI*, req -volreg_tlrc_warp
+    7.46 Aug 30, 2022:
+       - make -show_example allow unique substring matching
+       - pass final_epi_dset as a uvar if there is no warped version
+    7.47 Oct  8, 2022: w/PT: reformat of help examples
+    7.48 Nov 15, 2022: find_variance_lines.tcsh, and vlines_* uvars
+    7.49 Nov 23, 2022: added examples simple_rest_QC, simple_rest_QC_na
+    7.50 Dec 16, 2022: update example 6, 6b
+    7.51 Jan 24, 2023: add QC to ricor block
+    7.52 Feb  1, 2023: get SurfSmooth params from smrec file
+    7.53 Feb  3, 2023: propagate error when num_echo is inconsistent
+    7.54 Feb  6, 2023: propagate slice_pattern from -tshift_opts_ts -tpattern
+    7.55 Mar  1, 2023: add -show_pretty_command, to print a more readable one
+    7.56 Jun  2, 2023: fix -regress_errts_prefix with surface analysis
+    7.57 Jun 14, 2023: default to -radial_correlate_blocks errts, if none given
+    7.58 Jun 21, 2023: fix: pass tlrc_base as uvar template
+    7.59 Jul 21, 2023: fix: update help for -regress_make_corr_vols
+                            (it is now corr vs ave, rather than ave corr)
+    7.60 Jul 24, 2023: if -tlrc_NL_warped_dsets, require -tlrc_base
+    7.61 Aug 21, 2023: modify $ktrs to come from a text file, instead of shell
+    7.62 Feb  1, 2024: 
+       - add options -show_example_keywords, -show_pythonic_command
+       - include keywords and modification date in examples
+       - partially revamp examples, add demo, short and publish examples
+    7.63 Feb  2, 2024: add -ROI_import (can regress PCs for now)
+    7.64 Feb  8, 2024:
+       - if radcor is after scaling, pass an EPI mask (warn if no mask)
+       - block radcor once processing enters the surface domain
+    7.65 Feb 15, 2024: add option -regress_compute_tsnr_stats
+    7.66 Feb 15, 2024:
+       - no dupe follower warning if grids differ
+       - no FWHM->ACF warning
+    7.67 Feb 21, 2024:
+       - partial publish example updates
+       - remove warning: 'ricor regressors are no longer applied in final reg'
+    7.68 Feb 22, 2024:
+       - use mask_epi_anat for more QC (over full_mask) and modify indentation
+       - if appropriate, apply "-regress_compute_tsnr_stats brain 1"
+    7.69 Mar 11, 2024:
+       - add 3dTto1D -method 4095_warn command and out.4095_warn.txt uvar
+    7.70 Mar 18, 2024:
+       - locate() -ROI/mask_import datasets and get tlrc_base early
+       - add auto-ROI_import of APQC atlas and regress tsnr_stats
+       - add option -regress_compute_auto_tsnr_stats
+    7.71 Mar 29, 2024: allow -regress_apply_mot_types none
+    7.72 Apr  1, 2024: add reg_echo and echo_times as uvars
+    7.73 Apr  7, 2024: the default warp vox dim will round up if very close
+    7.74 Apr  8, 2024: add -anat_follower_erode_level
+    7.75 Apr 25, 2024: add -uvar option, to pass user vars along
+    7.76 May 25, 2024:
+       - add -bids_deriv, to output a BIDS derivative tree
+       - add -volreg_allin_warp (def shift_rotate)
+    7.77 May 30, 2024: fix volreg TSNR for ME: use eind -> fave_echo
+       - thanks to zhengchencai on MB for pointing it out
+       - remove unneeded followers from example 'publish 3d'
+    7.78 Aug  5, 2024: add option -blip_warp_dset to input a computed warp
+    7.79 Aug 30, 2024:
+       - make example option order more consistent (id, EPI, anat, blocks, ...)
+       - minor updates to example comments and directory names
+       - add example 'publish 3i', where 'i' corresponds to 9
+       - add examples publish 3e, 3f, 3g, 3h, 3j and help section 'eshow'
+         - exclude 'noshow' examples from default help output
+       - compare_opts now considers file path differences separately
+    7.80 Oct 10, 2024: make sure intersect datasets have views
+    7.81 Oct 23, 2024:
+       - redo default surface blur
+       - add -volreg_no_volreg, the B Feige option
+    7.82 Dec  6, 2024: subtract 1 from ricor QC vrat, for more a useful display
+    7.83 Jan 27, 2025: fix -compare_opts display of fewer/more options applied
+    7.84 Jan 28, 2025: add option -tlrc_affine_warped_dsets
+    7.85 Jan 29, 2025: suggest OC_B if only 2 echoes
+    7.86 Feb 27, 2025: add -show_merged_opts, -compare_merged_opts
+    7.87 Mar 11, 2025: update examples class 3,5 per AD6
+    7.88 Mar 21, 2025: add combine methods OC_m_tedort and m_tedana_OC_tedort
+    7.89 Apr  2, 2025: parse/pass any opts_ts -tpattern @FILE to review_basic
+    7.90 Apr 24, 2025: use updated find_variance_lines.tcsh (no -nerode 2)
+    7.91 May  6, 2025: set ROI_import view in case of no volreg block
+    7.92 May 16, 2025: add help for m_tedort combine methods
+    7.93 Jun 17, 2025: pass blur_size uvar to PT for APQC
+    8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
+    8.01 Aug  6, 2025: add -volreg_warp_master_box, to base dxyz on EPI
+    8.02 Sep  8, 2025: add -regress_per_run_ortvec, for physio volbase regs
+    8.03 Sep 11, 2025:
+       - do not create a script on -show_tracked_files
+       - add example class do_21, to match that in AFNI_data7
+       - suggest a new default blur (but still use 4.0), if none is given
+       - suggest open_apqc.py instead of afni_open
+       - allow verb only to show tracked files and create proc script
+    8.04 Jan  9, 2026: add -show_xmat_warnings after -show_cormat_warnings
+    8.05 Jan 13, 2026: create enorm time series even if no volreg or censoring
+    8.06 Apr 24, 2026: if tedana masking, suggest -blur_in_mask yes
 """
 
-g_version = "version 7.45, August 17, 2022"
+g_version = "version 8.06, April 24, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Jan 2026",  "1d_tool.py -show_xmat_warnings" ],
+      [ "10 Sep 2025",  "afni_util.py get_def_blur_from_dims" ],
+      [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
+      [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
+      [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
+      [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
       [ " 3 Jun 2022",  "3dLocalUnifize" ],
       [ " 7 Mar 2022",  "@radial_correlate -polort" ],
       [ " 3 Feb 2022",  "gen_ss_review_scripts.py -init_uvas_json" ],
@@ -768,23 +864,23 @@ interesting milestones for afni_proc.py:
    2006.12 : initial release - basic processing blocks, can alter order
    2006.12 : -ask_me - interactive method for user options
    2007.05 : compatible for python 2.2 - 2.5
-   2008.01 : estimate smoothness (for use in cluster correction)
-   2008.12 : allow NIFTI inputs
-   2009.03 : allow use of 3dREMLfit
+   2008.01 : compute smoothness estimates (for use in cluster correction)
+   2008.12 : enable use of NIFTI inputs
+   2009.03 : enable use of 3dREMLfit
    2009.03 : default change - do not mask EPI results
-   2009.04 : ricor block - for physiological regressors
-   2009.05 : tlrc block - EPI to standard space (catenated transformation)
-   2009.05 : align block - run align_epi_anat.py
+   2009.04 : add ricor block - for physiological regressors
+   2009.05 : add tlrc block - EPI to standard space (catenated transformation)
+   2009.05 : add align block - run align_epi_anat.py (catenated transformation)
    2009.05 : base examples on AFNI_data4
    2009.08 : censoring based on motion parameters
    2010.06 : censoring based on initial outliers
-   2010.08 : allow amplitude modulation via married timing files
+   2010.08 : allow amplitude modulation in the linear regression model
    2011.06 : TSNR dataset
    2011.07 : graphical interface - uber_subject.py
    2011.07 : @ss QC review scripts - via gen_ss_review_scripts.py
    2011.10 : surface analysis
    2012.01 : base examples on AFNI_data6
-   2012.04 : bandpassing
+   2012.04 : enable bandpassing in linear regression model
    2012.05 : allow processing more than 99 runs
    2012.09 : tissue-based regression - via 3dSeg segmentation
    2013.01 : compute GCOR - average spatial pairwise correlation
@@ -794,19 +890,33 @@ interesting milestones for afni_proc.py:
    2014.04 : MIN_OUTLIER volreg base
    2015.02 : fast ANATICOR - Gaussian-weighted local mean, rather than flat
    2015.04 : anatomical followers and ROI/PC regression
+   2016.05 : check left/right flip of EPI vs anat
    2016.06 : distortion correction - using reverse blip
    2016.08 : mixed-model ACF blur estimation
-   2017.11 : python3 compatible
+   2017.11 : python3 compatible (maintaining compatibility with python 2)
    2018.02 : combine block - for multi-echo data (OC and tedana)
    2018.11 : APQC HTML report
    2019.01 : EPI alignment across per-run bases (-volreg_post_vr_allin)
    2019.10 : tedana from MEICA group - https://github.com/ME-ICA/tedana
    2019.02 : compare options with examples and other afni_proc.py commands
-   2021.11 : updated MEICA group tedana
+   2021.04 : ap_run_simple_rest.tcsh: low-option afni_proc.py command for QC
+   2021.11 : apply updates from MEICA group tedana
+   2022.06 : local unifize option to assist inhomogeneous EPI for anat alignment
+   2022.11 : find_variance_lines.tcsh - detect high-variance I/S lines in EPI
+   2022.11 : run APQC HTML from local server, for interactive features
+   2024.02 : new examples (demo, short, publish), with mod date
+   2024.02 : compute TSNR stats across automatic or provided ROIs
+   2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
+   2024.05 : enable output of BIDS derivative tree
+   2024.08 : input external distortion warp dataset
+   2025.03 : add tedort combine methods OC_m_tedort and m_tedana_OC_tedort
+   2025.08 : GTKYD - outlier check from: getting to know your data
+   2025.09 : handle physio_calc.py slibase and volbase regressors
 """
 
+
 g_process_changes_str = """
----------- changes to afni_proc.py that might afftect results ----------
+---------- changes to afni_proc.py that might affect results ----------
 
 Miscellaneous older changes:
 
@@ -814,7 +924,7 @@ Miscellaneous older changes:
       - preferable to see all results by default
       - reproduce with: -mask_apply brain
 
-   17 Jun 2009 : EPI extents mask is aplied
+   17 Jun 2009 : EPI extents mask is applied
       - motion could cause strange edge effects
       - require data at every time point
       - reproduce with: -volreg_no_extent_mask
@@ -837,10 +947,18 @@ More detailed changes, starting May, 2018.
    10 Mar 2022 : run 3dAllineate for -align_epi_ext_dset to volreg base
       - apply an additional xform between anat2epi base and epi2epi one
 
+   25 May 2024 : make volreg_method 3dAllinate default warp shift_rotate
+      - add -volreg_allin_warp to control
+
 """
 
 g_todo_str = """todo:
-  - when replacing 'examples' help section, move -ask_me EXAMPLES secion
+  - when replacing 'examples' help section, move -ask_me EXAMPLES section
+  - allow listing examples by keyword (choose and/or remove)
+  - example demo 2b should be added to APMD1 tree
+  - ROI_import, anat_follower_ROI for ROI TSNR averages
+     x handle in regress block: add -regress_compute_tsnr_stats
+     - add -volreg_compute_tsnr_stats
   - ME:
      - handle MEICA tedana methods
         x m_tedana, m_tedana_OC, m_tedana_OC_tedort
@@ -849,12 +967,12 @@ g_todo_str = """todo:
           (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
-     - motion params?  censoring?
+     - pre-ME: motion params?  censoring?
      x add help for new combine methods
      x add tedana orthogonalization combine methods
      x for LA: run all tedana steps before 3dcopy ones
      x update for (f)ANATICOR 
-     - allow use of -mask_import
+     x allow use of -mask_import
      - use combine result in -regress_ROI* options
         - see: rcr - todo combine
      - ** set_proc_vr_vall (and similar), choose between volreg and combine
@@ -953,14 +1071,14 @@ g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 g_eg_skip_opts = [ 
    '-subj_id', '-script', '-out_dir', '-align_epi_ext_dset', 
    '-anat_follower', '-anat_follower_ROI', 
-   '-blip_forward_dset', '-blip_reverse_dset', 
+   '-blip_forward_dset', '-blip_reverse_dset', '-blip_warp_dset',
    '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
    '-surf_anat', '-surf_spec',
    '-tlrc_NL_warped_dsets', 
    # '-volreg_base_dset',   (not sure, so allow for now)
-   '-regress_censor_extern', '-regress_extra_stim_files', 
-   '-regress_extra_ortvec', '-regress_extra_ortvec_labels',
-   '-regress_motion_file', 
+   '-regress_censor_extern',  '-regress_extra_stim_files',
+   '-regress_extra_ortvec',   '-regress_extra_ortvec_labels',
+   '-regress_per_run_ortvec', '-regress_motion_file',
    '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
    '-ricor_regs'
    ] 
@@ -978,8 +1096,10 @@ class SubjProcSream:
         self.EGS        = None          # reference to imported ap_examples lib
 
         self.blocks     = []            # list of ProcessBlock elements
+        self.block_names= []            # list of block names, pre 'blocks'
         self.dsets      = []            # list of afni_name elements
         self.have_sels  = 0             # do the inputs have selectors
+        self.dsets_obl  = 0             # are the -dsets oblique
 
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
@@ -1022,14 +1142,16 @@ class SubjProcSream:
         self.blip_dset_rev  = None      # afni_name: local blip_in_rev dset
         self.blip_dset_med  = None      # afni_name: result: blip align median
         self.blip_dset_warp = None      # afni_name: result: blip NL warp dset
-        self.blip_obl_for = 0           # is it oblique
-        self.blip_obl_rev = 0           # is it oblique
+        self.blip_obl_warp  = 0         # is it oblique: warp
+        self.blip_obl_for   = 0         # is it oblique: forward blip
+        self.blip_obl_rev   = 0         # is it oblique: reverse blip
 
         self.vr_ext_base= None          # name of external volreg base 
         self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
         self.vr_warp_mast = None        # local -volreg_warp_master dset
+        self.vr_warp_mbox = 0           # is the warp master just for the box?
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.vr_base_MO   = 0           # using MIN_OUTLIER volume for VR base
@@ -1080,13 +1202,15 @@ class SubjProcSream:
         self.anat_unifized = 0          # has the anat been unifized
         self.anat_final = None          # anat assumed aligned with stats
         self.anat_warps = []            # array of anat warp matrices
-        self.nlw_aff_mat= ''
-        self.nlw_NL_mat = ''
-        self.nlw_priors = []            # afni_name list of 3 warped_dsets
+        self.nlw_aff_mat= ''            # imported affine or NL warp info
+        self.nlw_NL_mat = ''            # (priors: warp, warped anat)
+        self.nlw_priors = []            # afni_name list of 2,3 warp files
+        self.nlw_type   = ''            # if set, affine or NL
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_nlw   = 0             # are we using non-linear registration
         self.tlrc_ss    = 1             # whether to do skull strip in tlrc
+        self.tlrc_space = ''            # 3dinfo -space for tlrc_base dset
         self.warp_epi   = 0             # xform bitmap: tlrc, adwarp, a2e, e2a
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.e2final_mv = []            # matvec list takes epi base to final
@@ -1112,6 +1236,7 @@ class SubjProcSream:
         self.have_3dd_stats = 1         # do we have 3dDeconvolve stats
         self.have_reml_stats = 0        # do we have 3dREMLfit stats
         self.epi_review = '@epi_review.$subj' # filename for gen_epi_review.py
+        self.bids_deriv   = 'no'        # yes/no/BIDS derivative directory root
         self.html_rev_style = 'pythonic' # html_review_style
         self.html_rev_opts = []         # user opts for apqc_make_tcsh.py
         self.made_ssr_scr = 0           # did we make subj review scripts
@@ -1139,6 +1264,8 @@ class SubjProcSream:
         self.runs       = 0             # number of runs
         self.reps_all   = []            # number of TRs in each run
         self.reps_vary  = 0             # do the repetitions vary
+        self.rm_nfirst  = []            # NT to remove from start of each run
+        self.rm_nlast   = 0             # constant NT to remove from run ends
         self.orig_delta = [0, 0, 0]     # dataset voxel size (initial)
         self.delta      = [0, 0, 0]     # dataset voxel size
         self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
@@ -1157,6 +1284,11 @@ class SubjProcSream:
         # options for tissue based time series
         self.roi_dict   = {}            # dictionary of ROI vs afni_name
         self.def_roi_keys = default_roi_keys
+        self.regress_auto_tsnr_rois = [] # ROI labels for auto tsnr_stats
+                                         # None if not for use
+
+        # parameters related to TSNR and ROIs
+        self.tsnr_dset  = None          # for volumetric tsnr ROI stats
 
         # options related to ACF and clustsim
         self.ACFdir     = 'files_ACF'   # where to put 3dFWHMx -ACF files
@@ -1253,12 +1385,18 @@ class SubjProcSream:
                         helpstr='show history of -requires_afni_version')
         self.valid_opts.add_opt('-show_example', 1, [],
                         helpstr="show given help example by NAME")
+        self.valid_opts.add_opt('-show_example_keywords', 0, [],
+                        helpstr="show keywords from all examples")
         self.valid_opts.add_opt('-show_example_names', 0, [],
                         helpstr="show names of all examples")
+        self.valid_opts.add_opt('-show_pretty_command', 0, [],
+                        helpstr="display afni_proc.py command in a nice format")
+        self.valid_opts.add_opt('-show_pythonic_command', 0, [],
+                        helpstr="display afni_proc.py command as a python list")
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
-                        helpstr="show tracked files of given type")
+                        helpstr="show tracked files of given 'desc' or ALL")
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-todo', 0, [],
@@ -1275,6 +1413,10 @@ class SubjProcSream:
                         helpstr="compare earlier options vs. later ones")
         self.valid_opts.add_opt('-compare_example_pair', 2, [],
                         helpstr="compare the specified pair of examples")
+        self.valid_opts.add_opt('-compare_merged_opts', 1, [],
+                        helpstr="compare options against merged example")
+        self.valid_opts.add_opt('-show_merged_opts', 1, [],
+                        helpstr="show command with merged options")
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [], okdash=0,
@@ -1308,6 +1450,8 @@ class SubjProcSream:
                         helpstr='specify label and anat follower dataset')
         self.valid_opts.add_opt('-anat_follower_erode', -1, [], okdash=0,
                         helpstr="erode follower datasets for given labels")
+        self.valid_opts.add_opt('-anat_follower_erode_level', 2, [], okdash=0,
+                        helpstr="erode this follower label at the given level")
         self.valid_opts.add_opt('-anat_follower_ROI', 3, [],
                         helpstr='specify label and anat follower ROI dataset')
         self.valid_opts.add_opt('-anat_has_skull', 1, [],
@@ -1325,6 +1469,8 @@ class SubjProcSream:
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
                         helpstr='obsolete: show execution help in bash syntax')
+        self.valid_opts.add_opt('-bids_deriv', 1, [],
+                        helpstr='specify BIDS output directory (def=no)')
         self.valid_opts.add_opt('-check_afni_version', 1, [],
                         acplist=['yes','no'],
                         helpstr='check that AFNI is current enough')
@@ -1369,6 +1515,8 @@ class SubjProcSream:
                         helpstr='use -legendre in 3dToutcount?  (def=yes)')
         self.valid_opts.add_opt('-outlier_polort', 1, [],
                         helpstr='3dToutcount polort (default is as with 3dD)')
+        self.valid_opts.add_opt('-find_var_line_blocks', -1, [],
+                        helpstr="find_variance_lines.tcsh for given blocks")
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
                         helpstr="compute correlations with spherical averages")
@@ -1392,6 +1540,8 @@ class SubjProcSream:
                        helpstr="only write 3dDeconvolve script (to given file)")
         self.valid_opts.add_opt('-write_ppi_3dD_scripts', 0, [],
                        helpstr="flag: write no-censor and PPI extras scripts")
+        self.valid_opts.add_opt('-uvar', -2, [],
+                        helpstr="specify a uvar its value(s)")
         self.valid_opts.add_opt('-verb', 1, [],
                         helpstr="set the verbose level")
 
@@ -1441,6 +1591,8 @@ class SubjProcSream:
                         helpstr='reverse blip dset for blip up/down corretion')
         self.valid_opts.add_opt('-blip_opts_qw', -1, [],
                         helpstr='additional options for 3dQwarp in blip block')
+        self.valid_opts.add_opt('-blip_warp_dset', 1, [],
+                        helpstr='specify a precomputed distortion warp dset')
 
         self.valid_opts.add_opt('-align_epi_ext_dset', 1, [],
                         helpstr='external EPI volume for align_epi_anat.py')
@@ -1464,6 +1616,8 @@ class SubjProcSream:
                         helpstr='make a local copy of the template')
         self.valid_opts.add_opt('-tlrc_opts_at', -1, [],
                         helpstr='additional options supplied to @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_affine_warped_dsets', 2, [],
+                        helpstr='pass dsets that have already been aff_warped')
         self.valid_opts.add_opt('-tlrc_NL_awpy_rm', 1, [],
                         acplist=['yes','no'],
                         helpstr='remove work dir from auto_warp.py')
@@ -1491,6 +1645,12 @@ class SubjProcSream:
                         helpstr="specify -*auto* options for 3dAllineate")
         self.valid_opts.add_opt('-volreg_allin_cost', 1, [],
                         helpstr="specify -cost for 3dAllineate in volreg [lpa]")
+        self.valid_opts.add_opt('-volreg_allin_warp', 1, [],
+                        acplist=['shift_rotate', 'shift_rotate_scale',
+                                 'affine_general'],
+                        helpstr="specify -warp for 3dAllineate in volreg")
+        self.valid_opts.add_opt('-volreg_no_volreg', 0, [],
+                        helpstr="skip 3dvolreg step (maybe already aligned)")
         self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
                         acplist=['yes','no'],
                         helpstr='do cross-run allin after within-run volreg')
@@ -1512,6 +1672,8 @@ class SubjProcSream:
                         helpstr='final interpolation used when apply warps')
         self.valid_opts.add_opt('-volreg_warp_master', 1, [],
                         helpstr='grid master applied to volreg warp')
+        self.valid_opts.add_opt('-volreg_warp_master_box', 1, [],
+                        helpstr='grid bounding box applied to volreg warp')
         self.valid_opts.add_opt('-volreg_method', 1, [],
                         acplist=['3dvolreg','3dAllineate'],
                         helpstr='specify program for EPI volume registration')
@@ -1612,6 +1774,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-mask_type', 1, [],
                         acplist=['union','intersection'],
                         helpstr="specify a 'union' or 'intersection' mask type")
+        self.valid_opts.add_opt('-ROI_import', 2, [],
+                        helpstr="import ROI as given label (label/mset)")
 
         self.valid_opts.add_opt('-scale_max_val', 1, [],
                         helpstr="maximum value for scaled data (def: 200)")
@@ -1654,6 +1818,11 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) after regress')
+        self.valid_opts.add_opt('-regress_compute_tsnr_stats', -2, [],
+                        helpstr='compute TSNR stats per ROI_dset and INDEX')
+        self.valid_opts.add_opt('-regress_compute_auto_tsnr_stats', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='auto-compute stats for APQC atlas (def=yes)')
         self.valid_opts.add_opt('-regress_mask_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply mask to TSNR dset (yes/no, def=no)")
@@ -1708,7 +1877,7 @@ class SubjProcSream:
                         helpstr="use 3dTproject instead of 3dDeconvolve")
 
         self.valid_opts.add_opt('-regress_apply_mot_types', -1, [],
-                        acplist=['basic','demean','deriv'],
+                        acplist=['basic','demean','deriv','none'],
                         helpstr="specify which motion parameters to apply")
         self.valid_opts.add_opt('-regress_mot_as_ort', 1, [],
                         acplist=['yes','no'],
@@ -1731,6 +1900,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_extra_ortvec_labels',
                                 -1, [], okdash=0,
                         helpstr="labels for extra -stim_files")
+        self.valid_opts.add_opt('-regress_per_run_ortvec', -2, [], okdash=0,
+                        helpstr="label and ortvecs for each run")
         self.valid_opts.add_opt('-regress_ppi_stim_files', -1, [], okdash=0,
                         helpstr="extra PPI -stim_files to apply")
         self.valid_opts.add_opt('-regress_ppi_stim_labels', -1, [], okdash=0,
@@ -1770,7 +1941,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_no_ideals', 0, [],
                         helpstr="do not generate ideal regressors")
         self.valid_opts.add_opt('-regress_no_iresp', 0, [],
-                        helpstr="do not output impulse reponse datasets")
+                        helpstr="do not output impulse response datasets")
         self.valid_opts.add_opt('-regress_no_mask', 0, [],
                         helpstr="do not apply any mask during regression")
         self.valid_opts.add_opt('-regress_no_motion', 0, [],
@@ -1839,7 +2010,7 @@ class SubjProcSream:
             else: print("** have invalid trailing args: %s" % opt.parlist)
             return 1  # failure
 
-        # maybe the users justs wants a complete option list
+        # maybe the users just wants a complete option list
         if self.user_opts.find_opt('-show_valid_opts'):
             self.valid_opts.show('', 1)
             return 0  # gentle termination
@@ -1905,8 +2076,19 @@ class SubjProcSream:
             print(g_process_changes_str)
             return 0
         
+        if opt_list.find_opt('-show_pretty_command'):
+            tstr = self.get_ap_command_str(style='pretty', lstart='')
+            print(tstr)
+            return 0
+        
+        if opt_list.find_opt('-show_pythonic_command'):
+            tstr = self.get_ap_pythonic_cmd_str()
+            print(tstr)
+            return 0
+        
         if opt_list.find_opt('-show_tracked_files'):
             self.show_tfiles,rv = opt_list.get_string_opt('-show_tracked_files')
+            self.make_main_script = 0      # do not create a script
         
         if opt_list.find_opt('-todo'):     # print "todo" list
             print(g_todo_str)
@@ -1917,7 +2099,7 @@ class SubjProcSream:
             return 0  # gentle termination
 
         # ------------------------------------------------------------
-        # example and "compare" options - to compare option lists
+        # example, compare and merge options - to compare option lists
         if opt_list.find_opt('-compare_opts'):
            comp, rv = opt_list.get_string_opt('-compare_opts')
            self.compare_vs_opts(opt_list.olist, comp)
@@ -1935,9 +2117,18 @@ class SubjProcSream:
            self.compare_example_pair(pair)
            return 0
         
+        if opt_list.find_opt('-compare_merged_opts'):
+           target, rv = opt_list.get_string_opt('-compare_merged_opts')
+           self.compare_merged_opts(opt_list.olist, target)
+           return 0
+
         if opt_list.find_opt('-show_example'):
            eg, rv = opt_list.get_string_opt('-show_example')
            self.show_example(eg, verb=self.verb)
+           return 0
+
+        if opt_list.find_opt('-show_example_keywords'):
+           self.show_example_keywords(verb=self.verb)
            return 0
         
         if opt_list.find_opt('-show_example_names'):
@@ -1949,6 +2140,10 @@ class SubjProcSream:
               self.show_example_names()
            return 0
         
+        if opt_list.find_opt('-show_merged_opts'):
+           target, rv = opt_list.get_string_opt('-show_merged_opts')
+           return self.show_merged_command(target, verb=self.verb)
+
         # options which are NO LONGER VALID
 
         if opt_list.find_opt('-surf_blur_fwhm'):
@@ -1994,9 +2189,12 @@ class SubjProcSream:
             if opt.parlist[0] == 'no': self.anat_has_skull = 0
             else:                      self.anat_has_skull = 1
 
+        opt = opt_list.find_opt('-bids_deriv') # make BIDS deriv?
+        if opt != None: self.bids_deriv = opt.parlist[0]
+
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
-            self.anat = afni_name(opt.parlist[0])
+            self.anat = gen_afni_name(opt.parlist[0])
             # rcr - set only if no view in anat?  (though still would not know)
             self.tlrcanat = self.anat.new(new_view='+tlrc')
 
@@ -2032,6 +2230,11 @@ class SubjProcSream:
         opt = opt_list.find_opt('-script')
         if opt != None: self.script = opt.parlist[0]
         else:           self.script = 'proc.%s' % self.subj_id
+
+        opt = opt_list.find_opt('-uvar')
+        olist = self.user_opts.find_all_opts('-uvar')
+        for opt in olist:
+           self.uvars.set_var(opt.parlist[0], opt.parlist[1:])
 
         opt = opt_list.find_opt('-write_3dD_prefix')
         if opt != None:
@@ -2101,7 +2304,7 @@ class SubjProcSream:
               return 1
            self.dsets = []
            for rind, dset in enumerate(o0.parlist):
-              aname = afni_name(dset)
+              aname = gen_afni_name(dset)
               if aname.selectors() != '': self.have_sels = 1
               aname.selquote = "'" # allow for $ in selector (default??)
               self.dsets.append(aname)
@@ -2139,7 +2342,7 @@ class SubjProcSream:
 
               dsets = []
               for rind, dset in enumerate(opt.parlist):
-                 dsets.append(afni_name(dset))
+                 dsets.append(gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have echo %d option %s without any dataset list" \
                        % (eind, oname))
@@ -2151,7 +2354,7 @@ class SubjProcSream:
            # already echo-major order, no need to transpose
 
         if o2:
-           # input is run-major order, will conver to echo-major at end
+           # input is run-major order, will convert to echo-major at end
            oname = '-dsets_me_run'
            olist = self.user_opts.find_all_opts(oname)
            necho = len(olist[0].parlist)
@@ -2164,7 +2367,7 @@ class SubjProcSream:
 
               dsets = []
               for eind, dset in enumerate(opt.parlist):
-                 dsets.append(afni_name(dset))
+                 dsets.append(gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have run %d option %s without any dataset list" \
                        % (rind, oname))
@@ -2226,6 +2429,9 @@ class SubjProcSream:
            if val != None:
               self.reg_echo = val
 
+           # set as a uvar (values are strings)
+           self.uvars.set_var('reg_echo', [str(self.reg_echo)])
+
            if self.reg_echo < 1 or self.reg_echo > self.num_echo:
               print("** %s: registration echo must be between 1 and %d" \
                     % (oname, self.num_echo))
@@ -2239,6 +2445,9 @@ class SubjProcSream:
                  errs += 1
                  print("** have %d echoes, but %d echo times" \
                        % (self.num_echo, len(elist)))
+              # and add echo times as a uvar, using the original strings
+              opt = self.user_opts.find_opt(oname)
+              self.uvars.set_var('echo_times', opt.parlist)
 
         # set view and dimensions based on dsets
 
@@ -2262,7 +2471,10 @@ class SubjProcSream:
         self.orig_delta = dims
         self.delta = dims
 
-        return 0
+        # note obliquity of first EPI dset
+        self.dsets_obl = dset_is_oblique(self.dsets[0], self.verb)
+
+        return errs
 
     # init blocks from command line options, then check for an
     # alternate source       rcr - will we use 'file' as source?
@@ -2274,7 +2486,7 @@ class SubjProcSream:
         # or surface analysis
         opt = self.user_opts.find_opt('-surf_anat')
         if opt != None:
-           self.surf_anat = afni_name(opt.parlist[0])
+           self.surf_anat = gen_afni_name(opt.parlist[0])
 
         # init block either from DefLabels or -blocks
         opt = self.user_opts.find_opt('-blocks')
@@ -2285,7 +2497,7 @@ class SubjProcSream:
         elif self.surf_anat: blocks = DefSurfLabs  # surface defaults
         else:                blocks = DefLabels    # volume defaults
 
-        # and insert automatic postdata block at postion 1 (after tcat)
+        # and insert automatic postdata block at position 1 (after tcat)
         blocks.insert(1, 'postdata')
 
         # just do a quick check after all of the confusion
@@ -2328,8 +2540,9 @@ class SubjProcSream:
            if err: return 1
 
         # do we want the blip block?
-        if self.user_opts.find_opt('-blip_reverse_dset') \
-              and not 'blip' in blocks:
+        if (    self.user_opts.find_opt('-blip_warp_dset')      \
+             or self.user_opts.find_opt('-blip_reverse_dset') ) \
+             and not 'blip' in blocks:
            err, blocks = self.add_block_to_list(blocks, 'blip')
            if err: return 1
 
@@ -2341,6 +2554,9 @@ class SubjProcSream:
             print('** blocks must be unique\n'  \
                   '   (is there overlap between -blocks and -do_block?)\n')
             return 1
+
+        # make the list of block names available to the mod functions
+        self.block_names = blocks
 
         # call db_mod_functions
 
@@ -2387,30 +2603,64 @@ class SubjProcSream:
 
     def set_post_funcs(self):
         """process any options that should set post_funcs for some blocks
+
+              - applied post_funcs are called as FUNC(proc, block)
+
            return 0 on success
         """
-        
-        oname = '-radial_correlate_blocks'
-        rcblocks, rv = self.user_opts.get_string_list(oname)
-        if rv: return 1
-        # was this option used?
-        if rcblocks != None:
-           valid_blocks = ['tcat', 'tshift', 'volreg', 'blur',
-                           'scale', 'regress']
-           for blabel in rcblocks:
-               block = self.find_block(blabel)
-               if not block:
-                  print("** no '%s' block for option %s" % (blabel, oname))
-                  return 1
-               if not blabel in valid_blocks:
-                  print("** block '%s' is not valid for %s" % (blabel, oname))
-                  print("   (valid blocks are %s)" % ', '.join(valid_blocks))
-                  return 1
 
-               if self.verb > 3:
-                  print('++ appending %s to block.post_funcs in block %s' \
-                        % ('run_radial_correlate', blabel))
-               block.post_funcs.append(run_radial_correlate)
+        post_func_list = [
+            #   option name                  function name (as string)
+            ['-radial_correlate_blocks',    'run_radial_correlate'],
+            ['-find_var_line_blocks',       'run_qc_var_line_blocks'],
+        ]
+
+        for fstuff in post_func_list:
+            oname = fstuff[0]           # option name
+            fname = fstuff[1]           # function as string
+            func =  eval(fname)         # actual function
+
+            rcblocks, rv = self.user_opts.get_string_list(oname)
+            if rv: return 1
+
+            # for radcor, make 'regress' the default
+            if oname == '-radial_correlate_blocks' and rcblocks is None:
+               if self.find_block('regress') and not self.surf_anat:
+                 print("-- including default: -radial_correlate_blocks regress")
+                 rcblocks = ['regress']
+
+            # for vlines, make 'tcat' the default
+            if oname == '-find_var_line_blocks' and rcblocks is None:
+               print("-- including default: -find_var_line_blocks tcat")
+               rcblocks = ['tcat']
+
+            # was this option used?
+            if rcblocks != None:
+               valid_blocks = ['tcat', 'tshift', 'volreg', 'blur',
+                               'scale', 'regress']
+
+               # special case: block NONE turns off the option
+               if "NONE" in rcblocks:
+                  if self.verb > 1:
+                     print("-- block NONE, so skipping option %s" % oname)
+                  continue
+
+               for blabel in rcblocks:
+                   block = self.find_block(blabel)
+                   if not block:
+                      print("** no '%s' block for option %s" % (blabel, oname))
+                      return 1
+                   if not blabel in valid_blocks:
+                      print("** block '%s' is not valid for %s" \
+                            % (blabel, oname))
+                      print("   (valid blocks are %s)" % \
+                            ', '.join(valid_blocks))
+                      return 1
+
+                   if self.verb > 3:
+                      print('++ appending %s to block.post_funcs in block %s' \
+                            % (fname, blabel))
+                   block.post_funcs.append(func)
 
         return 0
 
@@ -2663,10 +2913,11 @@ class SubjProcSream:
                     print("-- using default: will not apply EPI Automask")
                     print("   (see 'MASKING NOTE' from the -help for details)")
 
-            if self.ricor_nreg > 0 and self.ricor_apply == 'no':
-                if not self.user_opts.find_opt('-regress_apply_ricor'):
-                    print('** note: ricor regressors are no longer applied' \
-                              ' in final regresion')
+            # no longer warn on this
+            # if self.ricor_nreg > 0 and self.ricor_apply == 'no':
+            #     if not self.user_opts.find_opt('-regress_apply_ricor'):
+            #         print('** note: ricor regressors are no longer applied' \
+            #                   ' in final regression')
 
             if self.runs == 1:
                 print("\n-------------------------------------\n" \
@@ -2703,7 +2954,8 @@ class SubjProcSream:
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
             if tr != self.tr:
-                print('** TR of %g != run #1 TR %g' % (tr, self.tr))
+                print('** TR of %g (in %s) != run #1 TR %g' \
+                      % (tr, dr.shortinput(), self.tr))
                 return 1
 
         # check for consistency
@@ -2714,11 +2966,13 @@ class SubjProcSream:
                                                    verb=self.verb)
                   if err: return 1
                   if reps != self.reps_all[rind]:
-                     print("run %d reps vary between echo 1 and echo %d" \
-                           % (rind+1, eind+1))
+                     print("** run %d reps differ between echo 1 (%d)" \
+                           " and echo %d (%d)"                         \
+                           % (rind+1, self.reps_all[rind], eind+1, reps))
                      return 1
                   if tr != self.tr:
-                      print('** TR of %g != run 1 echo 1 TR %g'%(tr, self.tr))
+                      print('** TR of %g (in %s) != run 1 echo 1 TR %g' \
+                            %(tr, dset.shortinput(), self.tr))
                       return 1
 
         # note data type and whether data is scaled
@@ -2875,7 +3129,7 @@ class SubjProcSream:
        return self.find_block(self.prev_lab(rblock), mx=bind)
 
     def blocks_are_unique(self, blocks, exclude_list=['empty'], whine=1):
-        """return whether the blocs are unique
+        """return whether the blocks are unique
                 - ignore blocks in exclude_list
                 - if whine, complain on repeats
            Process one by one, so we know what to complain about.
@@ -2893,7 +3147,8 @@ class SubjProcSream:
 
         return unique
 
-    def opts_include_unused_blocks(self, blocks, whine=1):
+    def opts_include_unused_blocks(self, blocks, whine=1,
+                                   allow=['-volreg_base_dset']):
         """return whether options refer to blocks that are not being used"""
 
         # start with all BlockLabels and remove those in passed list
@@ -2910,6 +3165,7 @@ class SubjProcSream:
         for opt in self.user_opts.olist:
             ind = opt.name.find('_')
             if ind < 0: continue
+            if opt.name in allow: continue
             if opt.name[0:ind+1] in badlist:
                 if whine: print("** missing '%s' block for option '%s'" \
                                 % (opt.name[1:ind], opt.name))
@@ -2928,37 +3184,37 @@ class SubjProcSream:
         if self.find_block('align'):
             if not self.blocks_ordered('align', 'volreg'):
                 errs += 1
-                print("** warning: 'align' should preceed 'volreg'")
+                print("** warning: 'align' should precede 'volreg'")
             if not self.blocks_ordered('align', 'tlrc'):
                 errs += 1
-                print("** warning: 'align' should preceed 'tlrc'")
+                print("** warning: 'align' should precede 'tlrc'")
         if self.find_block('ricor'):
             if not self.blocks_ordered('despike', 'ricor', must_exist=1):
                 errs += 1
-                print("** warning: 'despike' should preceed 'ricor'")
+                print("** warning: 'despike' should precede 'ricor'")
             if not self.blocks_ordered('ricor', 'tshift'):
                 errs += 1
-                print("** warning: 'tshift' should preceed 'ricor'")
+                print("** warning: 'tshift' should precede 'ricor'")
             if not self.blocks_ordered('ricor', 'volreg'):
                 errs += 1
-                print("** warning: 'volreg' should preceed 'ricor'")
+                print("** warning: 'volreg' should precede 'ricor'")
         if self.find_block('blur'):
             if not self.blocks_ordered('blur', 'scale'):
                 errs += 1
-                print("** warning: 'blur' should preceed 'scale'")
+                print("** warning: 'blur' should precede 'scale'")
         if self.find_block('regress'):
             if not self.blocks_ordered('tshift', 'regress'):
                 errs += 1
-                print("** warning: 'tshift' should preceed 'regress'")
+                print("** warning: 'tshift' should precede 'regress'")
             if not self.blocks_ordered('volreg', 'regress'):
                 errs += 1
-                print("** warning: 'volreg' should preceed 'regress'")
+                print("** warning: 'volreg' should precede 'regress'")
             if not self.blocks_ordered('blur', 'regress'):
                 errs += 1
-                print("** warning: 'blur' should preceed 'regress'")
+                print("** warning: 'blur' should precede 'regress'")
             if not self.blocks_ordered('scale', 'regress'):
                 errs += 1
-                print("** warning: 'scale' should preceed 'regress'")
+                print("** warning: 'scale' should precede 'regress'")
 
         return errs
 
@@ -2976,7 +3232,7 @@ class SubjProcSream:
         if bind0 < 0 or bind1 < 0: # something is missing
             if must_exist:
                 print('** warning: missing block', end='')
-                if bind0 < 0: print("'%s' (to preceed '%s')" % (name0,name1))
+                if bind0 < 0: print("'%s' (to precede '%s')" % (name0,name1))
                 if bind1 < 0: print("'%s' (to follow '%s')" % (name1,name0))
             return 1
         elif bind0 < bind1: return 1
@@ -3073,13 +3329,13 @@ class SubjProcSream:
         self.write_text('# set list of runs\n')
         digs = 2
         if self.runs > 99: digs = 3
-        self.write_text('set runs = (`count -digits %d 1 %d`)\n\n' \
+        self.write_text('set runs = (`count_afni -digits %d 1 %d`)\n\n' \
                         % (digs,self.runs) )
 
         if self.have_me:
            self.write_text('# note %d echoes and registration echo index\n' \
                            % self.num_echo)
-           self.write_text('set echo_list = (`count -digits 2 1 %d`)\n' \
+           self.write_text('set echo_list = (`count_afni -digits 2 1 %d`)\n' \
                            % self.num_echo)
            if len(self.echo_times) > 0:
               etimes = ['%s' % et for et in self.echo_times]
@@ -3091,6 +3347,8 @@ class SubjProcSream:
         self.write_text('# create results and stimuli directories\n')
         self.write_text('mkdir -p %s\nmkdir %s/stimuli\n%s\n' \
                         % (self.od_var, self.od_var, stat_inc))
+
+        # start copying files and datasets into the results directory
 
         if len(self.stims_orig) > 0: # copy stim files into script's stim dir
           oname = '-regress_stim_times_offset'
@@ -3107,7 +3365,7 @@ class SubjProcSream:
               tstr += 'timing_tool.py -add_offset %g -timing %s \\\n'   \
                       '               -write_timing %s/%s\n'            \
                       % (val, oldfile, self.od_var, newfile)
-              self.tlist.add(oldfile, newfile, 'stim')
+              self.tlist.add(oldfile, newfile, 'stim', ftype='text')
 
           # otherwise, have either regular timing files or no offset
           else:
@@ -3115,7 +3373,8 @@ class SubjProcSream:
             for ind in range(len(self.stims)):
                 tstr += ' %s' % self.stims_orig[ind]
             tstr += ' %s/stimuli\n' % self.od_var
-            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/',
+                                ftype='text')
           self.write_text(add_line_wrappers(tstr))
           self.write_text("%s\n" % stat_inc)
 
@@ -3125,16 +3384,21 @@ class SubjProcSream:
                   (' '.join(self.extra_stims_orig), self.od_var)
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
-            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/',
+                                ftype='1D')
 
         opt = self.user_opts.find_opt('-regress_extra_ortvec')
         if opt and len(opt.parlist) > 0:
             tstr = '# copy external ortvec files into stimuli dir\n' \
                   'cp %s %s/stimuli\n' %                             \
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
-            self.tlist.add_many(opt.parlist, 'ortvec', ftype='1D')
+            self.tlist.add_many(opt.parlist, 'ortvec',ftype='1D',pre='stimuli/')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
+
+        # do the same for per_run ortvecs, but need -pad_into_many_runs
+        if self.user_opts.find_opt('-regress_per_run_ortvec'):
+           self.copy_per_run_ortvecs()
 
         if self.anat:
             oanat = self.anat.nice_input()
@@ -3237,25 +3501,33 @@ class SubjProcSream:
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
-        # copy any -mask_import datasets as mask_import_LABEL
+        # copy any -mask_import/ROI_import datasets as mask_import_LABEL
         tstr = ''
         oname = '-mask_import'
-        for opt in self.user_opts.find_all_opts(oname):
-           if tstr == '':
-              tstr = '# copy any %s datasets as mask_import_LABEL\n' % oname
-           # get label and dset params
-           label = opt.parlist[0]
-           dset  = opt.parlist[1]
-           # find in ROI dict
-           aname = self.get_roi_dset(label)
-           if not aname:
-              print("** no -mask_import label set for '%s' to copy" % label)
-              return 1
-           tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
-           self.tlist.add(dset, aname.shortinput(), 'mask_import', ftype='dset')
+        for oname in ['-mask_import', '-ROI_import']:
+           olist = self.user_opts.find_all_opts(oname)
+           if len(olist) == 0:
+              continue
+           tstr += '# copy any %s datasets as %s_LABEL\n' % (oname, oname[1:])
+           for opt in olist:
+              # get label and dset params
+              label = opt.parlist[0]
+              dset  = opt.parlist[1]
+              dname = gen_afni_name(dset)
+              dname.locate() # in case we need to find it
+              # find in ROI dict
+              aname = self.get_roi_dset(label)
+              if not aname:
+                 print("** no %s label '%s' dataset to copy" % (oname, label))
+                 return 1
+              tstr += '3dcopy %s %s/%s\n' \
+                      % (dname.nice_input(), self.od_var, aname.prefix)
+              self.tlist.add(dset, aname.shortinput(), 'mask_import',
+                             ftype='dset')
         if tstr:
            self.write_text(add_line_wrappers(tstr+'\n'))
 
+        # ------------------------------------------------------------------
         # copy any -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
         if len(self.nlw_priors) == 3:
            tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
@@ -3269,7 +3541,7 @@ class SubjProcSream:
            # (priors[0] is anat in standard space)
            if self.nlw_priors[0].type == 'NIFTI':
               an = self.nlw_priors[0]
-              an = afni_name('%s+tlrc' % an.prefix)
+              an = gen_afni_name('%s+tlrc' % an.prefix)
               self.nlw_priors[0] = an
 
            self.tlist.add(anorig, an.shortinput(), 'NL_warp', ftype='dset')
@@ -3293,6 +3565,35 @@ class SubjProcSream:
            self.write_text("%s\n" % stat_inc)
 
         # ------------------------------------------------------------------
+        # copy any -tlrc_affine_warped_dsets files (self.nlw_priors dsets)
+        if len(self.nlw_priors) == 2:
+           tstr = '# copy external -tlrc_affine_warped_dsets datasets\n'
+
+           # copy anat, setting its file type to AFNI
+           an = self.nlw_priors[0]
+           tstr += '3dcopy %s %s/%s\n'%(an.nice_input(), self.od_var, an.prefix)
+           anorig = an.nice_input()
+
+           # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
+           # (priors[0] is anat in standard space)
+           if self.nlw_priors[0].type == 'NIFTI':
+              an = self.nlw_priors[0]
+              an = gen_afni_name('%s+tlrc' % an.prefix)
+              self.nlw_priors[0] = an
+
+           self.tlist.add(anorig, an.shortinput(), 'aff_warp', ftype='dset')
+
+           # get aff12.1D file
+           an = self.nlw_priors[1]
+           tstr += '3dcopy %s %s/%s\n' % \
+                   (an.nice_input(), self.od_var, an.out_prefix())
+           self.tlist.add(an.nice_input(), an.shortinput(), 'aff_warp',
+                          ftype='1D')
+
+           self.write_text(add_line_wrappers(tstr))
+           self.write_text("%s\n" % stat_inc)
+
+        # ------------------------------------------------------------------
         # copy any -blip datasets (convert to AFNI)
         #
         # input  datasets are blip_in_*
@@ -3300,7 +3601,7 @@ class SubjProcSream:
 
         bstr = ''
         if isinstance(self.blip_in_for, afni_name):
-           self.blip_dset_for = afni_name('blip_forward', view=self.view)
+           self.blip_dset_for = gen_afni_name('blip_forward', view=self.view)
            tstr = '# copy external -blip_forward_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_for.prefix,
@@ -3315,7 +3616,7 @@ class SubjProcSream:
               bstr += '# will extract automatic -blip_forward_dset in tcat ' \
                       'block, below\n\n'
 
-           self.blip_dset_rev = afni_name('blip_reverse', view=self.view)
+           self.blip_dset_rev = gen_afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_rev.prefix,
@@ -3328,7 +3629,7 @@ class SubjProcSream:
            if self.blip_in_med.prefix == 'NONE':
               tstr = "# median dset is 'NONE', skipping...\n"
            else:
-              self.blip_dset_med = afni_name('blip_median_base',view=self.view)
+              self.blip_dset_med = gen_afni_name('blip_median_base',view=self.view)
               tstr = '# copy external blip median warped dataset\n' \
                      '3dcopy %s %s/%s\n' %                          \
                      (self.blip_in_med.nice_input(), self.od_var,
@@ -3338,7 +3639,7 @@ class SubjProcSream:
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = afni_name('blip_NL_warp', view=self.view)
+           self.blip_dset_warp = gen_afni_name('distortion_warp',view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.nice_input(), self.od_var,
@@ -3378,6 +3679,31 @@ class SubjProcSream:
 
         self.flush_script()
 
+    # copy per_run ortvecs, calling 1d_tool.py -pad_into_many_runs
+    #
+    # checks:
+    #   - first term should be a label and not a file
+    #   - other terms should be files, one per run
+    #   - check the run lengths (in regress block)
+    #     - consider nt_rm_first/last
+    #
+    #   - here, just copy the files
+    def copy_per_run_ortvecs(self):
+        oname = '-regress_per_run_ortvec'
+        olist = self.user_opts.find_all_opts(oname)
+        if len(olist) == 0:
+           return
+
+        # we have options, copy all files to stimuli/per_run_orig
+        cstr = '# copy per-run ortvec files into stimuli dir\n'
+        for opt in olist:
+            fnames = opt.parlist[1:]
+            cstr += 'cp %s %s/stimuli\n' % \
+                      (' '.join(quotize_list(fnames,'')),self.od_var)
+            self.tlist.add_many(fnames, 'ortvec', ftype='1D', pre='stimuli/')
+
+        self.write_text(add_line_wrappers(cstr+'\n'))
+
     # and last steps
     def finalize_script(self):
         tstr = '# %s\n\n' % block_header('auto block: finalize')
@@ -3390,6 +3716,24 @@ class SubjProcSream:
             delstr = ' '.join(self.rm_list)
             self.write_text('# remove temporary files\n'
                             '\\rm -f%s %s\n\n' % (ropt, delstr))
+
+        # do we write output to a BIDS derivate tree?
+        blower = self.bids_deriv.lower()
+        if blower != 'no': # then the user wants BIDS
+           # require yes, no, or absolute path (check using lower case)
+           if blower not in ['no', 'yes']:
+              # any path is required to be absolute
+              if not self.bids_deriv.startswith('/'):
+                print("** -bids_deriv path must be absolute (start with /)")
+                return 1
+           if blower == 'yes': bdir = '.'
+           else              : bdir = self.bids_deriv
+           if bdir == '.'    : bstr = ''
+           else              : bstr = ' \\\n    -deriv_dir %s' % bdir
+           ss = '# --------------------------------------------------\n' \
+                '# generate BIDS derivative output\n'                    \
+                'map_ap_to_deriv.py -subj_dir .%s\n\n' % bstr
+           self.write_text(ss)
 
         # at the end, if the basic review script is here, run it
         if self.epi_review:
@@ -3411,7 +3755,8 @@ class SubjProcSream:
                  if rv == 0:
                     print("+- consider use of: -html_review_style pythonic")
                 
-           ss = '# if the basic subject review script is here, run it\n' \
+           ss = '# --------------------------------------------------\n' \
+                '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
                 'if ( -e %s ) then\n'                                    \
                 '    ./%s |& tee %s\n'                                   \
@@ -3470,25 +3815,62 @@ class SubjProcSream:
             tstr += '\n'
             self.write_text(add_line_wrappers(tstr))
 
-    def get_ap_command_str(self, style='compact'):
-       """return a commented command string, depending on the desired form"""
+        return 0
+
+    def get_ap_command_str(self, args=None, valid=None, style='compact',
+                           lstart='# '):
+       """return a commented command string, depending on the desired style
+
+            args    : None (use self.argv) or a list of command line arguments
+            valid   : None (all_opt_names) or a list of valid option names
+            style   : either 'compact' or 'pretty'
+            cstart  : line start string, usually comment '# ', else ''
+       """
        if style == 'none':
           return ''
+
+       if args is None:
+          args = self.argv
 
        if style not in ['compact', 'pretty']:
           print("** AP.get_ap_command_str: invalid style %s" % style)
        if style == 'pretty':
           # get a straight command, and prettify it
-          tstr = UTIL.get_command_str(args=self.argv,
-                                      preamble=0, comment=0, wrap=0)
+          tstr = UTIL.get_command_str(args=args, preamble=0, comment=0, wrap=0)
           # and run PT's niceify on it
-          allopts = self.valid_opts.all_opt_names()
-          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start='# ',
+          if valid is not None:
+             allopts = valid
+          else:
+             allopts = self.valid_opts.all_opt_names()
+          rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start=lstart,
                                               list_cmd_args=allopts)
        else:
-          tstr = UTIL.get_command_str(args=self.argv)
+          tstr = UTIL.get_command_str(args=args)
 
        return tstr
+
+    def get_ap_pythonic_cmd_str(self):
+        """return a string showing the command in a python list structure
+           (of the form found in lib_ap_examples.py)
+           (remove any -show_pythonic_command option)
+        """
+        # remove any -show_pythonic_command option(s)
+        args = self.argv[:]
+        while '-show_pythonic_command' in args:
+           oind = args.index('-show_pythonic_command')
+           args.pop(oind)
+
+        allopts = self.valid_opts.all_opt_names()
+        arglist = FCS.make_big_list_from_args(args, list_cmd_args=allopts)
+        
+        # make an indentation list (add space for 2 quotes and a comma)
+        maxlen = max([len(s[0]) for s in arglist]) + 3
+        for s in arglist:
+           tstr = "'%s'," % s[0]
+           s[0] = '%-*s' % (maxlen, tstr)
+
+        return '\n'.join(["[%s %s]," % (s[0], str(s[1:])) \
+                         for s in arglist])
 
     def script_final_error_checks(self):
         """script for checking any errors that should be reported
@@ -3523,25 +3905,25 @@ class SubjProcSream:
         if user_opts != '':
            user_opts = '%s    %s \\\n' % (istr, user_opts)
 
+        # [PT: Mar 13, 2023] remove '@ss_review_html' line; no longer created
         cmd = '%s# generate html ss review pages\n'                           \
               '%s# (akin to static images from running @ss_review_driver)\n'  \
               '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
               '%s'                                                            \
               '%s    -uvar_json %s\n'                                         \
-              '%stcsh @ss_review_html |& tee out.review_html\n'               \
               '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (istr, istr,
                  istr, self.html_rev_style,
                  user_opts,
                  istr, self.ssr_uvars,
-                 istr, istr)
+                 istr)
 
         cmd = add_line_wrappers(cmd)
 
         if self.out_dir:
-           ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
+           ocmd = 'open_apqc.py -infiles %s/QC_$subj/index.html' % self.out_dir
         else:
-           ocmd = 'afni_open -b QC_$subj/index.html'
+           ocmd = 'open_apqc.py -infiles QC_$subj/index.html'
 
         cmd += '%secho "\\nconsider running: \\n"\n' \
                '%secho "   %s"\n'                    \
@@ -3700,10 +4082,10 @@ class SubjProcSream:
            if name == '':
               print('** new_anat_follower requires name or aname')
               return None 
-           aname = afni_name(name)
+           aname = gen_afni_name(name)
 
         if label:
-           lname = afni_name(label)
+           lname = gen_afni_name(label)
            if lname.exist():
               print("** ERROR: anat_follower label exists as dataset: '%s'" \
                     % label)
@@ -3723,7 +4105,7 @@ class SubjProcSream:
         vo.set_var('cname',  aname)     # cname is current name
         if label: cppre = 'copy_af_%s' % label
         else:     cppre = aname.prefix
-        vo.set_var('cpname', afni_name(cppre))
+        vo.set_var('cpname', gen_afni_name(cppre))
         vo.set_var('dgrid',  dgrid)
         vo.set_var('label',  label)
         vo.set_var('erode',  0)         # 0=no, 1=pre, 2=post
@@ -3796,6 +4178,7 @@ class SubjProcSream:
     # ROI overview:
     #  - masks can come from -mask_segment_anat, 'full'? (so EPI),
     #    or -anat_follower_ROI XXXX epi XXXX
+    #    (or -mask_import or -ROI_import, but these are not followers)
     #  - regression can come from -regress_ROI or -regress_ROI_PC
     #    or -regress_anaticor[_fast], maybe with _label
     #
@@ -3816,7 +4199,7 @@ class SubjProcSream:
     #         3dDetrend -polort 2 -prefix t.3.det pb02.FT.ospace.r03.volreg
     #     - catenate runs
     #         3dTcat -prefix rm.vr.det.all.runs t.?.det*.HEAD
-    #     - create censored time series via $keep_trs
+    #     - create censored time series via $keep_trs (file)
     #         keep = 1d_tool.py -infile $mfile -show_trs_uncensored encoded
     #         3dpc -mask $mset -pcsave 3 -prefix P3_ det.all.runs+orig"[$keep]"
     #
@@ -3848,12 +4231,12 @@ class SubjProcSream:
            print('** new_anat_follower requires name or aname')
            return None
 
-        if aname == None: aname = afni_name(name)
+        if aname == None: aname = gen_afni_name(name)
         si = aname.shortinput()
 
-        # warn user if dupe is seen
+        # warn user if dupe is seen (and on the same grid)
         for af in self.afollowers:
-           if af.aname.shortinput() == si:
+           if af.aname.shortinput() == si and af.dgrid == dgrid:
               print('** warning: have duplicate anat follower: %s' % si)
 
         # not yet in list
@@ -3888,15 +4271,18 @@ class SubjProcSream:
           if isinstance(oname, afni_name): oldname = oname.shortinput()
           else: oldname = 'NOT_YET_SET'
 
-          if self.verb > 1 or not overwrite:
-             print("** trying to overwrite roi_dict['%s'] = %s with %s" \
-                   % (key, oldname, newname))
-
           if not overwrite:
+             print("** failing to overwrite roi_dict['%s'] = %s with %s" \
+                   % (key, oldname, newname))
              if key in self.def_roi_keys: 
                 print("** ROI key '%s' in default list, consider renaming"%key)
                 print("   (default list comes from 3dSeg result)")
              return 1
+
+          if self.verb > 1:
+             print("++ will overwrite roi_dict['%s'] = %s\n" \
+                   "   with %s"                              \
+                   % (key, oldname, newname))
 
        elif self.verb > 1:
             print("++ setting roi_dict['%s'] = %s" % (key, newname))
@@ -3910,9 +4296,10 @@ class SubjProcSream:
        nkeys = len(keys)
        if nkeys <= 0: return
        print('-- have %d ROI dict entries ...' % nkeys)
+       if verb <= 0: return
+
        # get max key string length, with 2 positions for surrounding quotes
        maxlen = max((len(key)+2) for key in keys)
-       if verb < 0: verb = 0
 
        for key in keys:
           kstr = "'%s'" % key
@@ -3952,19 +4339,27 @@ class SubjProcSream:
 
     # ----------------------------------------------------------------------
     # APExample functions, based on EGS
-    def egs(self):
+    def egs(self, keys_rm=[]):
         """return imported EGS library, so it is hidden if not used"""
         if self.EGS == None:
            from afnipy import lib_ap_examples as EGS
            self.EGS = EGS
-           self.EGS.populate_examples()
+           self.EGS.populate_examples(keys_rm=keys_rm)
         return self.EGS
 
     def show_example(self, ename, verb=1):
         EGS = self.egs()
         eg = EGS.find_eg(ename)
+        if not eg:
+           print("** no (unique?) example found for name '%s'" % ename)
+           print("   consider: afni_proc.py -show_example_names")
+           return
         eg.display(verb=verb, sphinx=0)
         
+    def show_example_keywords(self, verb=1):
+        EGS = self.egs()
+        EGS.show_example_keywords(['ALL'], verb=verb)
+
     def show_example_names(self, verb=2):
         EGS = self.egs()
         EGS.show_enames(verb=verb)
@@ -3984,6 +4379,75 @@ class SubjProcSream:
            print("   %-*s   %-*s" % (max0, pair[0], max1, pair[1]))
         print()
         
+    def show_merged_command(self, target, verb=1):
+        """merge opt example with self.user_opts and display pretty command
+        """
+        newlist = self.merge_opts(self.user_opts.olist, target)
+        if newlist is None:
+           return 1
+
+        # create a new argument list to override self.args
+        args = [self.argv[0]]
+        for opt in newlist:
+            # skip anything we don't want to include
+            if opt[0] in ['-show_merged_opts']:
+               continue
+            args.append(opt[0])
+            args.extend(opt[1])
+
+        # start with valid opts, and additionally prepend '-CHECK' to them
+        valid_opts = self.valid_opts.all_opt_names()
+        valid_opts.extend([('-CHECK'+oname) for oname in valid_opts])
+
+        tstr = self.get_ap_command_str(args=args, valid=valid_opts,
+                                       style='pretty', lstart='')
+        print(tstr)
+        return 0
+
+    def merge_opts(self, olist, comp, check_skip=1):
+        """compare given option list (list of BASE.comopt elements)
+           vs. comp (some APExample name)
+
+           olist        : option list to merge into
+           comp         : target to merge
+           check_skip   : flag: add -CHECK to data options
+
+           - remove any -compare* options
+        """
+        EGS = self.egs()
+        olist = [ [opt.name, opt.parlist]
+                  for opt in olist if not opt.name.startswith('-compare')]
+        eg = EGS.APExample('command', olist)
+
+        # if checking skip options, pass them, else empty
+        if check_skip:
+           eskip = g_eg_skip_opts
+        else:
+           eskip = []
+
+        # can pass a noelemnt list, of opts not to compare elements of
+        if eg.merge_w_instance(comp, eskip=eskip, verb=self.verb):
+           return None
+
+        return eg.olist
+
+    def compare_merged_opts(self, olist, target, verb=1):
+        """merge opt example with self.user_opts, then compare with
+           that original target
+        """
+        # get rid of -compare in option list, and merge
+        olist = [o for o in olist if not o.name.startswith('-compare')]
+        newlist = self.merge_opts(olist, target, check_skip=0)
+
+        # but we need a comopt list, so use an OptionList
+        newolist = OL.OptionList('merged')
+        for newo in newlist:
+           newolist.add_opt(newo[0], 1, newo[1], setpar=1)
+
+        self.compare_vs_opts(newolist.olist, target)
+
+        return 0
+
     def compare_vs_opts(self, olist, comp):
         """compare given option list (list of BASE.comopt elements)
            vs. comp (some APExample name)
@@ -3991,6 +4455,7 @@ class SubjProcSream:
            - remove any -compare* options
         """
         EGS = self.egs()
+        # replace olist, removing any compare opts
         olist = [ [opt.name, opt.parlist]
                   for opt in olist if not opt.name.startswith('-compare')]
         eg = EGS.APExample('command', olist)
@@ -4323,7 +4788,7 @@ class TrackedFlist:
 
        # make sure ftype is valid
        if ftype not in ['dset', '1D', 'text', 'unknown']:
-          print("** TrackedFile: illegal ftype %s for infle %s" \
+          print("** TrackedFile: illegal ftype %s for infile %s" \
                 % (ftype, oldname))
           ftype = 'unknown'
 
@@ -4352,14 +4817,22 @@ class TrackedFlist:
        vo.short_in   = ''
        vo.short_out  = ''
 
-       if vo.ftype == 'dset':
-          # make afni_name for any dset
-          vo.in_an  = afni_name(vo.oldname)
-          vo.out_an = afni_name(vo.newname)
-          vo.short_in = vo.in_an.shortinput()
-          vo.short_out = vo.out_an.shortinput()
+       # make afni_name for any dset
+       vo.in_an  = gen_afni_name(vo.oldname)
+       vo.out_an = gen_afni_name(vo.newname)
+       vo.short_in = vo.in_an.shortinput()
+       vo.short_out = vo.out_an.shortinput()
 
+       # possibly let user know of this glorious addition
+       if self.verb > 2:
+          if self.verb == 3: fname = vo.in_an.shortinput()
+          else:              fname = vo.in_an.rel_input()
+          print("-- TrackedFile %s, exists = %s" % (fname, vo.in_an.exist()))
+
+       if vo.ftype == 'dset':
           # set and check input view
+          # (run locate in case we need to search for the dset)
+          vo.in_an.locate()
           vo.in_view = dset_view(vo.in_an.rel_input())
           if vo.in_view not in ['+orig', '+tlrc']:
              # do we fail?
@@ -4536,8 +5009,13 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
     if proc.create_blocks():
        show_args_as_command(proc.argv, "** failed command (create_blocks):")
        return 1, None
-    # ----------------------------------------------------------------------
 
+    # ----------------------------------------------------------------------
+    # run post mod functions (since we now know about most of the inputs)
+    if db_mod_post_process(proc):
+       return 1, None
+
+    # ----------------------------------------------------------------------
     # run db_cmd functions, to create the script
     rv = proc.create_script()
     if rv != None:  # terminal, but do not display command on 0
@@ -4560,11 +5038,15 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
        proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
                        # dfields = ['ftype', 'short_in'])
 
+       # if not making a script (e.g. with -show_tracked_files), terminate here
+       if not proc.make_main_script:
+           return 0, None
+
     return 0, proc
 
 def run_proc():
 
-    # creat proc script
+    # create proc script
     rv, proc = make_proc()
     if proc == None: return rv
 
@@ -4576,7 +5058,7 @@ def run_proc():
        if ppi_proc == None: return rv
        del(ppi_proc)
 
-       # make PPI regresion script
+       # make PPI regression script
        rv, ppi_proc = make_proc(do_reg_ppi=1)
        if ppi_proc == None: return rv
        del(ppi_proc)

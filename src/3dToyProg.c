@@ -57,7 +57,7 @@ THD_3dim_dataset * New_Dataset_From_Scratch(char *prefix)
    
    /* Now let us fill up this dataset with time series, and say we want the 
       results to be stored in MRI_short.  
-      I use short because in thie example, one is forced to consider what
+      I use short because in this example, one is forced to consider what
       the scaling factor, if any should be before inserting the time series
       into the volume. 
       Here I know that my values are between -1.0 and 1.0 so a factor of 
@@ -338,10 +338,10 @@ THD_3dim_dataset * Voxelwise_Operations(THD_3dim_dataset *dset,
             dset ,             /* input dataset */
             stmp ,             /* output prefix */
             MRI_short ,        /* output datum  */
-            0 ,                /* samples to skip from beginning of time series*/
+            0 ,                /* samples to skip from start of time series*/
             1 ,                /* pass linearly detrended time series */
             2 ,                /* number of values expected in output */
-            toy_tsfunc,        /* timeseries processor */
+(generic_func *)toy_tsfunc,    /* timeseries processor */
             (void *)(&ud),     /* user data for tsfunc */
             voxmask,           /* byte mask of voxels to process */
             0                  /* Allow auto scaling of output */

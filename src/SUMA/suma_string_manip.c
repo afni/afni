@@ -1449,7 +1449,7 @@ char *SUMA_Sphinx_DeRef(char *s, char *r)
 }
 
 /*
-   Switch occurence of 'sc' in '*sp' with 'sw'
+   Switch occurrence of 'sc' in '*sp' with 'sw'
 
    Function handles reallocation if
    sw is longer than sc. Just make sure *sp

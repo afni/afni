@@ -227,7 +227,7 @@ optional.add_argument('-p',type=need_pos_float,default=0.005,metavar='PVAL',
 optional.add_argument('-MinVox',type=min_vox_two,default=20,
                       help="Minimum voxels in cluster. [20]")
 optional.add_argument('-atlas',type=str,default="TT_Daemon",
-                      help="Atlas name for lookup. (list at: whereami -help) [TT_Daemon]")
+                      help="Atlas name for lookup. (list at: whereami_afni -help) [TT_Daemon]")
 optional.add_argument('-session',type=str,default="./",
                       help=("Output parent folder if you don't want the "+
                             "current working directory. [./]"))
@@ -517,7 +517,7 @@ afni_cmd = "3drefit -relabel_all_str "+StatLab+" "+OutMask
 subprocess.check_output(afni_cmd,shell=True)
 
 ###########################################################################
-## get the ROI label from whereami
+## get the ROI label from whereami_afni
 
 # ## find the orientation set by users variable as output by 3dclust
 # with open(ClustTable) as f:
@@ -528,7 +528,7 @@ subprocess.check_output(afni_cmd,shell=True)
 #             orient = "-"+orient.lower()
 
 ## peak
-afni_cmd = ("whereami -coord_file "+ClustTable+"'[13,14,15]' -tab -lpi"+
+afni_cmd = ("whereami_afni -coord_file "+ClustTable+"'[13,14,15]' -tab -lpi"+
             " -max_areas 1 -atlas "+atlas+" -atlas CA_N27_LR "+
             "> "+TempPrefix+"_whereami_delete_me00.txt")
 subprocess.check_output(afni_cmd,shell=True)
@@ -551,7 +551,7 @@ with open(TempPrefix+"_whereami_delete_me00.txt") as f:
 ## end peak
 
 ## center of mass
-afni_cmd = ("whereami -coord_file "+ClustTable+"'[1,2,3]' -tab -lpi"+
+afni_cmd = ("whereami_afni -coord_file "+ClustTable+"'[1,2,3]' -tab -lpi"+
             " -max_areas 1 -atlas "+atlas+" -atlas CA_N27_LR "+
             "> "+TempPrefix+"_whereami_delete_me00.txt")
 subprocess.check_output(afni_cmd,shell=True)

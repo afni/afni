@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*
@@ -292,7 +292,7 @@ void initialize_program
   float * tar;
 
 
-  /*----- intialize options -----*/
+  /*----- initialize options -----*/
   initialize_options (im1, nname, sname, nmodel, smodel, r, p, npname, spname, 
 		      min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
 		      nabs, nrand, nbest, rms_min, tfilename);
@@ -604,7 +604,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "NLfit & NLerr" ,
                                 "Control NLfit and NLerr Functions" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , NL_main ) ;
+                                PLUGIN_CALL_VIA_MENU , (cptr_func *)NL_main ) ;
 
    { char *eee = getenv("AFNI_NLFIM_METHOD") , str[94] ;
      if( eee == NULL || strcasecmp(eee,"simplex") == 0 )

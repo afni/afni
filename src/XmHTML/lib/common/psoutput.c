@@ -220,7 +220,7 @@ static ToolkitAbstraction *_CreatePostscriptTka(XmHTMLWidget html);
 static int pstkSetForeground(Display *disp, XGC gc, unsigned long foreground);
 static int pstkSetFont(Display *disp, XGC gc, XmHTMLfont *font);
 static int pstkDrawString(Display *disp, DRAWABLE win,
-	struct _XmHTMLFont *font, XGC gc, int x, int y, char *string, int length);
+	struct _XmHTMLFont *font, XGC gc, int x, int y, const char *string, int length);
 static void pstkDrawAnchorData(Display *disp, WINDOW win, XGC gc, int x,
 	int y, XmHTMLObjectTableElement data);
 static int pstkDrawLine(Display *disp, WINDOW win, XGC gc, int x1, int y1,
@@ -1888,7 +1888,7 @@ pstkCopyArea(Display *disp, DRAWABLE src, DRAWABLE dest, XGC gc, int src_x,
 *****/
 static int
 pstkDrawString(Display *disp, DRAWABLE win, struct _XmHTMLFont *font,
-	XGC gc, int x, int y, char *string, int length)
+	XGC gc, int x, int y, const char *string, int length)
 {
 	PSDisplay *dpy = (PSDisplay*)disp;
 	static char *last_ep=NULL;

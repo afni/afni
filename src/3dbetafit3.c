@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #include "mrilib.h"
@@ -532,7 +532,7 @@ int main( int argc , char * argv[] )
              "              [default = 1.e-4]\n"
              "  -bout   = Use 'b' for the output, instead of thr\n"
              "  -aout   = Use 'a' for the output, instead of thr\n"
-             "  -about  = Use 'a' AND 'b' for the ouput.\n"
+             "  -about  = Use 'a' AND 'b' for the output.\n"
          ) ;
          PRINT_COMPILE_DATE ; exit(0) ;
    }

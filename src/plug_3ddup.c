@@ -38,8 +38,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "Dataset Dup" , "Warp-on-Demand duplicate" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , DUP_main  ) ;
+   plint = PLUTO_new_interface( "Dataset Dup" , "Warp-on-Demand duplicate" ,
+                                helpstring , PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)DUP_main  ) ;
 
    PLUTO_add_hint( plint , "Warp-on-Demand duplicate" ) ;
 

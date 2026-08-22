@@ -7,7 +7,7 @@
 ## co-conspirators. (It is the 'git blame' part that is the slowest.)
 ## Output files:
 ##  gitsum.out.txt    = author line counts (also cat-ed to stdout)
-##  gitsum.unkown.txt = lines that had unknown authors (for further research)
+##  gitsum.unknown.txt = lines that had unknown authors (for further research)
 ##  gitsum.list.txt   = files that were processed (in case you care)
 ##
 ## -- RWCox -- Sep 2019
@@ -108,7 +108,7 @@ set nn   = 0
 
 # setup count array asum for the alist
 set anum = $#alist
-set aqq  = ( `count -dig 1 1 $anum` )
+set aqq  = ( `count_afni -dig 1 1 $anum` )
 set asum = ( )
 foreach uuu ( $alist )
   set asum = ( $asum 0 )
@@ -116,7 +116,7 @@ end
 
 # setup count array bsum for the blist
 set bnum = $#blist1
-set bqq  = ( `count -dig 1 1 $bnum` )
+set bqq  = ( `count_afni -dig 1 1 $bnum` )
 set bsum = ( )
 foreach uuu ( $blist1 )
   set bsum = ( $bsum 0 )
@@ -130,7 +130,7 @@ foreach uuu ( $alist $blist1 $blist2 )
 end
 set gunk = ( $gunk -e scripts_install -e imnotamember -e CircleCI )
 
-# will acccumulate all unknown lines in to one file, for later research
+# will accumulate all unknown lines in to one file, for later research
 if( -f gitsum.unknown.txt ) \rm -f gitsum.unknown.txt
 touch gitsum.unknown.txt
 
@@ -150,9 +150,9 @@ set nfff = $#flist
 set nblame = 1
 @   mblame = $nblame - 1
 
-set jffq = ( `count -dig 1 0 $mblame` )
+set jffq = ( `count_afni -dig 1 0 $mblame` )
 
-foreach ifff ( `count -dig 1 1 $nfff $nblame` )
+foreach ifff ( `count_afni -dig 1 1 $nfff $nblame` )
 
  # delete temp files from previous loop
 

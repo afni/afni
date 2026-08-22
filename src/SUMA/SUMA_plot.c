@@ -193,7 +193,7 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
 }
 
 
-/* save the plot into a standalone verion */
+/* save the plot into a standalone version */
 static void clonebut_CB( Widget w , XtPointer cd , XtPointer cb )
 {
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
@@ -437,6 +437,19 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
    XtAddCallback( drawing , XmNinputCallback  ,
                   SUMA_pm_input_CB  , (XtPointer) mpcb ) ;
 
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( form ,
+                           StructureNotifyMask ,  /* resizes */
+                           FALSE ,                /* nonmaskable events? */
+                           SUMA_expose_EV ,       /* handler */
+                           (XtPointer) mpcb ,     /* client data - not used */
+                           XtListTail             /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for SUMA plot window resize\n");
+   }
+
    /* finish the job */
 
    XtVaSetValues( form , BGCOLOR_ARG("white") , NULL ) ;
@@ -674,7 +687,7 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
       Sover->rowgraph_mtd = SUMA_memplot_to_topshell(
                                        SUMAg_CF->X->DPY_controller1,
                                        mp,
-                                       SUMA_rowgraph_mtdkill ) ;
+                                       (void_func *)SUMA_rowgraph_mtdkill ) ;
 
       if( Sover->rowgraph_mtd == NULL ){
          delete_memplot( mp );

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /* Cameron Craddock - modification of 3ddot to support linear svm prediction
@@ -205,7 +205,7 @@ int main( int argc , char * argv[] )
     xar   = DSET_ARRAY(xset,ivx); 
     if( xar == NULL )
     { 
-        fprintf(stderr,"Could not access brick %d in first datset\n", ivx);
+        fprintf(stderr,"Could not access brick %d in first dataset\n", ivx);
         exit(1);
     }
     if( itypx == MRI_float )
@@ -234,7 +234,7 @@ int main( int argc , char * argv[] )
         yar   = DSET_ARRAY(yset,ivy); 
         if( yar == NULL )
         { 
-            fprintf(stderr,"Could not access brick %d in second datset\n", ivy);
+            fprintf(stderr,"Could not access brick %d in second dataset\n", ivy);
             if( fxar_new == 1 )
                 free(fxar);
             fxar=NULL;

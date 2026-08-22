@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #undef powerof2  /* needed for Mac OS X */
@@ -185,7 +185,7 @@ void wavelet_analysis
   float * rfull,            /* full model R^2 stats. */
 
   float * coefts,           /* filtered FWT coefficients */
-  float * fitts,            /* filterd time series */
+  float * fitts,            /* filtered time series */
   float * sgnlts,           /* signal model fitted time series */
   float * errts             /* residual error time series */
 );

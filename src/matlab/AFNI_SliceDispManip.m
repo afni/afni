@@ -91,7 +91,7 @@ for (i = 1:1:3),
 			[iA,jA] = find (DispManip(i).orient == 'A'); [iL,jL] = find (DispManip(i).orient == 'R');
 			if (iA == 2),  %must permute orders, A--P must be along the columns),
 				DispManip(i).orpermute = 1;		end
-			if (jA == 2), %must flip up to down, the column dimention should go in A--P not P--A
+			if (jA == 2), %must flip up to down, the column dimension should go in A--P not P--A
 				DispManip(i).udflip = 1; end
 			if (jL == 2), %must go L--R (radiologic format)
 				DispManip(i).lrflip = 1; end
@@ -99,7 +99,7 @@ for (i = 1:1:3),
 			[iA,jA] = find (DispManip(i).orient == 'S'); [iL,jL] = find (DispManip(i).orient == 'A');
 			if (iA == 2),  %must permute orders, S--I must be along the columns),
 				DispManip(i).orpermute = 1;		end
-			if (jA == 2), %must flip up to down, the column dimention should go in S--I not I--S
+			if (jA == 2), %must flip up to down, the column dimension should go in S--I not I--S
 				DispManip(i).udflip = 1; end
 			if (jL == 2), %must go A--S not S--A
 				DispManip(i).lrflip = 1; end
@@ -107,7 +107,7 @@ for (i = 1:1:3),
 			[iA,jA] = find (DispManip(i).orient == 'S'); [iL,jL] = find (DispManip(i).orient == 'R');
 			if (iA == 2),  %must permute orders, S--I must be along the columns),
 				DispManip(i).orpermute = 1;		end
-			if (jA == 2), %must flip up to down, the column dimention should go in S--I not I--S
+			if (jA == 2), %must flip up to down, the column dimension should go in S--I not I--S
 				DispManip(i).udflip = 1; end
 			if (jL == 2), %must go L--R (radiologic format)
 				DispManip(i).lrflip = 1; end	

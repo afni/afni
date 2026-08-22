@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1998-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1998-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 /*---------------------------------------------------------------------------*/
 /*
@@ -1282,7 +1282,7 @@ void zero_fill_volume (float ** fvol, int nxyz)
 void allocate_memory 
 (
   DC_options * option_data,  /* deconvolution algorithm options */
-  float *** outts_vol        /* volumes for ouput time series */
+  float *** outts_vol        /* volumes for output time series */
 )
 
 {
@@ -1444,7 +1444,7 @@ void calc_response
   vector_initialize (&yhat);
 
 
-  /*----- calculate the system reponse -----*/
+  /*----- calculate the system response -----*/
   vector_multiply (x, b, &yhat);
 
 

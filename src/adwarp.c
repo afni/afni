@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -175,7 +175,7 @@ void display_help_menu()
       "-prefix ppp = Set the prefix for the output dataset to 'ppp'.\n"
       "                The default is the prefix of 'dset'.\n"
       "\n"
-      "-dxyz ddd   = Set the grid spacing in the output datset to\n"
+      "-dxyz ddd   = Set the grid spacing in the output dataset to\n"
       "                'ddd' mm.  The default is 1 mm.\n"
       "\n"
       "-verbose    = Print out progress reports.\n"

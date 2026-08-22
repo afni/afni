@@ -3,8 +3,8 @@
            - Written by Bob Cox, SSCC NIMH
            - Revisions by Rick Reynolds, SSCC NIMH
  */
-#ifndef _NIFTI2_IO_HEADER_
-#define _NIFTI2_IO_HEADER_
+#ifndef NIFTI2_IO_HEADER
+#define NIFTI2_IO_HEADER
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -687,9 +687,9 @@ int    nifti_valid_header_size(int ni_ver, int whine);
 #define NIFTI_MAX_FTYPE       5         /* this should match the maximum code */
 
 /*------------------------------------------------------------------------*/
-/*-- the rest of these apply only to nifti2_io.c, check for _NIFTI2_IO_C_ */
+/*-- the rest of these apply only to nifti2_io.c, check for NIFTI2_IO_C */
 
-#ifdef _NIFTI2_IO_C_
+#ifdef NIFTI2_IO_C
 
 typedef struct {
     int debug;               /*!< debug level for status reports  */
@@ -743,7 +743,7 @@ typedef struct {
 #undef NIFTI_IS_16_BIT_INT
 #define NIFTI_IS_16_BIT_INT(x) ((x) <= 32767 && (x) >= -32768)
 
-#endif  /* _NIFTI2_IO_C_ section */
+#endif  /* NIFTI2_IO_C section */
 /*------------------------------------------------------------------------*/
 
 /*=================*/
@@ -752,4 +752,4 @@ typedef struct {
 #endif
 /*=================*/
 
-#endif /* _NIFTI2_IO_HEADER_ */
+#endif /* NIFTI2_IO_HEADER */

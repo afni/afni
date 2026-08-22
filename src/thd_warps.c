@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -214,7 +214,7 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
       }
       break ;
 
-      /*--- Talairach preceeded by affine ==> new Talairach --*/
+      /*--- Talairach preceded by affine ==> new Talairach --*/
 
       case WARP_TALAIRACH_12_TYPE + 100*WARP_AFFINE_TYPE:{
          int iw ;
@@ -230,7 +230,7 @@ void AFNI_concatenate_warp( THD_warp * warp_in , THD_warp * warp_prior )
       }
       break ;
 
-      /*-- affine preceeded by Talairach ==> new Talairach
+      /*-- affine preceded by Talairach ==> new Talairach
            [this case is not currently used, since there are no warps
             AFTER a Talairach warp, but it may be useful in the future]
                                         -- RWCox, November 1994 A.D. --*/

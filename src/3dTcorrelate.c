@@ -52,7 +52,7 @@ void usage_3dTcorrelate(int detail)
 "                    you want to do it, the program will not stop you.\n"
 "                ++ This option does not apply to '-covariance' or '-ycoef'.\n"
 "\n"
-"  -polort m = Remove polynomical trend of order 'm', for m=-1..9.\n"
+"  -polort m = Remove polynomial trend of order 'm', for m=-1..9.\n"
 "                [default is m=1; removal is by least squares].\n"
 "                Using m=-1 means no detrending; this is only useful\n"
 "                for data/information that has been pre-processed.\n"
@@ -297,7 +297,7 @@ int main( int argc , char *argv[] )
                  argv[nopt],argv[nopt-1]) ;
    }
    if( im_ort != NULL && im_ort->nx < DSET_NVALS(xset) ){
-      ERROR_exit("Input datsets are longer than -ort file") ;
+      ERROR_exit("Input datasets are longer than -ort file") ;
    }
    if( !EQUIV_GRIDS(xset,yset) )
      WARNING_message("Grid mismatch between input datasets!") ;

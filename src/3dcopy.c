@@ -340,7 +340,9 @@ int main( int argc , char *argv[] )
 
       if( denote ) THD_anonymize_write(1) ;  /* 08 Jul 2005 */
 
-      DSET_write_header( dset[ii] ) ;  /* new header is written */
+      /* write new header */
+      if( ! DSET_write_header( dset[ii] ) )
+         ERROR_exit("failure to write header");
 
       /*-- create the .BRIK filename for the old and new datasets --*/
 

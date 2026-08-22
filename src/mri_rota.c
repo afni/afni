@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -365,7 +365,7 @@ void ft_shift2( int n, int nup, float af, float * f, float ag, float * g )
    }
    cf[nby2].i = 0.0 ; cg[nby2].i = 0.0 ;
 
-   /* retangle the coefficients from 2 rows */
+   /* re-tangle the coefficients from 2 rows */
 
    row[0].r = cf[0].r ; row[0].i = cg[0].r ;
    for( ii=1 ; ii < nby2 ; ii++ ){

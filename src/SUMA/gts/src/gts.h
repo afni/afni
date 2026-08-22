@@ -1449,7 +1449,7 @@ struct _GtsHSurface {
   GtsSurface * s;
   GSList * roots;
   GtsEHeap * expandable;
-  GtsEHeap * collapsable;
+  GtsEHeap * collapsible;
   GPtrArray * split;
   guint nvertex;
 };

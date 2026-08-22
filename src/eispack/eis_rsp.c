@@ -3,6 +3,7 @@
 	-lf2c -lm   (in that order)
 */
 
+#include <math.h>
 #include "f2c.h"
 
 /* Subroutine */ int rsp_(integer *nm, integer *n, integer *nv, doublereal *a,

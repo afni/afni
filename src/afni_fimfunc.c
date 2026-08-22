@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #undef MAIN
@@ -25,7 +25,7 @@
      val[]     = user_func should fill val[0..nbrik-1] with values to save
                  (presumably computed from ts[])
 
-   user_func should not destroy the data in ts[], since it will be re-used
+   user_func should not destroy the data in ts[], since it will be reused
    if more than one fimfunc is used at a time.
 
    Before the first call with time series data, user_func will be called like so:

@@ -20,13 +20,15 @@
 #define SCR_MOD_BADBS   0x10            /* script mods  */
 #define SCR_MOD_FILE    0x20            /* script mods  */
 
+#define SCR_SHOW_WRAP  0x100            /* show with line wrappers     */
+
 #define USE_SHORT          0
 #define USE_LONG           1
 #define USE_VERSION        2
 #define USE_GE             3
 #define USE_HISTORY        4
 
-/* GE diplay bit values */
+/* GE display bit values */
 #define GE_NONE            0
 #define GE_ALL          0xff
 #define GE_HEADER       0x01
@@ -112,6 +114,8 @@ typedef struct
     char  * mod_data; /* new data (change to list?) */
     char  * prefix;  /* prefix for any output file */
 
+    char  * wrap_method;       /* either rr or pt */
+
     int     fix_rich_quotes; /* replace 0xffffff98, 0xffffff99 with 0x27 */
 } param_t;
 
@@ -141,6 +145,7 @@ int  read_ge_header    ( char * pathname, ge_header_info * hi, ge_extras * E,
 
 FILE * open_correction_file(char * fname, char * check_type, int overwrite,
                             int verb);
+char * suck_stdin      (int * nread);
 
 int  process_analyze   ( param_t * p, int index );
 int  process_file      ( char * pathname, param_t * p );
@@ -154,6 +159,7 @@ int  set_params        ( param_t * p, int argc, char * argv[] );
 int  scr_show_file     ( char ** fname, param_t * p );
 int  scr_show_bad_bs   ( char ** fname, param_t * p );
 int  scr_show_bad_ch   ( char ** fname, param_t * p );
+int  scr_wrap_lines    ( char ** fname, param_t * p );
 
 
 int  help_full         ( char * prog );

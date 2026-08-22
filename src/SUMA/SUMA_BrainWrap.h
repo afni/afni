@@ -82,7 +82,7 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar,
                   int *N_inpnt, int  fillhole, THD_3dim_dataset *fillholeset) ;
 int SUMA_PushToEdge(SUMA_SurfaceObject *SO, 
                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, 
-                    SUMA_COMM_STRUCT *cs, int agressive) ;
+                    SUMA_COMM_STRUCT *cs, int aggressive) ;
 int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, 
                           SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
                           float limtouch, SUMA_COMM_STRUCT *cs, int N_itermax) ;

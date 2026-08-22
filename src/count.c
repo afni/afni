@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #include <stdio.h>
@@ -62,7 +62,7 @@ void usage_count(int detail) {
 "               not valid with random number sequence options\n"
 "\n"
 "The main application of this program is for use in C shell programming:\n"
-"  foreach fred ( `count 1 20` )\n"
+"  foreach fred ( `count_afni 1 20` )\n"
 "     mv wilma.${fred} barney.${fred}\n"
 "  end\n"
 "The backward quote operator in the foreach statement executes the\n"

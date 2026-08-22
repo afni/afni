@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -518,6 +518,9 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
       if( smode != STORAGE_UNDEFINED )
          dset->dblk->diskptr->storage_mode = smode;
 
+      /* if changing the dataset name, get a new idcode  [22 Dec 2023 rickr] */
+      dset->idcode = MCW_new_idcode() ;
+
       if( DSET_IS_1D(dset) || DSET_IS_3D(dset) ){         /* 21 Mar 2003 */
         char *fname = dset->dblk->diskptr->brick_name ;
         int  ll = strlen(fname) ;
@@ -890,13 +893,8 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
          taxis->ntt     = ntt ;
       }
 
-      if( new_ntt     ) taxis->ntt     = ntt ;
-      if( new_ttorg   ) taxis->ttorg   = ttorg ;
-      if( new_ttdel   ) taxis->ttdel   = ttdel ;
-      if( new_ttdur   ) taxis->ttdur   = ttdur ;
-      if( new_zorg_sl ) taxis->zorg_sl = zorg_sl ;
-      if( new_dz_sl   ) taxis->dz_sl   = dz_sl ;
-
+      /* init slice times first, to init zorg,dz from daxes, before */
+      /* possible overwrite                     [31 Jan 2025 rickr] */
       if( new_nsl ){
          taxis->nsl = nsl ;
          if( nsl > 0 )
@@ -906,8 +904,23 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
             myRwcFree(taxis->toff_sl) ;
       }
 
-      if( new_toff_sl )
+      if( new_toff_sl ) {
          for( ii=0 ; ii < taxis->nsl ; ii++ ) taxis->toff_sl[ii] = toff_sl[ii] ;
+
+         /* if new times, init zorg_sl and dz_sl, needed for */
+         /* afni GUI display of times    [31 Jan 2025 rickr] */
+         if( new_nsl && nsl > 0 && taxis->dz_sl == 0.0 ) {
+            taxis->zorg_sl = dset->daxes->zzorg ;
+            taxis->dz_sl   = dset->daxes->zzdel ;
+         }
+      }
+
+      if( new_ntt     ) taxis->ntt     = ntt ;
+      if( new_ttorg   ) taxis->ttorg   = ttorg ;
+      if( new_ttdel   ) taxis->ttdel   = ttdel ;
+      if( new_ttdur   ) taxis->ttdur   = ttdur ;
+      if( new_zorg_sl ) taxis->zorg_sl = zorg_sl ;
+      if( new_dz_sl   ) taxis->dz_sl   = dz_sl ;
    }
 
    if( new_tunits ){

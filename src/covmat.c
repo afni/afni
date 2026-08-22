@@ -325,7 +325,7 @@ void main( int argc , char *argv[] )
          for( ii=0 ; ii < nimage*nimage ; ii++ ) vsqsum[ii] = 0 ;
       }
    } else {
-      fprintf( stderr , "illegal value of lcov occured!\n" ) ;
+      fprintf( stderr , "illegal value of lcov occurred!\n" ) ;
       exit(1) ;
    }
 

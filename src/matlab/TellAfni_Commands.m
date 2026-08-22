@@ -41,7 +41,7 @@ FuncName = 'TellAfni_Commands';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 if (nargin == 0), %try to find README.driver

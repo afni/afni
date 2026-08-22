@@ -3,7 +3,7 @@ function [M] = ROIcmap(nc,opt)
 % creates a colormap with
 %           no color too close to grayscale,
 %           no two consecutive colors too close
-%           no colors exeedingly close to another in the map
+%           no colors exceedingly close to another in the map
 %           no colors too close to a background color (optional)
 %   nc: number of colors in map. Default is 64
 %   opt: optional options structure

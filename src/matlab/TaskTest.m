@@ -34,12 +34,12 @@ FuncName = 'TaskTest';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 
 %Create a matrix so that 3dDeconvolve uses for regressor test.
 
-mtrx = zeros(N_tasks, (polort+1)*N_runs+N_basis*N_tasks+N_base);    %for each run, there are (polort+1) paramters in the baseline model
+mtrx = zeros(N_tasks, (polort+1)*N_runs+N_basis*N_tasks+N_base);    %for each run, there are (polort+1) parameters in the baseline model
 fprintf(1, 'Your task vectors for -glt options are:\n');
 
 for (i = 1:1:N_tasks),

@@ -76,7 +76,7 @@ method <- as.logical(as.integer(readline("Analysis method (0: numeric; 1: analyt
 fm <- sem(pathModel, covMat, DFs, analytic.gradient = method)
 
 # display the result
-print("Satistical result for the specified network:")
+print("Statistical result for the specified network:")
 print(summary(fm))
 print("~~~~~~~~~~~~~~~~~")
 print("Confidence interval for a path can be obtained with its standard error from the table above.")

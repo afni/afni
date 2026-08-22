@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -290,7 +290,8 @@ STATUS("init pval_save") ;
                              XmNtraversalOn , True  ,
                              XmNinitialResourcesPersistent , False ,
                           NULL ) ;
-   XtAddCallback( pbar->big_choose_pb, XmNactivateCallback, PBAR_big_menu_CB , pbar ) ;
+   XtAddCallback( pbar->big_choose_pb, XmNactivateCallback,
+                  (XtCallbackProc)PBAR_big_menu_CB , pbar ) ;
    MCW_register_hint( pbar->big_choose_pb , "Change the continuous colorscale" ) ;
 
    if( bigthree ){
@@ -371,6 +372,9 @@ STATUS("init pval_save") ;
 #endif
 #ifdef plasma_num
    PBAR_define_bigmap_float( plasma_num , plasma_data , plasma_name  ) ;
+#endif
+#ifdef cet_l17_num
+   PBAR_define_bigmap_float( cet_l17_num, cet_l17_data, cet_l17_name ) ;
 #endif
 #ifdef googleturbo_num
    PBAR_define_bigmap_float( googleturbo_num , googleturbo_data , googleturbo_name  ) ;
@@ -469,7 +473,7 @@ void PBAR_fill_bigmap( int neq, float *val, rgbyte *col, rgbyte *map, int npan )
 
 ENTRY("PBAR_fill_bigmap") ;
 
-   /* bubble sort val,col pairs so largest is firstest */
+   /* bubble sort val,col pairs so largest is first */
 
    do{
     for( jj=ii=0 ; ii < neq-1 ; ii++ ){
@@ -812,7 +816,7 @@ ENTRY("PBAR_big_menu_CB") ;
                          bigmap_num ,
                          pbar->bigmap_index ,
                          bigmap_name ,
-                         PBAR_bigmap_finalize , cd ) ;
+             (gen_func *)PBAR_bigmap_finalize , cd ) ;
 
    } else if ( w == pbar->big_scaleup_pb ){  /* Feb 2012 */
 
@@ -847,7 +851,7 @@ ENTRY("PBAR_big_menu_CB") ;
        XBell(pbar->dc->display,100) ;
      }
      MCW_choose_stuff( wtop , "Color pbar range" ,
-                       PBAR_topbot_finalize, (XtPointer)pbar ,
+           (gen_func *)PBAR_topbot_finalize, (XtPointer)pbar ,
                          MSTUF_STRING , "Bot" ,
                          MSTUF_STRING , "Top" ,
                        MSTUF_END ) ;
@@ -1432,7 +1436,8 @@ ENTRY("PBAR_click_CB") ;
      else                           EXRETURN ; /* should not happen */
      MCW_choose_binary( w ,
                         ((ip==0) ? "Colorize Above?" : "Colorize Below?") ,
-                        con , "Off" , "On" , PBAR_setonoff_CB , pbar ) ;
+                        con , "Off" , "On" ,
+                        (gen_func *)PBAR_setonoff_CB , pbar ) ;
      EXRETURN ;
    }
 
@@ -1441,7 +1446,8 @@ ENTRY("PBAR_click_CB") ;
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
    if( ip == pbar->num_panes ) EXRETURN ;
 
-   MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] , PBAR_setcolor_CB , dc ) ;
+   MCW_choose_ovcolor( w , dc , pbar->ov_index[ip] ,
+                       (gen_func *)PBAR_setcolor_CB , dc ) ;
 
    EXRETURN ;
 }
@@ -1719,7 +1725,7 @@ STATUS("reset pval_save") ;
 }
 
 /*-------------------------------------------------------------------------
-  user want to programatically alter the pbar:
+  user want to programmatically alter the pbar:
     number of panes, and/or new array of values
 ---------------------------------------------------------------------------*/
 
@@ -1768,7 +1774,7 @@ STATUS("setup done") ;
    /*-- get new value array --*/
 
    if( new_pval == NULL ){
-STATUS("re-use pval_save") ;
+STATUS("reuse pval_save") ;
      for( i=0 ; i <= npane ; i++ ) pval[i] = pbar->pval_save[npane][i][jm] ;
    } else {
 STATUS("use new_pval") ;

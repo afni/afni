@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -13,7 +13,8 @@
 THD_3dim_dataset * EDIT_full_copy( THD_3dim_dataset *dset , char *new_prefix )
 {
    THD_3dim_dataset *new_dset ;
-   int ival , ityp , nbytes , nvals ;
+   int ival , ityp , nvals ;
+   int64_t  nbytes ;
    void *new_brick , *old_brick ;
 
 ENTRY("EDIT_full_copy") ;
@@ -51,7 +52,8 @@ ENTRY("EDIT_full_copy") ;
 
      if( new_brick == NULL ){
        THD_delete_3dim_dataset( new_dset , False ) ;
-       ERROR_message("EDIT_full_copy: can't malloc %d bytes for new sub-brick %d",nbytes,ival) ;
+       ERROR_message("EDIT_full_copy: can't malloc %" PRId64 " bytes for "
+                     " new sub-brick %d", nbytes, ival) ;
        ININFO_message("   Dataset %s",DSET_HEADNAME(dset)) ;
        RETURN(NULL) ;
      }

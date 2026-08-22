@@ -550,7 +550,7 @@ int main( int argc , char *argv[] )
          INFO_message("Filter #%d = despike:%d",nffunc,nHH_despike) ;
 
        } else {
-         ERROR_exit("Unkown filter type '%s'",argv[nopt]) ;
+         ERROR_exit("Unknown filter type '%s'",argv[nopt]) ;
        }
        nopt++ ; continue ;
      }
@@ -598,7 +598,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     0 ,                    /* don't detrend */
                     nvals ,                /* number of briks */
-                    FILTER_tsfunc ,        /* timeseries processor */
+    (generic_func *)FILTER_tsfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */

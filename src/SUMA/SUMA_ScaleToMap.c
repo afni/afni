@@ -134,7 +134,7 @@
 "    -msk_zero: (optional) values that are 0 will get masked no matter\n"
 "       what colormaps or mapping schemes you are using. \n"
 "       AFNI masks all zero values by default.\n"
-"    -msk msk0 msk1: (optinal, default is no masking) \n"
+"    -msk msk0 msk1: (optional, default is no masking) \n"
 "       Values in vcol (BEFORE clipping is performed) \n"
 "       between [msk0 msk1] are masked by the masking color.\n"
 "    -msk_col R G B: (optional, default is 0.3 0.3 0.3) \n"
@@ -222,7 +222,7 @@ int main (int argc,char *argv[])
    arange  = -1.0; /* afni range specified */
    Sgn = 0;
    ShowMapdb = NOPE;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
          SUMA_ScaleToMap_usage();
@@ -485,7 +485,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
 
-   }/* loop accross command ine options */
+   }/* loop across command line options */
 
    /* Get your colors straightened out */
    if (!SUMAg_CF->scm) {
@@ -539,7 +539,7 @@ int main (int argc,char *argv[])
          FromAFNI = YUP;
          imap = SUMA_Find_ColorMap ( MapName, SAC->CMv, SAC->N_maps, -2);
          if (imap < 0) {
-            SUMA_S_Errv("Could not find colormap %s.\n", MapName);
+            SUMA_S_Errv("Could not find colormap (from NULL map).\n");
             exit (1);
          }
          CM = SAC->CMv[imap];

@@ -15,7 +15,7 @@ void segtools_writedists (int ii) {
       .cen.1D : Cluster centroids
       .info1.1D: Within cluster sum of distances
       .info2.1D: Maximum distance within each cluster
-      .vcd.1D: Voxel to centroids distnaces 
+      .vcd.1D: Voxel to centroids distances 
    */
    writedists = ii; 
 }
@@ -600,7 +600,7 @@ void getvoxlclustersdist(int* count, float** cdata,
 }
 
 
-/* avovkJULY30: it would be nice to have color pallete for cluster probability */
+/* avovkJULY30: it would be nice to have color palette for cluster probability */
 
 void color_palette(int nclusters, char* jobname)
 {
@@ -957,7 +957,7 @@ void example_kmeans( int nrows, int ncols,
 
    /* call function to calculate distance between each voxel and centroid */
    /* we will need: 
-      count - number of elements in cluster as we allready have it
+      count - number of elements in cluster as we already have it
       cdata - cluster centroids
       clusterid
       data */      

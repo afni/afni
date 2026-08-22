@@ -17,10 +17,6 @@
 #define CFFT csfft_cox_OMP
 #define CFFT_setup csfft_cox_OMP_SETUP()
 
-/*---------------------------------------------------------------------------*/
-#include "zgaussian.c"  /** Ziggurat Gaussian random number generator **/
-/*---------------------------------------------------------------------------*/
-
 /*----------------------------------------------------------------------------*/
 /* Gaussian + Exponential function of radius; this is the ACF(r) model. */
 
@@ -178,7 +174,7 @@ static int_triple get_random_field_size( int   nx, int   ny, int   nz,
 /* Create the kernel smoothing function, then FFT it, and clip/shrink it
    as far as reasonable.  The basic method for simulating the noise random
    field is then
-     (1) create an iid N(0,1) Gausian random field in FFT space
+     (1) create an iid N(0,1) Gaussian random field in FFT space
      (2) multiply this field by the radial weight function from here
      (3) FFT to real space
      (4) [in 3dClustSim] truncate back to desired 3D grid and normalize
@@ -308,12 +304,12 @@ static MRI_IMAGE * make_radial_weight( int   nx , int   ny , int   nz ,
 
 #undef  CXRAN
 #define CXRAN(i,j,k) \
- ( zr=ww*zgaussian_sss(xran), zi=ww*zgaussian_sss(xran), CXAR(i,j,k)=CMPLX(zr,zi) )
+ ( zr=ww*zgaussian2_sss(xran), zi=ww*zgaussian2_sss(xran), CXAR(i,j,k)=CMPLX(zr,zi) )
 
 static MRI_IMARR * make_radial_random_field( int nx, int ny, int nz ,
                                              MRI_IMAGE *wtim ,
                                              complex *tar ,
-                                             unsigned short xran[] )
+                                             uint64_t *xran )
 {
    MRI_IMAGE *cxim ; complex *cxar ;
    MRI_IMARR *outar ;
@@ -415,7 +411,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *wim ;
    THD_3dim_dataset *dset=NULL ;
    THD_ivec3 nxyz_vec ; THD_fvec3 fxyz_vec , oxyz_vec ;
-   unsigned short xran[3] ; unsigned int gseed ; int ithr=1,nbrik=2 ;
+   uint64_t xran ; unsigned int gseed ; int ithr=1,nbrik=2 ;
    int nthr=1 , ith ;
 
    parm[0] = 0.66f ;
@@ -435,9 +431,8 @@ int main( int argc , char *argv[] )
    wim = make_radial_weight( nxyz,nxyz,nxyz , dxyz,dxyz,dxyz , parm ) ;
 
    gseed = ((unsigned int)time(NULL)) + 17*(unsigned int)getpid() ;
-   xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
-   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)ithr ;
-   xran[0] = 0x330e                   + (unsigned short)ithr ;
+   zgaussian2_init( (uint32_t)gseed ) ;
+   xran = zgaussian2_thread_seed( ithr ) ;
 
    INFO_message("creating random dataset") ;
 
@@ -475,7 +470,7 @@ AFNI_OMP_START ;
    tar = (complex *)malloc(sizeof(complex)*(nxyz+nxyz)) ;
 #pragma omp for
    for( ib=0 ; ib < nbrik ; ib+=2 ){
-     abar = make_radial_random_field( nxyz,nxyz,nxyz , wim , tar , xran ) ;
+     abar = make_radial_random_field( nxyz,nxyz,nxyz , wim , tar , &xran ) ;
      aim = IMARR_SUBIM(abar,0) ; bim = IMARR_SUBIM(abar,1) ;
 #pragma omp critical
      { EDIT_substitute_brick( dset , ib   , MRI_float , MRI_FLOAT_PTR(aim) ) ;

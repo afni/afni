@@ -115,7 +115,7 @@ float *THD_roi_cmass(THD_3dim_dataset *xset , int iv , int *rois,
  * this method forces the result to be in a voxel
  * Parameters: xset=dataset, iv = subbrick, mmm=mask array
  * cmode = 0/1 return xyz position or ijk index
- * cmxyz = cm center of mass in xyz  */ 
+ * cmxyz = cm center of mass in xyz, in DICOM order  */ 
 THD_fvec3 THD_Icent( THD_3dim_dataset *xset , int iv , byte *mmm,
                      int cmode, THD_fvec3 cmxyz)
 {
@@ -129,6 +129,10 @@ THD_fvec3 THD_Icent( THD_3dim_dataset *xset , int iv , byte *mmm,
    double xx,yy,zz , vsum , val ;
    double wbest;
    float xmi,ymi,zmi;
+
+   // input 3-vector from 3dCM is in DICOM order; make sure it matches
+   // with xset's orient
+   cmxyz = THD_dicomm_to_3dmm( xset , cmxyz );
 
    xcm = cmxyz.xyz[0];
    ycm = cmxyz.xyz[1];
@@ -193,7 +197,7 @@ THD_fvec3 THD_Icent( THD_3dim_dataset *xset , int iv , byte *mmm,
  * distance to all the others 
  * Parameters: xset=dataset, iv = subbrick, mmm=mask array
  * cmode = 0/1 return xyz position or ijk index
- * cmxyz = cm center of mass in xyz  */ 
+ * cmxyz = cm center of mass in xyz -- NOT USED, THOUGH  */ 
 THD_fvec3 THD_Dcent( THD_3dim_dataset *xset , int iv , byte *mmm,
                      int cmode, THD_fvec3 cmxyz)
 {

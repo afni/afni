@@ -105,6 +105,25 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
        qmedmad_float( npt , far , &val , NULL ) ; outval = val ;
      break ;
 
+     case NSTAT_OSFILT:
+       /* [PT: 12 Feb 2025] order statistics filter, which is like a
+          weighted mean combined with a median; this uses the same
+          recipe used in AFNI GUI Image -> Disp -> Project, which is
+          defined by osfilt_proj() in afni_transforms.c */
+       {
+          register float v, d; register int ii, n2 ;
+          v = 0.0; d = 0.0;
+          qsort_float(npt, far);
+          n2 = npt/2 ;
+          for( ii=0 ; ii < n2 ; ii++ ){
+             v += (ii+1.0f)*(far[ii]+far[npt-1-ii]) ;
+             d += 2.0f*(ii+1.0f) ;
+          }
+          v += (n2+1.0f)*far[n2] ; d += (n2+1.0f) ;
+          outval = (v/d) ;
+       }
+     break ;
+
      case NSTAT_MAD:
        qmedmad_float( npt , far , NULL , &val ) ; outval = val ;
      break ;
@@ -194,27 +213,54 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
      }
      break ;
 
+     // [PT, RCR: 2025-05-14] fixed
      case NSTAT_RANK:{
        register int ii ;
-       qsort_float(npt, far);
+       qsort_float(npt, far); // sorts into ascending order in place
+       for( ii=0 ; ii < npt ; ii++ ){
+         if (voxval <= far[ii]) break ;
+       }
+       outval = ii + 1;
+     }
+     break ;
+
+     // [PT, RCR: 2025-05-14] fixed
+     case NSTAT_FRANK:{
+       register int ii ;
        outval = 1.0 ;
-       for( ii=1 ; ii < npt ; ii++ ){
-         if (voxval > far[ii]) outval = ii;
-         else break ;
+       if (npt > 1) {
+          qsort_float(npt, far);
+          for( ii=0 ; ii < npt ; ii++ ){
+             if (voxval <= far[ii]) break ;
+          }
+          outval = ii + 1;
+          outval/= npt;
        }
      }
      break ;
 
-     case NSTAT_FRANK:{
+     // [PT: 2025-05-14] 
+     case NSTAT_RANKINV:{
+       register int ii ;
+       qsort_float(npt, far); // sorts into ascending order in place
+       for( ii=1 ; ii <= npt ; ii++ ){
+         if (voxval >= far[npt-ii]) break ;
+       }
+       outval = ii;
+     }
+     break ;
+
+     // [PT: 2025-05-14] 
+     case NSTAT_FRANKINV:{
        register int ii ;
        outval = 1.0 ;
-       if (npt) {
+       if (npt > 1) {
           qsort_float(npt, far);
-          for( ii=1 ; ii < npt ; ii++ ){
-            if (voxval > far[ii]) outval = ii;
-            else break ;
+          for( ii=1 ; ii <=npt ; ii++ ){
+             if (voxval >= far[npt-ii]) break ;
           }
-          outval /= npt;
+          outval = ii;
+          outval/= npt;
        }
      }
      break ;
@@ -350,7 +396,7 @@ void mri_nstat_fwhmxyz_usevar( int i ){ fwhm_use_variance = i; }
 #define INMASK(i) (mask==NULL || mask[i])
 
 /*--------------------------------------------------------------------------*/
-/*! FWHM parameters in a neigbhorhood of a point. */
+/*! FWHM parameters in a neighborhood of a point. */
 
 THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
                              MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd )
@@ -475,7 +521,7 @@ float mri_nstat_fwhmbar( int xx, int yy, int zz,
 }
 
 /*--------------------------------------------------------------------------*/
-/*! FWHM parameters in a neigbhorhood of a point -- another way. */
+/*! FWHM parameters in a neighborhood of a point -- another way. */
 
 THD_fvec3 mri_nstat_fwhmxyz_12dif( int xx, int yy, int zz,
                                    MRI_IMAGE *im, byte *mask, MCW_cluster *nbhd,
@@ -791,6 +837,8 @@ ENTRY("THD_localstat") ;
    nvout = nvin * ncode ;
    EDIT_dset_items( oset ,
                       ADN_nvals     , nvout       ,
+                      /* make output bucket only  [8 Aug 2023 rickr] */
+                      ADN_ntt       , 0           ,
                       ADN_datum_all , MRI_float   ,
                       ADN_nsl       , 0           ,
                       ADN_brick_fac , NULL        ,

@@ -1,4 +1,4 @@
-#!/bin/tcsh 
+#!/usr/bin/env tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -40,7 +40,7 @@
 #   + work with new @chauffeur*, -prefix only
 #
 #set version   = "1.9";  set rev_dat   = "Sep 22, 2017"
-#   + for Mac compatability, apparently I need to wrap around 
+#   + for Mac compatibility, apparently I need to wrap around 
 #     some for loops if a particular type of dset weren't input
 #     --> Thanks, Jiajia, for finding+noting.
 #   + also, movie $imtrx loop above, don't need to Unifize
@@ -85,7 +85,7 @@ if ( $status ) then
     goto BAD_EXIT
 else
     set aa   = `which afni`
-    set adir = $aa:h
+    set adir = `dirname $aa`
 endif
 
 # default location of viewer: user could modify!

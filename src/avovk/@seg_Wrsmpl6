@@ -41,7 +41,7 @@ PREP:
    set olddim = `3dAttribute DATASET_DIMENSIONS ${ipref}+orig \
                    | sed 's/-//g'`
 
-   ### 30 becouse 30mm is the biggest square!!!
+   ### 30 because 30mm is the biggest square!!!
 
    set newx = `ccalc -form int -eval "${olddim[1]}+30/${olddelta[1]}"`
    set newy = `ccalc -form int -eval "${olddim[2]}+30/${olddelta[2]}"`

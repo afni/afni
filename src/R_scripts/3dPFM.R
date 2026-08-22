@@ -1,5 +1,41 @@
 #!/usr/bin/env AFNI_Batch_R
 
+# Program author: Cesar Caballero, BCBL
+# Email: c.caballero@bcbl.eu
+
+
+# Several of the functions below (see notes attributions for each) 
+# were originally developed in Matlab:
+# Written by: Salman Asif, Georgia Tech
+# Email: sasif@ece.gatech.edu
+#
+# These have been adapted for R here by: Cesar Caballero, BCBL
+# Email: c.caballero@bcbl.eu
+#
+# These functions are available from the original author's L1-homotopy
+# toolbox with the following license (see
+# https://github.com/sasif/L1-homotopy/blob/master/license.txt):
+# ------------------------------------------------------------------
+# Copyright (C) 2013, M. Salman Asif, all rights reserved.
+#
+# Redistribution and use of this code, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# The software is provided under the terms of this license strictly
+# for academic, non-commercial, not-for-profit purposes.
+# Redistributions of source code must retain the above copyright
+# notice, this list of conditions (license) and the following
+# disclaimer. The name of the author may not be used to endorse or
+# promote products derived from this software without specific prior
+# written permission.
+#
+# This software is being provided "as is", without any express or
+# implied warranty. In particular, the authors do not make any
+# representation or warranty of any kind concerning the
+# merchantability of this software or its fitness for any particular
+# purpose.
+# ------------------------------------------------------------------
+
 #Clean up
 rm(list = ls())
 
@@ -197,7 +233,7 @@ Only for the non-casual user !!!:
  For lesser mortals, it is enough to know that the L_infty norm term in the DS is 
  equivalent to the differentiation of the RSS term with respect to s in the LASSO. 
  Actually, in practice the results of 3dPFM with the DS are usually very similar
- to the ones obtained with the LASSO (and viceversa). 
+ to the ones obtained with the LASSO (and vice-versa). 
 
  Algorithms for solving the LASSO and DS
  ---------------------------------------
@@ -260,14 +296,14 @@ Only for the non-casual user !!!:
  Option -nonzeros Q:
  Alternatively, one could also select the regularization parameter such that 
  the estimate only includes Q coefficients with non-zero amplitude, where Q 
- is an arbitrary number given as input. In statistics, the set of nonzero coeffients 
+ is an arbitrary number given as input. In statistics, the set of nonzero coefficients 
  for a given regularization parameter is defined as the active (or support) set. 
  A typical use of this option would be that we hypothesize that our signal 
  only includes Q nonzero coefficients (i.e. haemodynamic events of TR duration)
  but we do not know when they ocurr.
  
 
- IMPORTANT: If two successive events are non-zero, do both coeffients represent one or
+ IMPORTANT: If two successive events are non-zero, do both coefficients represent one or
  two events? Intuitively, one could think that both coefficients model a single event
  that spans several coefficients and, thus, requires several non-zero coefficients to
  to be properly modelled. This case is NOT considered in the program. 
@@ -519,7 +555,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
    "       Otherwise, the program will STOP before starting any calculation.              \n",
    "     * Only positive integers > 0 are allowed in this option.                         \n",
    "     * For instance, this dataset can be created by clustering (e.g. with 3dKmeans)   \n",
-   "       the estimated HRF genereted with option -iresp in 3dDeconvolve.                \n",
+   "       the estimated HRF generated with option -iresp in 3dDeconvolve.                \n",
    "     * In 3dPFM, the HRF response is assumed constant during the acquisition          \n",
    "     * An index equal to 1 will select the first column of the .1D fhrf,              \n",
    "       which is usually column 0 in AFNI nomenclature.                                \n"
@@ -569,7 +605,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
 
       '-nSeg' = apl(n = 1, d = 1, h = paste(
    "-nSeg XX: Divide into nSeg segments of voxels to report progress,        \n",
-   "          e.g. nSeg 5 will report every 20% of proccesed voxels.         \n",
+   "          e.g. nSeg 5 will report every 20% of processed voxels.         \n",
    "          Default = 10                                                   \n"
                     ) ),
 
@@ -1031,20 +1067,17 @@ DS_homotopy_function <- function(A, y, thresh = 0, maxiter) {
   # gamma_xk - Primal support at the solution
   # gamma_lambdak - Dual support at the solution
   
-  # Written by: Salman Asif, Georgia Tech
-  # Email: sasif@ece.gatech.edu
-  #-------------------------------------------+
-  # Copyright (c) 2007.  Muhammad Salman Asif 
-  #-------------------------------------------+
-  
   # Check the following reference for the homotopy functions
   # M Salman Asif and J Romberg, On the LASSO and Dantzig selector equivalence, 
   # Conference on Information Sciences and Systems (CISS), Princeton, NJ, March 2010.
   # http://dx.doi.org/10.1109/CISS.2010.5464890
-  
-  # Adapted for R by: Cesar Caballero, BCBL
+
+  # Written by: Salman Asif, Georgia Tech
+  # Email: sasif@ece.gatech.edu
+  # See license note above
+  # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
-  
+
   # t0 <- proc.time()
   
   
@@ -1439,6 +1472,7 @@ update_primal <- function(gamma_x, gamma_lambda, z_x, x_k, del_x_vec, pk, dk, ep
   #
   # Written by: Salman Asif, Georgia Tech
   # Email: sasif@ece.gatech.edu
+  # See license note above
   # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
   
@@ -1573,6 +1607,7 @@ update_dual <- function(gamma_x, gamma_lambda, z_lambda, lambda_k, del_lambda_p,
   # 
   # Written by: Salman Asif, Georgia Tech
   # Email: sasif@ece.gatech.edu
+  # See license note above
   # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
   # 
@@ -1684,6 +1719,7 @@ update_inverse <- function(AtB,iAtB_old,flag) {
   #
   # Written by: Salman Asif, Georgia Tech
   # Email: sasif@ece.gatech.edu
+  # See license note above
   # Adapted for R by: Cesar Caballero Gaudes, BCBL
   # Email: c.caballero@bcbl.eu
   
@@ -2642,7 +2678,7 @@ if (!is.null(lop$vol_hrfs)){
 ###########################################################################################
 # prepare data for parallel computation
 nSeg <- lop$nSeg
-# break into 20 segments, leading to 5% increamental in parallel computing
+# break into 20 segments, leading to 5% incremental in parallel computing
 dimSeg <- nvoxels%/%nSeg + 1
 # number of voxels need to be filled
 fill <- nSeg-nvoxels%%nSeg

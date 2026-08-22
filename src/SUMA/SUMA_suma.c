@@ -96,7 +96,7 @@ int SUMA_WindowsOnRootDisplay(Display *dd, Window ww, int all)
                    ww,
                    &rr, &pr, &cr, &ncr)) {
 
-      if (all) fprintf(stderr,"Have %d childern in query\n", ncr);
+      if (all) fprintf(stderr,"Have %d children in query\n", ncr);
       for (ii=0; ii<ncr; ++ii) {
           showgeom = 0;
           XGetWindowAttributes(dd, cr[ii], &wa);
@@ -184,7 +184,7 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                      containing the surfaces.\n"
 "%s\n"
 "   [-sv <SurfVol>]: Anatomical volume used in creating the surface \n"
-"                    and registerd to the current experiment's anatomical \n"
+"                    and registered to the current experiment's anatomical \n"
 "                    volume (using @SUMA_AlignToExperiment). \n"
 "                    This parameter is optional, but linking to AFNI is \n"
 "                    not possible without it.If you find the need for it \n"
@@ -504,7 +504,7 @@ Purpose :
 
 
 
-Input paramters :
+Input parameters :
 \param
 \param
 
@@ -593,7 +593,7 @@ int main (int argc,char *argv[])
    brk = NOPE;
    SurfIn = NOPE;
    Domemtrace = YUP;
-   while (kar < argc) { /* loop accross command ine options */
+   while (kar < argc) { /* loop across command line options */
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -968,7 +968,7 @@ int main (int argc,char *argv[])
          kar ++;
       }
 
-   }/* loop accross command ine options */
+   }/* loop across command line options */
    /* -ah option now checked for in ps */
    if (ps->cs->afni_host_name && !AfniHostName) {
       AfniHostName = SUMA_copy_string(ps->cs->afni_host_name);
@@ -1080,6 +1080,15 @@ int main (int argc,char *argv[])
       fprintf(stderr,"Error in SUMA_X_SurfaceViewer_Create. Exiting\n");
       return 1;
    }
+#if defined(__APPLE__) && defined(ARM_M1)
+   /*
+    * XQuartz GLUT on Apple Silicon needs GLUT initialized before calls such as
+    * glutBitmapWidth used by the right-click context menus.  Keep this scoped:
+    * the older SUMA_STANDALONE_INIT glutInit call was disabled because it
+    * caused remote display problems on some systems.
+    */
+   glutInit(&argc, argv);
+#endif
 
    for (i=0; i<ispec; ++i) {
       if (!list) list = SUMA_CreateList();
@@ -1224,5 +1233,4 @@ int main (int argc,char *argv[])
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   SUMA_RETURN(0);             /* ANSI C requires main to return int. */
 }/* Main */
-
 

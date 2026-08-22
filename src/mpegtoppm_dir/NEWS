@@ -1,6 +1,6 @@
 mpeg2dec-0.3.1 Fri Dec 13 22:15:36 PST 2002
 
-This is mainly a maintainance release. On the API side, libmpeg2 now
+This is mainly a maintenance release. On the API side, libmpeg2 now
 includes some CPU detection code - so it will by default automatically
 use whatever features are available on the CPU it runs on. There is a
 function to override this, mainly for testing purposes.
@@ -73,7 +73,7 @@ want to know. In the future this will also help a lot with the
 implementation of synchro.
 
 Portability enhancements - including support for win32 DLLs. This was
-done to get into the hearts of a few more developpers :)
+done to get into the hearts of a few more developers :)
 
 
 mpeg2dec-0.1.7 Thu Nov  2 21:38:33 PST 2000

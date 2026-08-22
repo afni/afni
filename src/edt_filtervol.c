@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -28,7 +28,7 @@
    Mod    :  2 October 1996        Changed memory deallocation.
    Mod    :  9 October 1996        Made changes to improve speed.
 
-   To correct error due to abiguity in identification of clusters,
+   To correct error due to ambiguity in identification of clusters,
    voxel coordinates are now stored as 3 separate short integers.
    BDW  06 March 1997
 

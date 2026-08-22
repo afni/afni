@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 # @ROI_decluster
 # remove small clusters from regions based on fraction or number of voxels
 
@@ -177,7 +177,7 @@ set mvals = `3dBrickStat -slow -min -max -non-zero $inset`
 
 \rm rm_roi*.nii.gz
 # search each ROI one index at a time
-foreach roi (`count -digits 4 $mvals[1] $mvals[2]`)
+foreach roi (`count_afni -digits 4 $mvals[1] $mvals[2]`)
     set nvox = `3dBrickStat -count -non-zero "${inset}<$roi>"`
 
     # missing value, skip ahead

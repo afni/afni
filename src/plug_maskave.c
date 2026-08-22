@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -32,7 +32,7 @@ static char helpstring[] =
    " 1D Save: Name      = If all input sub-bricks are used (i.e., setting\n"
    "                      'Source Sub-brick' = -1 above), then this option\n"
    "                      lets you save the resulting average time series\n"
-   "                      into the interal list of timeseries available via\n"
+   "                      into the internal list of timeseries available via\n"
    "                      the 'Choose Timeseries', 'Pick Ideal', ... buttons.\n"
    "          To Disk?  = If 'YES' is chosen, then will also write the\n"
    "                      timeseries to disk in the *.1D format.\n\n"
@@ -60,8 +60,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "ROI Average" , "Average Dataset over ROI" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , MASKAVE_main  ) ;
+   plint = PLUTO_new_interface( "ROI Average" , "Average Dataset over ROI" ,
+                                helpstring , PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)MASKAVE_main  ) ;
 
    PLUTO_add_hint( plint , "Average Dataset over ROI" ) ;
 

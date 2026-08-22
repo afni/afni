@@ -136,7 +136,7 @@ void TPR_help_the_pitiful_user(void)
    " -cenmode mode       = 'mode' specifies how censored time points are treated in\n"
    "                       the output dataset:\n"
    "                       ++ mode = ZERO ==> put zero values in their place\n"
-   "                                      ==> output datset is same length as input\n"
+   "                                      ==> output dataset is same length as input\n"
    "                       ++ mode = KILL ==> remove those time points\n"
    "                                      ==> output dataset is shorter than input\n"
    "                       ++ mode = NTRP ==> censored values are replaced by interpolated\n"
@@ -864,9 +864,10 @@ STATUS("making all-voxels mask") ;
 
    /*----- create array to hold all fixed orts (at this point, un-censored) -----*/
 
-   if( nort_fixed > 0 )
+   if( nort_fixed > 0 ) {
      ort_fixed_unc = (float *)malloc( sizeof(float) * (nt * nort_fixed + 2 ) ) ;
      for( jj=0 ; jj < nt*nort_fixed ; jj++ ) ort_fixed_unc[jj] = 0.0f ;
+   }
 
    /*-- load the polort part of ort_fixed_unc ;
         note that the all 1s regressor will be first among equals --*/

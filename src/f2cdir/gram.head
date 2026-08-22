@@ -38,7 +38,7 @@ extern struct Labelblock **labarray;	/* Labels in an alternate
 extern int maxlablist;
 
 /* The next two variables are used to verify that each statement might be reached
-   during runtime.   lastwasbranch   is tested only in the defintion of the
+   during runtime.   lastwasbranch   is tested only in the definition of the
    stat:   nonterminal. */
 
 int lastwasbranch = NO;
@@ -266,7 +266,7 @@ arg:	  name
 		  $1->vstg = STGARG;
 		}
 	| SSTAR
-		{ NO66("altenate return argument");
+		{ NO66("alternate return argument");
 
 /* substars   means that '*'ed formal parameters should be replaced.
    This is used to specify alternate return labels; in theory, only

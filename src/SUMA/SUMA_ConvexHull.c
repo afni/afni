@@ -142,7 +142,7 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
                      could be projected ones*/
             SO = SUMA_Patch2Surf(xyzp, npt, ijk, nf, 3);
             break;
-         case 1:  /* Original corrdinates passed to qhull
+         case 1:  /* Original coordinates passed to qhull
                      (pre-projections, if any) */
             SO = SUMA_Patch2Surf(xyz, npt, ijk, nf, 3);
             break;
@@ -172,7 +172,7 @@ SUMA_SurfaceObject *SUMA_ConvexHullSurface(
             SO = SUMA_NewSO(&xyzp, npt, &ijk, nf, NULL);
             SUMA_LHv("xyzp %p, ijk %p\n", txyz, ijk);
            break;
-         case 1:  /* Original corrdinates passed to qdelaunay
+         case 1:  /* Original coordinates passed to qdelaunay
                      (pre-projections, if any) */
             SO = SUMA_NewSO(&xyz, npt, &ijk, nf, NULL);
             SUMA_LHv("xyz %p, ijk %p\n", txyz, ijk);
@@ -360,7 +360,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
    Opt->unif = 0;
    Opt->UseThisBrain = NULL;
 	brk = NOPE;
-	while (kar < argc) { /* loop accross command ine options */
+	while (kar < argc) { /* loop across command line options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_ConvexHull(ps);

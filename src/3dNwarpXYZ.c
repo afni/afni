@@ -19,6 +19,14 @@ void print_usage(void)
     "based on the '-nwarp' specification -- which is as in 3dNwarpApply\n"
     "(e.g., allows inversion, catenation, et cetera).\n"
     "\n"
+    "*** It is very important to note, though, that the warping essentially\n"
+    "    works in the OPPOSITE way to 3dNwarpApply.  That is, if you create\n"
+    "    an '-nwarp ..' rule that successfully maps data from source dsetA to\n"
+    "    base dsetB with 3dNwarpApply, then you would invert that same warp\n"
+    "    setup to go from source dsetA to base dsetB with 3dNwarpXYZ. Such is\n"
+    "    life, and if you remember this fact, you will save yourself some\n"
+    "    hours of time (writes one who knows...). ***\n"
+    "\n"
     "If this warp is the _WARP output from 3dQwarp, then it takes XYZ values\n"
     "from the base dataset and transforms them to the corresponding source\n"
     "dataset location.\n"
@@ -85,7 +93,7 @@ void print_usage(void)
     "                application the differences should be negligible.\n"
     "\n"
 #if 0  /* -wfac does NOT work with -iwarp!!! */
-    " -wfac fff = Scale displacments by factor 'fff' before using.\n"
+    " -wfac fff = Scale displacements by factor 'fff' before using.\n"
     "             It is hard to see that this has any value, but here it is.\n"
     "\n"
 #endif

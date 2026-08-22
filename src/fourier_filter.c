@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 /* This file is #included by the filtering program 3dFourier and the plugin plug_fourier */
@@ -348,7 +348,7 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 	out_data = (float **)My_Malloc(ntimes * sizeof(float *));
 	for (i=0; i<ntimes; out_data[i++] = (float *)My_Malloc(nvox * sizeof(float)));
 	
-	/* Create the tempory float array */
+	/* Create the temporary float array */
 	out_temp = (float *)My_Malloc(ntimes*sizeof(float));
 	
 	/* Get the scale factors for later */

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*
@@ -17,21 +17,6 @@
 */
 
 
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
 
 
 /*---------------------------------------------------------------------------*/
@@ -845,7 +830,9 @@ void newuoa_optimization
      NEWUOA will operate on these, since it is scale-free */
 
   for( ii=0 ; ii < r+p ; ii++ ){
-    dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]);
+    if(N_psiz[ii] == 0.0) dv[ii] = 0.0;
+    else
+       dv[ii] = (double) ((parameters[ii]-N_pbot[ii])/N_psiz[ii]);
     if( dv[ii] < 0.0 || dv[ii] > 0.0 ) dv[ii] = DRED01(dv[ii]); /* 03 Nov 2006 */
   }
 

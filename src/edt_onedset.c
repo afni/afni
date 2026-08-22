@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -385,7 +385,7 @@ STATUS("abs applied to meaningless type: will be ignored") ;
                fbot = edit_clip_bot ;
             }
 
-            top = rint(ftop) ;  /* this code was modifed 28 Sep 1998 */
+            top = rint(ftop) ;  /* this code was modified 28 Sep 1998 */
             if( top >=  MRI_maxshort ) top =   MRI_maxshort + 1  ;
             if( top <= -MRI_maxshort ) top = -(MRI_maxshort + 1) ;
 

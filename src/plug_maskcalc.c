@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 /***********************************************************************
@@ -69,7 +69,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
     CHECK_IF_ALLOWED("MASKCALC","maskcalc") ;  /* 30 Sep 2016 */
 
     plint = PLUTO_new_interface( "maskcalc", "masked computations on datasets",
-	    gr_help_message, PLUGIN_CALL_VIA_MENU, MASKCALC_main );
+	    gr_help_message, PLUGIN_CALL_VIA_MENU, (cptr_func *)MASKCALC_main );
 
     PLUTO_add_hint( plint, "Wouldn't some cookies be right tasty?" );
 
@@ -985,7 +985,7 @@ open_file(
 **      Check for existence of output file.
 **
 **      If suffix is NULL, only consider filename.
-**      If filename already ends in the suffix, only consider filname.
+**      If filename already ends in the suffix, only consider filename.
 **      If the filename ends in a period, only add the suffix.
 **      Otherwise add a period and the suffix before checking its existence.
 **

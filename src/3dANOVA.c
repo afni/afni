@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*
@@ -1562,7 +1562,7 @@ void calculate_contrasts (anova_options * option_data)
       ANOVA_error ("unable to allocate sufficient memory");
 
 
-   /*----- loop over user specified constrasts -----*/
+   /*----- loop over user specified contrasts -----*/
    for (icontr = 0;  icontr < num_contr;  icontr++)
    {
       if (option_data->old_method)   /* old method    08 Dec 2005 [rickr] */
@@ -1836,7 +1836,7 @@ void terminate (anova_options * option_data)
     create_bucket (option_data);
 
 
-  /*----- if 'bucket' datset was created, remove the individual 2-subbrick
+  /*----- if 'bucket' dataset was created, remove the individual 2-subbrick
           data files -----*/
   if (option_data->bucket_filename != NULL)
     {

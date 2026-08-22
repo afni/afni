@@ -37,7 +37,7 @@ FuncName = 'GetNextLine';
 %Debug Flag
 DBG = 1;
 
-%initailize return variables
+%initialize return variables
 err = 1;
 strt = 0; stp = 0;
 

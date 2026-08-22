@@ -56,7 +56,7 @@
  *
  *  Revision 1.19  1995/08/07 21:52:11  smoot
  *  added Color to skip routine
- *  fixed full/half bug in intial loop
+ *  fixed full/half bug in initial loop
  *  added comments
  *  removed buggy "extra skips" code
  *
@@ -83,7 +83,7 @@
  * Added realQuiet
  *
  * Revision 1.11  1994/12/07  00:40:36  smoot
- * Added seperate P and B search ranges
+ * Added separate P and B search ranges
  *
  * Revision 1.10  1994/11/24  00:35:47  smoot
  * fixed bug (divide by 0) in B fram statsitics
@@ -640,7 +640,7 @@ GenBFrame(bb, curr, prev, next)
 #ifdef BUGGY_CODE
 	  /*
 	  send us mail if you can tell me why this code
-          doesnt work.  Generates some bad vectors.
+          doesn't work.  Generates some bad vectors.
           I suspect 'cuz oldMode/motions aren't being set right,
           but am unsure.
 	  */

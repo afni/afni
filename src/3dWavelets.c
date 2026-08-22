@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 2000-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 2000-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -1316,7 +1316,7 @@ void calculate_results
   int i;                   /* data point index */
 
   float * coefts = NULL;   /* filtered FWT coefficients */
-  float * fitts  = NULL;   /* filterd time series */
+  float * fitts  = NULL;   /* filtered time series */
   float * sgnlts = NULL;   /* signal model fitted time series */
   float * errts  = NULL;   /* residual error time series */
 

@@ -103,9 +103,9 @@ typedef struct ASLoptions{
   char maskFile[LONG_STRING];   /* mask dataset */
   char modelFile[LONG_STRING];  /* training output - model file */
   char docFile[LONG_STRING];    /* JL June 2009: write brick data into
-                                   svm-light formated textfile */
+                                   svm-light formatted textfile */
   char docFileOnly[LONG_STRING];/* JL June 2009: write brick data into
-                                    svm-light formated textfile */
+                                    svm-light formatted textfile */
   char kernelName[LONG_STRING]; /* JL Feb. 2009: tring specifying
                                    kernel functions  */
   char svmType[LONG_STRING];    /* JL May 2009: classification, regression
@@ -140,7 +140,7 @@ typedef struct ASLoptions{
   int linearWmap;               /* JL May 2011: flag signifying that user has 
                                    specified -wout flag: Write sum of weighted 
                                    linear sv into bucket file. This is currently 
-                                   the only activation map that is implemeted. */
+                                   the only activation map that is implemented. */
 } ASLoptions;
 
 typedef struct labels {
@@ -253,7 +253,7 @@ typedef struct rt_svm_vars {
   MaskType *     dsetMaskArray;   /* mask specifying a subset of voxels */
   AFNI_MODEL *   afniModel;       /* ptr to AFNI_MODEL structure */
   int            svm_type;        /* svm learn type (CLASSIFICATION, REGRESSION) */
-  long           nvox_model;      /* number of voxels (featurs) in model */
+  long           nvox_model;      /* number of voxels (features) in model */
   long           nt_model;        /* number of time-points (observations) in model */
   int            myargc;          /* number of "command-line arguments" */
   char **        myargv;          /* "command line arguments" */
@@ -276,7 +276,7 @@ typedef struct rt_svm_vars {
 
   int             initialized;       /* flag to indicate whether initializations
                                         from the BEGIN phase of the callback 
-                                        have occured */
+                                        have occurred */
   /* End CC additions */
   
  } RT_SVM_VARS; 
@@ -289,10 +289,10 @@ static char advanced_helpstring[] = "\n"
 "  3dsvm [options] \n"
 "\n\n"
 "Options: \n"
-"  -docout docname        Write training data to a SVM-light formated text-file.\n"
+"  -docout docname        Write training data to a SVM-light formatted text-file.\n"
 "                         (in addition to training/testing)\n"
 "\n"
-"  -doconly docname       Write training data to a SVM-light formated text-file.\n"
+"  -doconly docname       Write training data to a SVM-light formatted text-file.\n"
 "                         (without training/testing)\n"
 "\n"
 "                         e.g. 3dsvm  -type classification \\ \n"
@@ -572,7 +572,7 @@ static char cl_helpstring[] = "\n"
 "                       the test dataset. By default, the predicted values take \n"
 "                       on a continuous range; to output integer-valued class\n"
 "                       decision values use the -classout flag.\n"
-"                       For classification: Values bellow 0.5 correspond to \n"
+"                       For classification: Values below 0.5 correspond to \n"
 "                       (class A) and values above 0.5 to (class B), where A < B. \n"
 "                       For more than two classes a separate prediction file for \n"
 "                       each possible pair of training classes and one additional \n"
@@ -1043,7 +1043,7 @@ static char change_string[] = "\n"
 "     data labels\n"
 "\n\n";
 
-/* --- JL Jul 2011: Added funciton prototypes --- */
+/* --- JL Jul 2011: Added function prototypes --- */
 void           print_version( void );
 int            detrend_linear_cnsrs( float *, LABELS *, char * );
 void           write_svmLight_doc( DOC *, long , long , LabelType *, char *, char * ); 

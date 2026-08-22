@@ -4,7 +4,7 @@
 #ifdef KR_headers
 c_due(a) cilist *a;
 #else
-c_due(cilist *a)
+int c_due(cilist *a)
 #endif
 {
 	if(!f__init) f_init();

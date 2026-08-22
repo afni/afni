@@ -244,7 +244,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
     #   "       Otherwise, the program will STOP before starting any calculation. \n",
     #   "     * Only positive integers > 0 are allowed in this option.            \n",
     #   "     * E.g, this dataset can be created by clustering (e.g. 3dKmeans)    \n",
-    #   "       the estimated HRF genereted with option -iresp in 3dDeconvolve.   \n",
+    #   "       the estimated HRF generated with option -iresp in 3dDeconvolve.   \n",
     #   "     * In 3dMEPFM, the HRF response is assumed constant during the run.  \n",
     #   "     * An index equal to 1 will select the first column of the .1D fhrf, \n",
     #   "       which is usually column 0 in AFNI nomenclature.                   \n"
@@ -351,7 +351,7 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
     
     '-nSeg' = apl(n = 1, d = 1, h = paste(
       "-nSeg XX: Divide into nSeg segments of voxels to report progress,        \n",
-      "          e.g. nSeg 5 will report every 20% of proccesed voxels.         \n",
+      "          e.g. nSeg 5 will report every 20% of processed voxels.         \n",
       "          Default = 10                                                   \n"
     ) ),
 
@@ -1281,7 +1281,7 @@ inData[ , ,1] <- idsets$brk
 ###########################################################################################
 # prepare data for parallel computation
 nSeg <- lop$nSeg
-# break into 20 segments, leading to 5% increamental in parallel computing
+# break into 20 segments, leading to 5% incremental in parallel computing
 dimSeg <- nvoxels%/%nSeg + 1
 # number of voxels need to be filled
 fill <- nSeg-nvoxels%%nSeg

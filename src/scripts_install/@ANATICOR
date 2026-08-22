@@ -1,4 +1,4 @@
-#! /bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set init_path = "$PWD"
@@ -54,6 +54,14 @@ if ($verb) echo "Making masks from aseg file ..."
              +equals(a,251) +equals(a,252) +equals(a,253) +equals(a,254) \
              +equals(a,255)' \
        -prefix __mask_WM  >& /dev/null
+if ( $status ) then
+   echo ""
+   echo "** failure to process ROI dataset $fn_aseg"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 if ($DoLVe) then
 3dcalc -a $fn_aseg -expr 'equals(a,4) +equals(a,43)' \
        -prefix __mask_LV  >& /dev/null
@@ -64,6 +72,7 @@ if ($verb) echo "Resampling masks to epi with NN interpolation..."
 3dresample  -input __mask_WM${view} -master $fn_epi'[0]'    \
             -prefix __mask_WM_res    -overwrite  \
             -rmode NN    >& /dev/null
+set stat = $status
 if ($DoLVe) then
   3dresample  -input __mask_LV${view} -master $fn_epi'[0]'    \
               -prefix __mask_LV_res    -overwrite  \
@@ -73,8 +82,9 @@ if ($DoLVe) then
            -expr 'a*(1- amongst(0,b,c,d,e,f,g))' \
            -prefix __mask_LVe
   3dmaskave -q -mask __mask_LVe${view} $fn_epi > __LVe.1D
+  set stat = $status
 endif
-if ($status) goto END
+if ($stat) goto END
 
 EROSION:
 if ($verb) echo "Eroding masks ..."
@@ -132,6 +142,7 @@ if ($verb) echo "Doing Regression ..."
             -errsum __${outfile}_errsum
 3dcalc      -float -a $fn_epi -b __${outfile}_fitts${view} \
             -expr 'a-b' -prefix $outfile
+set stat = $status
 
 if ($DoRsq) then
    if ($verb) echo "Making Rsq map for WMeLOCAL ..."
@@ -145,6 +156,7 @@ if ($DoRsq) then
             -b __WMeLOCAL_errsum${view}'[0]' \
             -expr '(1-a/b)*notzero(a/b)' \
             -prefix ${outfile}_Rsq_WMeLOCAL
+   set stat = $status
 endif
 
 CLEANUP:
