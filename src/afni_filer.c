@@ -67,7 +67,7 @@ ENTRY("AFNI_coord_filer_setup") ;
    }
 
    AFNI_receive_init( im3d , RECEIVE_VIEWPOINT_MASK ,
-                             AFNI_filer_viewpoint_CB ,
+                             (gen_func *)AFNI_filer_viewpoint_CB ,
                              im3d , "AFNI_filer_viewpoint_CB" ) ;
 
    INFO_message("Logging [%c] viewpoint changes to '%s'",abet[ic],eval) ;

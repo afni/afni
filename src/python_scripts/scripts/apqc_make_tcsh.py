@@ -244,10 +244,40 @@ auth = 'PA Taylor'
 #      that would appear in the vstat section (default is still to have
 #      5 chosen by the program)
 #
-ver = '5.0' ; date = 'Mar 05, 2023'
+#ver = '5.0' ; date = 'Mar 05, 2023'
 # [PT] move toward Python-only implementation, rather than generating
 #      a script intermediately, to simplify flexibility, additions and
 #      apqc2/NiiVue functionality
+#
+#ver = '6.0' ; date = 'Feb 7, 2025'
+# [PT] simpler use cases with main_dset, more flexible if the full
+#      analysis was not run in AP
+#
+#ver = '6.01' ; date = 'May 23, 2025'
+# [PT] the mecho QC block now applies to all MEICA group tedana methods
+#
+#ver = '6.02' ; date = 'May 23, 2025'
+# [PT] ... even m_tedort will be recognized for the mecho QC block
+#
+# [PT] ... even m_tedort will be recognized for the mecho QC block
+#ver = '6.1' ; date = 'June 16, 2025'
+# [PT, RCR] introduce a series of changes in logic to deal with a
+#      situation of the "tlrc" being used but the -volreg_tlrc_warp is
+#      *not* included.
+#      + this involves a new main_dset check, as well as newer 
+#        if-conditions around what the final space is
+#ver = '6.2' ; date = 'June 18, 2025'
+# [PT] make+use errts_blur for in QC, to make it easier to evaluate
+#      seedbased corr (non-task) and IC (all FMRI)
+#
+#ver = '6.3' ; date = 'June 18, 2025'
+# [PT] when thresholding is applied, pbars use the alpha/thr info
+#
+ver = '6.4' ; date = 'Sep 9, 2025'
+# [PT] expand datasets to which not-blurred-during-processing considerations
+#      apply 
+#      + add -can_add_blur opt to allow user control of applying those
+#        extra features (which are on by default, and probably quite useful)
 #
 #########################################################################
 
@@ -297,7 +327,7 @@ for x in lssr.g_ss_uvar_fields:
 
 if __name__ == "__main__":
 
-    iopts = laio.parse_tcsh_args(sys.argv[1:])
+    iopts = laio.parse_tcsh_args(sys.argv)
 
     # note the original location, to which to return at the end
     pwd_orig = os.getcwd()
@@ -330,6 +360,15 @@ if __name__ == "__main__":
 
     # add main dset name for ulays: main_dset
     ap_ssdict = lat.set_apqc_main_dset(ap_ssdict)
+
+    # add corr_brain name as uvar (maybe)
+    ap_ssdict = lat.set_apqc_corr_brain(ap_ssdict)
+
+    # add 'proc_had_blur' uvar. Also add 'errts_blur*' uvars _if_ no
+    # blur was applied during proc; 
+    # user has cmd line opt to disable this (-can_add_blur)
+    proc_had_blur, ap_ssdict = lat.set_apqc_errts_blur(ap_ssdict, 
+                                            can_add_blur=iopts.can_add_blur)
 
     # add censoring info: numbers ranges and text blocks
     # Q: what about RUN_STYLE=='none'?
@@ -453,10 +492,29 @@ if __name__ == "__main__":
     # item    : EPI in orig
 
     ldep  = ['vr_base_dset']
+    ldep2 = ['tcat_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI", 
                                        ulay=ap_ssdict[ldep[0]] )
+        idx     += 1
+    elif lat.check_dep(ap_ssdict, ldep2) :
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI-tcat", 
+                                       ulay=ap_ssdict[ldep2[0]] )
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
+    # item    : EPI variance in orig (should exist in vlines*/ subdir)
+
+    ldep = ["vlines_tcat_dir"]
+    ulay = ap_ssdict[ldep[0]] + '/' + 'var.1.scale.r01.nii.gz'
+    if lat.check_dep(ap_ssdict, ldep) and os.path.isfile(ulay) :
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI_variance", 
+                                       ulay=ulay )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -489,10 +547,9 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (template, anat_final, *vr_base*)
 
     ldep       = ['mask_dset', 'vr_base_dset']
-    ldep_anti1 = ['template']    # check this does NOT exist
     ldep_anti2 = ['final_anat']  # check this does NOT exist
-    if lat.check_dep(ap_ssdict, ldep)              and \
-       not( lat.check_dep(ap_ssdict, ldep_anti1) ) and \
+    if lat.check_dep(ap_ssdict, ldep)               and \
+       ap_ssdict['main_dset_sp'] == 'ORIG'          and \
        not( lat.check_dep(ap_ssdict, ldep_anti2) ) :
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
@@ -526,9 +583,9 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (template, *anat_final*, vr_base)
 
     ldep      = ['mask_dset', 'final_anat']
-    ldep_anti = ['template']  # check this does NOT exist
-    if lat.check_dep(ap_ssdict, ldep) and \
-       not( lat.check_dep(ap_ssdict, ldep_anti) ) :
+    # [pt, rcr: June 16, 2025] use simpler and more general 2ary check
+    # for this; now also applies if -volreg_tlrc_warp is not used
+    if lat.check_dep(ap_ssdict, ldep) and ap_ssdict['main_dset_sp'] == 'ORIG' :
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
@@ -542,7 +599,11 @@ if __name__ == "__main__":
     # item    : anat to template align
 
     ldep = ['final_anat', 'template']
-    if lat.check_dep(ap_ssdict, ldep) :
+    # [pt, rcr: June 16, 2025] the additional check here is for when
+    # -volreg_tlrc_warp is *not* used; then, anat_final is in
+    # EPI/+orig space and we don't have a uvar for the anat that is
+    # aligned to the template yet (when that is added, this could be updated)
+    if lat.check_dep(ap_ssdict, ldep) and ap_ssdict['main_dset_sp'] != 'ORIG' :
         focusbox  = ap_ssdict['main_dset']
         dice_file = None
         if lat.check_dep(ap_ssdict, ['mask_anat_templ_corr_dset']):
@@ -561,7 +622,9 @@ if __name__ == "__main__":
     # item    : EPI mask on final dset (*template*, anat_final, vr_base)
 
     ldep = ['mask_dset', 'template']
-    if lat.check_dep(ap_ssdict, ldep) :
+    # [pt, rcr: June 16, 2025] the additional check here is for when
+    # -volreg_tlrc_warp is *not* used
+    if lat.check_dep(ap_ssdict, ldep) and ap_ssdict['main_dset_sp'] != 'ORIG' :
         focusbox = ap_ssdict['main_dset']
         ulay     = ap_ssdict['main_dset']
         obase    = 'qc_{:02d}'.format(idx)
@@ -575,8 +638,7 @@ if __name__ == "__main__":
     # item    : stats in vol (task FMRI): F-stat (def) and other stim/contrasts
     DO_VSTAT_TASK   = 0
 
-    ldep     = ['stats_dset', 'final_anat']
-    ldep2    = ['template']                                # 2ary consid
+    ldep     = ['stats_dset', 'main_dset']
     alt_ldep = ['stats_dset', 'vr_base_dset']              # elif to ldep
     ldep3    = ['user_stats']                              # 3ary consid
     ldep4    = ['mask_dset']                               # 4ary consid
@@ -620,8 +682,8 @@ if __name__ == "__main__":
         # mirror same logic as task (above) for deciding ulay/olay
         DO_VSTAT_SEED_REST = 0
 
-        ldep     = ['errts_dset', 'final_anat']
-        ldep2    = ['template']                                # 2ary consid
+        ldep     = ['errts_dset', 'main_dset']
+        ldep2    = ['main_dset']  #['template']                # 2ary consid
         alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
         ldep3    = ['user_stats']                              # 3ary consid
         ldep4    = ['mask_dset']                               # 4ary consid
@@ -643,7 +705,7 @@ if __name__ == "__main__":
                 print("This branch will be for a user-entered file. Someday.")
             elif os.path.isfile(SEED_FILE) :
                 if lat.check_dep(ap_ssdict, ldep2) :
-                    tspace    = lat.get_space_from_dset(ap_ssdict['template'])
+                    tspace    = lat.get_space_from_dset(ap_ssdict['main_dset'])
                     seed_list = UTIL.read_afni_seed_file(SEED_FILE, 
                                                          only_from_space=tspace)
                     Nseed = len(seed_list)
@@ -773,8 +835,10 @@ if __name__ == "__main__":
 
     ldep = ['combine_method']
     if lat.check_dep(ap_ssdict, ldep) :
-        # ***For now*** just m_tedana checks available
-        if ap_ssdict['combine_method'] == 'm_tedana':
+        # [PT: 2025-05-23] make this QC block apply to all MEICA group
+        # tedana combine methods
+        if 'm_tedana' in ap_ssdict['combine_method'] or \
+           'm_tedort' in ap_ssdict['combine_method'] :
             comb_meth = ap_ssdict['combine_method']
             obase     = 'qc_{:02d}'.format(idx)
             cmd       = lat.apqc_mecho_mtedana( ap_ssdict, obase, 
@@ -836,32 +900,18 @@ if __name__ == "__main__":
 
     # QC block: "regr"
     # item    : corr brain:  corr of errts WB mask ave with each voxel
+    #           -> could also be corr_brain_blur now
 
-    # Q: make uvar for this?
-
-    ldep     = ['errts_dset', 'final_anat']
-    ldep2    = ['template']                                # 2ary consid
-    alt_ldep = ['errts_dset', 'vr_base_dset']              # elif to ldep
-    ldep3    = ['user_stats']                              # 3ary consid
-    ldep4    = ['mask_dset']                               # 4ary consid
-
-    if lat.check_dep(ap_ssdict, ldep) :
-        DO_REGR_CORR_ERRTS = 1
+    ldep  = ['corr_brain', 'main_dset']
+    ldep2 = ['corr_brain_blur', 'main_dset']
+    if lat.check_dep(ap_ssdict, ldep) or lat.check_dep(ap_ssdict, ldep2) :
         ulay     = ap_ssdict['main_dset']
         focusbox = ap_ssdict['main_dset']
-    elif lat.check_dep(ap_ssdict, alt_ldep) :
-        DO_REGR_CORR_ERRTS = 1
-        ulay     = ap_ssdict['vr_base_dset']
-        focusbox = 'AMASK_FOCUS_ULAY' 
-
-    list_corr_brain = glob.glob('corr_brain+*.HEAD')
-    if len(list_corr_brain) == 1 and DO_REGR_CORR_ERRTS :
-        corr_brain = list_corr_brain[0]
 
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_regr_corr_errts( ap_ssdict, obase, "regr", 
                                              "corr_errts",
-                                             ulay, focusbox, corr_brain )
+                                             ulay, focusbox )
         idx     += 1
 
     # --------------------------------------------------------------------
@@ -1154,7 +1204,7 @@ if __name__ == "__main__":
     # write out log/history of what has been done (not done by default, to
     # save some time, bc this takes a mini-while)
     if iopts.do_log :
-        olog = 'log_apqc_tcsh.txt'
+        olog = laio.DEF_apqc_log
         UTIL.write_afni_com_log(olog)
 
     # note where we are in the AP results dir

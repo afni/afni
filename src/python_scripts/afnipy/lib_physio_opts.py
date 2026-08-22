@@ -984,7 +984,7 @@ name to read in.
   earlier options, there should be a 'PREFIX_pc_cmd.tcsh' file that is
   saved among the outputs of a given physio_calc.py run.
 
-**Note 2: while re-using the same processing options is advised when
+**Note 2: while reusing the same processing options is advised when
   loading in earlier outputs to use, it might help reduce confusion
   between those prior physio_calc.py outputs and the new results by
   changing the '-out_dir ..' and '-prefix ..'.
@@ -1149,7 +1149,7 @@ Examples ~1~
         -resp_file           sub-005_ses-01_task-rest_run-1_physio-Resp.txt  \\
         -freq                50                                              \\
         -dset_tr             2.2                                             \\
-        -dset_nt             219                                             \\
+        -dset_nt             220                                             \\
         -dset_nslice         33                                              \\
         -dset_slice_pattern  alt+z                                           \\
         -do_fix_nan                                                          \\

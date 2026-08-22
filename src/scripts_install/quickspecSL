@@ -1,4 +1,4 @@
-#!/bin/tcsh 
+#!/usr/bin/env tcsh
 
 # quickspecSL generates a .spec file, generally after running
 # SurfLayers.  With SUMA, the output .spec will open at the first

@@ -104,7 +104,13 @@ plotting.
 
         """
 
-        cmap = mplcm.get_cmap('bwr')  # faded red/wh/blue cmap for bands
+        # [PT: 2026-07-29] matplotlib v3.11 introduced a breaking
+        # change; the TRY branch works in mpl ver<3.11, and the EXCEPT
+        # for ver>=3.11.  Thanks, Dan Handwerker, for pointing this out.
+        try:
+            cmap = mplcm.get_cmap('bwr')  # faded red/wh/blue cmap for bands
+        except:
+            cmap = mpl.colormaps['bwr']   # faded red/wh/blue cmap for bands
 
         all_ivals = np.array([j-i for i, j in zip(self.x[:-1], self.x[1:])])
         med = np.median(all_ivals)
@@ -1230,7 +1236,7 @@ def plot_regressors_rvt(retobj, label, ext='svg'):
     # process any/all RVT regressors
     for ii in range(nrvt):
         key  = phobj.regress_rvt_keys[ii]
-        ylab = key + '\\n' + '$\Delta={}$'.format(retobj.rvt_shift_list[ii])
+        ylab = key + '\\n' + '$\\Delta={}$'.format(retobj.rvt_shift_list[ii])
 
         data_lab[ii] = ylab
         data_arr[:,ii] = phobj.regress_dict_rvt[key]

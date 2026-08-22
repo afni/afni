@@ -81,7 +81,7 @@ MAX_WLEVEL_RANK =  lahc.wlevel_ranks[MAX_WLEVEL]
 if __name__ == "__main__":
 
     # parse inputs, and get current dir (to return to at end)
-    iopts  = laio.parse_html_args(sys.argv[1:])
+    iopts  = laio.parse_html_args(sys.argv)
     my_cwd = os.getcwd()
     list_links = []                   # will hold list of links
 
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     # NB: someday, xstudy can be the task_name, likely from a uvar and
     # field in page_title_json
     ht+= lah.wrap_page_title( AATI.title, AATI.subj,
-                              xstudy='task_name',
+                              xses=AATI.ses, xstudy=AATI.taskname,
                               vpad=1,
                               blockid=AATI.blockid,
                               padmarg=PADMARG_VAL )
@@ -302,6 +302,7 @@ if __name__ == "__main__":
     list_links.append( lah.qc_link_final )
 
     txt_for_navtable = lah.make_nav_table(list_links, subj=AATI.subj,
+                                          ses=AATI.ses,
                                           max_wlevel = MAX_WLEVEL)
     ht               = ht.replace(tobetable, txt_for_navtable)
 

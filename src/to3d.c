@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "to3d.h"
@@ -11,6 +11,8 @@ extern void mri_read_dicom_reset_obliquity();
 extern void mri_read_dicom_get_obliquity(float *);
 extern void Obliquity_to_coords(THD_3dim_dataset *);
 static void T3D_reverse_list(int, char **);
+void to3d_expose_EV( Widget w , XtPointer cd ,
+                     XEvent *event , RwcBoolean *continue_to_dispatch );
 
 #define LABEL_ARG(str) \
   XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
@@ -528,8 +530,8 @@ ENTRY("T3D_create_widgets") ;
                       user_inputs.xorient ,              /* init */
                       MCW_AV_readtext ,                  /* text */
                       0 ,                                /* decimals */
-                      T3D_orient_av_CB , NULL ,          /* callback */
-                      T3D_text_display ,                 /* text maker */
+          (gen_func *)T3D_orient_av_CB , NULL ,          /* callback */
+          (str_func *)T3D_text_display ,                 /* text maker */
                       ORIENT_typestr                     /* and data */
                      ) ;
 
@@ -549,8 +551,8 @@ ENTRY("T3D_create_widgets") ;
                       user_inputs.yorient ,              /* init */
                       MCW_AV_readtext ,                  /* text */
                       0 ,                                /* decimals */
-                      T3D_orient_av_CB , NULL ,          /* callback */
-                      T3D_text_display ,                 /* text maker */
+          (gen_func *)T3D_orient_av_CB , NULL ,          /* callback */
+          (str_func *)T3D_text_display ,                 /* text maker */
                       ORIENT_typestr                     /* and data */
                      ) ;
 
@@ -571,8 +573,8 @@ ENTRY("T3D_create_widgets") ;
                       user_inputs.zorient ,              /* init */
                       MCW_AV_readtext ,                  /* text */
                       0 ,                                /* decimals */
-                      T3D_orient_av_CB , NULL ,          /* callback */
-                      T3D_text_display ,                 /* text maker */
+          (gen_func *)T3D_orient_av_CB , NULL ,          /* callback */
+          (str_func *)T3D_text_display ,                 /* text maker */
                       ORIENT_typestr                     /* and data */
                      ) ;
 
@@ -640,7 +642,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(100*user_inputs.xsize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
-                      T3D_size_av_CB , NULL ,       /* callback */
+          (gen_func *)T3D_size_av_CB , NULL ,       /* callback */
                       NULL , NULL                   /* text maker */
                      ) ;
 
@@ -665,7 +667,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(100*user_inputs.ysize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
-                      T3D_size_av_CB , NULL ,       /* callback */
+          (gen_func *)T3D_size_av_CB , NULL ,       /* callback */
                       NULL , NULL                   /* text maker */
                      ) ;
 
@@ -687,7 +689,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(100*user_inputs.zsize), /* init */
                       MCW_AV_editext ,              /* text */
                       2 ,                           /* decimals */
-                      T3D_size_av_CB , NULL ,       /* callback */
+          (gen_func *)T3D_size_av_CB , NULL ,       /* callback */
                       NULL , NULL                   /* text maker */
                      ) ;
 
@@ -710,7 +712,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.zspacing),  /* init */
                         MCW_AV_editext ,                  /* text */
                         2 ,                               /* decimals */
-                        T3D_size_av_CB , NULL ,           /* callback */
+            (gen_func *)T3D_size_av_CB , NULL ,           /* callback */
                         NULL , NULL                       /* text maker */
                       ) ;
 
@@ -733,7 +735,7 @@ ENTRY("T3D_create_widgets") ;
                       (int)(10*user_inputs.fov), /* init */
                       MCW_AV_editext ,           /* text */
                       1 ,                        /* decimals */
-                      T3D_fov_av_CB , NULL ,     /* callback */
+          (gen_func *)T3D_fov_av_CB , NULL ,     /* callback */
                       NULL , NULL                /* text maker */
                      ) ;
 
@@ -913,7 +915,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.xorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
-                        T3D_origin_av_CB , NULL ,       /* callback */
+            (gen_func *)T3D_origin_av_CB , NULL ,       /* callback */
                         NULL , NULL                     /* text maker */
                      ) ;
 
@@ -947,7 +949,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.yorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
-                        T3D_origin_av_CB , NULL ,       /* callback */
+            (gen_func *)T3D_origin_av_CB , NULL ,       /* callback */
                         NULL , NULL                     /* text maker */
                      ) ;
 
@@ -982,7 +984,7 @@ ENTRY("T3D_create_widgets") ;
                         (int)(100*user_inputs.zorigin), /* init */
                         MCW_AV_editext ,                /* text */
                         2 ,                             /* decimals */
-                        T3D_origin_av_CB , NULL ,       /* callback */
+            (gen_func *)T3D_origin_av_CB , NULL ,       /* callback */
                         NULL , NULL                     /* text maker */
                      ) ;
 
@@ -1129,8 +1131,8 @@ ENTRY("T3D_create_widgets") ;
                          user_inputs.view_type ,          /* init */
                          MCW_AV_readtext ,                /* text */
                          0 ,                              /* decimals */
-                         T3D_orient_av_CB , NULL ,        /* callback */
-                         T3D_text_display ,               /* text maker */
+             (gen_func *)T3D_orient_av_CB , NULL ,        /* callback */
+             (str_func *)T3D_text_display ,               /* text maker */
                          VIEW_typestr                     /* and data */
                        ) ;
 
@@ -1556,8 +1558,8 @@ ENTRY("T3D_create_widgets") ;
              user_inputs.dataset_type ,         /* init */
              MCW_AV_readtext ,                  /* text type */
              0 ,                                /* decimals */
-             T3D_type_av_CB , NULL ,            /* callback */
-             T3D_text_display ,                 /* text maker */
+ (gen_func *)T3D_type_av_CB , NULL ,            /* callback */
+ (str_func *)T3D_text_display ,                 /* text maker */
              DATASET_typestr                    /* and data */
        ) ;
 
@@ -1602,8 +1604,8 @@ ENTRY("T3D_create_widgets") ;
              user_inputs.function_type ,         /* init */
              MCW_AV_readtext ,                   /* text type */
              0 ,                                 /* decimals */
-             T3D_type_av_CB , NULL ,             /* callback */
-             T3D_text_display ,                  /* text maker */
+ (gen_func *)T3D_type_av_CB , NULL ,             /* callback */
+ (str_func *)T3D_text_display ,                  /* text maker */
              FUNC_typestr                        /* and data */
        ) ;
 
@@ -1645,8 +1647,8 @@ ENTRY("T3D_create_widgets") ;
              user_inputs.anatomy_type ,          /* init */
              MCW_AV_readtext ,                   /* text type */
              0 ,                                 /* decimals */
-             T3D_type_av_CB , NULL ,             /* callback */
-             T3D_text_display ,                  /* text maker */
+ (gen_func *)T3D_type_av_CB , NULL ,             /* callback */
+ (str_func *)T3D_text_display ,                  /* text maker */
              ANAT_typestr                        /* and data */
        ) ;
 
@@ -1976,6 +1978,19 @@ ENTRY("T3D_create_widgets") ;
    printf(".");fflush(stdout);
 
    /*----- all done -----*/
+
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( wset.topform ,
+                           StructureNotifyMask ,  /* resizes */
+                           FALSE ,                /* nonmaskable events? */
+                           to3d_expose_EV ,       /* handler */
+                           (XtPointer) NULL ,     /* client data - not used */
+                           XtListTail             /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("Added event handler for to3d window resize\n");
+   }
 
    XtManageChild( wset.topform ) ;
 
@@ -3220,6 +3235,10 @@ void Syntax()
     "    for each slice. For example, if 'filename' contains\n"
     "       0 600 200 800 400\n"
     "    then this is equivalent to 'altplus' in the above example.\n"
+    "\n"
+    "  * Note that the scale of the slice times matches the units of the TR.\n"
+    "    The examples above are in milliseconds.  It is much more common now\n"
+    "    to work in units of seconds.\n"
     "\n"
     "    Notes:\n"
     "      * Time-dependent functional datasets are not yet supported by\n"
@@ -4915,7 +4934,7 @@ void T3D_open_view_CB( Widget w ,
       return ;
    }
 
-   wset.seq = open_MCW_imseq( wset.dc , T3D_getim , br ) ;
+   wset.seq = open_MCW_imseq( wset.dc , (get_ptr)T3D_getim , br ) ;
    drive_MCW_imseq( wset.seq,isqDR_realize , NULL ) ;
    NORMAL_cursorize( wset.seq->wimage ) ;                       /* 07 Dec 2001 */
 
@@ -4953,7 +4972,7 @@ XtPointer T3D_getim( int n , int type , FD_brick * br )
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
-      stat->send_CB    = T3D_imseq_CB ;
+      stat->send_CB    = (gen_func *)T3D_imseq_CB ;
       stat->parent     = (XtPointer) br ;
       stat->aux        = NULL ;
 
@@ -6289,4 +6308,79 @@ T3D_reverse_list(int gnim, char ** gname)
       gname[i] = strlist[i];
 
    free(strlist);      
+}
+
+
+/* expose widget with remanage/expose 
+ * consuming extra events */
+void to3d_expose_EV( Widget w , XtPointer cd ,
+                               XEvent *event , RwcBoolean *continue_to_dispatch )
+{
+
+   static int busy=0;
+   XEvent ev;
+   XConfigureEvent last = event->xconfigure;
+   int iter=0;
+
+ENTRY("to3d_expose_EV") ;
+
+   if( g_needs_x11_redraw_verb )
+      printf("to3d_expose_EV\n");
+
+   if( busy ) EXRETURN ;
+
+   busy = 1 ;
+
+   /* try dpeterc's trick for flushing / waiting for ConfigureNotify events */ 
+   while (XCheckTypedWindowEvent(XtDisplay(w), XtWindow(w),
+                                 ConfigureNotify, &ev)){
+      if( g_needs_x11_redraw_verb )
+         printf("-- waiting for events to clear - iteration %d\n", iter);
+
+      last = ev.xconfigure;
+      NI_sleep(10);
+      iter++;
+   }
+
+   switch( event->type ){
+     case ConfigureNotify:{
+          forceExpose( w , 0 ) ;
+          if( g_needs_x11_redraw_verb )
+             printf("ConfigureNotify event for resizing of to3d menu\n");
+     }
+     break ;
+ 
+     case MapNotify:{
+        if( g_needs_x11_redraw_verb ) printf("MapNotify\n");
+        break;
+     }
+     case UnmapNotify:{
+        if( g_needs_x11_redraw_verb ) printf("UnmapNotify\n");
+        break;
+     }
+
+     case CirculateNotify:{
+        if( g_needs_x11_redraw_verb ) printf("CirculateNotify\n");
+        break;
+     }
+     case DestroyNotify:{
+        if( g_needs_x11_redraw_verb ) printf("DestroyNotify\n");
+        break;
+     }
+     case GravityNotify:{
+        if( g_needs_x11_redraw_verb ) printf("GravityNotify\n");
+        break;
+     }
+     case ReparentNotify:{
+        if( g_needs_x11_redraw_verb ) printf("ReparentNotify\n");
+        break;
+     }
+
+     /** No other event types (at this time) */
+     default:
+         if( g_needs_x11_redraw_verb ) printf("not ConfigureNotify event\n");
+   }
+
+   busy = 0 ;
+   EXRETURN ;
 }

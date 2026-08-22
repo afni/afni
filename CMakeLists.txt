@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.14.7 FATAL_ERROR)
+if(POLICY CMP0170)
+  cmake_policy(SET CMP0170 OLD)
+endif()
 
 # ##### Set policies
 cmake_policy(SET CMP0077 NEW)
@@ -34,13 +37,24 @@ project(
 )
 string(TIMESTAMP BUILD_DATE "%m %d %Y")
 
+# AFNI includes legacy C sources that rely on pre-C23 empty-parameter-list
+# semantics.  Pin the project dialect so compiler default changes do not alter
+# those semantics.
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON)
+
 set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
 check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
 
-if("/usr/bin/cc" STREQUAL "${CMAKE_C_COMPILER}")
-    # This should never happen, compiler should be gcc or clang.
-    message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}. Please check to see if clang or gcc are installed and functioning")
-endif()
+# This fails (as CCC == cc) on cmake 4.0.0, do we try to force to gcc-14
+# (e.g. set AFNI_COMPILER_CHOICE to GNU)?  But why the change from cmake?
+# [2025.04.08 rickr]
+# if("/usr/bin/cc" STREQUAL "${CMAKE_C_COMPILER}")
+#     # This should never happen, compiler should be gcc or clang.
+#     message(FATAL_ERROR "wrong compiler: ${CMAKE_C_COMPILER}. Please check to see if clang or gcc are installed and functioning")
+# endif()
+
 # set(CMAKE_LINK_WHAT_YOU_USE $<$<C_COMPILER_ID:GNU>:ON>)
 include(afni_cmake_build_options)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -130,4 +144,3 @@ if(USE_CPACK)
     include(CMakeCPack.cmake)
   endif()
 endif()
-

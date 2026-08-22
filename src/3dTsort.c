@@ -224,7 +224,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     0 ,                    /* don't detrend */
                     nvals ,                /* number of briks */
-                    SORTS_ranfunc ,        /* timeseries processor */
+    (generic_func *)SORTS_ranfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
@@ -237,7 +237,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     0 ,                    /* don't detrend */
                     nvals ,                /* number of briks */
-                    SORTS_FFTfunc ,        /* timeseries processor */
+    (generic_func *)SORTS_FFTfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
@@ -250,7 +250,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     0 ,                    /* don't detrend */
                     nvals ,                /* number of briks */
-                    SORTS_tsfunc ,         /* timeseries processor */
+    (generic_func *)SORTS_tsfunc ,         /* timeseries processor */
                     NULL,                  /* data for tsfunc */
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
@@ -263,7 +263,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     0 ,                    /* don't detrend */
                     nvals ,                /* number of briks */
-                    SORTS_itsfunc ,        /* timeseries processor */
+    (generic_func *)SORTS_itsfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */
@@ -276,7 +276,7 @@ int main( int argc , char *argv[] )
                     0 ,                    /* ignore count  */
                     0 ,                    /* don't detrend */
                     nvals ,                /* number of briks */
-                    SORTS_rtsfunc ,        /* timeseries processor */
+    (generic_func *)SORTS_rtsfunc ,        /* timeseries processor */
                     NULL,                  /* data for tsfunc */
                     NULL,                  /* mask */
                     0                      /* Allow auto scaling of output */

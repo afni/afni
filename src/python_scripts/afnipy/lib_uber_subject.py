@@ -1574,7 +1574,7 @@ def update_svars_from_special(vname, svars, check_sort=0):
       if nf < 2: return 0       # nothing to do
 
       if check_sort: # try to sort by implied index list
-         dir, snames, gstr = UTIL.flist_to_table_pieces(fnames)
+         dname, snames, gstr = UTIL.flist_to_table_pieces(fnames)
          indlist = UTIL.list_minus_glob_form(snames)
          apply = 0
          try:
@@ -1596,7 +1596,7 @@ def update_svars_from_special(vname, svars, check_sort=0):
       if nf < 2: return 0               # nothing to do
 
       # stim file names are more complex...
-      dir, snames, gstr = UTIL.flist_to_table_pieces(fnames)
+      dname, snames, gstr = UTIL.flist_to_table_pieces(fnames)
       stable = UTIL.parse_as_stim_list(snames)
 
       if len(stable) != nf: return 0    # nothing to do

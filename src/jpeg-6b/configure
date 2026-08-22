@@ -647,12 +647,17 @@ mkdir -p save.rr
 r_ac_link='${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS'
 set -x
 echo $r_ac_link > save.rr/ac.link
+echo CC ${CC-cc} CFLAGS $CFLAGS CPPFLAGS $CPPFLAGS LDFLAGS $LDFLAGS LIBS $LIBS \
+     >> save.rr/ac.link
 echo ${CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS \
      >> save.rr/ac.link
 set +x
 echo ""
 
-rm -fr conftest*
+# rickr - don't remove, but save (keep confdefs.h for later tests)
+# rm -fr conftest*
+mv conftest* save.rr
+cp confdefs.h save.rr
 
 echo "$ac_t""$ac_cv_prog_cc_works" 1>&6
 if test $ac_cv_prog_cc_works = no; then

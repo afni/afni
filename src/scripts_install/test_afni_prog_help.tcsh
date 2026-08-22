@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # ===========================================================================
 # show help - can only reach via goto HELP
@@ -78,7 +78,7 @@ set progname = `basename $0`
 
 # temp bin dir is where this program was run from
 # tfile is default file to have list of programs to run -help on
-set tbin = $0:h
+set tbin = `dirname $0`
 set tfile = prog_list.txt
 
 # ===========================================================================

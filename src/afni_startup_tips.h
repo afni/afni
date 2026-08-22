@@ -348,9 +348,9 @@ static char *tip[] = {
    " * float (32 bit values)           * complex (pairs of floats)\n"
    " * RGB  (triples of bytes)"
  ,
-   "AFNI will read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
-   "It depends on who you ask! If you don't like this, set Unix environment\n"
-   "variable AFNI_IMAGE_DATASETS to NO (in your ~/.afnirc file)."
+   "AFNI can read in .jpg and .png image files as 2D 'datasets'. Is this useful?\n"
+   "It depends on who you ask! If you like this, set Unix environment\n"
+   "variable AFNI_IMAGE_DATASETS to YES (in your ~/.afnirc file)."
  ,
    "The AFNI program 'aiv' (AFNI Image Viewer) can be used for a quick display\n"
    "of images in various formats (.jpg, .png, plus datasets). The interface\n"
@@ -1352,6 +1352,12 @@ static char *gby[] = {
      "\n Life is never fair, and perhaps it is a good thing\n"
      "   for most of us that it is not"                                         ,
 
+     /* LJ Peter */
+     "If two wrongs don't make a right, try three!"                             ,
+
+     /* P. Erdos */
+     "A mathematician is a device for turning coffee into theorems"             ,
+
      /* Longer quotes */
 
      "Where did the time go? I thought growing old would take longer"                 ,
@@ -1532,8 +1538,10 @@ static char *gby[] = {
      "Our time together has passed away like swift drafts of nectar in the high halls"        ,
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "Those are my statistics, and if you don't like them... well, I have others"             ,
-     "When you come to a fork in the road -- take it"                                         ,
      "Remember: computers do what you *tell* them to do, not what you *want* them to do"      ,
+
+     /* J. Barksdale */
+     "If we have data, let's look at data. If all we have are opinions, let's go with mine"   ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
@@ -1730,6 +1738,10 @@ static char *gby[] = {
      // Kurt Goedel
      "\n  The more I think about language, the more it amazes me\n"
      "  that people ever understand each other."                                                ,
+
+     // Hannah Sullivan
+     "\n  When things are patternless, their fascination's stronger.\n"
+     "  Failed form is hectic with loveliness, and compels us longer."                        ,
 
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"

@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -116,7 +116,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "3D Registration" ,
                                 "3D Registration of a 3D+time Dataset" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , VOLREG_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)VOLREG_main  ) ;
 
    PLUTO_add_hint( plint , "3D Registration of a 3D+time Dataset" ) ;
 

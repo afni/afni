@@ -4,8 +4,10 @@
 # (IC) or Graph View (GV) driver script for the AP results directory.
 #
 auth = 'PA Taylor'
-ver = 2.0 
+#ver = 2.0 
 # [June 25, 2023] merged from earlier versions of script writing
+ver = 2.1
+# [June 10, 2025] remove the '-no1D' opt, so we can pick ideal time series
 #
 #########################################################################
 
@@ -375,7 +377,9 @@ otxt  : str
     BAD_RETURN = "", ""
 
     # list of uvars, in decreasing order of preference
-    list_ldep = ['errts_dset']
+    # [PT: Jun 18, 2025] now, if errts_blur exists, it will get priority
+    # as the dset for IC, bc it has only been created if it should be used
+    list_ldep = ['errts_blur', 'errts_dset']
 
     # initialize
     ouvar = ''
@@ -740,7 +744,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no1D -no_detach                                               \\
+afni -q  -no_detach                                                     \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "INSTACORR INIT                                                \\
@@ -766,7 +770,7 @@ afni -q  -no1D -no_detach                                               \\
 sleep 1
 
 set l = `prompt_popup -message \\
-"   Run InstaCorr on AP results data:  ${label}\\n\\n\\
+"   Run InstaCorr on AP results data:  ${label}  \\n\\n\\
 \\n\\
 InstaCorr calc using : ${ic_dset}\\n\\
 Initial ulay dataset : ${ic_dset}\\n\\
@@ -861,7 +865,7 @@ set portnum = `afni -available_npb_quiet`
 
     otxt+= '''
 
-afni -q  -no1D -no_detach                                               \\
+afni -q  -no_detach                                                     \\
     -npb ${portnum}                                                     \\
     -com "SWITCH_UNDERLAY    ${dset_ulay}"                              \\
     -com "SET_DICOM_XYZ      ${coord}"                                  \\

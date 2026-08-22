@@ -13,23 +13,28 @@ import sys, os
 import glob
 import copy
 import socket
+import platform, plistlib, subprocess
 
+from afnipy       import afni_base     as BASE
 
 # ==========================================================================
 
 # default parameter settings
 DEF = {
     'infiles' : [],             # list of */index.html files to open
+    'find_infiles' : None,      # list of */index.html files via `find ..`
     'portnum' : 5000,           # port number to start trying
     'nsearch' : 500,            # number of ports to search for an open one
     'host'    : '127.0.0.1',    # hostname
     'nv_dir'  : '',             # hostname
     'jump_to' : None,           # hash to jump to in APQC page
     'open_pages'    : True,     # T/F: open pages in browser?
+    'do_use_wbrsr'  : False,    # T/F: use webbrowser module to open pages?
     'disp_jump_ids' : False,    # T/F: display jump IDs in index.html
     'new_tabs_only' : False,    # T/F: do not open [0]th page in new win
     'new_wins_only' : False,    # T/F: open each page in new win (not tabs)
     'pause_time'    : 2.0,      # time (s) to pause to let pages load
+    'pause_tab0'    : 0.5,      # time (s) to pause after initial tab
     'verb'          : 1,        # verbosity level
 }
 
@@ -200,10 +205,9 @@ for jumping, which is stored in extra_info.
 
 """
     
-    # bc of how argparse works, if no infiles are input, then:
-    # all_inpath == [[]].  So, it is never an empty list, and check
-    # len of zeroth element to see if none were input
-    if not(len(all_inpath[0])) :
+    
+
+    if not(len(all_inpath)) :
         print("** ERROR: no index.html files were input, so I cannot list "
               "any IDs.\n"
               "   Please use '-infiles ..' to input at least one index.html "
@@ -612,6 +616,278 @@ def verify_all_paths_to_html( inp_path_list ):
             return RETURN_IF_BAD
 
     return 1
+
+def find_infiles_from_topdir( topdir, verb=0 ):
+    """Starting from the provided topdir name, search downwards with
+shell's "find" command for any index.html files.  Return the list of
+paths to index.html
+
+NB: this could return a lot of things!
+
+Parameters
+----------
+topdir : str
+    directory, from which to search downwards for any+all index.html files
+
+Return
+-------
+all_findpath : list (of str)
+    a sorted list of all filepaths found to index.html
+
+    """
+
+    RETURN_IF_BAD = 0, []
+
+    if not(os.path.isdir(topdir)) :
+        print("** ERROR: topdir must be a valid directory")
+        return RETURN_IF_BAD
+
+    cmd  = 'find {} -type f -name "index.html"'.format(topdir)
+    com  = BASE.shell_com(cmd, capture=1)
+    stat = com.run()
+    all_findpath = com.so
+
+    all_findpath.sort()
+    npath = len(all_findpath)
+
+    if verb :
+        print("++ Found {} paths:".format(npath))
+        print("   {}".format("\n   ".join(all_findpath)))
+
+    if npath == 0 :
+        msg = "+* WARN: no index.html files found "
+        msg+= "from topdir: {}".format(topdir)
+        print(msg)
+
+    return npath, all_findpath
+
+# ---------------------------------------------------------------------------
+# some browser-specific functionality
+
+def open_url_in_browser(url, page_code=2, 
+                        sys_name='', browser_id='',
+                        verb=0):
+    """The fancy approach to open a URL, trying to make use of OS-specific
+(and sometimes browser-specific) command functionality.
+
+macOS/Darwin presents challenges for command-line browser calls, so we
+have to make a lot of if-conditions within this function
+
+Parameters
+----------
+url : str
+    page address to open
+page_code : int
+    2 for 'new tab', 1 for 'new window'
+sys_name : str
+    operating system name ('Darwin', 'Linux', etc.)
+browser_id : str
+    string representing browser ID (only used on some systems, at present)
+verb : int
+    verbosity level
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+
+    """
+
+    try:
+        if sys_name == 'Darwin' :                       # macOS
+            if page_code == 1 and (browser_id == 'com.apple.safari') :
+                # Safari ignores window-vs-tab control via 'open', so use
+                # AppleScript's 'make new document' to force a new window
+                script = ('tell application "Safari" to make new document '
+                          'with properties {{URL:"{}"}}').format(url)
+                subprocess.run(['osascript', '-e', script], check=True)
+                return 0
+            elif page_code == 1 and (browser_id == 'org.mozilla.firefox') :
+                # Firefox: call the binary directly with -new-window.  Going
+                # through 'open -a Firefox --args' is unreliable (URL often
+                # ignored); the direct binary call routes to the running
+                # instance and honors -new-window.
+                ff = '/Applications/Firefox.app/Contents/MacOS/firefox'
+                if os.path.isfile(ff) :
+                    subprocess.run([ff, '--new-window', url], check=True)
+                    return 0
+                # fall through to plain 'open' if binary not where expected
+                subprocess.run(['open', url], check=True)
+                return 0            
+            elif page_code == 2 and (browser_id == 'org.mozilla.firefox') :
+                # Firefox: call the binary directly with -new-tab.  Going
+                # through 'open -a Firefox --args' is unreliable (URL often
+                # ignored); the direct binary call routes to the running
+                # instance and honors -new-window.
+                ff = '/Applications/Firefox.app/Contents/MacOS/firefox'
+                if os.path.isfile(ff) :
+                    subprocess.run([ff, '--new-tab', url], check=True)
+                    return 0
+                # fall through to plain 'open' if binary not where expected
+                subprocess.run(['open', url], check=True)
+                return 0            
+            elif page_code == 1 and (browser_id == 'com.google.chrome') :
+                # Chrome: call the binary directly with --new-window.
+                # Going through 'open -a "Google Chrome" --args' is
+                # unreliable, because --args only applies on a fresh
+                # launch; when Chrome is already running the flag is
+                # ignored and the URL opens as a tab.  The direct
+                # binary call routes to the running instance and
+                # honors --new-window.
+                gc = '/Applications/Google Chrome.app/Contents/'
+                gc+= 'MacOS/Google Chrome'
+                if os.path.isfile(gc) :
+                    subprocess.run([gc, '--new-window', url], check=True)
+                    return 0
+                # fall through to plain 'open' if binary not where expected
+                subprocess.run(['open', url], check=True)
+                return 0
+            else :
+                # non-Safari default (Chrome/Firefox/etc.), or page_code==2
+                # not requested: plain 'open' launches the default browser
+                subprocess.run(['open', url], check=True)
+                return 0
+
+        elif sys_name == 'Linux' :
+            ### NB: using xdg-open was too simple, not being able to
+            ### pass opts to different browsers, so go for
+            ### browser-specific calls now
+            #subprocess.run(['xdg-open', url], check=True)
+            #return 0
+
+            if 'firefox' in browser_id :
+                if page_code == 1 :  flag = '--new-window' 
+                else:                flag = '--new-tab'
+                subprocess.run(['firefox', flag, url], check=True)
+                return 0
+            elif 'chromium' in browser_id or 'chrome' in browser_id :
+                # chrome/chromium use --new-window, but not --new-tab
+                if 'chromium' in browser_id : binname = 'chromium' 
+                else:                         binname = 'google-chrome'
+
+                if page_code == 1 :
+                    subprocess.run([binname, '--new-window', url], check=True)
+                else :
+                    subprocess.run([binname, url], check=True)
+                return 0
+            else :
+                # unknown browser: fall back to webbrowser
+                import webbrowser
+                ok = webbrowser.open(url, new=page_code)
+                return 0 if ok else 1
+
+        else:
+            import webbrowser
+            ok = webbrowser.open(url, new=page_code)
+            return 0 if ok else 1
+
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+        if verb :
+            print("+* WARN: native open failed ({}); trying webbrowser"
+                  "".format(e))
+        try:
+            import webbrowser
+            ok = webbrowser.open(url, new=page_code)
+            return 0 if ok else 1
+        except Exception as e2:
+            print("** ERROR: could not open URL '{}': {}".format(url, e2))
+            return 1
+
+
+def get_system_and_browser():
+    """Return the string that is the system name, such as:
+    'Darwin'   -> macOS
+    'Linux'    -> Linux flavors
+
+Also, for some systems, return some browser names.
+
+Parameters
+----------
+None
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for fail
+sys_name : str
+    a string for the system name
+browser_id : str
+    a string for the browser ID; technically, the 'bundle_id' --
+    see the help for get_default_browser_macos()
+
+    """
+
+    sys_name   = ''
+    browser_id = ''
+
+    BAD_RETURN = ( -1, sys_name, browser_id )
+
+    sys_name = platform.system()
+
+    # only doing the browser check on macOS/Darwin right now
+    if sys_name == 'Darwin' :
+        browser_id = get_default_browser_macos()
+    if sys_name == 'Linux' :
+        browser_id = get_default_browser_linux()
+
+    return 0, sys_name, browser_id
+
+
+def get_default_browser_macos():
+    """On macOS, determine the default browser's bundle identifier by
+    reading the LaunchServices 'secure' plist and finding the handler
+    registered for the 'https' URL scheme.
+
+    Returns
+    -------
+    bundle_id : str
+        the default browser's bundle id, lowercased (e.g.,
+        'com.apple.safari', 'com.google.chrome', 'org.mozilla.firefox'),
+        or '' if it cannot be determined
+    """
+
+    plist_path = os.path.expanduser(
+        '~/Library/Preferences/com.apple.LaunchServices/'
+        'com.apple.launchservices.secure.plist'
+    )
+
+    if not os.path.isfile(plist_path):
+        return ''
+
+    try:
+        with open(plist_path, 'rb') as fff:  
+            # binary plist -> read as bytes
+            data = plistlib.load(fff)
+    except Exception:
+        return ''
+
+    # LSHandlers is a list of dicts; find the one handling the https scheme
+    for handler in data.get('LSHandlers', []):
+        if handler.get('LSHandlerURLScheme') == 'https':
+            bundle = handler.get('LSHandlerRoleAll', '')
+            return bundle.lower()
+
+    # If no explicit https handler is registered, macOS defaults to Safari
+    return 'com.apple.safari'
+
+
+def get_default_browser_linux():
+    """On Linux, get the default browser's .desktop id via xdg-settings.
+
+    Returns
+    -------
+    bundle_id : str
+        the default browser's bundle id, lowercased (e.g.,
+        'firefox.desktop', 'google-chrome.desktop',
+        'chromium.desktop', 'chromium_chromium.desktop' (Snap) or ''
+        if it cannot be determined
+    """
+    try:
+        out = subprocess.run(['xdg-settings', 'get', 'default-web-browser'],
+                             capture_output=True, text=True, check=True)
+        return out.stdout.strip().lower()
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return ''
 
 
 # =========================================================================

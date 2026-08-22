@@ -243,7 +243,7 @@ ENTRY("vol2surf: PLUGIN_init");
 
     plint = PLUTO_new_interface("Vol2Surf",
                 "configure afni's volume to surface options",
-                g_help, PLUGIN_CALL_VIA_MENU, PV2S_main);
+                g_help, PLUGIN_CALL_VIA_MENU, (cptr_func *)PV2S_main);
 
     PLUTO_add_hint     (plint, "configure vol2surf options");
     PLUTO_set_sequence (plint, "A:afnicontrol:surf");

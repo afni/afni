@@ -52,7 +52,7 @@ long  smallroundcount=0;
 
 /* /////////////////////////////////////////////////////////////// */
 
-void *my_malloc();
+void *my_malloc(size_t);
 
 int optimize_hildreth_despo(long,long,double,double,double,long,long,long,double,double *,
 			    double *,double *,double *,double *,double *,

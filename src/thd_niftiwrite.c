@@ -10,6 +10,14 @@ void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 static int get_slice_timing_pattern( float * times, int len, float * delta );
 static int needs_conversion_to_float(THD_3dim_dataset *dset, int warn);
 
+/* globals */
+
+/* slice timing diff, second order (max diff of sorted timing diffs) */
+/* - greater than 2.5 ms, for Siemens (as noted by D Glen)           */
+/* - might want to allow for more, and/or base on nslices            */
+/* - had been using MYEPSILON = 0.00001, for float precision         */
+static float min_timing_diff = 0.003;
+
 /*******************************************************************/
 /*!  Write an AFNI dataset as a NIfTI file.
      - dset  = AFNI dataset
@@ -513,8 +521,8 @@ ENTRY("populate_nifti_image") ;
     if (DSET_NUM_TTOFF(dset) > 0 ) { /* if time offset exists */
 
       /*-- Find first and last non-zero element */
-#define MYEPSILON 0.00001
-#define MYFPEQ(a, b) (fabs((a) - (b)) < MYEPSILON)
+// #define MYEPSILON 0.00001
+#define MYFPEQ(a, b) (fabs((a) - (b)) < min_timing_diff)
 
       tlist = dset->taxis->toff_sl;
       for (ii = 0 ; ii < nim->nz ; ii++ ) {

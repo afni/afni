@@ -74,9 +74,12 @@
 #ver = '3.08' ; date = 'Sep 4, 2022' 
 # [PT] create+use subj ID info now
 #
-ver = '3.09' ; date = 'Sep 6, 2022' 
+#ver = '3.09' ; date = 'Sep 6, 2022' 
 # [PT] make URL more flexible by reading in origin---don't assume it is 
 # just 5000
+#
+ver = '4.00' ; date = 'Mar 17, 2025' 
+# [PT] top row buttons now make pages jump across all tabs, if doubleclicked
 #
 #########################################################################
 
@@ -159,6 +162,24 @@ qc_link_final       = [ "FINAL",
 qcb_helps           = coll.OrderedDict()
 qcb_helps["vorig"]  = '''
 Volumetric mages of data (EPI and anat) in original/native space.
+
+The EPI volume shown is the one used for motion estimation and for
+alignment to the anatomical.  Additionally, a variance map of the first
+run of input EPI data is shown, because it often provides a lot of 
+context about the variability of the EPI data.  It can also inform
+about potential artifacts, such as slicewise ones, and in particular
+about variance line artifacts, which have their own subsection in the
+'warns' QC block.
+
+The anatomical is shown for reference of coverage and quality.  Another
+image shows the relative EPI-anatomical overlap: if there are large
+translational or rotational differences to start, the alignment of those
+two datasets might go awry.  So, this can be important to troubleshoot
+poor EPI-anatomical alignment.  When obliquity in at least one of the 
+input EPI or anatomical is present, it is the image with obliquity 
+*applied* that matters most for judging alignment.  (Ideally, the 
+anatomical dataset would not have obliquity, and it is fine for the EPI
+to have obliquity.)
 '''
 
 qcb_helps["ve2a" ]  = '''
@@ -192,7 +213,14 @@ locations corresponding to major networks. In other cases (when the final
 space is ORIG or a standard space without pre-chosen seeds), then two
 seed locations in roughly the center of each left- and right-half-brain
 will be chosen, with additional constraint from the mask_dset if it 
-exists.
+exists. 
+
+If no blur was applied during processing, then a blurred version of the 
+errts dataset will be created at the start of the APQC HTML generation,
+to use in making seedbased correlation maps and InstaCorr.  Having a 
+slight blur typically facilitates QC evaluation.  The applied blur size
+is based on the errts data's voxel scale size: either 1.5 or 1.1 times 
+the voxel's geometric mean, for single- or multi-echo FMRI, respectively.
 
 Colorbar ranges and thresholds are chosen from either percentile
 values within the data set (preferably from within a WB mask,
@@ -249,10 +277,16 @@ combined stimulus plots are generated (with any censoring also shown).
 
 The degrees of freedom (DF) summary is also provided, so one can check
 if too many get used up during processing (careful with bandpassing!).
+The summary table lines can include counts for: regressors (regs) of
+interest, the number used for censoring, baseline estimation with
+orthogonal polynomials ("polort"), motion regressors, bandpassing,
+other regressors of no interest (RONI), and others.
 
 The "corr_brain" plot shows correlation of each voxel with the errts
 average within the whole brain mask (what could be called the 'global
-signal').
+signal').  If the data weren't blurred during processing, the displayed
+corr_brain might come from a temporarily created errts with blurring 
+applied, to facilitate QC interpretation.
 
 Two TSNR dsets can be shown.  In each case, voxelwise TSNR is shown
 throughout the full FOV, and any brain mask dset is just used for
@@ -281,7 +315,9 @@ recognized spaces, or user-provided). Warning levels increase as shape
 properties become potentially more problematic, such as: containing a
 large number of empty voxels; becoming thinner and more unstable to
 alignment imperfections and partial voluming; having strong
-gradients/variability in TSNR; having low overall TSNR. The table
+gradients/variability in TSNR; having low overall TSNR.  Some TSNR warn
+level values differ, based on whether the data had blurring or not during
+processing; the 'had_blur=..' title text references that.  The table
 contains the following information, with warning coloration applied to
 highlight potential issues within each ROI:
   ROI  : the integer value in the input atlas/map region
@@ -871,6 +907,7 @@ class apqc_title_info:
 
     title       = ""
     subj        = ""
+    ses         = ""
     taskname    = ""
     itemtype    = ""
     itemid      = ""
@@ -905,6 +942,10 @@ class apqc_title_info:
         if 'subj' in DICT :
             self.subj = DICT['subj']
 
+    def set_ses(self, DICT):
+        if 'ses' in DICT :
+            self.ses = DICT['ses']
+
     # this just runs through all possible things above and fills in
     # what it can
     def set_all_from_dict(self, DICT):
@@ -915,6 +956,7 @@ class apqc_title_info:
         self.set_blockid_hov(DICT)
         self.set_taskname(DICT)
         self.set_subj(DICT)
+        self.set_ses(DICT)
 
 # -------------------------------------------------------------------
 
@@ -962,7 +1004,7 @@ def write_list_ids_file(oids, list_ids):
 
 # -------------------------------------------------------------------
 
-def make_nav_table(llinks, subj='', max_wlevel=''):
+def make_nav_table(llinks, subj='', ses='', max_wlevel=''):
     # table form, not ul 
     N = len(llinks)
     idx = 0
@@ -1037,6 +1079,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
       <td class="td1" id=td1_{ll}>
         <button class="button-generic button-LHS btn5" id="btn5_{ll}" 
         onmousedown="moveToDiv(hr_{ll})" 
+        ondblclick="jumpAllOpenApqcToID('{ll}')"
         title="{hov}" 
         {finaltab} 
         onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
@@ -1054,6 +1097,7 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
       <td class="td1" id=td1_{ll}>
         <button class="button-generic button-LHS btn0" id="btn5_{ll}" 
         onmousedown="moveToDiv(hr_{ll})" 
+        ondblclick="jumpAllOpenApqcToID('{ll}')"
         title="{hov}" 
         {finaltab} 
         onkeypress="if ( event.keyCode == 13 ) {{ moveToDiv(hr_{ll}); }}">
@@ -1148,9 +1192,21 @@ def make_nav_table(llinks, subj='', max_wlevel=''):
     <p class="subj_text">{subj}</p>
     </td>
   </tr>
-</table>
 '''.format(subj=subj)
 
+    # ... and maybe session ID, if available
+    if ses :
+        y+= '''
+  <tr>
+    <td style="width: fit-content;">
+    <p class="subj_text">{ses}</p>
+    </td>
+  </tr>
+'''.format(ses=ses)
+
+    y+= '''
+</table>
+'''
 
 
     # ------------------------------------------------------ 
@@ -1326,6 +1382,48 @@ function colorizeSavingButton(val) {
 
 /* ... finally, use and colorize */
 colorizeSavingButton(is_served);
+'''
+
+    # [PT: 2025-04-02] allow pages to close more easily (saving is unchanged)
+    # [PT: 2025-04-09] this has to go *after* the colorizeSavingButton stuff,
+    #                  apparently
+    # [PT: 2025-04-23] having this here breaks cross-tab jumpability, so 
+    #                  commenting out for now
+    if 0 :
+        y+= '''
+/*
+  The following three items allow us to close an HTML page without
+  needing to verify, which is nice when the are many tabs open.  
+  From:
+  https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event#examples
+*/
+const beforeUnloadHandler = (event) => {
+  // Recommended
+  event.preventDefault();
+
+  // Included for legacy support, e.g. Chrome/Edge < 119
+  event.returnValue = true;
+};
+
+const nameInput = document.querySelector("#name");
+
+nameInput.addEventListener("input", (event) => {
+  if (event.target.value !== "") {
+    window.addEventListener("beforeunload", beforeUnloadHandler);
+  } else {
+    window.removeEventListener("beforeunload", beforeUnloadHandler);
+  }
+});
+'''
+
+    # [PT: 2025-05-20] ACTUALLY allow pages to close easily, while saving
+    y+= '''
+/*
+  Adding this helps the APQC HTMLs close without being requested to verify,
+  which is much nicer functionality, particularly when many are open.
+  Thanks for this go to: T. Hanayik.  
+*/
+window.addEventListener("beforeunload", (event) => { })
 '''
 
     y+= '''
@@ -1521,7 +1619,11 @@ function flt2str0_dir(flt, ndec = 0, dir = '' ) {
 
 '''
 
-    y+= '''
+    # [PT: 2025-05-20] think we can leave this out of HTML, to
+    # facilitate easier closing of webpage; see above for adding in
+    # new onbeforeunload behavior
+    if 0 :
+        y+= '''
 /*
   OFF AT THE MOMENT, but a guard for reloading page
 */
@@ -2358,13 +2460,17 @@ function translateBtn1TextToJsonRating( tt ) {
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 
-def wrap_page_title( xtitle, xsubj, xstudy='',
+def wrap_page_title( xtitle, xsubj, xses='', xstudy='',
                      vpad=0, addclass="", blockid='', padmarg=0 ):
 
+    # can have session info at top now (via AP uvar)
+    if xses :    txt_ses = ', ' + xses
+    else:        txt_ses = ''
 
-    txt_study = ''
-    if xstudy :
-        txt_study+= '<pre><h3>task: {study}</h3></pre>'.format( study=xstudy )
+    # task name, which could come via AP uvar
+    if xstudy :    ttt = xstudy
+    else:          ttt = 'task_name'
+    txt_study = '<pre><h3>task: {study}</h3></pre>'.format( study=ttt )
 
     # start the first div on the page
     y = '''<!-- start of title block div -->
@@ -2389,12 +2495,12 @@ def wrap_page_title( xtitle, xsubj, xstudy='',
   <!-- top of subj/title info -->
   <div style="text-align: center;">
     <div style="display: inline-block; text-align: left;">
-      <pre><h2>subj: {subj}</h2></pre>
+      <pre><h2>subj: {subj}{txt_ses}</h2></pre>
       {txt_study}
     </div>
   </div> <!-- bot of subj/title info -->
 </div> <!-- end of title block div -->
-'''.format( title=xtitle, subj=xsubj, txt_study=txt_study )
+'''.format( title=xtitle, subj=xsubj, txt_study=txt_study, txt_ses=txt_ses )
 
     if vpad:
         y = """\n"""+y

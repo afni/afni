@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -455,7 +455,9 @@ static char helpstring[] =
    "                MergeRegister values:\n"
    "                    none         ==> no merge registration\n"
    "                    reg merged   ==> register merged channels\n"
+   "                                     (merge before registering)\n"
    "                    reg channels ==> apply merge xform to all channels,\n"
+   "                                     (register before merging)\n"
    "                       - register all channels based on 'Src Chan'\n"
    "                       - apply registration params to all chan/echoes\n"
    "                         i.e. create 'registered' dataset per channel\n"
@@ -519,7 +521,7 @@ static int image_mode = 0 ;  /* 28 Apr 2000 */
 
 int RT_fim_recurse( RT_input * , int ) ;
 
-int_func * FUNC_funcs[NFUNC] = { NULL , RT_fim_recurse } ;
+int_func * FUNC_funcs[NFUNC] = { NULL , (int_func *)RT_fim_recurse } ;
 
 #define NYESNO 2
 #define NVERB  3
@@ -827,7 +829,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*-- set titles and call point --*/
 
    plint = PLUTO_new_interface("RT Options","Set Real-Time Acquisition Options",
-                                helpstring , PLUGIN_CALL_VIA_MENU , RT_main  ) ;
+                                helpstring , PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)RT_main  ) ;
 
    PLUTO_add_hint( plint , "Set Real-Time Acquisition Options" ) ;
 
@@ -1122,7 +1125,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 #ifndef USE_RT_STARTUP
    PLUTO_register_workproc( RT_worker , NULL ) ;
 #else
-   PLUTO_register_timeout( 1954 , RT_startup , NULL ) ;
+   PLUTO_register_timeout( 1954 , (generic_func *)RT_startup , NULL ) ;
 #endif
 
    /***** 12 Oct 2000: set the graphing geometry, if any *****/
@@ -5157,7 +5160,8 @@ void RT_process_image( RT_input * rtin )
       if( rtin->image_handle != NULL ){
          PLUTO_imseq_addto( rtin->image_handle , rtin->image_space ) ;
       } else {
-         rtin->image_handle = PLUTO_imseq_popim( rtin->image_space, RT_image_kfun,rtin ) ;
+         rtin->image_handle = PLUTO_imseq_popim( rtin->image_space,
+                                (generic_func *)RT_image_kfun,rtin ) ;
          PLUTO_imseq_retitle( rtin->image_handle , "Realtime Images" ) ;
       }
       return ;
@@ -6795,7 +6799,7 @@ void RT_registration_3D_realtime( RT_input *rtin )
                                   ycount,-rtin->reg_graph_yr,rtin->reg_graph_yr,
                                   "reps (TR)", "motion parameters" , ttl, nar , NULL ) ;
 
-         if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
+         if( rtin->mp != NULL ) rtin->mp->killfunc = (void_func *)MTD_killfunc ;
 
          free(ttl) ;
 

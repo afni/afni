@@ -1,6 +1,6 @@
 #!/bin/tcsh 
 
-setenv AFNI_R_DIR $0:h
+setenv AFNI_R_DIR `dirname $0`
 
 # note the second to last index
 @ penult = $#argv - 1

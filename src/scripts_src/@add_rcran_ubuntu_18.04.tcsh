@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 set ver = '2.0'
 # [PT: Oct 17, 2019] 

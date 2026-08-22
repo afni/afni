@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 set version   = "0.0";  set rev_dat   = "May 30, 2024"
 # + desphinxify datasets, particularly for nonhuman datasets

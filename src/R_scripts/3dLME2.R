@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLME2 ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.0, Apr 23, 2024
+Version 1.0.1, July 28, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -48,6 +48,12 @@ Introduction
  the output int the same format of the input, append a proper suffix to the
  output specification option -prefix (e.g., .nii, .niml.dset or .1D for NIfTI,
  surface or 1D).
+
+ WARNING: The statistical values provided by this program can be poorly 
+ approximated in small samples due to the difficulty of accurately 
+ assigning degrees of freedom. Users should exercise caution and ensure an 
+ adequate sample size (e.g., at least 15 to 20 individuals) to ensure reliable 
+ model convergence and reasonable approximation for statistical values.
 
  3dLME2 allows for the incorporation of various types of explanatory variables
  including categorical (between- and within-subject factors) and
@@ -114,7 +120,7 @@ Introduction
     3dLME2 -prefix LME -jobs 12                                     \\
          -mask myMask+tlrc                                          \\
           -fixef  'emotion'                                         \\
-          -ranef  '~1|Aubj'                                         \\
+          -ranef  '~1|Subj'                                         \\
           -SS_type 3                                                \\
           -bounds  -2 2                                             \\
           -gltCode pos      'emotion : 1*pos'                       \\
@@ -227,8 +233,18 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-jobs' = apl(n = 1, d = 1, h = paste(
-   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
-   "         up the program significantly.",
+   "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
+   "         up the program significantly. However, increasing the number of CPUs", 
+   "         processes does not necessarily improve performance. Because each",
+   "         CPU is an independent R process, aggregate memory usage grows",
+   "         with the number of CPUs. It is therefore advisable to identify",
+   "         the largest number of CPUs that fits comfortably within physical",
+   "         RAM while avoiding swap activity, rather than simply using all",
+   "         available CPU cores. A useful strategy is to benchmark several",
+   "         CPU counts while monitoring memory usage (e.g., with free -h,",
+   "         vmstat, or htop) and choose the largest number that avoids",
+   "         sustained swapping, as memory thrashing can more than offset the",
+   "         benefits of additional parallelism.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 

@@ -145,6 +145,7 @@ int  read_ge_header    ( char * pathname, ge_header_info * hi, ge_extras * E,
 
 FILE * open_correction_file(char * fname, char * check_type, int overwrite,
                             int verb);
+char * suck_stdin      (int * nread);
 
 int  process_analyze   ( param_t * p, int index );
 int  process_file      ( char * pathname, param_t * p );

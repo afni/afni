@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Nov 27, 2024
+Version 0.1.0, July 28, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -172,8 +172,10 @@ Introduction
   The following four reserved keywords should not be used in custom
   specifications for post-hoc estimations:  
   
-  - **LAB**:   Used to define a label for the estimate.  
-  - **CAT**:   Specifies a categorical variable.  
+  - **LAB**:   Used to define a label for the estimated effect.  
+  - **CAT**:   Specifies a categorical variable for which effects are estimated
+               each level, and all possible pairwise comparisons. Use *1* for
+               the intercept or overall mean of the model.  
   - **FIX**:   Indicates variables fixed at specific levels or values.  
   - **QUANT**: Specifies the estimation of a slope for a quantitative variable.  
   
@@ -187,10 +189,12 @@ Introduction
   
   2. **`-level LAB pos.slp2 CAT 1 FIX task=pos,age=2`**  
      - Estimates the effect of the *pos* task at *age = 2* (relative to the
-       centered value of age).  
+       centered value of age). The number *1* represents the intercept or grand
+       mean of the model.  
   
   3. **`-slope LAB pos.age CAT 1 FIX task=pos QUANT age`**  
-     - Estimates the slope effect of *age* for the *pos* task.  
+     - Estimates the slope effect of *age* for the *pos* task. The number *1* 
+       represents the intercept or grand mean of the model.
   
   4. **`-slope LAB task.by.age CAT task QUANT age`**  
      - Estimates the slope effect of *age* for both *pos* and *neg* tasks and
@@ -241,8 +245,18 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-jobs' = apl(n = 1, d = 1, h = paste(
-   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
-   "         up the program significantly.",
+   "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
+   "         up the program significantly. However, increasing the number of CPUs", 
+   "         processes does not necessarily improve performance. Because each",
+   "         CPU is an independent R process, aggregate memory usage grows",
+   "         with the number of CPUs. It is therefore advisable to identify",
+   "         the largest number of CPUs that fits comfortably within physical",
+   "         RAM while avoiding swap activity, rather than simply using all",
+   "         available CPU cores. A useful strategy is to benchmark several",
+   "         CPU counts while monitoring memory usage (e.g., with free -h,",
+   "         vmstat, or htop) and choose the largest number that avoids",
+   "         sustained swapping, as memory thrashing can more than offset the",
+   "         benefits of additional parallelism.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 
@@ -291,7 +305,10 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
    "         be confined within [lb, ub]: any values in the input data that are beyond",
    "         the bounds will be removed and treated as missing. Make sure the first number",
    "         is less than the second. The default (the absence of this option) is no",
-   "         outlier removal. \n", sep='\n')),
+   "         outlier removal. ",
+   "         **NOTE**: Using the -bounds option to remove outliers should be approached",
+   "         with caution due to its arbitrariness. A more principled alternative is to",
+   "         use the -family option with a Student's t-distribution.\n", sep='\n')),
 
       '-qVars' = apl(n=c(1,100), d=NA, h = paste(
    "-qVars variable_list: Identify quantitative variables (or covariates) with",
@@ -811,6 +828,18 @@ runGLMM <- function(myData, DM, tag) {
             try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50)), silent=TRUE)
       }
 
+      is_model_ok <- function(fm) {
+        ll <- suppressWarnings(logLik(fm))
+        coefs <- suppressWarnings(unlist(coef(fm))) #coefs <- suppressWarnings(coef(fm)$cond[[1]])
+        is.finite(ll) && all(is.finite(coefs))
+      }
+      if(!is_model_ok(fm)) {
+        if(is.null(lop$family))
+          try(fm <- glmmTMB(lop$model, data=DM, control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE) else {
+         if(lop$family=='student.t') 
+            try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50), control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE)
+      }
+      }         
       if(!is.null(fm)) {
          Stat <- Anova(fm, type=lop$SS_type)[,1]
          if(length(lop$level) > 0) for(ii in 1:length(lop$level)) {
@@ -1088,6 +1117,7 @@ if(any(!is.na(lop$vQV))) {
 }
 
 while(is.null(fm)) {
+  if(mean(na.omit(inData[ii, jj, kk,1:nrow(lop$dataStr)]) != 0) >= 0.75) {
    lop$dataStr$yy <- inData[ii, jj, kk,1:nrow(lop$dataStr)]
    options(warn=-1)
    if(is.null(lop$family)) try(fm <- glmmTMB(lop$model, data=lop$dataStr), silent=TRUE) else 
@@ -1098,40 +1128,40 @@ while(is.null(fm)) {
       chisq.df <- (Anova(fm, type=lop$SS_type))[,'Df']
       lop$n.t <- 0; t.df <- NULL
       if(length(lop$level) > 0) {
-         for(ii in 1:length(lop$level)) {
-            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ii]], at=lop$level.fix[ii]))
+         for(ll in 1:length(lop$level)) {
+            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ll]], at=lop$level.fix[ll]))
             lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$emmeans))
             t.df <- c(t.df, as.data.frame(glt$emmeans)[,'df'])
-            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1], ' z'))) else
-            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emmeans)[,1], ' t')))
+            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1], ' z'))) else
+            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1], ' t')))
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
                lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$contrasts))
                t.df <- c(t.df, as.data.frame(glt$contrasts)[,'df'])
-               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
-               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' t')))
+               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
+               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1], ' t')))
             }
          }
       }
       if(length(lop$slope) > 0) {
-         for(ii in 1:length(lop$slope)) {
-            glt  <- suppressMessages(emtrends(fm, lop$slope.pair[[ii]], at=lop$slope.fix[ii], var=lop$slope.slp[ii]))
+         for(ss in 1:length(lop$slope)) {
+            glt  <- suppressMessages(emtrends(fm, lop$slope.pair[[ss]], at=lop$slope.fix[ss], var=lop$slope.slp[ss]))
             lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$emtrends))
             t.df <- c(t.df, as.data.frame(glt$emtrends)[,'df'])
-            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emtrends)[,1]),
-                 paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emtrends)[,1], ' z'))) else
-            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.',as.data.frame(glt$emtrends)[,1]),
-                 paste0(lop$level.LAB[ii],'.', as.data.frame(glt$emtrends)[,1], ' t')))
+            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1]),
+                 paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' z'))) else
+            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.',as.data.frame(glt$emtrends)[,1]),
+                 paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' t')))
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
                lop$n.t <-lop$n.t + 2*nrow(as.data.frame(glt$contrasts))
                t.df <- c(t.df, as.data.frame(glt$contrasts)[,'df'])
-               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
-               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1]),
-                  paste0(lop$level.LAB[ii],'.', as.data.frame(glt$contrast)[,1], ' t')))
+               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1]),
+                  paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
+               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1]),
+                  paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1], ' t')))
             }             
          }
       }
@@ -1139,7 +1169,7 @@ while(is.null(fm)) {
       if(any(is.infinite(t.df))) lop$z <- 1 else lop$z <- 0
       #fail <- FALSE
    }  
- 
+  } else fm <- NULL
    if(!is.null(fm))  {
       print(sprintf("Great, test run passed at voxel (%i, %i, %i)!", ii, jj, kk))
    } else if(ii<dimx) ii<-ii+1 else if(jj<dimy) {ii<-xinit; jj <- jj+1} else if(kk<dimz) {

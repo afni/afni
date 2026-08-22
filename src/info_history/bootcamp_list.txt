@@ -95,3 +95,13 @@ Feb 2020: Three day AFNI-TORTOISE workshop, NIMHANS, Bengaluru, India.
 Feb 2020: Three day AFNI-TORTOISE workshop, PGIMER, Chandigarh, India.
 Mar 2020: Five Day AFNI workshop, Laureate Institute for Brain Research, Tulsa, USA.
 Apr 2020: Start of AFNI Academy, expanded lectures, online.
+Oct 2021: Three day AFNI workshop, virtual.
+Oct 2023: Five day AFNI workshop, NIH campus, MD, USA.
+Dec 2023: Five day AFNI workshop, Dartmouth College, Hanover, NH, USA.
+Mar 2024: Two day AFNI workshop, NIH campus, MD, USA.
+Apr 2024: Five day AFNI workshop, UNAM, Querétaro, Mexico.
+Jul 2024: Four Day AFNI workshop, BESK and KHBM, South Korea.
+Oct 2024: Three Day AFNI workshop, NIH and virtual.
+Nov 2024: Five Day AFNI workshop, Laureate Institute for Brain Research, Tulsa, USA.
+Feb 2025: Two Day AFNI workshop, India Brain Connectivity Workshop and virtual, India.
+May 2025: Three Day AFNI workshop, NIH and virtual.

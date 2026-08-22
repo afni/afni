@@ -166,7 +166,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD   \
-           3dedgedog p2dsetstat dsetstat2p                                    \
+           3dedgedog p2dsetstat dsetstat2p get_afni_model_PRF_DN              \
            $(EXTRAS)
 
 progs_1:$(PROGS_1)
@@ -213,7 +213,7 @@ PROGRAMS_NOPLUG =                                                             \
         stimband 1dNLfit tokens 3dLocalACF 3dDegreeCentrality 3dECM 3dLFCD    \
         3dMSE 3dsvm_linpredict 3dTto1D 3dExchange 2dcat get_afni_model_PRF    \
         get_afni_model_PRF_6 get_afni_model_PRF_6_BAD 3dEdu_01_scale          \
-        p2dsetstat dsetstat2p count_afni                                          \
+        p2dsetstat dsetstat2p count_afni get_afni_model_PRF_DN                \
         $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -419,7 +419,7 @@ gitignore: prog_list
         fi
 	echo "" >> .gitignore
 	echo "" >> .gitignore
-	echo '## Ignore the build directory created by the make build' >> .gitinore
+	echo '## Ignore the build directory created by the make build' >> .gitignore
 	echo '$(INSTALLDIR)' >> .gitignore
 	echo "" >> .gitignore
 	echo "" >> .gitignore
@@ -634,11 +634,13 @@ imreg:imreg.o pcor.o
 	$(RM) $@
 	$(CC) -o imreg imreg.o pcor.o $(LFLAGS) $(LLIBS)
 
-FIRdesign.o:FIRdesign.c remez.c remez.h
-
-FIRdesign:FIRdesign.o
+FIRdesign.o:FIRdesign.c
 	$(RM) $@
-	$(CC) -o FIRdesign FIRdesign.o $(LFLAGS) $(LLIBS)
+	$(CC) -c FIRdesign.c $(INFLAGS)
+
+FIRdesign:FIRdesign.o remez.o
+	$(RM) $@
+	$(CC) -o FIRdesign FIRdesign.o remez.o $(LFLAGS) $(LLIBS)
 
 imfit:imfit.o
 	$(RM) $@
@@ -1155,7 +1157,8 @@ strblast:strblast.o
 
 3dNormalityTest:3dNormalityTest.o
 	$(RM) $@
-	$(CCFAST) -o 3dNormalityTest 3dNormalityTest.o $(LFLAGS) $(LLIBS)
+	$(CCFAST) -o 3dNormalityTest 3dNormalityTest.o \
+             $(LFLAGS) $(LLIBS)
 
 3dClipLevel:3dClipLevel.o
 	$(RM) $@
@@ -1388,6 +1391,10 @@ waver:waver.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o waver waver.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
 
+3dSimARMA11.o: 3dSimARMA11.c
+	$(RM) $@
+	$(CC) -c 3dSimARMA11.c $(INFLAGS)
+
 3dSimARMA11:3dSimARMA11.o
 	$(RM) $@
 	$(CC) -o 3dSimARMA11 3dSimARMA11.o $(LFLAGS) $(LLIBS)
@@ -1549,7 +1556,7 @@ qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -o 3dLocalstat 3dLocalstat.o $(LFLAGS) $(LLIBS)
 
-AlphaSim.o:AlphaSim.c zgaussian.c
+AlphaSim.o:AlphaSim.c
 	$(RM) $@
 	$(CCOMP) -c AlphaSim.c $(INFLAGS)
 
@@ -1558,7 +1565,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSim.o:3dClustSim.c zgaussian.c mri_radial_random_field.c
+3dClustSim.o:3dClustSim.c  mri_radial_random_field.c
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
@@ -1922,11 +1929,11 @@ cs_playsound.o:cs_playsound.c
 
 1dgrayplot:libcoxplot.a 1dgrayplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dgrayplot 1dgrayplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS_X11)
+	$(CC) -o 1dgrayplot 1dgrayplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS_X11)
 
 1dsigplot:libcoxplot.a 1dsigplot.o display.o
 	$(RM) $@
-	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot $(LLIBS_X11)
+	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot -lmrix $(LLIBS_X11)
 
 1dtranspose:1dtranspose.o
 	$(RM) $@
@@ -1971,6 +1978,8 @@ afni_vcheck:afni_vcheck.o
 	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS)
 
 1dgenARMA11.o: 1dgenARMA11.c armacor.c
+	$(RM) $@
+	$(CC) -c 1dgenARMA11.c $(INFLAGS)
 
 1dgenARMA11:1dgenARMA11.o
 	$(RM) $@
@@ -2010,6 +2019,10 @@ qtest:thd_bstrap_corr.o
 1dcorr:1dcorr.o
 	$(RM) $@
 	$(CC) -o 1dcorr 1dcorr.o $(LFLAGS) $(LLIBS)
+
+1dCorrelate.o:1dCorrelate.c
+	$(RM) $@
+	$(CC) -c 1dCorrelate.c $(INFLAGS) 
 
 1dCorrelate:1dCorrelate.o
 	$(RM) $@
@@ -2577,7 +2590,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
            mri_sharpness.o mri_genARMA11.o mri_catvol.o mri_polyfit.o          \
-           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o mri_invert.o
+           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o mri_invert.o \
+           zgaussian.o ziggurat.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
@@ -2879,7 +2893,8 @@ MODELLIST =                                                            \
         model_conv_diffgamma.$(SO) model_expMEMRI.$(SO)                \
         model_expMEMRI3.$(SO) model_conv_cosine4.$(SO)                 \
         model_conv_PRF.$(SO) model_conv_PRF_6.$(SO)                    \
-        model_conv_PRF_6_BAD.$(SO) model_conv_PRF_DOG.$(SO)
+        model_conv_PRF_6_BAD.$(SO) model_conv_PRF_DOG.$(SO)            \
+        model_conv_PRF_DN.$(SO)
 
 models: $(MODELLIST)
 
@@ -3271,6 +3286,12 @@ get_afni_model_PRF_6.o: get_afni_model_PRF_6.c model_conv_PRF_6.c
 get_afni_model_PRF_6: get_afni_model_PRF_6.o model_conv_PRF_6.c $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CC) -o get_afni_model_PRF_6 get_afni_model_PRF_6.o $(LFLAGS) $(LLIBS)
+
+get_afni_model_PRF_DN.o: get_afni_model_PRF_DN.c model_conv_PRF_DN.c
+
+get_afni_model_PRF_DN: get_afni_model_PRF_DN.o model_conv_PRF_DN.c $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CC) -o get_afni_model_PRF_DN get_afni_model_PRF_DN.o $(LFLAGS) $(LLIBS)
 
 get_afni_model_PRF_6_BAD.o: get_afni_model_PRF_6_BAD.c model_conv_PRF_6_BAD.c
 
@@ -3775,6 +3796,23 @@ libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 	$(CP) libsegtools.a ../;	\
 	cd ../	;		)
 
+#############
+#REMEZ* directory
+
+remez.o: remez-exchange/remez.c remez-exchange/remez.h
+	$(RM) $@
+	$(CC) -c remez-exchange/remez.c $(INFLAGS)
+
+#############
+#ZGAUSSIAN directory (included in libmri, above)
+
+zgaussian.o: zgaussian/zgaussian.c zgaussian/zgaussian.h
+	$(RM) $@
+	$(CC) -c zgaussian/zgaussian.c $(INFLAGS) -Izgaussian
+
+ziggurat.o: zgaussian/ziggurat.c zgaussian/ziggurat.h
+	$(RM) $@
+	$(CC) -c zgaussian/ziggurat.c $(INFLAGS) -Izgaussian
 
 #############
 #PTAYLOR directory

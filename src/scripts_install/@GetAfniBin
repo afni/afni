@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 
 if ("$1" == "-h" || "$1" == "-help") then
    echo "`basename $0`  : Returns path where afni executable resides."
@@ -9,7 +9,7 @@ set l = `which afni`
 if ($status) then
    echo NO_afni_FOUND
 else
-   echo $l:h
+   echo `dirname $l`
 endif
 
 END:

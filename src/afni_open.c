@@ -59,11 +59,54 @@ int is_pdf(char *name)
    return(a);
 }
 
+/* List of text file types, including some fairly specific to AFNI
+   (like NIML, netcc, grid, asc, spec, etc.); don't include .HEAD
+   here, because afni_open can open dsets with AFNI, too. */
+int is_text_pn(SUMA_PARSED_NAME *FN)
+{
+   int a = 0;
+   if (!FN) return(0);
+   if (!strcmp(FN->Ext,".txt")  ||
+       !strcmp(FN->Ext,".json") ||
+       !strcmp(FN->Ext,".py")   ||
+       !strcmp(FN->Ext,".tcsh") ||
+       !strcmp(FN->Ext,".bash") ||
+       !strcmp(FN->Ext,".sh")   ||
+       !strcmp(FN->Ext,".zsh")  ||
+       !strcmp(FN->Ext,".dat")  ||
+       !strcmp(FN->Ext,".lt")   ||
+       !strcmp(FN->Ext,".dset") ||
+       !strcmp(FN->Ext,".spec") ||
+       !strcmp(FN->Ext,".asc")  ||
+       !strcmp(FN->Ext,".grid") ||
+       !strcmp(FN->Ext,".netcc") ) {
+      a = 1; 
+   }
+   return(a);
+}
+
+int is_text(char *name)
+{
+   int a;
+   SUMA_PARSED_NAME *pn;
+   if (!name) return(0);
+   if (!(pn = SUMA_ParseFname (name,NULL))) {
+      return(0);
+   }
+   a = is_text_pn(pn);
+   SUMA_Free_Parsed_Name (pn);
+   return(a);
+}
+
 int is_image_pn(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
-   if (!strcmp(FN->Ext,".jpg")) {
+   if (!strcmp(FN->Ext,".jpg") ||
+       !strcmp(FN->Ext,".png") ||
+       !strcmp(FN->Ext,".tif") ||
+       !strcmp(FN->Ext,".ppm") ||
+       !strcmp(FN->Ext,".bmp") ) {
       a = 1; 
    }
    return(a);
@@ -78,6 +121,32 @@ int is_image(char *name)
       return(0);
    }
    a = is_image_pn(pn);
+   SUMA_Free_Parsed_Name (pn);
+   return(a);
+}
+
+int is_xls_pn(SUMA_PARSED_NAME *FN)
+{
+   int a = 0;
+   if (!FN) return(0);
+   if (!strcmp(FN->Ext,".xls")) {
+      a = 1; 
+   }
+   else if (!strcmp(FN->Ext,".xlsx")) {
+      a = 1; 
+   }
+   return(a);
+}
+
+int is_xls(char *name)
+{
+   int a;
+   SUMA_PARSED_NAME *pn;
+   if (!name) return(0);
+   if (!(pn = SUMA_ParseFname (name,NULL))) {
+      return(0);
+   }
+   a = is_xls_pn(pn);
    SUMA_Free_Parsed_Name (pn);
    return(a);
 }
@@ -260,6 +329,22 @@ int ao_with_readme(char *fname)
    return(s);
 }
 
+int ao_with_spreadsheet(char *fname)
+{
+   char cmd[1024];
+   static char *spreadsheetviewer=NULL;
+   int s;
+   if (!spreadsheetviewer && !(spreadsheetviewer=GetAfniSpreadsheetViewer())) {
+      ERROR_message("No spreadsheet viewer");
+      return(-1);
+   }
+   if (!fname) return(-2);
+   
+   snprintf(cmd,1023*sizeof(char),"%s %s &", spreadsheetviewer, fname);
+   s = system(cmd);
+   return(s);
+}
+
 int ao_with_image_viewer(char *fname)
 {
    char cmd[1024];
@@ -386,33 +471,37 @@ void afni_open_usage(int detail)
 "===========\n"
 "  -w METHOD: Use METHOD to open FILES.\n"
 "             Acceptable values for METHOD are:\n"
-"             editor: Open with text editor.\n"
-"             downloader: Fetch with wget or curl.\n"
-"             browser: Open in browser\n"
-"             afni: Open with AFNI\n"
-"             suma: Open with SUMA\n"
-"             1dplot: Open with 1dplot\n"
-"             ExamineXmat: Open with ExamineXmat\n"
-"             iviewer: Open with image viewer\n"
-"             afniweb: Get from afni website.\n"
-"             readme: Search for appropriate README\n"
-"                     This option is in the same spirit of \n"
-"                     apsearch -view_readme option. To see a list of\n"
-"                     all readme files, run:\n"
-"                     apsearch -list_all_afni_readmes\n"
-"  -e: Same as -w editor\n"
-"  -d: Same as -w downloader\n"
-"  -x: Same as -w ExamineXmat\n"
-"  -b: Same as -w browser\n"
-"  -r: Same as -w readme\n"
-"  -aw: Same as -w afniweb\n"
 "\n"
-"     If no method is specified, the program tries to guess\n"
-"     from the filename.\n"
+"             editor       :Open with text editor.\n"
+"             downloader   :Fetch with wget or curl.\n"
+"             browser      :Open in browser\n"
+"             afni         :Open with AFNI\n"
+"             suma         :Open with SUMA\n"
+"             1dplot       :Open with 1dplot\n"
+"             ExamineXmat  :Open with ExamineXmat\n"
+"             iviewer      :Open with image viewer\n"
+"             spreadsheet  :Open with spreadsheet viewer\n"
+"             afniweb      :Get from afni website.\n"
+"             readme       :Search for appropriate README\n"
+"                           This option is in the same spirit of \n"
+"                           apsearch -view_readme option. To see a list of\n"
+"                           all readme files, run:\n"
+"                             apsearch -list_all_afni_readmes\n"
 "\n"
-"  -global_help: Show help for global options.\n"
-"  -gopts_help:  Show help for global options.\n"
-"  -help: You're looking at it.\n"
+"  -e   :Same as -w editor\n"
+"  -d   :Same as -w downloader\n"
+"  -x   :Same as -w ExamineXmat\n"
+"  -b   :Same as -w browser\n"
+"  -r   :Same as -w readme\n"
+"  -s   :Same as -w spreadsheet\n"
+"  -aw  :Same as -w afniweb\n"
+"\n"
+"  NB: If no method is specified, the program tries to guess\n"
+"  from the filename.\n"
+"\n"
+"  -global_help  :Show help for global options.\n"
+"  -gopts_help   :Show help for global options.\n"
+"  -help         :You're looking at it.\n"
 "\n"
 "Global Options:\n"
 "===============\n"
@@ -487,7 +576,13 @@ int main(int argc, char **argv)
          ++iarg;
          continue; 
       }
-      
+
+      if (strcmp(argv[iarg],"-s") == 0) { 
+         uprog = "spreadsheet"; 
+         ++iarg;
+         continue; 
+      }
+
       if (strcmp(argv[iarg],"-aw") == 0) { 
          uprog = "afniweb"; 
          ++iarg;
@@ -511,6 +606,7 @@ int main(int argc, char **argv)
              strcmp(argv[iarg],"iviewer") &&
              strcmp(argv[iarg],"afniweb") &&
              strcmp(argv[iarg],"readme") &&
+             strcmp(argv[iarg],"spreadsheet") &&
              strcmp(argv[iarg],"1dplot") ) {
             ERROR_message("Not ready/bad -w %s", argv[iarg]);
             exit(1);
@@ -582,6 +678,8 @@ int main(int argc, char **argv)
             ao_with_afniweb(FN->NameAsParsed);
          } else if (!strcmp(uprog,"readme")) {
             ao_with_readme(FN->NameAsParsed);
+         } else if (!strcmp(uprog,"spreadsheet")) {
+            ao_with_spreadsheet(FN->NameAsParsed);
          } else {
             ERROR_message("Not ready for prog. %s", uprog);
             exit(1);
@@ -609,12 +707,14 @@ int main(int argc, char **argv)
          }
       } else if (is_local_html(FN)) {
          ao_with_browser(FN->NameAsParsed);
-      } else if (FN->StorageMode == STORAGE_BY_1D) {
+      } else if (FN->StorageMode == STORAGE_BY_1D || is_text_pn(FN)) {
          ao_with_editor(FN->NameAsParsed);
       } else if (is_pdf_pn(FN)) {
          ao_with_pdf_viewer(FN->NameAsParsed);
       } else if (is_image_pn(FN)) {
          ao_with_image_viewer(FN->NameAsParsed);
+      } else if (is_xls_pn(FN)) {
+         ao_with_spreadsheet(FN->NameAsParsed);
       } else if (FN->StorageMode == STORAGE_BY_BRICK ||
                  FN->StorageMode == STORAGE_BY_MINC ||
                  FN->StorageMode == STORAGE_BY_VOLUMES ||

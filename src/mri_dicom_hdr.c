@@ -986,7 +986,7 @@ countBytes(void *buffer, U32 length, int flag,
 	   void /* unsigned long */ *sizePtr);
 static CONDITION
 exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
-	     void *buffer, U32 bufferlength, CONDITION(*callback) (),
+	     void *buffer, U32 bufferlength, DCM_EXPORT_STREAM_CALLBACK *callback,
 	     void *ctx, int sequenceLevel);
 
 static CONDITION

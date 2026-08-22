@@ -337,7 +337,7 @@ static char * TSTAT_main( PLUGIN_interface *plint )
                         DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
                         im3d->vinfo->fim_index ,       /* new inival */
                         0 ,                            /* new decim? */
-                        AFNI_bucket_label_CB ,         /* text routine */
+            (str_func *)AFNI_bucket_label_CB ,         /* text routine */
                         im3d->fim_now                  /* text data */
                        ) ;
      refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
@@ -345,7 +345,7 @@ static char * TSTAT_main( PLUGIN_interface *plint )
                         DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
                         im3d->vinfo->thr_index ,       /* new inival */
                         0 ,                            /* new decim? */
-                        AFNI_bucket_label_CB ,         /* text routine */
+            (str_func *)AFNI_bucket_label_CB ,         /* text routine */
                         im3d->fim_now                  /* text data */
                        ) ;
      AFNI_force_bucket_label_resize(0) ;

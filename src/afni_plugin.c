@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #undef MAIN
@@ -1787,7 +1787,7 @@ STATUS("create PLUGIN_STRING_TYPE (fixed)") ;
                           MCW_AV_readtext ,                 /* type */
                           0 ,                               /* decimals? */
                           NULL , NULL ,                     /* callbacks */
-                          MCW_av_substring_CB ,             /* text routine */
+              (str_func *)MCW_av_substring_CB ,             /* text routine */
                           sv->string_range                  /* text data */
                         ) ;
 
@@ -2200,6 +2200,20 @@ STATUS("management") ;
       XtManageChild( wframe ) ;
       XtManageChild( wid->scrollw ) ;
    }
+
+   if( needsX11Redraw() ){   /* macos 26 fix */
+     XtInsertEventHandler( wid->form ,
+                           StructureNotifyMask ,   /* resizes */
+                           FALSE ,                 /* nonmaskable events? */
+                           AFNI_widget_expose_EV , /* handler */
+                           (XtPointer) NULL ,      /* client data - not used */
+                           XtListTail              /* last in queue */
+                         ) ;
+
+     if( g_needs_x11_redraw_verb )
+        printf("-- Added event handler for generic plugin window resize\n");
+   }
+
    XtManageChild( wid->form ) ;
 
 #if 0
@@ -3164,11 +3178,11 @@ ENTRY("PLUG_choose_dataset_CB") ;
    if( av->multi ){
       MCW_choose_multi_strlist( w , label , mcwCT_multi_mode ,
                                 num_dset , indold , strlist ,
-                                PLUG_finalize_dataset_CB , (XtPointer) plint ) ;
+                    (gen_func *)PLUG_finalize_dataset_CB , (XtPointer) plint ) ;
    } else {
       MCW_choose_strlist( w , label ,
                           num_dset , av->dset_choice , strlist ,
-                          PLUG_finalize_dataset_CB , (XtPointer) plint ) ;
+              (gen_func *)PLUG_finalize_dataset_CB , (XtPointer) plint ) ;
    }
 
    myXtFree(indold) ; myXtFree(old_chosen) ;
@@ -3499,11 +3513,11 @@ ENTRY("PLUTO_popup_dset_chooser") ;
    if( multi ){
       MCW_choose_multi_strlist( w , label , mcwCT_multi_mode ,
                                 num_user_dset , NULL , user_dset_strlist ,
-                                PLUG_finalize_user_dset_CB , NULL ) ;
+                    (gen_func *)PLUG_finalize_user_dset_CB , NULL ) ;
    } else {
       MCW_choose_strlist( w , label ,
                           num_user_dset , -1 , user_dset_strlist ,
-                          PLUG_finalize_user_dset_CB , NULL ) ;
+              (gen_func *)PLUG_finalize_user_dset_CB , NULL ) ;
    }
 
    EXRETURN ;
@@ -3580,7 +3594,7 @@ ENTRY("PLUG_choose_timeseries_CB") ;
 
    MCW_choose_timeseries( w , "Choose Timeseries" ,
                           av->tsimar , init_ts ,
-                          PLUG_finalize_timeseries_CB , (XtPointer) plint ) ;
+              (gen_func *)PLUG_finalize_timeseries_CB , (XtPointer) plint ) ;
 
    EXRETURN ;
 }
@@ -3624,7 +3638,7 @@ ENTRY("PLUG_choose_tcsv_CB") ;
 
    MCW_choose_tcsv( w , "Choose Timeseries" ,
                           av->elarr , init_ts ,
-                          PLUG_finalize_tcsv_CB , (XtPointer) plint ) ;
+              (gen_func *)PLUG_finalize_tcsv_CB , (XtPointer) plint ) ;
 
    EXRETURN ;
 }
@@ -4349,7 +4363,7 @@ ENTRY("PLUTO_popup_image") ;
 
    if( imp->seq == NULL ){
       imp->seq = open_MCW_imseq( GLOBAL_library.dc ,
-                                 PLUGIN_imseq_getim , (XtPointer) imp ) ;
+                        (get_ptr)PLUGIN_imseq_getim , (XtPointer) imp ) ;
 
       drive_MCW_imseq( imp->seq , isqDR_realize, NULL ) ;
       drive_MCW_imseq( imp->seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
@@ -4389,7 +4403,7 @@ ENTRY("PLUGIN_imseq_getim") ;
       MCW_imseq_status * stat = myXtNew( MCW_imseq_status ) ;
       stat->num_total  = 1 ;
       stat->num_series = 1 ;
-      stat->send_CB    = PLUGIN_seq_send_CB ;
+      stat->send_CB    = (gen_func *)PLUGIN_seq_send_CB ;
       stat->parent     = (XtPointer) imp  ;
       stat->aux        = NULL ;
 
@@ -4708,7 +4722,8 @@ void * PLUTO_imseq_popup( MRI_IMARR * imar, generic_func * kfunc, void * kdata )
       DESTROY_IMARR(psq->imar) ; free(psq) ; return NULL ;
    }
 
-   psq->seq = open_MCW_imseq( GLOBAL_library.dc , PLUTO_imseq_getim , psq ) ;
+   psq->seq = open_MCW_imseq( GLOBAL_library.dc ,
+                              (get_ptr)PLUTO_imseq_getim , psq ) ;
 
    drive_MCW_imseq( psq->seq , isqDR_clearstat , NULL ) ;
 
@@ -4838,7 +4853,7 @@ XtPointer PLUTO_imseq_getim( int n , int type , XtPointer handle )
                                                                /* destroyed    */
       stat->num_total  = ntot ;
       stat->num_series = ntot ;
-      stat->send_CB    = PLUTO_imseq_send_CB ;
+      stat->send_CB    = (gen_func *)PLUTO_imseq_send_CB ;
       stat->parent     = NULL ;
       stat->aux        = NULL ;
 
@@ -4960,8 +4975,8 @@ ENTRY("PLUTO_4D_to_typed_fbuc") ;
    if( ! PLUTO_prefix_ok(new_prefix) ) RETURN(NULL) ;
 
    new_dset = MAKER_4D_to_typed_fbuc( old_dset , new_prefix , new_datum ,
-                                      ignore , detrend , nbrik , user_func ,
-                                      user_data, NULL, 0 ) ;
+                                      ignore , detrend , nbrik ,
+                      (generic_func *)user_func , user_data, NULL, 0 ) ;
 
    RETURN(new_dset) ;
 }

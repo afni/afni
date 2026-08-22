@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # ----------------------------------------------------------------------
 # @move.to.series.dirs          - partition DICOM files into series dirs

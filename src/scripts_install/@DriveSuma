@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 # [PT: May 13, 2019] Fix the default help options to only have "RAW"
 # text output, because the fancier stuff has non-UTF-8 chars in it.

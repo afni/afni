@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 # @thickness_master
 # compute thickness different ways
 #   ball and box, erosion and in2out methods

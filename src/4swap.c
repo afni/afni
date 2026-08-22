@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #include <stdio.h>
@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int swap4() ;
+int swap4(int n, int * ar) ;
 
 typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
@@ -72,9 +72,7 @@ int main( argc , argv )
    exit(0) ;
 }
 
-int swap4( n , ar )
-   int n ;
-   int * ar ;
+int swap4( int n, int * ar )
 {
    register int ii ;
    register fourbytes * tb = (fourbytes *) ar ;

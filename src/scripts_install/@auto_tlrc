@@ -1,4 +1,4 @@
-#!/bin/tcsh -f
+#!/usr/bin/env tcsh
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 
@@ -135,7 +135,7 @@ PARSE:
             if ("$xform_type" == "shift_rotate") then
                echo ""
                echo "Warning: ********************************"
-               echo "-xform option does not allow for scaling!"
+               echo "-xform option does not allow for scaling."
                echo "Proceeding with your wishes anyway ..."
                echo ""
             endif
@@ -565,7 +565,7 @@ PARSE:
       echo "Error: input dataset must be in the current directory"
       echo "Current path for input dataset is $anat_path"
       echo "Sorry."
-# checking why this is here!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# **checking why this is here???**
 #      goto END
    endif
    
@@ -605,7 +605,7 @@ PARSE:
    else
       set ns_pref = ${anat_pref}
    endif
-   #update tmppref IF YOU MUST! 
+   #update tmppref IF YOU MUST 
    #  so that you can use multiple versions concurrently
    #set tmppref = "${tmppref}__`@GetAfniPrefix ${anat_in}`" 
    set rs_pref = ${tmppref}__rs_`@GetAfniPrefix "${anat_in}"`
@@ -627,7 +627,7 @@ PARSE:
             echo "++ anat already stripped, copying $anat_in as $ns_pref"
             3dcopy $anat_in $ns_pref 
          else
-            echo "++ anat already stripped, re-using"
+            echo "++ anat already stripped, reusing"
          endif
       endif
    else
@@ -660,10 +660,17 @@ PARSE:
       set ref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`${ref_view}"
    endif
    # use the template space for the transformed dataset
+   # also set the AFNI view (+orig or +tlrc) simultaneously
    if ($out_space == "" ) then
       set ref_space = `3dinfo -space ${ref_in}` 
+      set ref_aview = `3dinfo -av_space ${ref_in}` 
    else
       set ref_space = $out_space
+      if ( "${out_space}" == "ORIG" ) then
+         set ref_aview = "+orig"
+      else
+         set ref_aview = "+tlrc"
+      endif
    endif
 
 IN_CHECK:
@@ -967,7 +974,7 @@ AUTO_TLRC_MODE:
             goto END
          endif
          #check for convergence
-         # this one fails when there is a # in the name! 
+         # this one fails when there is a # in the name 
              #set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
          # this should do it:
             cat "${ns_pref}_WarpDrive.log" > ___cat.tmp
@@ -1209,7 +1216,7 @@ AUTO_TLRC_MODE:
       UP:       
 
    # set the space of the output to match the template space
-   3drefit -space $ref_space ${tt_prefupad}${anat_view}
+   3drefit -space $ref_space -view ${ref_aview} ${tt_prefupad}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]"   \
@@ -1299,6 +1306,7 @@ AUTO_TLRC_MODE:
          3drefit -space "ACPC" -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
       else
          # reset the space of the output to be ACPC
+         # [PT] the view here be +tlrc, then, right?  
          3drefit  -space "ACPC" ${rigid_inprefix}
       endif
 #      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
@@ -1429,7 +1437,7 @@ APAR_MODE:
    endif
    
    # reset the space of the output to match the template space
-   3drefit -space $ref_space ${tmp_out_pref}${anat_view}
+   3drefit -space $ref_space -view ${ref_aview} ${tmp_out_pref}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
@@ -1542,10 +1550,9 @@ CLEANUP:
 goto $Ret_Clean
 
 SET_REF_PATH:
-set ref_path = $ref_in:h
-if ( "$ref_path" == "$ref_in" ) then
+set ref_path = `dirname $ref_in`
+if ( "$ref_path" == "." ) then
    #echo "No Path specified ( $ref_path == $ref_in )" 
-   set ref_path = "."
    if ($apar_mode == 1) then
       goto END_REF_SEARCH
    endif
@@ -1734,8 +1741,8 @@ echo "      -rigid_equiv   : Also output a the rigid-body version of the "
 echo "                       alignment. This would align the brain with"
 echo "                       TLRC axis without any distortion. Note that"
 echo "                       the resultant .Xrigid volume is NOT in TLRC"
-echo "                       space. Do not use this option if you do not"
-echo "                       know what to do with it!"
+echo "                       space. **Do not use this option if you do not"
+echo "                       know what to do with it**"
 echo "                       For more information on how the rigid-body"
 echo "                       equivalent transformation is obtained, see"
 echo "                       cat_matvec -help 's output for the -P option. "
@@ -1884,7 +1891,7 @@ echo "   -verb          :  Yakiti yak yak"
 echo ""
 echo ""
 echo "When you're down and troubled and you need a helping hand:"
-echo "   1- Oh my God! The brain is horribly distorted (by Jason Stein):"
+echo "   1- The brain is horribly distorted (by Jason Stein):"
 echo "      The probable cause is a failure of 3dWarpDrive to converge."
 echo "      In that case, rerun the script with the option "
 echo "      -xform shift_rotate_scale. That usually takes care of it."

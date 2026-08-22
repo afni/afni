@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 #include "afni.h"
@@ -59,7 +59,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
    plint = PLUTO_new_interface( "Dataset NOTES" , NULL , NULL ,
-                                PLUGIN_CALL_IMMEDIATELY , NOTES_main ) ;
+                                PLUGIN_CALL_IMMEDIATELY ,
+                                (cptr_func *)NOTES_main ) ;
 
    PLUTO_add_hint( plint , "Edit/View Notes attached to dataset" ) ;
 
@@ -820,7 +821,7 @@ static void NOTES_choose_CB( Widget w, XtPointer client_data, XtPointer call_dat
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
    MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
-                       NOTES_finalize_dset_CB , NULL     ) ;
+                       (gen_func *)NOTES_finalize_dset_CB , NULL     ) ;
 
    return ;
 }

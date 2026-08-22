@@ -7,12 +7,12 @@
 
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2 (or later).  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /**********************************************************************/
-/* MCW/GPL/NIH AFNI:                                                  */
+/* MCW/CC-BY/NIH AFNI:                                                */
 /*    Analysis of Functional NeuroImages                              */
 /*                                                                    */
 /* Author: Robert W. Cox, PhD                                         */
@@ -68,7 +68,7 @@
 #ifdef SHSTRING
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " VERSION               "\n"                                 \
  "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n\n"                       \
  " ** This software was designed to be used only for research purposes. **\n"  \
@@ -90,7 +90,7 @@
 #else
 
 #define ANNOUNCEMENT                                                           \
- "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"        \
  "This is Version " AVERZHN " -- compiled " __DATE__  "\n\n"                   \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
@@ -620,8 +620,8 @@ void AFNI_syntax(void)
      "                   found in the sub-XXX directories. These images can be\n"
      "                   opened in the AFNI GUI using the Axial image viewer.\n"
      "                   (You might want to turn the AFNI crosshairs off!)\n"
-     "              ++++ If you do NOT want .png and .jpg files read into AFNI,\n"
-     "                   set Unix environment variable AFNI_IMAGE_DATASETS to 'NO'.\n"
+     "              ++++ If you do want .png and .jpg files read into AFNI,\n"
+     "                   set environment variable AFNI_IMAGE_DATASETS to 'Y'.\n"
      "                ++ You can put multiple subject IDs after '-bysub', as\n"
      "                   in the example above. You can also use the '-bysub' option\n"
      "                   more than once, if you like. Each distinct subect ID will\n"
@@ -987,6 +987,39 @@ void AFNI_syntax(void)
      "                have one on your computer, right?).\n"
      "                Exit after display.\n"
      "\n"
+     "   -show        show the package name\n"
+     "\n"
+     "    -x_have_MACOS_FORCE_EXPOSE\n"
+     "                Show whether compiled with MACOS_FORCE_EXPOSE.  This\n"
+     "                is the default on current macos systems, specifically\n"
+     "                macos_12_x86_64 and macos_13_ARM.\n"
+     "\n"
+     "    -x_needsX11Redraw\n"
+     "                show whether resize events will cause redraws\n"
+     "\n"
+     "                This will default to true on the above 2 macos systems\n"
+     "                (macos_12_x86_64 and macos_13_ARM) if the user is also\n"
+     "                running macos 26, but < 26.5.  Otherwise not.\n"
+     "\n"
+     "                The issue requiring redraw/forceExpose/Remanage events\n"
+     "                has been fixed by Apple as of macos 26.5.\n"
+     "\n"
+     "                Any system can override the default behavior using\n"
+     "                environment variable AFNI_DO_X11_REDRAW.  Values:\n"
+     "\n"
+     "                  N        : no, do not use any redraw mechanism\n"
+     "                  Y        : yes, use the base redraw mechanism\n"
+     "                  REMANAGE : yes redraw, but with the dglen-special\n"
+     "                             remanage mechanism\n"
+     "\n"
+     "                This can be set in the environment, .afnirc file, or\n"
+     "                on the command line, as in:\n"
+     "\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=Y\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=N\n"
+     "                  afni -DAFNI_DO_X11_REDRAW=REMANAGE\n"
+     "\n"
+     "                Consider also -DAFNI_X11_REDRAW_VERB=Y.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -2047,6 +2080,29 @@ void AFNI_handler(char *msg){
    return ;
 }
 
+/*-----------------------------------------------------------------------
+   A terminal version.  This cannot even return.      [23 Apr 2025 rickr]
+
+   Some compilers require __attribute__((noreturn)) for a function passed
+   to XtAppSetErrorHandler.  But in that case, exit() might be required,
+   rather than return.
+
+   Since AFNI_handler is also used for XtAppSetWarningHandler, it should
+   not exit().  So add this new function just for XtAppSetErrorHandler.
+-------------------------------------------------------------------------*/
+
+static __attribute__((noreturn)) void AFNI_exit_handler(char *msg) {
+   ERROR_message("terminal failure, exiting...") ;
+   if( GLOBAL_argopt.xtwarns > 0 &&
+       msg != NULL               &&
+       strstr(msg,"Attempt to add wrong") == NULL )
+   {
+     ERROR_message("Xt message: %s", msg ) ;
+     TRACEBACK ;
+   }
+   exit(1) ;
+}
+
 /*-----------------------------------------------------------------------*/
 /*! Avoid fatal X11 errors.  Stupid thing is so touchy sometimes. */
 
@@ -2359,6 +2415,21 @@ int main( int argc , char *argv[] )
       show_ports_list(); dienow++ ;
    }
 
+   /*----- -x_* redraw options [21 Jan 2026 rickr] -----*/
+   if( check_string("-x_have_MACOS_FORCE_EXPOSE", argc, argv) ) {
+      fprintf(stderr, "MACOS_FORCE_EXPOSE = %d\n", have_MACOS_FORCE_EXPOSE());
+      dienow++;
+   }
+
+   if( check_string("-x_needsX11Redraw", argc, argv) ) {
+      /* result depends on an env var, be sure they have been processed */
+      machdep();
+      AFNI_prefilter_args( &argc , &argv );
+      fprintf(stderr, "needsX11Redraw = %d\n", needsX11Redraw());
+      dienow++;
+   }
+
+
    /*** if ordered, die right now ***/
 
    if( dienow ) exit(0) ;  /* farewell, cruel world */
@@ -2392,6 +2463,8 @@ int main( int argc , char *argv[] )
 /*** INFO_message("before prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
    AFNI_prefilter_args( &argc , &argv ) ;  /* 11 Dec 2007 */
 /*** INFO_message("after prefilter: argc=%d argv=%p",argc,(void *)argv) ; ***/
+
+   /***** fprintf(stderr,",needsX11Redraw = %d\n", needsX11Redraw()) ; *****/
 
    THD_load_datablock_verbose(1) ; /* 21 Aug 2002 */
 
@@ -2770,7 +2843,7 @@ int main( int argc , char *argv[] )
    /*-- disable X11 and Xt error messages and crashes (we hope) --*/
 
    (void) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
-   (void) XtAppSetErrorHandler(MAIN_app,AFNI_handler) ;
+   (void) XtAppSetErrorHandler(MAIN_app, AFNI_exit_handler) ;
 
    if( GLOBAL_argopt.xtwarns != 1 )
      (void) XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
@@ -4044,7 +4117,7 @@ if(PRINT_TRACING){ char str[1024] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(
       grstat->ny         = br->n2 ;
       grstat->nz         = br->n3 ;
 
-      grstat->send_CB    = AFNI_gra_send_CB ;
+      grstat->send_CB    = (void (*)(void))AFNI_gra_send_CB ;
       grstat->parent     = (XtPointer) br ;
       grstat->aux        = NULL ;
 
@@ -4133,7 +4206,7 @@ STATUS("get status") ;
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
-      stat->send_CB    = AFNI_seq_send_CB ;
+      stat->send_CB    = (void (*)(void))AFNI_seq_send_CB ;
       stat->parent     = (XtPointer) br ;
       stat->aux        = NULL ;
 
@@ -5704,10 +5777,13 @@ if(PRINT_TRACING)
 
          LOAD_DSET_VIEWS(im3d) ;  /* 20 Nov 2003 */
          daxes = CURRENT_DAXES(im3d->anat_now) ;
+
               if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
          else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
+
               if( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
          else if( id.ijk[1] >= daxes->nyy ) id.ijk[1] -= daxes->nyy ;
+
               if( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
          else if( id.ijk[2] >= daxes->nzz ) id.ijk[2] -= daxes->nzz ;
 
@@ -5728,6 +5804,16 @@ if(PRINT_TRACING)
 #if 1
         switch( cbs->key ){  /* 05 Mar 2007: keys that AFNI needs */
                                        /* to process, not imseq.c */
+
+          case ' ':{   /* redraw image viewers [06 Jan 2026] */
+            if( needsX11Redraw() ) {
+               if( im3d->s123 ) forceExpose(im3d->s123->wtop, 0) ;
+               if( im3d->s231 ) forceExpose(im3d->s231->wtop, 0) ;
+               if( im3d->s312 ) forceExpose(im3d->s312->wtop, 0) ;
+            }
+          }
+          break ;
+
           case 'U':
           case 'u':{
             int uu = im3d->vinfo->underlay_type ; /* toggle Overlay as Underlay */
@@ -6069,7 +6155,8 @@ STATUS("graCR_pickref") ;
 
             MCW_choose_timeseries( grapher->fdw_graph , "FIM Reference Vector" ,
                                    GLOBAL_library.timeseries , init_ts ,
-                                   AFNI_fimmer_pickref_CB , (XtPointer) im3d ) ;
+                                   (gen_func *)AFNI_fimmer_pickref_CB ,
+                                   (XtPointer) im3d ) ;
          } else {
             (void) MCW_popup_message(
                       grapher->option_rowcol ,
@@ -6090,7 +6177,8 @@ STATUS("graCR_pickort") ;
 
             MCW_choose_timeseries( grapher->fdw_graph , "FIM Ort Vector" ,
                                    GLOBAL_library.timeseries , init_ts ,
-                                   AFNI_fimmer_pickort_CB , (XtPointer) im3d ) ;
+                                   (gen_func *)AFNI_fimmer_pickort_CB ,
+                                   (XtPointer) im3d ) ;
          } else {
             (void) MCW_popup_message(
                       grapher->option_rowcol ,
@@ -7057,7 +7145,7 @@ ENTRY("AFNI_startup_3dview") ;
                            GLOBAL_library.registered_0D.num ,  /* new maxval */
                            0 ,                                 /* new inival */
                            0 ,                                 /* new decim? */
-                           ISQ_transform_label ,               /* text func  */
+                           (str_func *)ISQ_transform_label ,   /* text func  */
                            &(GLOBAL_library.registered_0D)     /* text data  */
                         ) ;
       XtManageChild( im3d->vwid->func->pbar_transform0D_av->wrowcol ) ;
@@ -7078,7 +7166,7 @@ ENTRY("AFNI_startup_3dview") ;
                            GLOBAL_library.registered_2D.num ,  /* new maxval */
                            0 ,                                 /* new inival */
                            0 ,                                 /* new decim? */
-                           ISQ_transform_label ,               /* text func  */
+                           (str_func *)ISQ_transform_label ,   /* text func  */
                            &(GLOBAL_library.registered_2D)     /* text data  */
                         ) ;
       XtManageChild( im3d->vwid->func->pbar_transform2D_av->wrowcol ) ;
@@ -7205,6 +7293,14 @@ ENTRY("AFNI_controller_panel_CB") ;
 
    if( XtIsManaged(im3d->vwid->view->frame) == True ){
 
+      /* Do the Tahoe fix [Dec 2025] */
+
+#if 0
+      if( needsX11Redraw() && im3d->anat_now != NULL && im3d->fim_now != NULL ){
+        AFNI_redraw_controller(im3d) ;
+      }
+#endif
+
       if( XtIsManaged(im3d->vwid->marks->frame) == True ){
          AFNI_marks_action_CB( NULL , (XtPointer) im3d , NULL ) ;
       }
@@ -7229,6 +7325,8 @@ ENTRY("AFNI_controller_panel_CB") ;
       SHIFT_TIPS( im3d , TIPS_TOTAL_SHIFT ) ;
       SHIFT_NEWS( im3d , TIPS_TOTAL_SHIFT ) ;
 
+      FIX_TOPFORM_HEIGHT(im3d) ;
+
    } else {  /** open the view frame (but not its children) **/
 
       XtManageChild(im3d->vwid->view->frame) ;
@@ -7240,11 +7338,12 @@ ENTRY("AFNI_controller_panel_CB") ;
       XtManageChild(im3d->vwid->phelp_pb) ;
       XtManageChild(im3d->vwid->ytube_pb) ;
 
-
       SHIFT_TIPS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
       SHIFT_NEWS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
+
+      FIX_TOPFORM_HEIGHT(im3d) ;
    }
 
    RESET_AFNI_QUIT(im3d) ;
@@ -7498,7 +7597,7 @@ ENTRY("AFNI_time_index_EV") ;
 
          MCW_choose_stuff( im3d->vwid->imag->time_index_av->wlabel ,
                              "Time Index Stepping" ,
-                             AFNI_time_index_step_CB , im3d ,
+                             (gen_func *)AFNI_time_index_step_CB , im3d ,
                              MSTUF_INT ,     "Index Step     " , 1 , 9     , istep ,
                              MSTUF_STRLIST , "SLAVE_FUNCTIME " , 2 , sftin , yesno ,
                              MSTUF_STRLIST , "Thr = Olay?+1? " , 3 , thrin , throx ,
@@ -7829,7 +7928,8 @@ ENTRY("AFNI_view_xyz_CB") ;
 STATUS("opening an image window") ;
       MCW_invert_widget(pboff) ;
       POPUP_cursorize(pboff) ;   /* 20 Jul 2005 */
-      *snew = open_MCW_imseq( im3d->dc, AFNI_brick_to_mri, (XtPointer) brnew ) ;
+      *snew = open_MCW_imseq( im3d->dc, (get_ptr)AFNI_brick_to_mri,
+                              (XtPointer) brnew ) ;
 
       (*snew)->parent = (XtPointer)im3d ;
 
@@ -7962,7 +8062,8 @@ STATUS("opening a graph window") ;
 
        MCW_invert_widget(pboff) ;
        POPUP_cursorize(pboff) ;   /* 20 Jul 2005 */
-       gr = new_MCW_grapher( im3d->dc , AFNI_brick_to_mri , (XtPointer) brnew ) ;
+       gr = new_MCW_grapher( im3d->dc , (get_ptr)AFNI_brick_to_mri ,
+                             (XtPointer) brnew ) ;
        drive_MCW_grapher( gr, graDR_title, (XtPointer) im3d->window_title );
        drive_MCW_grapher( gr, graDR_addref_ts, (XtPointer) im3d->fimdata->fimref );
        drive_MCW_grapher( gr, graDR_setignore, (XtPointer)ITOP(im3d->fimdata->init_ignore) );
@@ -8086,10 +8187,16 @@ void AFNI_redisplay_func_ignore( int ig ){ ignore_redisplay_func = ig ; }
 void AFNI_redisplay_func( Three_D_View *im3d )  /* 05 Mar 2002 */
 {
 ENTRY("AFNI_redisplay_func") ;
-   if( !ignore_redisplay_func && IM3D_OPEN(im3d) && IM3D_IMAGIZED(im3d) ){
+   if( !ignore_redisplay_func    &&
+       IM3D_OPEN(im3d)           &&
+       IM3D_IMAGIZED(im3d)       ){   
+/* o key/overlay toggle doesn't redisplay with func_visible check */
+/* && im3d->vinfo->func_visible  Dec 2025 */ 
+
      AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_ALL ) ;
      AFNI_process_funcdisplay( im3d ) ;
    }
+
    EXRETURN ;
 }
 
@@ -10468,7 +10575,7 @@ STATUS(" -- set threshold to zero (startup)") ;
                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
                            im3d->vinfo->fim_index ,       /* new inival */
                            0 ,                            /* new decim? */
-                           AFNI_bucket_label_CB ,         /* text routine */
+                           (str_func *)AFNI_bucket_label_CB, /* text routine */
                            im3d->fim_now                  /* text data */
                          ) ;
         refit_MCW_optmenu( im3d->vwid->func->thr_buck_av ,
@@ -10476,7 +10583,7 @@ STATUS(" -- set threshold to zero (startup)") ;
                            DSET_NVALS(im3d->fim_now)-1 ,  /* new maxval */
                            im3d->vinfo->thr_index ,       /* new inival */
                            0 ,                            /* new decim? */
-                           AFNI_bucket_label_CB ,         /* text routine */
+                           (str_func *)AFNI_bucket_label_CB, /* text routine */
                            im3d->fim_now                  /* text data */
                          ) ;
       }
@@ -10488,7 +10595,7 @@ STATUS(" -- set threshold to zero (startup)") ;
                            DSET_NVALS(im3d->anat_now)-1 ,  /* new maxval */
                            im3d->vinfo->anat_index ,       /* new inival */
                            0 ,                             /* new decim? */
-                           AFNI_bucket_label_CB ,          /* text routine */
+                           (str_func *)AFNI_bucket_label_CB, /* text routine */
                            im3d->anat_now                  /* text data */
                          ) ;
       }
@@ -10837,7 +10944,7 @@ static void fixscale( XtPointer client_data , XtIntervalId *id )
 }
 #endif
 
-/*------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------------*/
 
 void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
@@ -10926,7 +11033,7 @@ STATUS("opening marks") ;
 
 #if 1
 #if 0
-         XFlush( XtDisplay(marks->rowcol) ) ; XSync( XtDisplay(marks->rowcol),False ) ;
+         XSync( XtDisplay(marks->rowcol),False ) ;
 #endif
          if( im3d->anat_now->markers != NULL ){  /* Oct 1998 */
             XtManageChild( marks->tog_rowcol ) ;
@@ -10957,6 +11064,12 @@ STATUS("opening marks") ;
          }
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -11018,6 +11131,12 @@ STATUS("remanaging children") ;
 /***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
       }
 
+      /* forceExpose will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -11039,6 +11158,12 @@ STATUS("opening dmode" ) ;
          OPEN_PANEL(im3d,dmode) ;
       }
 
+      /* this will be taken care of in AFNI_vwidtopform_EV() when top_form is resized */
+#if 0
+      if( needsX11Redraw() ){ forceExpose( im3d->vwid->top_form,0 ) ; FIX_TOPFORM_HEIGHT(im3d) ; }
+#else
+      FIX_TOPFORM_HEIGHT(im3d) ;
+#endif
       EXRETURN ;
    }
 
@@ -11268,17 +11393,17 @@ ENTRY("AFNI_crosshair_pop_CB") ;
      sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
      MCW_choose_string( im3d->vwid->imag->crosshair_label , tbuf ,
                         last_jumpto_xyz_string,
-                        AFNI_jumpto_CB, (XtPointer) im3d ) ;
+                        (gen_func *)AFNI_jumpto_CB, (XtPointer) im3d ) ;
      EXRETURN ;
    } else if ( w == im3d->vwid->imag->crosshair_jtijk_pb ){
      MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (UnderLay):" ,
                         last_jumpto_ijk_string ,
-                        AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+                        (gen_func *)AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
      EXRETURN ;
    } else if ( w == im3d->vwid->imag->crosshair_jtijk_olay_pb ){  /* 20 Apr 2016 */
      MCW_choose_string( im3d->vwid->imag->crosshair_label , "Enter new i j k (OverLay):" ,
                         last_jumpto_ijk_olay_string ,
-                        AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
+                        (gen_func *)AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
      EXRETURN ;
    }
 
@@ -11355,7 +11480,7 @@ ENTRY("AFNI_imag_pop_CB") ;
       if( ISQ_REALZ(seq) ){
         sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
         MCW_choose_string( seq->wbar , tbuf , last_jumpto_xyz_string ,
-                           AFNI_jumpto_CB , (XtPointer) im3d ) ;
+                           (gen_func *)AFNI_jumpto_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11364,7 +11489,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter new i j k (UnderLay):" , last_jumpto_ijk_string ,
-                            AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11373,7 +11498,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter new i j k (OverLay):" , last_jumpto_ijk_olay_string ,
-                            AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_jumpto_ijk_olay_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11386,7 +11511,7 @@ ENTRY("AFNI_imag_pop_CB") ;
          sprintf(jumpstring,"Enter %s x,y,z (LPI mm):", get_jump_space());
          MCW_choose_string( seq->wbar , jumpstring ,
                             last_mnito_string ,
-                            AFNI_mnito_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_mnito_CB , (XtPointer) im3d ) ;
       } else {
          BEEPIT ; /* should never happen */
       }
@@ -11407,7 +11532,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter SUMA node ID:" , last_sumato_string ,
-                            AFNI_sumato_CB , (XtPointer) im3d ) ;
+                            (gen_func *)AFNI_sumato_CB , (XtPointer) im3d ) ;
       }
    }
 
@@ -11435,7 +11560,7 @@ ENTRY("AFNI_imag_pop_CB") ;
                        atlas_n_points(Current_Atlas_Default_Name()) ,
                        atlas_current_structure ,
                        at_labels ,
-                       AFNI_talto_CB , (XtPointer) im3d ) ;
+                       (gen_func *)AFNI_talto_CB , (XtPointer) im3d ) ;
             for (iii=0; iii<atlas_n_points(Current_Atlas_Default_Name()); ++iii) {
                if (at_labels[iii]) free(at_labels[iii]);
             }
@@ -11477,7 +11602,7 @@ ENTRY("AFNI_imag_pop_CB") ;
 
          im3d->vwid->imag->pop_whereami_twin =
            new_MCW_textwin_2001( im3d->vwid->imag->crosshair_label , tlab ,
-                                 TEXT_READONLY , AFNI_pop_whereami_kill , im3d ) ;
+               TEXT_READONLY , (void_func *)AFNI_pop_whereami_kill , im3d ) ;
 
 #if 0
          /* 31 Jul 2001: NULL out the pointer when the window is destroyed */
@@ -11749,7 +11874,7 @@ void AFNI_htmlwami_CB( Widget w , XtPointer cd , XtPointer cbd )
      EXRETURN ;
    } else {
      htmlwami_hw = new_MCW_htmlwin( im3d->vwid->imag->topper, inf,
-                               AFNI_htmlwami_killfun , im3d  , NULL, 0    ) ;
+                      (void_func *)AFNI_htmlwami_killfun , im3d  , NULL, 0 ) ;
      im3d->vwid->imag->pop_whereami_htmlwin = htmlwami_hw;
    }
    free(inf) ; inf = NULL ; htmlwami_open = 1 ;
@@ -13594,6 +13719,47 @@ ENTRY("AFNI_set_cursor") ;
 
 #define BAD -999
 
+/****************************************************************************
+ * The NAME2* calls enable corresponding AFNI_* environment variables
+ * (in addition to .Xdefaults values).  Just to make such thing greppable,
+ * here is a list of variables, generated by:
+ *
+ *    grep NAME2 *.c | grep -e '("' -e '( "' \
+ *         | awk -F\" '{printf "AFNI_%s\n", $2}' | sort | uniq | column
+ *
+ *       AFNI_bigscroll                  AFNI_graph_ort_thick
+ *       AFNI_crosshairgap               AFNI_graph_text_color
+ *       AFNI_fim_ignore                 AFNI_init_fov
+ *       AFNI_fim_polort                 AFNI_marksgap
+ *       AFNI_gamma                      AFNI_markssize
+ *       AFNI_graph_backg_color          AFNI_montage_periodic
+ *       AFNI_graph_boxes_color          AFNI_ncolors
+ *       AFNI_graph_boxes_thick          AFNI_ncolovr
+ *       AFNI_graph_data_color           AFNI_ovcrosshair
+ *       AFNI_graph_data_thick           AFNI_ovmarksprimary
+ *       AFNI_graph_dplot_color          AFNI_ovmarkssecondary
+ *       AFNI_graph_dplot_thick          AFNI_pbar_hide
+ *       AFNI_graph_ggap                 AFNI_pbar_pos_pane_count
+ *       AFNI_graph_grid_color           AFNI_pbar_posfunc
+ *       AFNI_graph_grid_thick           AFNI_pbar_sgn_pane_count
+ *       AFNI_graph_gthick               AFNI_purge
+ *       AFNI_graph_ideal_color          AFNI_resam_anat
+ *       AFNI_graph_ideal_thick          AFNI_resam_func
+ *       AFNI_graph_ignore_color         AFNI_resam_thr
+ *       AFNI_graph_matrix               AFNI_resam_vox
+ *       AFNI_graph_ort_color            AFNI_tlrc_big
+ *
+ * This does not include generated variables, shown by:
+ *
+ *    grep NAME2 *.c | grep -v \" | grep -v define
+ *
+ *       AFNI_ovdef01                    AFNI_ovlab01
+ *       pbar_pos_pane01_ov01            pbar_pos_pane01_thr01
+ *       pbar_sgn_pane01_ov01            pbar_sgn_pane01_thr01
+ *
+ *    Note: 01 can be a 2-digit number up to 20 (or 40).
+ ****************************************************************************/
+
 void AFNI_load_defaults( Widget w )
 {
    char    *xdef ;
@@ -13644,7 +13810,7 @@ ENTRY("AFNI_load_defaults") ;
    NAME2INT("ovmarkssecondary" , INIT_marks2_color   ,0,INIT_ncolovr) ;
    NAME2INT("markssize"        , INIT_marks_size     ,2,MAXOVSIZE   ) ;
    NAME2INT("marksgap"         , INIT_marks_gap      ,0,MAXOVSIZE-1 ) ;
-   NAME2INT("crosshairgap"     , INIT_crosshair_gap  ,0,MAXOVSIZE   ) ;
+   NAME2INT("crosshairgap"     , INIT_crosshair_gap  ,-1,MAXOVSIZE   ) ;
    NAME2INT("bigscroll"        , INIT_bigscroll      ,1,MAXOVSIZE   ) ;
 
    NAME2INT("graph_boxes_color" ,INIT_GR_boxes_color ,BLUEST_COLOR,INIT_ncolovr) ;
@@ -13714,7 +13880,7 @@ ENTRY("AFNI_load_defaults") ;
        if( strcmp(cpt,RESAM_shortstr[ii]) == 0 ) break ;
 
      if( ii <= LAST_RESAM_TYPE ) INIT_resam_func = ii ;
-     (char*)myXtFree(cpt) ;
+     myXtFree(cpt) ;
    }
 
    cpt = NULL ;
@@ -13883,7 +14049,7 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
       MCW_choose_integer( im3d->vwid->picture ,
                           "Sonnet " ,
                           1 , NUM_SONNETS , sonnet_index+1 ,
-                          AFNI_sonnet_CB , (XtPointer) im3d ) ;
+                          (gen_func *)AFNI_sonnet_CB , (XtPointer) im3d ) ;
       return ;
    }
 
@@ -14068,9 +14234,10 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
                   XmNheight , &sel_aaa , NULL ) ;
    sel_actual = (int)sel_aaa ;
 
+   /**** fprintf(stderr,"fix_scale_size_direct: orig %d  actual %d\n",sel_height,sel_actual) ; ****/
    /**** INFO_message("actual = %d  nominal = %d",sel_actual,sel_height) ; ****/
 
-   if( sel_actual == sel_height ) return ;  /* it's OK */
+   if( abs(sel_actual-sel_height) < 4 ) return ;  /* it's OK */
 
    /* do the work */
 

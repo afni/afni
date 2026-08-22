@@ -57,7 +57,9 @@ defaults write com.apple.Terminal FocusFollowsMouse -string YES
 # install under initial abin (relevant if we -do_extras)
 
 # install AFNI's anyos_text_atlas package if nothing appears to be installed
-if ( ! -f $HOME/abin/init_user_dotfiles.py ) then
+# if ( ! -f $HOME/abin/init_user_dotfiles.py ) then
+# -- RCR: temp change to afni, to force re-download on failure
+if ( ! -f $HOME/abin/afni ) then
    echo "++ installing AFNI anyos_text_atlas"
    curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
    tcsh @update.afni.binaries -no_recur -package anyos_text_atlas \
@@ -72,7 +74,7 @@ echo "++ setting up user dotfiles"
                              -do_updates path apsearch -dir_bin ~/abin
 
 # put AFNI in PATH, if not already there
-`which init_user_dotfiles.py` >& /dev/null
+which init_user_dotfiles.py >& /dev/null
 if ( $status ) then
    source ~/.cshrc
 endif
@@ -89,7 +91,10 @@ endif
 # if we are in this script, always run the build
 echo "++ compiling AFNI package $package"
 echo "++ running: build_afni.py -build_root ~/afni_build -package $package"
-build_afni.py -build_root ~/afni_build -package $package
+# specify -cc_path until current homebrew gcc-15 is working
+\rm -f afni_build_messages.txt
+build_afni.py -build_root ~/afni_build -package $package \
+    -cc_path /usr/bin/gcc -fast_log_messages afni_build_messages.txt
 
 # and make sure we can see the new programs
 rehash
@@ -110,7 +115,7 @@ else
    echo "-- already have R_LIBS=$R_LIBS"
 endif
 
-if ( ! -d $R_LIBS ) then
+if ( ! -d $R_LIBS/data.table ) then
    echo "++ building R libraries: rPkgsInstall -pkgs ALL"
    mkdir -p $R_LIBS
    rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt

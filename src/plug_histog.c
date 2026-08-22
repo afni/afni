@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "afni.h"
@@ -68,7 +68,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "Histogram" ,
                                 "Histogram of Dataset Brick" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , HISTO_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)HISTO_main  ) ;
 
    PLUTO_add_hint( plint , "Histogram of Dataset Brick" ) ;
 
@@ -600,7 +601,8 @@ static PLUGIN_interface * CORREL_init(void)
    plint = PLUTO_new_interface( "Histogram: CC" ,
                                 "Histogram of Correlation Coefficient" ,
                                 c_helpstring ,
-                                PLUGIN_CALL_VIA_MENU , CORREL_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (cptr_func *)CORREL_main  ) ;
 
    PLUTO_add_hint( plint , "Histogram: Correlation Coefficient" ) ;
 

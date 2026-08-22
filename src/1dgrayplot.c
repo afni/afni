@@ -253,7 +253,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
    mp = PLOT_tsgray( npt , nts , ymask , yar ) ;
 
    if( mp != NULL )
-      (void) memplot_to_topshell( dc->display , mp , killfunc ) ;
+      (void) memplot_to_topshell( dc->display , mp , (void_func *)killfunc ) ;
 
    return ;
 }

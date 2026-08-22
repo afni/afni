@@ -65,9 +65,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*-- set titles and call point --*/
 
-   plint = PLUTO_new_interface( "ROI Plot" , "Plot Average Timeseries over ROI" ,
+   plint = PLUTO_new_interface( "ROI Plot" , "Plot Average Timeseries over ROI",
                                  helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , ROIPLOT_main  ) ;
+                                 PLUGIN_CALL_VIA_MENU ,
+                                 (cptr_func *)ROIPLOT_main  ) ;
 
    PLUTO_short_choose(plint) ;
    PLUTO_short_number(plint) ;

@@ -1987,7 +1987,7 @@ ENTRY("GICOR_refit_stat_menus") ;
      zz    = av->ival ; if( zz >= giset->num_stat_available ) zz = 0 ;
      refit_MCW_optmenu( av ,
                         0 , giset->num_stat_available - 1 , zz , 0 ,
-                        MCW_av_substring_CB , giset->lab_stat_available ) ;
+            (str_func *)MCW_av_substring_CB , giset->lab_stat_available ) ;
      if( vv >= giset->num_stat_available ){
        XmToggleButtonSetState( opwid->toggle, False,True ) ;
        XtSetSensitive        ( opwid->toggle, False      ) ;

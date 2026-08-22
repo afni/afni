@@ -469,7 +469,7 @@ NOTE: distribution of ISI ~2~
 
        set nhist = `1dcat isis_hist.1D | wc -l`
        make_random_timing.py -verb 0 -show_isi_pdf 100 1000 > pure_probs.1D
-       grep -v prob pure_probs.1D | grep -v result | grep -v '\-----' \\
+       grep -v prob pure_probs.1D | grep -v result | grep -v '\\-----' \\
            | head -n $nhist > prob.1D
        1dplot -sepscl prob.1D'[1]' isis_hist.1D'[1,2]'
 
@@ -1527,6 +1527,7 @@ g_history = """
     3.6  Dec 20, 2019: add more advanced usage help
     3.7  Jan 27, 2020: add basis=BASIS parameter when defining timing class
     3.8  Jun 25, 2021: add -rand_post_elist_partition for S Haller
+    3.9  Feb 19, 2026: add -tr_locked to g_style_opts_old
 """
 
 g_version = "version 3.8 June 25, 2021"
@@ -1559,7 +1560,7 @@ g_instant_timing_class = LRT.TimingClass('INSTANT', 0, 0, 0)
 
 
 g_style_opts_old = ['-num_stim', '-num_reps', '-stim_dur', '-stim_labels',
-                    '-min_rest']
+                    '-min_rest', '-tr_locked']
 g_style_opts_new = ['-add_stim_class', '-add_timing_class']
 
 # sample usage:
@@ -4334,7 +4335,7 @@ class RandTiming:
        tot_mean = 0
        rtimes = [0] * ntypes
        for rind, rc in enumerate(rtypes):
-          # compute min total, store it and accumuate
+          # compute min total, store it and accumulate
           mt = rc.min_dur * rcounts[rind]
           rtimes[rind] = mt
           tot_min += mt

@@ -403,8 +403,6 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname);
 void CA_EZ_MPM_purge_atlas(void);
 void CA_EZ_PMaps_purge_atlas(void);
 void CA_EZ_ML_purge_atlas(void);
-char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac,
-                              WAMI_SORT_MODES Mode, ATLAS_LIST *atlas_list);
 char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               ATLAS_COORD ac, WAMI_SORT_MODES mode,
                               ATLAS_LIST *atlas_list);

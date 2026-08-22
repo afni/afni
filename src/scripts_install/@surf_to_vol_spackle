@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 # fill a volume with values from a surface dataset (.niml.dset)
 
 # h_view help instead of regular help (opens editor with -help output)

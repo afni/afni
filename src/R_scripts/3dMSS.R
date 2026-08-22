@@ -23,7 +23,7 @@ help.MSS.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dMSS ==================
        Program for Voxelwise Multilevel Smoothing Spline (MSS) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.7, Jan 23, 2025
+Version 1.1.0, July 28, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -383,8 +383,18 @@ read.MSS.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-jobs' = apl(n = 1, d = 1, h = paste(
-   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
-   "         up the program significantly.",
+   "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
+   "         up the program significantly. However, increasing the number of CPUs",
+   "         processes does not necessarily improve performance. Because each",
+   "         CPU is an independent R process, aggregate memory usage grows",
+   "         with the number of CPUs. It is therefore advisable to identify",
+   "         the largest number of CPUs that fits comfortably within physical",
+   "         RAM while avoiding swap activity, rather than simply using all",
+   "         available CPU cores. A useful strategy is to benchmark several",
+   "         CPU counts while monitoring memory usage (e.g., with free -h,",
+   "         vmstat, or htop) and choose the largest number that avoids",
+   "         sustained swapping, as memory thrashing can more than offset the",
+   "         benefits of additional parallelism.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 
@@ -1154,15 +1164,19 @@ if(dimy==1 & dimz==1) { # 1D data
       clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
       if(!is.null(lop$mrr)) for (kk in 1:nSeg) {
          Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runMSS,
-                  DM=lop$dataStr, tag=0), c(2,3,1))
+                  DM=lop$dataStr, tag=0), c(2,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
       if(!is.null(lop$lme)) for (kk in 1:dimz) {
          Stat[,kk,] <- aperm(parApply(cl, inData[,kk,], 1, runLME,
-                  DM=lop$dataStr, tag=0), c(2,3,1))
+                  DM=lop$dataStr, tag=0), c(2,1))
          cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
       }
    }
+   # convert to 4D
+   dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$nBrk)
+   # remove the trailers (padded 0s)
+   Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
 } else { # volumetric data
    Stat <- array(0, dim=c(dimx, dimy, dimz, lop$nBrk))
    if (lop$nNodes==1) { # no parallelization
@@ -1203,15 +1217,18 @@ Stat[is.nan(Stat)] <- 0
 #Stat[Stat < (-Top)] <- -Top
 Stat[is.na(Stat)] <- 0
 
-if(!is.null(lop$mrr))
+if(!is.null(lop$mrr)) {
    brickNames <- c(c(rbind(rownames(summary(fm)$p.table), paste0(rownames(summary(fm)$p.table), '-Z'))),
-      rownames(summary(fm)$s.table), 'R.sq', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
+      rownames(summary(fm)$s.table), 'R.sq')
+   if(!is.null(lop$Pred)) brickNames <- c(brickNames, c(rbind(as.character(lop$Pred[1:lop$nr,1]),
       paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
-if(!is.null(lop$lme)) 
+}
+if(!is.null(lop$lme)) {
    brickNames <- c(c(rbind(rownames(summary(fm$gam)$p.table), paste0(rownames(summary(fm$gam)$p.table), '-Z'))),
-      rownames(summary(fm$gam)$s.table), 'R.sq', c(rbind(as.character(lop$Pred[1:lop$nr,1]),
+      rownames(summary(fm$gam)$s.table), 'R.sq')
+   if(!is.null(lop$Pred)) brickNames <- c(brickNames, c(rbind(as.character(lop$Pred[1:lop$nr,1]),
       paste0(as.character(lop$Pred[1:lop$nr,1]),'.se'))))
-
+}
 if(!is.null(lop$sdiff)) brickNames <- c(brickNames, c(rbind(sdiffLabel, paste0(sdiffLabel, '.se'))))
 
 statsym <- NULL

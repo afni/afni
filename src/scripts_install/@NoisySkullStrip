@@ -1,4 +1,4 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set CurDir = "$PWD"
 
@@ -30,6 +30,9 @@ if ( ! -f $ap".ls"+orig.HEAD) then
             -nbhd 'SPHERE(4)' \
             -datum short   \
             $in 
+   if ( $status ) then
+      goto BEND
+   endif
 else
    echo "Reusing $ap'.ls' ..."
 endif
@@ -43,6 +46,9 @@ if ($DoEight) then
                $in
    3dcalc   -a $ap".ls"8+orig'[0]' -b $ap".ls"8+orig'[1]' \
             -expr 'a/b' -prefix $ap".ir"
+   if ( $status ) then
+      goto BEND
+   endif
    #top 75% is brainy 
 
 endif
@@ -116,6 +122,10 @@ set pth = $pth[2]
        -expr "a*(1-step(b))"  \
        -overwrite
 
+if ( $status ) then
+   goto BEND
+endif
+
 goto Ret_MAKE_MASK
 
 STRIP_SKULL:
@@ -132,6 +142,11 @@ set echo
          -expr "a*step(b-1)" \
          -prefix $ap.ns \
          -overwrite
+
+if ( $status ) then
+   goto BEND
+endif
+
 unset echo
 goto Ret_STRIP_SKULL
 
@@ -144,6 +159,10 @@ if ($symm) then
             -expr 'c*step((a+b)/2)' \
             -overwrite  \
             -prefix $ap.ns.sym
+
+   if ( $status ) then
+      goto BEND
+   endif
 endif
 goto Ret_SYMMETRIZE
 
@@ -293,4 +312,8 @@ echo "saadz@mail.nih.gov"
 echo "" 
 goto END
 
+BEND:
+exit 1
+
 END:
+exit 0

@@ -1407,8 +1407,8 @@ static int PERMTEST_compute(
   DTREE *randomised_corr;
   CLIST *coord_mem,			/*data area for coord-corr pair lists*/
 	*coord_next;			/*next free location in coord_mem*/
-  double sx_trend, sx_ref, sx_ort, *sy,	/*correlation parameters*/
-	 sxx_trend, sxx_ref, sxx_ort, *syy,
+  double sx_trend, sx_ref, sx_ort=0.0, *sy,	/*correlation parameters*/
+	 sxx_trend, sxx_ref, sxx_ort=0.0, *syy,
 	 corr, slope, intercept,	/*regression coefficients*/
 	 max_corr;			/*correlation w/ max absolute value*/
   int percent_done, prev_percent_done,	/*statistics for progress meter*/
@@ -2218,7 +2218,8 @@ PLUGIN_interface *PLUGIN_init(int ncall)
   if(ncall > 0) return (PLUGIN_interface *)0;	/*only one interface*/
   CHECK_IF_ALLOWED("PERMUTATIONTEST","Permutation Test") ;  /* 30 Sep 2016 */
 /*set titles and entry point*/
-  plint = PLUTO_new_interface("Permutation Test", hint, help, PLUGIN_CALL_VIA_MENU, PERMTEST_main);
+  plint = PLUTO_new_interface("Permutation Test", hint, help,
+                              PLUGIN_CALL_VIA_MENU, (cptr_func *)PERMTEST_main);
   PLUTO_add_hint(plint, hint);
 /*first line of dialogue box: input dataset*/
   PLUTO_add_option(plint, input_label, input_label, TRUE);

@@ -1,9 +1,10 @@
-#!/bin/tcsh -fe
+#!/usr/bin/env tcsh
 
 set stat = 0
 set sdir = "$PWD"
 
-# [PT: May 1, 2020] updated version
+# [PT: May  1, 2020] updated version
+# [RR: Jan 14, 2025] call tcsh via env
 set demo = IBT_DATASETS
 
 goto PARSE
@@ -20,7 +21,7 @@ echo ""
 echo "Otherwise to run demos, see content of ./$demo/README.txt"
 echo ""
 goto END
-   endif
+endif
 
 echo "++ Going to fetch demo:  ${demo}"
 
@@ -39,6 +40,14 @@ else
    curl -O https://afni.nimh.nih.gov/pub/dist/tgz/$demo.tgz
 endif
 tar xvzf $demo.tgz
+if ( $status ) then
+   echo ""
+   echo "** failure to download or extract $demo.tgz"
+   echo ""
+   set stat = 1
+   goto END
+endif
+
 cd $demo
    echo "********************************************************"
    echo "A brief description is provided in ./$demo/README.txt "

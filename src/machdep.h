@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 #ifndef _MCW_MACHDEP_
 #define _MCW_MACHDEP_
@@ -352,6 +352,9 @@ extern long   strtol() ;
 #endif
 
 /* Mac OSX (Darwin) */
+
+extern int isMacTahoe(void) ;  /* in machdep.c [Dec 2025] */
+
 #ifdef DARWIN
 # include <dirent.h>
 # define THD_MMAP_FLAG  MAP_SHARED
@@ -415,6 +418,7 @@ extern int machdep_be_quiet(void) ;  /* 08 Dec 2010 */
 extern char * GetAfniWebBrowser(void);
 extern char * GetAfniWebDownloader(void);
 extern char * GetAfniPDFViewer(void);
+extern char * GetAfniSpreadsheetViewer(void);
 extern char * GetAfniImageViewer(void);
 extern char * GetAfniTextEditor(void);
 extern char * AFNI_strcasestr(const char *s1, const char *s2);

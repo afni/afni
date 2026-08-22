@@ -165,10 +165,14 @@ static char * g_history[] =
     " 4.32 Apr 24, 2024 [rickr]: add -sort_method geme_suid\n"
     " 4.33 Jun 20, 2024 [rickr]: make -read_all the default (for RT sorting)\n"
     " 4.34 Sep  5, 2024 [rickr]: add help comments regarding RT feedback\n"
+    " 4.35 Mar 24, 2025 [rickr]: -sort_method echo_rin replaces geme_rin\n"
+    "                            (mistake: do not make Shruti angry)\n"
+    " 4.36 Mar 24, 2025 [rickr]: keep both echo_rin and geme_rin\n"
+    "                            (and improve description)\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.34 (September 5, 2024)"
+#define DIMON_VERSION "version 4.36 (March 28, 2025)"
 
 static char * g_milestones[] =
 {
@@ -186,6 +190,7 @@ static char * g_milestones[] =
     " 2022.04 : add new GE multi-echo (realtime) sorting, 'geme_rin'\n",
     " 2022.11 : add GE XNAT multi-echo (non-realtime) sorting, 'geme_xnat'\n",
     " 2024.04 : add GE SOP IUID multi-echo sorting, 'geme_suid'\n",
+    " 2025.03 : add new GE multi-echo (realtime) sorting, 'echo_rin'\n",
     "----------------------------------------------------------------------\n"
 };
 
@@ -374,6 +379,8 @@ int                compare_by_sindex( const void * v0, const void * v1 );
 static int         copy_dset_data(finfo_t * fp, THD_3dim_dataset * dset);
 static int         copy_image_data(finfo_t * fp, MRI_IMARR * imarr);
 static int         finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort);
+static int         echo_rin_get_sort_n_base(param_t * p, int n2proc,
+                                            int * gm_sort, int * gm_base);
 static int         geme_rin_get_sort_n_base(param_t * p, int n2proc,
                                             int * gm_sort, int * gm_base);
 static int         get_num_suffix( char * str );
@@ -1538,7 +1545,7 @@ static int check_error( int * retry, float tr, char * note )
 static int read_image_files(param_t * p)
 {
     static int first = 1;    /* note first pass */
-    int        newstuff;
+    int        newstuff, meth;
 
     newstuff = get_sorted_file_names(p);
     if( newstuff < 0 ) return -1; /* failure */
@@ -1572,8 +1579,9 @@ static int read_image_files(param_t * p)
     /* fill fim_o, set fim_start */
     if( make_sorted_fim_list(p) < 0 ) return -1;
 
-    /* if method is GEME_RIN, require a properly set g_mod_sort */
-    if( newstuff && sort_method(p->opts.sort_method) == IFM_SORT_GEME_RIN ) {
+    /* if method is ECHO_RIN, require a properly set g_mod_sort */
+    meth = sort_method(p->opts.sort_method);
+    if( newstuff && (meth==IFM_SORT_ECHO_RIN) || (meth==IFM_SORT_GEME_RIN) ) {
        if( g_mod_sort <= 0 ) {
           if( gD.level > 2 )
              fprintf(stderr,"-- cancel newstuff, for lack of g_mod_sort\n");
@@ -1600,8 +1608,8 @@ static int read_image_files(param_t * p)
 static int must_wait_for_read(param_t * p)
 {
    int sm = sort_method(p->opts.sort_method);
-   if( (sm == IFM_SORT_GEME_RIN) || (sm == IFM_SORT_GEME_XNAT) 
-                                 || (sm == IFM_SORT_GEME_SUID) )
+   if( (sm == IFM_SORT_ECHO_RIN)  || (sm == IFM_SORT_GEME_RIN) ||
+       (sm == IFM_SORT_GEME_XNAT) || (sm == IFM_SORT_GEME_SUID) )
       return 1;
    return 0;
 }
@@ -1696,7 +1704,9 @@ static int make_sorted_fim_list(param_t  * p)
          break;
       }
       /* same as RIN, but try to set g_mod_sort, first */
-      case IFM_SORT_GEME_RIN: {
+      /* (the difference between these is in update_g_mod_sort) */
+      case IFM_SORT_GEME_RIN:
+      case IFM_SORT_ECHO_RIN: {
          n2sort = nfim_in_state(p, p->fim_start, p->nfim-1, IFM_FSTATE_TO_PROC);
          /* try to init */
          if( g_mod_sort <= 0 )
@@ -1966,7 +1976,7 @@ int geme_set_sort_indices(param_t * p, int_list * ilist, int ngeme, int memin)
 }
 
 /* if g_mod_sort is 0, try to init, see if an update is needed
- * This is currently used only for IFM_SORT_GEME_RIN.
+ * This is currently used only for IFM_SORT_ECHO_RIN or GEME_RIN.
  *    - sort by RIN
  *    - get apparent mod_sort
  */
@@ -1975,7 +1985,7 @@ static int update_g_mod_sort(param_t * p, int method, int n2proc)
    finfo_t  * fp;
    int        sort_mod=0, sort_base=0;
 
-   if( method != IFM_SORT_GEME_RIN ) {
+   if( method != IFM_SORT_ECHO_RIN && method != IFM_SORT_GEME_RIN ) {
       fprintf(stderr,"** update_g_mod_sort: invalid method %d\n", method);
       return 0;
    }
@@ -1990,8 +2000,13 @@ static int update_g_mod_sort(param_t * p, int method, int n2proc)
    if( g_mod_sort <= 0 )
       qsort(fp, n2proc, sizeof(finfo_t), compare_by_rin);
 
-   if( geme_rin_get_sort_n_base(p, n2proc, &sort_mod, &sort_base) )
-      return 1;
+   if( method == IFM_SORT_ECHO_RIN ) {
+      if( echo_rin_get_sort_n_base(p, n2proc, &sort_mod, &sort_base) )
+         return 1;
+   } else if( method == IFM_SORT_GEME_RIN ) {
+      if( geme_rin_get_sort_n_base(p, n2proc, &sort_mod, &sort_base) )
+         return 1;
+   }
 
    /* if not yet set, do so, else compare */
    if( g_mod_sort <= 0 ) {
@@ -2043,6 +2058,201 @@ static void do_sort_by_suid(param_t * p, finfo_t  * fp, int length)
    qsort(fp, length, sizeof(finfo_t), compare_by_sop_iuid);
 }
 
+
+/* return a g_mod_sort val and base for ECHO_RIN method
+ * NOTE: rin is basically slice index (into one volume/echo)
+ * NOTE: all n2proc images should be past state TO_READ
+ *
+ *    - find enum/rin min values (>0)
+ *       - do not allow echo 0, that means we have not read it in
+ *    - find enum/rin match
+ *    - set base = min(rin), set sort=mod = (match - min)
+ *    - gm_sort=group_size should equal necho*rin_slices
+ *
+ *  fim list is assumed to be sorted by RIN already
+ *  n2proc is number of images in PROC state (starting from fim_start)
+ *
+ *  return 0 on success, -1 on error
+ */
+static int echo_rin_get_sort_n_base(param_t * p, int n2proc,
+                                    int * gm_sort, int * gm_base)
+{
+   finfo_t  * fp;
+   int        ind, nfim, rin_slices, necho, group_size;
+   int        min_echo, min_rin;
+   int        max_echo, max_rin;  /* for sanity testing */
+   int        rin_base=-1, next_base=-1;
+
+   if( p->fim_start >= p->nfim || n2proc < 0 )
+      return 0;
+
+   /* init fp and min/max values (set to current) */
+   fp = p->fim_o + p->fim_start;
+   min_echo = fp->gex.ge_echo_num;
+   max_echo = fp->gex.ge_echo_num;
+   min_rin  = fp->geh.index;
+   max_rin  = fp->geh.index;
+
+   /* do early bail if first file has not been read */
+   if( fp->gex.ge_echo_num == 0 )
+      return 0;
+
+   /* override nfim if we find echo 0 (i.e. not read) */
+   nfim = p->fim_start + n2proc;
+
+   /* check mins, include first posn for check of echo_num */
+   /* if min is not at first image, should we just return? */
+   for( ind=p->fim_start; ind < nfim; ind++, fp++ ) {
+      /* do not allow bad echo 0, just to be explicit */
+      if( fp->gex.ge_echo_num == 0 ) {
+         /* have unread image, do not include for sorting */
+         nfim = ind;
+         fprintf(stderr,"** should not find echo 0\n");
+         exit(1);
+         break;
+      }
+      if( fp->gex.ge_echo_num < min_echo )
+         min_echo = fp->gex.ge_echo_num;
+      if( fp->geh.index < min_rin )
+         min_rin = fp->geh.index;
+      if( fp->gex.ge_echo_num > max_echo )
+         max_echo = fp->gex.ge_echo_num;
+      if( fp->geh.index > max_rin )
+         max_rin = fp->geh.index;
+   }
+
+   /* now start over and find first match (this must succeed) */
+   /* note: this really ought to result in p->fim_start */
+   fp = p->fim_o + p->fim_start;
+   for( ind=p->fim_start; ind < nfim; ind++, fp++ ) {
+      if( (fp->gex.ge_echo_num == min_echo )
+          && ( fp->geh.index == min_rin ) )
+      {
+         /* found base, note and go past */
+         rin_base = fp->geh.index;
+         break;
+      }
+   }
+
+   /* continue and try to find next match, this is what we are here for */
+   /* (start from next position) */
+   for( ind++, fp++ ; ind < nfim; ind++, fp++ ) {
+      if( (fp->gex.ge_echo_num == min_echo )
+          && ( fp->geh.index == min_rin ) )
+      {
+         next_base = fp->geh.index;
+         break;
+      }
+   }
+
+   if( gD.level > 2 )
+      fprintf(stderr,"-- rin_base = %d, next_base = %d, ind = %d\n",
+              rin_base, next_base, ind);
+
+   /* if we do not have what we came for (and wait), come back later */
+   if( next_base < 0 && p->opts.no_wait == 0 ) {
+      if( gD.level > 2 ) fprintf(stderr,"   (will try again)\n");
+      return 0;
+   }
+
+   /* if we do not have what we came for (and NO wait), there must only be
+    * one volume, set next_base according to what we have
+    * (one more than the previous index) */
+   if( next_base < 0 && p->opts.no_wait == 1 ) {
+      fp--;
+      next_base = fp->geh.index+1;
+      if( gD.level > 2 )
+         fprintf(stderr,"-- only 1 vol?, assume next_base = %d\n", next_base);
+
+      /* and continue below... */
+   }
+
+   /* SANITY CHECKS: we have a matching echo/rin pair, do a few sanity checks
+    *
+    *   - if num_chan set, max echo should match
+    *      - else, set num_chan
+    *   - if num_slices set, num rin should match
+    *   - require to find max_echo/max_rin match, too
+    *   - want nechos*nrin to equal next_base-rin_base
+    *     (else missing slices?)
+    *     (do not allow NE*NG >= 2*(next_base-rin_base : fail 3 times?)
+    */
+   /* note evaluated echoes and slices */
+   necho = max_echo - min_echo + 1;
+   rin_slices = max_rin - min_rin + 1;
+   group_size = next_base - rin_base;
+   if( gD.level > 2 )
+      fprintf(stderr, "-- GRGSB: init necho=%d, gslices=%d, gsize=%d\n",
+              necho, rin_slices, group_size);
+
+   /* first is num_chan */
+   if( p->opts.num_chan > 0 ) {
+      if( p->opts.num_chan != max_echo ) {
+         fprintf(stderr,"** GRGSB: want %d echoes, but have min/max %d/%d\n",
+                 p->opts.num_chan, min_echo, max_echo);
+         /* what to do?  let's trust the given option */
+      }
+   } else {
+      fprintf(stderr,"++ found %d echoes, setting num_chan\n", necho);
+      p->opts.num_chan = necho;
+   }
+   if( p->opts.num_slices > 0 ) {
+      if( p->opts.num_slices != rin_slices ) {
+         fprintf(stderr,"** GRGSB: want %d slices, but have %d rin slices\n",
+                 p->opts.num_slices, rin_slices);
+      }
+   }
+
+   /* require nechoes * ngem match (i.e. want 2 full echoes, only if no_wait) */
+   {  int nfound = 0;
+      fp = p->fim_o + p->fim_start;
+      for( ind=p->fim_start; ind < nfim; ind++, fp++ ) {
+         if( (fp->gex.ge_echo_num == max_echo )
+             && ( fp->geh.index == max_rin ) ) {
+            nfound++;
+            if( nfound == 2 ) break;
+         }
+      }
+      /* if we do not have a match for max pair, come back later */
+      if( nfound < 2 && (p->opts.no_wait == 0) ) {
+         if( gD.level > 1 )
+            fprintf(stderr,"-- have min chan/echo match, but not max...\n");
+         return 0;
+      }
+      if( gD.level > 1 )
+         fprintf(stderr,"-- have min and max chan/echo match, proceeding...\n");
+   }
+
+   /* want nechos*nrin to equal next_base-rin_base */
+   /* if NE*NG >=2(next-cur), fail a few times      */
+   {  static int nfail = 3;
+      if( group_size != (necho*rin_slices) ) {
+         /* maybe we found a pair match early, come back later (max 3 tries) */
+         if( group_size >= 2*(necho*rin_slices) ) {
+            if( gD.level > 1 )
+               fprintf(stderr,"-- have gsize %d, but necho %d, gslices %d\n",
+                       group_size, necho, rin_slices);
+            nfail--;
+            if( nfail >= 0 ) return 0;
+            fprintf(stderr,"** have group_size %d, necho %d, gslices %d\n"
+                           "   trusting latter pair to proceed\n",
+                    group_size, necho, rin_slices);
+            group_size = necho * rin_slices;
+         }
+      }
+   }
+
+   /* please end the inSANITY CHECKS */
+
+   /* set base = min, sort = rin diff */
+   if( gD.level > 1 )
+      fprintf(stderr,"++ setting sortnbase: %d, %d\n", group_size, rin_base);
+
+   *gm_base = rin_base;
+   *gm_sort = group_size;
+
+   return 0;
+}
 
 /* return a g_mod_sort val and base for GEME_RIN method
  * NOTE: geme_index is basically slice index (into one volume/echo)
@@ -2134,10 +2344,23 @@ static int geme_rin_get_sort_n_base(param_t * p, int n2proc,
       fprintf(stderr,"-- rin_base = %d, next_base = %d, ind = %d\n",
               rin_base, next_base, ind);
 
-   /* see if we have what we came for, if not, come back later */
-
-   if( next_base < 0 )
+   /* if we do not have what we came for (and wait), come back later */
+   if( next_base < 0 && p->opts.no_wait == 0 ) {
+      if( gD.level > 2 ) fprintf(stderr,"   (will try again)\n");
       return 0;
+   }
+
+   /* if we do not have what we came for (and NO wait), there must only be
+    * one volume, set next_base according to what we have
+    * (one more than the previous index) */
+   if( next_base < 0 && p->opts.no_wait == 1 ) {
+      fp--;
+      next_base = fp->geh.index+1;
+      if( gD.level > 2 )
+         fprintf(stderr,"-- only 1 vol?, assume next_base = %d\n", next_base);
+
+      /* and continue below... */
+   }
 
    /* SANITY CHECKS: we have a matching echo/geme pair, do a few sanity checks
     *
@@ -3157,7 +3380,7 @@ int compare_by_rin(const void * v0, const void * v1)
 
       /* we should not get here: whine a few times and return equal */
       if( nwarn > 0 ) {
-         fprintf(stderr,"** comp_GEME_RIN: images have equal GR pairs\n");
+         fprintf(stderr,"** comp_EG_RIN: images have equal GR pairs\n");
          nwarn--;
       }
    }
@@ -4010,6 +4233,7 @@ int sort_method(char * method)
    if( ! strcmp(method, "num_suffix") ) return IFM_SORT_NUM_SUFF;
    if( ! strcmp(method, "zposn")      ) return IFM_SORT_ZPOSN;
    if( ! strcmp(method, "rin")        ) return IFM_SORT_RIN;
+   if( ! strcmp(method, "echo_rin")   ) return IFM_SORT_ECHO_RIN;
    if( ! strcmp(method, "geme_rin")   ) return IFM_SORT_GEME_RIN;
 
    return IFM_SORT_UNKNOWN;
@@ -4029,6 +4253,7 @@ char * sort_method_str(int method)
       case IFM_SORT_NUM_SUFF: return "num_suffix";
       case IFM_SORT_ZPOSN:    return "zposn";
       case IFM_SORT_RIN:      return "rin";
+      case IFM_SORT_ECHO_RIN: return "echo_rin";
       case IFM_SORT_GEME_RIN: return "geme_rin";
    }
 
@@ -5332,11 +5557,11 @@ printf(
 "    %s -infile_pre data/im -sort_by_num_suffix -no_wait -num_chan 3 \\\n"
 "          -sort_method geme_index\n"
 "\n"
-"  A5. sort by geme_rin with 3-echo EPI data\n"
+"  A5. sort by echo_rin with 3-echo EPI data\n"
 "      (sub-sort RIN by echo/RIN in groups of necho*nslices)\n"
 "\n"
 "    %s -infile_pre data/im -sort_by_num_suffix -no_wait \\\n"
-"          -sort_method geme_rin\n"
+"          -sort_method echo_rin\n"
 "\n"
 "  A6. like geme_index, but pre-sort by RIN (not alphabetically)\n"
 "\n"
@@ -6149,7 +6374,13 @@ printf(
     "           geme_index      : by GE multi-echo index\n"
     "                           - alphabetical, but for each grouping of\n"
     "                             ge_me_index values, sort by that\n"
-    "           geme_rin        : modulo sort by RIN, subsort by echo/RIN\n"
+    "                             (prefer geme_rin, if RIN is set)\n"
+    "           echo_rin        : modulo sort by RIN, subsort by echo/RIN\n"
+    "                           - RIN repeats per echo and vol\n"
+    "           geme_rin        : modulo sort by RIN, subsort by echo/GEME\n"
+    "                           - RIN is init sort, but does not repeat\n"
+    "                           - GEME repeats per echo and vol\n"
+    "                             (a more stable version of geme_index)\n"
     "           geme_suid       : pre-sort by SOP IUID (0008 0018)\n"
     "                             as a major/minor pair, then by geme_index\n"
     "           geme_xnat       : pre-sort by RIN, then sort by geme_index\n"
@@ -6186,29 +6417,19 @@ printf(
     "             except that for a given geme_index, the files should be\n"
     "             chronological.\n"
     "\n"
-    "           geme_rin\n"
+    "           echo_rin\n"
     "\n"
     "             Sort GE multi-echo images by RIN (0020 0013).\n"
     "\n"
     "             This method essentially does a pre-sort by RIN (possibly\n"
     "             implied by -sort_by_num_suffix, before images are\n"
-    "             actually read in), followed by a secondard grouped sort.\n"
+    "             actually read in), followed by a secondary grouped sort.\n"
     "\n"
-    "             Note that for this method to work in real-time mode, the\n"
-    "             input files must be either alphabetized in RIN order, or\n"
-    "             there must be numerical RIN-order file suffix, to pre-sort \n"
-    "             using -sort_by_num_suffix.  Without that, real-time sorting\n"
-    "             might not work.\n"
-    "\n"
-    "             In non-real-time mode (using -dicom_org), all images are\n"
-    "             read up front, so the RIN sorting can simply come from\n"
-    "             that DICOM field.\n"
-    "\n"
-    "             Given that the images are first sorted by RIN, then they\n"
-    "             are sub-sorted in groups of NES\n"
+    "             The images are first sorted by RIN, then they are\n"
+    "             sub-sorted in groups of NES\n"
     "                   NES = nechos * nslices_per_volume\n"
-    "             where the major axis is echo number (ACQ Echo Number),\n"
-    "             and the minor axis is RIN (could be slice or GEME_INDEX).\n"
+    "             where the major sort is echo number (ACQ Echo Number),\n"
+    "             and the minor sort is RIN.\n"
     "\n"
     "                   0020 0013 - RIN - Instance Number\n"
     "                   0018 0086 - echo - ACQ Echo Number\n"
@@ -6221,6 +6442,16 @@ printf(
     "                major 2 : echo number\n"
     "                          (each echo in this group is a single volume)\n"
     "                minor   : slice (within that echo of that volume)\n"
+    "\n"
+    "             In non-real-time mode (using -dicom_org), all images are\n"
+    "             read up front, so the RIN sorting can simply come from\n"
+    "             that DICOM field.  In real-time mode, all available images\n"
+    "             are now read up front, so the alphabetical sorting should\n"
+    "             not matter.\n"
+    "\n"
+    "           geme_rin\n"
+    "\n"
+    "             todo ...\n"
     "\n"
     "           geme_suid\n"
     "\n"

@@ -20,6 +20,6 @@ sudo dnf install xorg-x11-fonts-misc scipy
 # fix bug in /usr/include/GL/GLwDrawA.h
 cd /usr/include/GL
 mv GLwDrawA.h GLwDrawA.h.orig
-sed 's/GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h
+sed 's/^GLAPI WidgetClass/extern GLAPI WidgetClass/' GLwDrawA.h.orig > GLwDrawA.h
 
 

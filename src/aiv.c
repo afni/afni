@@ -93,11 +93,11 @@ static void AFNI_handler(char *msg){ return ; } /* hide X11 warnings */
 static void timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
 ENTRY("timeout_CB") ;
-   (void) AIVVV_imseq_popup( MAIN_imar , killer , NULL ) ;
+   (void) AIVVV_imseq_popup( MAIN_imar , (generic_func *)killer , NULL ) ;
    if( AIVVV_stream != (NI_stream)NULL ){
      XtAppAddWorkProc( AIVVV_appcontext, AIVVV_workproc, NULL ) ;
-     NI_register_doer( "QUIT" , AIVVV_niml_quitter ) ;
-     NI_register_doer( "EXIT" , AIVVV_niml_quitter ) ;
+     NI_register_doer( "QUIT" , (NI_voidfunc *)AIVVV_niml_quitter ) ;
+     NI_register_doer( "EXIT" , (NI_voidfunc *)AIVVV_niml_quitter ) ;
    }
    EXRETURN ;
 }
@@ -444,7 +444,7 @@ ENTRY("AIVVV_imseq_popup") ;
 
    /* actually create the viewer */
 
-   psq->seq = open_MCW_imseq( MAIN_dc , AIVVV_imseq_getim , psq ) ;
+   psq->seq = open_MCW_imseq( MAIN_dc , (get_ptr)AIVVV_imseq_getim , psq ) ;
 
    drive_MCW_imseq( psq->seq , isqDR_clearstat , NULL ) ;
 
@@ -525,7 +525,7 @@ ENTRY("AIVVV_imseq_getim") ;
                                                             /* destroyed    */
      stat->num_total  = ntot ;
      stat->num_series = ntot ;
-     stat->send_CB    = AIVVV_imseq_send_CB ;
+     stat->send_CB    = (gen_func *)AIVVV_imseq_send_CB ;
      stat->parent     = NULL ;
      stat->aux        = NULL ;
 
@@ -574,7 +574,7 @@ ENTRY("AIVVV_imseq_send_CB") ;
        DESTROY_IMARR( psq->imar ) ;
 
        if( psq->kill_func != NULL )
-         psq->kill_func( psq->kill_data ) ;
+         ((void (*)(void *))psq->kill_func)( psq->kill_data ) ;
          free(psq) ;
      }
      break ;

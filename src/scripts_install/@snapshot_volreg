@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -194,7 +194,7 @@ else
   set jnam = $anat.$epi
 endif
 
-# Are we re-using Xvfb?
+# Are we reusing Xvfb?
 
 unset xdisplay
 unset killX

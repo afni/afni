@@ -29,6 +29,7 @@ MTYPE_DUR  = 2   # duration modulation
 g_xmat_basis_labels = ['Name', 'Option', 'Formula', 'Columns']
 g_xmat_stim_types   = [ 'times', 'AM', 'AM1', 'AM2', 'IM' ]
 g_1D_write_styles   = [ 'basic', 'pretty', 'ljust', 'rjust', 'tsv' ]
+g_val               = None      # generic global for exec()
 
 class Afni1D:
    def __init__(self, filename="", from_mat=0, matrix=None, verb=1):
@@ -53,6 +54,7 @@ class Afni1D:
 
       # main variables
       self.mat     = None       # actual data (2-D array [[]])
+                                # (array of time series)
       self.name    = "NoName"   # more personal and touchy-feely...
       self.fname   = filename   # name of data file
       self.aname   = None       # afni_name, if parsing is useful
@@ -872,14 +874,14 @@ class Afni1D:
    def show_gcor_all(self):
       for ind in range(1,6):
          print('----------------- GCOR test %d --------------------' % ind)
-         exec('val = self.gcor%d()' % ind)
-         exec('print("GCOR rv = %.10f" % val)')
+         # modification of locals is undefined
+         exec('global g_val ; g_val = self.gcor%d()' % ind, globals(), locals())
+         print("GCOR rv = %.10f" % g_val)
 
    def show_gcor_doc_all(self):
       for ind in range(1,6):
          print('----------------- GCOR doc %d --------------------' % ind)
-         exec('val = self.gcor%d.__doc__' % ind)
-         exec('print("%s" % val)')
+         exec('print(self.gcor%d.__doc__)' % ind, globals(), locals())
 
    # basically, a link to the one we really want to call
    def gcor(self): return self.gcor2()
@@ -1248,10 +1250,57 @@ class Afni1D:
 
       if self.verb > 3: print('-- Afni1D reverse...')
 
-      ilist = UTIL.decode_1D_ints('$..0(-1)',verb=self.verb,imax=self.nt-1)
+      ilist = UTIL.decode_1D_ints('$..0(-1)',imax=self.nt-1,verb=self.verb)
       if self.reduce_by_tlist(ilist): return 1
 
       return 0
+
+   def convert_to_censor_spikes(self):
+      """return a similar Afni1D instance with ncensor spike time series
+
+         self: is expected to be a censor file for 3dDeconvolve
+               - a single binary column, where 1 means keep and 0 means censor
+
+         return: a new instance of the same nt, but where:
+                    nvec == ncensor
+                    ncensor == number of 0's in self.mat[0]
+                    each vector is all 0, but with a 1 at a single censor index
+
+         note: for input, 0 means a censored time point,
+               for output, it is the opposite (since they are spike regs)
+      """
+      if not self.ready:
+         print('** pad into runs: Afni1D is not ready')
+         return 1
+
+      # first make holder for returned instance
+      adcopy = self.copy()
+      adcopy.name = 'Spikey'
+
+      if adcopy.nvec < 1 or adcopy.nt < 1:
+         if self.verb > 1: print("-- convert to spikes: empty mat")
+         return adcopy
+
+      if adcopy.nvec > 1:
+         if self.verb > 1: print("-- convert to spikes: extra cols in mat")
+
+      # get indices of zeros
+      vec = self.mat[0]
+      zeros = [i for i in range(self.nt) if vec[i] == 0]
+      nz = len(zeros)
+
+      # make spike regressors
+      newmat = []
+      for z in zeros:
+         reg = [0] * self.nt
+         reg[z] = 1
+         newmat.append(reg)
+
+      del(adcopy).mat
+      adcopy.mat = newmat
+      adcopy.nvec = nz
+
+      return adcopy
 
    def get_allzero_cols(self):
       """return a list of column indices for which the column is all zero
@@ -2144,6 +2193,121 @@ class Afni1D:
             print(ps, end='')
          print("")
 
+   def make_xmat_warnings_string(self, fname='', level=1):
+      """make a string for any xmatrix warnings (non-correlation)
+
+         ...
+
+         return error code (0=success) and 'warnings' string"""
+
+      if self.verb > 2: print("-- make_xmat_warn_str for '%s'" % fname)
+
+      wall_str = ''
+      indent = '   ' # indentation for the actual warnings
+
+      # ------------------------------------------------------------
+      # warn on small maxabs
+      err, errstr, wlist = self.list_xmat_warns_maxabs(level=level)
+      if err: return err, errstr
+      wlen = len(wlist)
+
+      jstr = '\n%s' % indent
+      if wlen > 0: wstr = indent + jstr.join(wlist)
+      else:        wstr = ''
+      if self.verb > 1 or (self.verb > 0 and wlen > 0):
+         wstr = ("== xmat maxabs warnings: %d\n" % wlen) \
+                + wstr                                   \
+                + "\n-- betas will inversely scale with regressors"
+      if wstr != '': wstr += '\n'
+
+      wall_str += wstr
+
+      # ------------------------------------------------------------
+      # warn on all-zero regressors
+      err, errstr, wlist = self.list_xmat_warns_allzero(level=level)
+      if err: return err, errstr
+      wlen = len(wlist)
+
+      jstr = '\n%s' % indent
+      if wlen > 0: wstr = indent + jstr.join(wlist)
+      else:        wstr = ''
+      if self.verb > 1 or (self.verb > 0 and wlen > 0):
+         wstr = ("\n== xmat allzero warnings: %d\n" % wlen) \
+                + wstr
+      if wstr != '': wstr += '\n'
+
+      wall_str += wstr
+
+      # and returned combined string
+      return err, wall_str
+
+   def list_xmat_warns_allzero(self, level=1):
+      """return an error code, error string and a list of warnings
+
+         warn on regressors that are all zero
+
+            level       : verbosity warning level
+      """
+
+      if not self.ready:
+         return 1, '** no X-matrix to warn about', []
+
+      # stick with column selection, in case we apply it later
+      ilist = list(range(self.nvec))
+
+      # list of warnings
+      wlist = []
+
+      havelabs = len(self.labels) == self.nvec
+      zero_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) == 0]
+      for bind in zero_l:
+         if havelabs: label = self.labels[bind]
+         else:        label = 'vector %02d' % bind
+         wlist.append('all zero regressor %s' % label)
+
+      return 0, '', wlist
+
+   def list_xmat_warns_maxabs(self, minmax=0.1, groups=1, level=1):
+      """return an error code, error string and a list of warnings
+
+         warn on maxabs() value less than minmax limit
+
+            minmax      : minimum limit for maxabs
+            groups      : limit results to columns of non-basline groups
+                          (if they exist, baseline groups are 0, -1)
+            level       : verbosity warning level
+      """
+
+      if not self.ready:
+         return 1, '** no X-matrix to warn about', []
+
+      # if non-baseline groups are wanted and defined
+      if groups and len(self.groups) == self.nvec and self.nvec > 0:
+         ilist = [i for i in range(self.nvec) if self.groups[i] > 0]
+         if self.verb > 1:
+            print("== have %d regs of interest: %s" % (len(ilist), ilist))
+      else:
+         ilist = list(range(self.nvec))
+         if self.verb > 1:
+            print("== using all %d regs" % len(ilist))
+
+      # list of warnings
+      wlist = []
+
+      havelabs = len(self.labels) == self.nvec
+      zero_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) == 0]
+      badmax_l = [i for i in ilist if UTIL.maxabs(self.mat[i]) < minmax]
+      ll = badmax_l
+      for bind in badmax_l:
+         # all-zero regressors are separate, do not warn here
+         if bind in zero_l: continue
+         if havelabs: label = self.labels[bind]
+         else:        label = 'vector %02d' % bind
+         wlist.append('maxabs for regressor %s : %g' \
+                      % (label, UTIL.maxabs(self.mat[bind])))
+
+      return 0, '', wlist
+
    def make_cormat_warnings_string(self, cutoff=0.4, name='',
                                    skip_expected=1):
       """make a string for any entries at or above cutoffs:
@@ -2585,12 +2749,55 @@ class Afni1D:
       if verb > 0: print('rows = %d, cols = %d' % (self.nt, self.nvec))
       else:        print('%d %d' % (self.nt, self.nvec))
 
-   def show_tpattern(self, mesg='', rdigits=1, verb=1):
+   def show_tpattern(self, mesg='', tr=0.0, rdigits=1, verb=1):
       """display the multiband level and to3d-style tpattern
 
+             mesg    : ['']  : print before output
+             tr      : 0.0   : if > 0, override detected TR with that passed
+                               * tr must be passed to have an effect,
+                                 since the class default is 1 (to mimic afni)
+             rdigits : [1]   : N digtits used for rounding in pattern detection
+             verb    : [1]   : verbosity level (0 = quiet)
+      """
+
+      if mesg:     print('%s' % mesg, end='')
+
+      nb, tpat = self.get_tpattern(tr=tr, rdigits=rdigits, verb=verb)
+
+      if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
+      else:        print('%d %s' % (nb, tpat))
+
+   def get_tpattern(self, tr=0.0, rdigits=1, verb=1):
+      """get the multiband level and to3d-style tpattern
+
+             tr      : 0.0   : if > 0, override detected TR with that passed
+                               * tr must be passed to have an effect,
+                                 since the class default is 1 (to mimic afni)
+             rdigits : [1]   : digtits used for rounding in pattern detection
+             verb    : [1]   : verbosity level (0 = quiet)
+
+         return number of bands and detected pattern or 'INVALID'
+      """
+
+      # allow timing to be either vertical or horizontal
+      if self.nvec == 1:
+         timing = self.mat[0]
+      else:
+         timing = [v[0] for v in self.mat]
+
+      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits,
+                                              tr=tr, verb=verb)
+      if nb < 0:
+         tpat = 'INVALID'
+
+      return nb, tpat
+
+   def show_tresolution(self, mesg='', rdigits=-1, verb=1):
+      """display the apparent numerical resolution (error) in the data
+
          mesg    : ['']  : print before output
-         rdigits : [1]   : number of digtits used for rounding in pattern detection
-         verb    : [1]   : verbosity level (0 = quiet)"""
+         rdigits : [-1]  : number of digtits used for printing (-1 means %g)
+      """
 
       if mesg:     print('%s' % mesg, end='')
 
@@ -2600,11 +2807,12 @@ class Afni1D:
       else:
          timing = [v[0] for v in self.mat]
 
-      nb, tpat = UTIL.timing_to_slice_pattern(timing, rdigits=rdigits, verb=verb)
-      if nb < 0:
-         tpat = 'INVALID'
-      if verb > 0: print('nbands : %d, tpattern : %s' % (nb, tpat))
-      else:        print('%d %s' % (nb, tpat))
+      res = UTIL.numerical_resolution(timing)
+
+      if rdigits < 0:
+         print("%g" % res)
+      else:
+         print("%.*f" % (rdigits, res))
 
    def get_tr_counts(self):
       """return status, self.run_len, self.run_len_nc
@@ -3172,14 +3380,34 @@ class Afni1D:
       return [self.labels.index(lab) for lab in labels]
 
    def init_from_matrix(self, matrix):
-      """initialize Afni1D from a 2D (or 1D) array"""
+      """initialize Afni1D from a 2D (or 1D) array
+            mat:      2D matrix, each element is a column
+            nvec:     number of columns
+            nt:       number of data rows
+            ready:    flag - ready for processing
+
+          not included:
+            labels:   labels of the columns
+            havelabs: flag - do we have labels
+            header:   an unprocessed comment line
+      """
 
       if self.verb > 3: print("-- Afni1D: init_from_matrix")
 
       if type(matrix) != type([]):
          print('** matrix for init must be [[float]] format')
          return 1
-      elif type(matrix[0]) != type([]):
+
+      # allow an empty matrix?
+      if len(matrix) == 0:
+         self.mat   = matrix
+         self.nvec  = 0
+         self.nt    = 0
+         self.ready = 1
+         return 0
+
+      # do we just have a single column?
+      if type(matrix[0]) != type([]):
          if type(matrix[0]) == type(1.0):
 
             # init from vector
@@ -3187,12 +3415,13 @@ class Afni1D:
             self.nvec  = 1
             self.nt    = len(matrix)
             self.ready = 1
-            return 1
+            return 0
 
          else:
             print('** matrix for init must be [[float]] format')
             return 1
 
+      # otherwise, should have 2D array
       self.mat   = matrix
       self.nvec  = len(matrix)
       self.nt    = len(matrix[0])
@@ -3221,13 +3450,19 @@ class Afni1D:
          else:
             labels = []
 
-         ilist = UTIL.decode_1D_ints(aname.colsel, verb=self.verb,
-                                     imax=self.nvec-1, labels=labels)
+         ilist = UTIL.decode_1D_ints(aname.colsel, imax=self.nvec-1,
+                                     labels=labels, verb=self.verb)
          if ilist == None: return 1
+         if self.verb > 1:
+            print("-- selecting columns: %s" % UTIL.int_list_string(ilist))
+         if self.verb > 2:
+            print("-- labels: %s" % ', '.join([labels[i] for i in ilist]))
          if self.reduce_by_vec_list(ilist): return 1
       if aname.rowsel:
-         ilist = UTIL.decode_1D_ints(aname.rowsel,verb=self.verb,imax=self.nt-1)
+         ilist = UTIL.decode_1D_ints(aname.rowsel,imax=self.nt-1,verb=self.verb)
          if ilist == None: return 1
+         if self.verb > 1:
+            print("-- selecting rows: %s" % UTIL.int_list_string(ilist))
          if self.reduce_by_tlist(ilist): return 1
 
       return 0
@@ -3315,8 +3550,110 @@ class Afni1D:
 
       return 1, btype, bind
 
+   def init_from_tsv(self, fname):
+      """initialize Afni1D from a TSV file (return err code)
+         set self. : mat, nvec, nt, ready, labels, havelab, header
+
+         always set:
+            mat:      2D matrix, each element is a column
+            nvec:     number of columns
+            nt:       number of data rows
+            ready:    flag - ready for processing
+
+         if first row is labels:
+            labels:   labels of the columns
+            havelabs: flag - do we have labels
+
+         never in this function:
+            header:   an unprocessed comment line
+      """
+
+      if self.verb > 3: print("-- Afni1D: init_from_tsv '%s'" % fname)
+
+      # ------------------------------------------------------------
+      # read in
+      tdat = UTIL.read_tsv_file(fname)
+      # if empty, do base init
+      if len(tdat) == 0:
+         return self.init_from_matrix(tdat)
+
+      # ------------------------------------------------------------
+      # do we have labels in a header? (all floats means no)
+      self.havelabs = 1
+      try:
+         fdata = [float(val) for val in tdata[0]]
+         self.havelabs = 0
+      except:
+         pass
+      if self.havelabs:
+         # extract row 0 as labels, and process
+         self.labels = tdat.pop(0)
+
+      # ------------------------------------------------------------
+      # have rectangular data, all must be float now
+      retry = 0
+      try:
+         fmat = [ [float(val) for val in trow] for trow in tdat ]
+      except:
+         retry = 1
+
+      # allow slower retry, setting n/a to 0.0 (we can add options for this)
+      if retry:
+         if self.verb > 2:
+            print("** float n/a retry for '%s'..." % fname)
+         try:
+            nacount = 0
+            naval = ''
+            fmat = []
+            for trow in tdat:
+               fline = []
+               for val in trow:
+                  sys.stdout.flush()
+                  if val in ['n/a', 'N/A', 'na', 'NA']:
+                     fline.append(0.0)
+                     nacount += 1
+                     naval = val
+                  else:
+                     fline.append(float(val))
+               fmat.append(fline)
+            if self.verb > 1:
+               print("-- replaced %d '%s' values with 0.0 in %s" \
+                     % (nacount, naval, fname))
+         except:
+            if self.verb:
+               print("** data in TSV not all float for '%s'" % fname)
+               if self.verb > 2:
+                  print("   val = %s" % val)
+                  print("   trow = %s" % trow)
+               return 1
+
+      # ------------------------------------------------------------
+      # treat columns as across time
+      mat = UTIL.transpose(fmat)
+
+      # ------------------------------------------------------------
+      # and init the data part
+      return self.init_from_matrix(mat)
+
    def init_from_1D(self, fname):
-      """initialize Afni1D from a 1D file (return err code)"""
+      """initialize Afni1D from a 1D file (return err code)
+         set self. : mat, nvec, nt, ready, labels, havelab, header
+
+         main attributes:
+            mat:      2D matrix, each element is a column
+            nvec:     number of columns
+            nt:       number of data rows
+            ready:    flag - ready for processing
+
+         possible extras:
+            labels:   labels of the columns
+            havelabs: flag - do we have labels (needed?)
+            header:   an unprocessed comment line
+      """
+
+      # process a TSV in more of a known way, possible header and data
+      if fname.endswith('.tsv'):
+         return self.init_from_tsv(fname)
 
       if self.verb > 3: print("-- Afni1D: init_from_1D '%s'" % fname)
 
@@ -3533,6 +3870,7 @@ class AfniData(object):
       self.verb      = verb
       # self.hist    = g_AfniData_hist (why did I do this?)
       self.write_dm  = 1        # if found include durations when printing
+      self.force_w_type = ''    # force write type: simple, AM, DM, AMDM
 
       # computed variables
       self.cormat      = None   # correlation mat (normed xtx)
@@ -3968,22 +4306,50 @@ class AfniData(object):
       # (little gain in trying to usually put one '*')
       if len(data) == 0 and flag_empty: rstr += '* *'
 
+      # check force_w_type (simple, AM, DM, AMDM)
+      do_am = -1
+      do_dm = -1
+      if self.force_w_type == 'simple':
+         simple = 1
+      elif self.force_w_type == 'AM':
+         simple = 0
+         do_am = 1
+         do_dm = 0
+      elif self.force_w_type == 'DM':
+         simple = 0
+         do_am = 0
+         do_dm = 1
+      elif self.force_w_type == 'AMDM':
+         simple = 0
+         do_am = 1
+         do_dm = 1
+
       for val in data:
          if simple:
             if nplaces >= 0: rstr += '%.*f ' % (nplaces, val[0])
             else:            rstr += '%g ' % (val[0])
          else:
-            if self.mtype & MTYPE_AMP and len(val[1]) > 0:
+            # (if default or forced AM) see if AM is appropriate
+            if do_am != 0 and self.mtype & MTYPE_AMP and len(val[1]) > 0:
                if mplaces >= 0: alist = ['*%.*f'%(nplaces, a) for a in val[1]]
                else:            alist = ['*%g'%a for a in val[1]]
                astr = ''.join(alist)
-            else: astr = ''
+            # else if forced, add constant modulator
+            elif do_am == 1:
+               astr = '*1'
+            # else, nothing
+            else:
+               astr = ''
 
-            # if married and want durations, include them
-            if self.write_dm and (self.mtype & MTYPE_DUR):
+            # (if default or forced) if married and want durations, include them
+            if do_dm != 0 and self.write_dm and (self.mtype & MTYPE_DUR):
                if mplaces >= 0: dstr = ':%.*f' % (nplaces, val[2])
                else:            dstr = ':%g' % val[2]
-            else: dstr = ''
+            # else if forced, add constant duration of 0
+            elif do_dm == 1:
+               dstr = ':0'
+            else:
+               dstr = ''
 
             if nplaces >= 0: rstr += '%.*f%s%s ' % (nplaces, val[0], astr, dstr)
             else: rstr += '%g%s%s ' % (val[0], astr, dstr)
@@ -4677,7 +5043,7 @@ class AfniData(object):
 
          mdata.append(elist)
 
-      # if all amplitudes are constand 0 or 1, remove them
+      # if all amplitudes are constant 0 or 1, remove them
       if   UTIL.vals_are_constant(amp_all, cval=0): cval = 0
       elif UTIL.vals_are_constant(amp_all, cval=1): cval = 1
       else:                                         cval = 2

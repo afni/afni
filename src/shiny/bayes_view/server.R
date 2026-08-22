@@ -13,9 +13,10 @@ shinyServer(function(input,output,session) {
     getROIs <- reactive({
         attach(input$fileSel)
         roi.temp <- as.data.frame(ps0)
-        mod.terms <- terms
+        mod.terms <- dimnames(ge$ROI)[[3]]
+        all.terms <- ge
         detach(paste0('file:',input$fileSel),character.only=TRUE)
-        rois.out <- list(roi.temp,mod.terms)
+        rois.out <- list(roi.temp,mod.terms,all.terms)
         return(rois.out)
     })   ## end getROIs
     
@@ -26,17 +27,28 @@ shinyServer(function(input,output,session) {
         temp.rois <- getROIs()
         temp.terms <- temp.rois[[2]]
         temp.rois <- temp.rois[[1]]
-        
+        # print(temp.terms)
         rois.list <- as.list(names(temp.rois))
         names(rois.list) <- names(temp.rois)
         updateSelectInput(session,"roiSel",choices=rois.list,selected=rois.list)
+        updateSelectInput(session,"eoiSel",choices=temp.terms)
         
         ## get the plot title from the last term
-        last.term <- temp.terms[length(temp.terms)]
-        if( last.term == 1 ){ last.term <- "Intercept" }
-        updateTextInput(session,'x_label',value=last.term)
+        # last.term <- temp.terms[length(temp.terms)]
+        # if( last.term == 1 ){ 
+        #    last.term <- "Intercept" 
+        #  } else {
+        #     
+        #  }
+        # updateTextInput(session,'x_label',value=input$eoiSel)
         # updateSliderInput(session,'colBarHeight',value=length(rois.list))
     })
+    
+    ## update the effect of interest selections
+    observeEvent(input$eoiSel,{
+       updateTextInput(session,'x_label',value=input$eoiSel)
+    })
+    
     
     ## check plot dimensions in pixels
     output$cur_plot_dim <- renderText({
@@ -132,20 +144,21 @@ shinyServer(function(input,output,session) {
     getStats <- reactive({
         
         ## get data remove unselected rois
-        data <- getROIs()[[1]]
-        
+        data <- getROIs()[[3]]
+        eoi <- input$eoiSel
+        data <- as.data.frame(data$ROI[,,eoi])
+
         validate(need(all(input$roiSel %in% names(data)),'     Need more rois!!!'))
         data <- subset(data,select=input$roiSel)
         
         data$X <- NULL
         nobj=dim(data)[1]
         # rename columns with ROI list
-        # print(summary(data))
         rois <- names(data)
         colnames(data) <- rois
         data_stats <- data.frame(1:length(rois))
         
-        # create ROI column instead of numerics to match  table above
+        # create ROI column instead of numerics to match table above
         data_stats$ROI <- rois
         data_stats$P <- colSums(data > 0)/nobj
         data_stats$Pn <- ifelse(data_stats$P < .5, 1-data_stats$P, data_stats$P)
@@ -172,10 +185,10 @@ shinyServer(function(input,output,session) {
         data_long <- data_long[order(data_long$X),]
         
         #clunky, but for now stats by ensuring orders are all the same and repeating each value nobj times. no success for alternatives. 
-        data_long$mean <- rep(data_merge$mean, each=nobj)
-        data_long$P <- rep(data_merge$P, each =nobj)
-        data_long$Pn <- rep(data_merge$Pn, each =nobj)
-        data_long$gray.vals <- rep(data_merge$gray.vals, each =nobj)
+        data_long$mean <- rep(data_merge$mean,each=nobj)
+        data_long$P <- rep(data_merge$P,each=nobj)
+        data_long$Pn <- rep(data_merge$Pn,each=nobj)
+        data_long$gray.vals <- rep(data_merge$gray.vals,each=nobj)
         
         # print(tail(data_long))
         # 

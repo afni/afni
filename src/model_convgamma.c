@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*----------------------------------------------------------------------
@@ -193,7 +193,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[3] =     0.1;    mi->max_constr[3] =     5.0;
 
   /*----- function which implements the model -----*/
-  mi->call_func = &conv_model;
+  mi->call_func = (void_func *)&conv_model;
 
   return (mi);
 }

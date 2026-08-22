@@ -804,13 +804,39 @@ g_history = """
     7.81 Oct 23, 2024:
        - redo default surface blur
        - add -volreg_no_volreg, the B Feige option
-    7.82 Dec 6, 2024: subtract 1 from ricor QC vrat, for more a useful display
+    7.82 Dec  6, 2024: subtract 1 from ricor QC vrat, for more a useful display
+    7.83 Jan 27, 2025: fix -compare_opts display of fewer/more options applied
+    7.84 Jan 28, 2025: add option -tlrc_affine_warped_dsets
+    7.85 Jan 29, 2025: suggest OC_B if only 2 echoes
+    7.86 Feb 27, 2025: add -show_merged_opts, -compare_merged_opts
+    7.87 Mar 11, 2025: update examples class 3,5 per AD6
+    7.88 Mar 21, 2025: add combine methods OC_m_tedort and m_tedana_OC_tedort
+    7.89 Apr  2, 2025: parse/pass any opts_ts -tpattern @FILE to review_basic
+    7.90 Apr 24, 2025: use updated find_variance_lines.tcsh (no -nerode 2)
+    7.91 May  6, 2025: set ROI_import view in case of no volreg block
+    7.92 May 16, 2025: add help for m_tedort combine methods
+    7.93 Jun 17, 2025: pass blur_size uvar to PT for APQC
+    8.00 Aug  6, 2025: run gtkyd and report outliers (basic start for now)
+    8.01 Aug  6, 2025: add -volreg_warp_master_box, to base dxyz on EPI
+    8.02 Sep  8, 2025: add -regress_per_run_ortvec, for physio volbase regs
+    8.03 Sep 11, 2025:
+       - do not create a script on -show_tracked_files
+       - add example class do_21, to match that in AFNI_data7
+       - suggest a new default blur (but still use 4.0), if none is given
+       - suggest open_apqc.py instead of afni_open
+       - allow verb only to show tracked files and create proc script
+    8.04 Jan  9, 2026: add -show_xmat_warnings after -show_cormat_warnings
+    8.05 Jan 13, 2026: create enorm time series even if no volreg or censoring
+    8.06 Apr 24, 2026: if tedana masking, suggest -blur_in_mask yes
 """
 
-g_version = "version 7.82, December 6, 2024"
+g_version = "version 8.06, April 24, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ " 7 Jan 2026",  "1d_tool.py -show_xmat_warnings" ],
+      [ "10 Sep 2025",  "afni_util.py get_def_blur_from_dims" ],
+      [ "24 Apr 2025",  "find_variance_lines.tcsh -ignore_edges" ],
       [ " 7 Mar 2024",  "3dTto1D -method 4095_warn" ],
       [ "15 Feb 2024",  "compute_ROI_stats.tcsh, whereami -index_to_label" ],
       [ "14 Nov 2022",  "find_variance_lines.tcsh" ],
@@ -883,11 +909,14 @@ interesting milestones for afni_proc.py:
    2024.04 : ap_run_simple_rest_me.tcsh: low-option afni_proc.py for multiecho
    2024.05 : enable output of BIDS derivative tree
    2024.08 : input external distortion warp dataset
+   2025.03 : add tedort combine methods OC_m_tedort and m_tedana_OC_tedort
+   2025.08 : GTKYD - outlier check from: getting to know your data
+   2025.09 : handle physio_calc.py slibase and volbase regressors
 """
 
 
 g_process_changes_str = """
----------- changes to afni_proc.py that might afftect results ----------
+---------- changes to afni_proc.py that might affect results ----------
 
 Miscellaneous older changes:
 
@@ -1047,9 +1076,9 @@ g_eg_skip_opts = [
    '-surf_anat', '-surf_spec',
    '-tlrc_NL_warped_dsets', 
    # '-volreg_base_dset',   (not sure, so allow for now)
-   '-regress_censor_extern', '-regress_extra_stim_files', 
-   '-regress_extra_ortvec', '-regress_extra_ortvec_labels',
-   '-regress_motion_file', 
+   '-regress_censor_extern',  '-regress_extra_stim_files',
+   '-regress_extra_ortvec',   '-regress_extra_ortvec_labels',
+   '-regress_per_run_ortvec', '-regress_motion_file',
    '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
    '-ricor_regs'
    ] 
@@ -1122,6 +1151,7 @@ class SubjProcSream:
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
         self.vr_warp_mast = None        # local -volreg_warp_master dset
+        self.vr_warp_mbox = 0           # is the warp master just for the box?
         self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.vr_base_MO   = 0           # using MIN_OUTLIER volume for VR base
@@ -1172,9 +1202,10 @@ class SubjProcSream:
         self.anat_unifized = 0          # has the anat been unifized
         self.anat_final = None          # anat assumed aligned with stats
         self.anat_warps = []            # array of anat warp matrices
-        self.nlw_aff_mat= ''
-        self.nlw_NL_mat = ''
-        self.nlw_priors = []            # afni_name list of 3 warped_dsets
+        self.nlw_aff_mat= ''            # imported affine or NL warp info
+        self.nlw_NL_mat = ''            # (priors: warp, warped anat)
+        self.nlw_priors = []            # afni_name list of 2,3 warp files
+        self.nlw_type   = ''            # if set, affine or NL
         self.tlrcanat   = None          # expected name of tlrc dataset
         self.tlrc_base  = None          # afni_name dataset used in -tlrc_base
         self.tlrc_nlw   = 0             # are we using non-linear registration
@@ -1233,6 +1264,8 @@ class SubjProcSream:
         self.runs       = 0             # number of runs
         self.reps_all   = []            # number of TRs in each run
         self.reps_vary  = 0             # do the repetitions vary
+        self.rm_nfirst  = []            # NT to remove from start of each run
+        self.rm_nlast   = 0             # constant NT to remove from run ends
         self.orig_delta = [0, 0, 0]     # dataset voxel size (initial)
         self.delta      = [0, 0, 0]     # dataset voxel size
         self.datatype   = -1            # 1=short, 3=float, ..., -1=uninit
@@ -1363,7 +1396,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-show_process_changes', 0, [],
                         helpstr="show afni_proc.py changes that affect results")
         self.valid_opts.add_opt('-show_tracked_files', 1, [],
-                        helpstr="show tracked files of given type")
+                        helpstr="show tracked files of given 'desc' or ALL")
         self.valid_opts.add_opt('-show_valid_opts', 0, [],
                         helpstr="show all valid options")
         self.valid_opts.add_opt('-todo', 0, [],
@@ -1380,6 +1413,10 @@ class SubjProcSream:
                         helpstr="compare earlier options vs. later ones")
         self.valid_opts.add_opt('-compare_example_pair', 2, [],
                         helpstr="compare the specified pair of examples")
+        self.valid_opts.add_opt('-compare_merged_opts', 1, [],
+                        helpstr="compare options against merged example")
+        self.valid_opts.add_opt('-show_merged_opts', 1, [],
+                        helpstr="show command with merged options")
 
         # general execution options
         self.valid_opts.add_opt('-blocks', -1, [], okdash=0,
@@ -1579,6 +1616,8 @@ class SubjProcSream:
                         helpstr='make a local copy of the template')
         self.valid_opts.add_opt('-tlrc_opts_at', -1, [],
                         helpstr='additional options supplied to @auto_tlrc')
+        self.valid_opts.add_opt('-tlrc_affine_warped_dsets', 2, [],
+                        helpstr='pass dsets that have already been aff_warped')
         self.valid_opts.add_opt('-tlrc_NL_awpy_rm', 1, [],
                         acplist=['yes','no'],
                         helpstr='remove work dir from auto_warp.py')
@@ -1633,6 +1672,8 @@ class SubjProcSream:
                         helpstr='final interpolation used when apply warps')
         self.valid_opts.add_opt('-volreg_warp_master', 1, [],
                         helpstr='grid master applied to volreg warp')
+        self.valid_opts.add_opt('-volreg_warp_master_box', 1, [],
+                        helpstr='grid bounding box applied to volreg warp')
         self.valid_opts.add_opt('-volreg_method', 1, [],
                         acplist=['3dvolreg','3dAllineate'],
                         helpstr='specify program for EPI volume registration')
@@ -1859,6 +1900,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_extra_ortvec_labels',
                                 -1, [], okdash=0,
                         helpstr="labels for extra -stim_files")
+        self.valid_opts.add_opt('-regress_per_run_ortvec', -2, [], okdash=0,
+                        helpstr="label and ortvecs for each run")
         self.valid_opts.add_opt('-regress_ppi_stim_files', -1, [], okdash=0,
                         helpstr="extra PPI -stim_files to apply")
         self.valid_opts.add_opt('-regress_ppi_stim_labels', -1, [], okdash=0,
@@ -2045,6 +2088,7 @@ class SubjProcSream:
         
         if opt_list.find_opt('-show_tracked_files'):
             self.show_tfiles,rv = opt_list.get_string_opt('-show_tracked_files')
+            self.make_main_script = 0      # do not create a script
         
         if opt_list.find_opt('-todo'):     # print "todo" list
             print(g_todo_str)
@@ -2055,7 +2099,7 @@ class SubjProcSream:
             return 0  # gentle termination
 
         # ------------------------------------------------------------
-        # example and "compare" options - to compare option lists
+        # example, compare and merge options - to compare option lists
         if opt_list.find_opt('-compare_opts'):
            comp, rv = opt_list.get_string_opt('-compare_opts')
            self.compare_vs_opts(opt_list.olist, comp)
@@ -2073,6 +2117,11 @@ class SubjProcSream:
            self.compare_example_pair(pair)
            return 0
         
+        if opt_list.find_opt('-compare_merged_opts'):
+           target, rv = opt_list.get_string_opt('-compare_merged_opts')
+           self.compare_merged_opts(opt_list.olist, target)
+           return 0
+
         if opt_list.find_opt('-show_example'):
            eg, rv = opt_list.get_string_opt('-show_example')
            self.show_example(eg, verb=self.verb)
@@ -2091,6 +2140,10 @@ class SubjProcSream:
               self.show_example_names()
            return 0
         
+        if opt_list.find_opt('-show_merged_opts'):
+           target, rv = opt_list.get_string_opt('-show_merged_opts')
+           return self.show_merged_command(target, verb=self.verb)
+
         # options which are NO LONGER VALID
 
         if opt_list.find_opt('-surf_blur_fwhm'):
@@ -2913,8 +2966,9 @@ class SubjProcSream:
                                                    verb=self.verb)
                   if err: return 1
                   if reps != self.reps_all[rind]:
-                     print("run %d reps vary between echo 1 and echo %d" \
-                           % (rind+1, eind+1))
+                     print("** run %d reps differ between echo 1 (%d)" \
+                           " and echo %d (%d)"                         \
+                           % (rind+1, self.reps_all[rind], eind+1, reps))
                      return 1
                   if tr != self.tr:
                       print('** TR of %g (in %s) != run 1 echo 1 TR %g' \
@@ -3311,7 +3365,7 @@ class SubjProcSream:
               tstr += 'timing_tool.py -add_offset %g -timing %s \\\n'   \
                       '               -write_timing %s/%s\n'            \
                       % (val, oldfile, self.od_var, newfile)
-              self.tlist.add(oldfile, newfile, 'stim')
+              self.tlist.add(oldfile, newfile, 'stim', ftype='text')
 
           # otherwise, have either regular timing files or no offset
           else:
@@ -3319,7 +3373,8 @@ class SubjProcSream:
             for ind in range(len(self.stims)):
                 tstr += ' %s' % self.stims_orig[ind]
             tstr += ' %s/stimuli\n' % self.od_var
-            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/',
+                                ftype='text')
           self.write_text(add_line_wrappers(tstr))
           self.write_text("%s\n" % stat_inc)
 
@@ -3329,16 +3384,21 @@ class SubjProcSream:
                   (' '.join(self.extra_stims_orig), self.od_var)
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
-            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/')
+            self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/',
+                                ftype='1D')
 
         opt = self.user_opts.find_opt('-regress_extra_ortvec')
         if opt and len(opt.parlist) > 0:
             tstr = '# copy external ortvec files into stimuli dir\n' \
                   'cp %s %s/stimuli\n' %                             \
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
-            self.tlist.add_many(opt.parlist, 'ortvec', ftype='1D')
+            self.tlist.add_many(opt.parlist, 'ortvec',ftype='1D',pre='stimuli/')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
+
+        # do the same for per_run ortvecs, but need -pad_into_many_runs
+        if self.user_opts.find_opt('-regress_per_run_ortvec'):
+           self.copy_per_run_ortvecs()
 
         if self.anat:
             oanat = self.anat.nice_input()
@@ -3467,6 +3527,7 @@ class SubjProcSream:
         if tstr:
            self.write_text(add_line_wrappers(tstr+'\n'))
 
+        # ------------------------------------------------------------------
         # copy any -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
         if len(self.nlw_priors) == 3:
            tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
@@ -3499,6 +3560,35 @@ class SubjProcSream:
                    (an.nice_input(), self.od_var, an.out_prefix())
            self.tlist.add(an.nice_input(), an.shortinput(),'NL_warp',
                           ftype='dset', view='+tlrc')
+
+           self.write_text(add_line_wrappers(tstr))
+           self.write_text("%s\n" % stat_inc)
+
+        # ------------------------------------------------------------------
+        # copy any -tlrc_affine_warped_dsets files (self.nlw_priors dsets)
+        if len(self.nlw_priors) == 2:
+           tstr = '# copy external -tlrc_affine_warped_dsets datasets\n'
+
+           # copy anat, setting its file type to AFNI
+           an = self.nlw_priors[0]
+           tstr += '3dcopy %s %s/%s\n'%(an.nice_input(), self.od_var, an.prefix)
+           anorig = an.nice_input()
+
+           # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
+           # (priors[0] is anat in standard space)
+           if self.nlw_priors[0].type == 'NIFTI':
+              an = self.nlw_priors[0]
+              an = gen_afni_name('%s+tlrc' % an.prefix)
+              self.nlw_priors[0] = an
+
+           self.tlist.add(anorig, an.shortinput(), 'aff_warp', ftype='dset')
+
+           # get aff12.1D file
+           an = self.nlw_priors[1]
+           tstr += '3dcopy %s %s/%s\n' % \
+                   (an.nice_input(), self.od_var, an.out_prefix())
+           self.tlist.add(an.nice_input(), an.shortinput(), 'aff_warp',
+                          ftype='1D')
 
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
@@ -3588,6 +3678,31 @@ class SubjProcSream:
                             "endif\n\n")
 
         self.flush_script()
+
+    # copy per_run ortvecs, calling 1d_tool.py -pad_into_many_runs
+    #
+    # checks:
+    #   - first term should be a label and not a file
+    #   - other terms should be files, one per run
+    #   - check the run lengths (in regress block)
+    #     - consider nt_rm_first/last
+    #
+    #   - here, just copy the files
+    def copy_per_run_ortvecs(self):
+        oname = '-regress_per_run_ortvec'
+        olist = self.user_opts.find_all_opts(oname)
+        if len(olist) == 0:
+           return
+
+        # we have options, copy all files to stimuli/per_run_orig
+        cstr = '# copy per-run ortvec files into stimuli dir\n'
+        for opt in olist:
+            fnames = opt.parlist[1:]
+            cstr += 'cp %s %s/stimuli\n' % \
+                      (' '.join(quotize_list(fnames,'')),self.od_var)
+            self.tlist.add_many(fnames, 'ortvec', ftype='1D', pre='stimuli/')
+
+        self.write_text(add_line_wrappers(cstr+'\n'))
 
     # and last steps
     def finalize_script(self):
@@ -3702,27 +3817,35 @@ class SubjProcSream:
 
         return 0
 
-    def get_ap_command_str(self, style='compact', lstart='# '):
+    def get_ap_command_str(self, args=None, valid=None, style='compact',
+                           lstart='# '):
        """return a commented command string, depending on the desired style
 
+            args    : None (use self.argv) or a list of command line arguments
+            valid   : None (all_opt_names) or a list of valid option names
             style   : either 'compact' or 'pretty'
             cstart  : line start string, usually comment '# ', else ''
        """
        if style == 'none':
           return ''
 
+       if args is None:
+          args = self.argv
+
        if style not in ['compact', 'pretty']:
           print("** AP.get_ap_command_str: invalid style %s" % style)
        if style == 'pretty':
           # get a straight command, and prettify it
-          tstr = UTIL.get_command_str(args=self.argv,
-                                      preamble=0, comment=0, wrap=0)
+          tstr = UTIL.get_command_str(args=args, preamble=0, comment=0, wrap=0)
           # and run PT's niceify on it
-          allopts = self.valid_opts.all_opt_names()
+          if valid is not None:
+             allopts = valid
+          else:
+             allopts = self.valid_opts.all_opt_names()
           rv, tstr = FCS.afni_niceify_cmd_str(tstr, comment_start=lstart,
                                               list_cmd_args=allopts)
        else:
-          tstr = UTIL.get_command_str(args=self.argv)
+          tstr = UTIL.get_command_str(args=args)
 
        return tstr
 
@@ -3798,9 +3921,9 @@ class SubjProcSream:
         cmd = add_line_wrappers(cmd)
 
         if self.out_dir:
-           ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
+           ocmd = 'open_apqc.py -infiles %s/QC_$subj/index.html' % self.out_dir
         else:
-           ocmd = 'afni_open -b QC_$subj/index.html'
+           ocmd = 'open_apqc.py -infiles QC_$subj/index.html'
 
         cmd += '%secho "\\nconsider running: \\n"\n' \
                '%secho "   %s"\n'                    \
@@ -4256,6 +4379,75 @@ class SubjProcSream:
            print("   %-*s   %-*s" % (max0, pair[0], max1, pair[1]))
         print()
         
+    def show_merged_command(self, target, verb=1):
+        """merge opt example with self.user_opts and display pretty command
+        """
+        newlist = self.merge_opts(self.user_opts.olist, target)
+        if newlist is None:
+           return 1
+
+        # create a new argument list to override self.args
+        args = [self.argv[0]]
+        for opt in newlist:
+            # skip anything we don't want to include
+            if opt[0] in ['-show_merged_opts']:
+               continue
+            args.append(opt[0])
+            args.extend(opt[1])
+
+        # start with valid opts, and additionally prepend '-CHECK' to them
+        valid_opts = self.valid_opts.all_opt_names()
+        valid_opts.extend([('-CHECK'+oname) for oname in valid_opts])
+
+        tstr = self.get_ap_command_str(args=args, valid=valid_opts,
+                                       style='pretty', lstart='')
+        print(tstr)
+        return 0
+
+    def merge_opts(self, olist, comp, check_skip=1):
+        """compare given option list (list of BASE.comopt elements)
+           vs. comp (some APExample name)
+
+           olist        : option list to merge into
+           comp         : target to merge
+           check_skip   : flag: add -CHECK to data options
+
+           - remove any -compare* options
+        """
+        EGS = self.egs()
+        olist = [ [opt.name, opt.parlist]
+                  for opt in olist if not opt.name.startswith('-compare')]
+        eg = EGS.APExample('command', olist)
+
+        # if checking skip options, pass them, else empty
+        if check_skip:
+           eskip = g_eg_skip_opts
+        else:
+           eskip = []
+
+        # can pass a noelemnt list, of opts not to compare elements of
+        if eg.merge_w_instance(comp, eskip=eskip, verb=self.verb):
+           return None
+
+        return eg.olist
+
+    def compare_merged_opts(self, olist, target, verb=1):
+        """merge opt example with self.user_opts, then compare with
+           that original target
+        """
+        # get rid of -compare in option list, and merge
+        olist = [o for o in olist if not o.name.startswith('-compare')]
+        newlist = self.merge_opts(olist, target, check_skip=0)
+
+        # but we need a comopt list, so use an OptionList
+        newolist = OL.OptionList('merged')
+        for newo in newlist:
+           newolist.add_opt(newo[0], 1, newo[1], setpar=1)
+
+        self.compare_vs_opts(newolist.olist, target)
+
+        return 0
+
     def compare_vs_opts(self, olist, comp):
         """compare given option list (list of BASE.comopt elements)
            vs. comp (some APExample name)
@@ -4263,6 +4455,7 @@ class SubjProcSream:
            - remove any -compare* options
         """
         EGS = self.egs()
+        # replace olist, removing any compare opts
         olist = [ [opt.name, opt.parlist]
                   for opt in olist if not opt.name.startswith('-compare')]
         eg = EGS.APExample('command', olist)
@@ -4595,7 +4788,7 @@ class TrackedFlist:
 
        # make sure ftype is valid
        if ftype not in ['dset', '1D', 'text', 'unknown']:
-          print("** TrackedFile: illegal ftype %s for infle %s" \
+          print("** TrackedFile: illegal ftype %s for infile %s" \
                 % (ftype, oldname))
           ftype = 'unknown'
 
@@ -4844,6 +5037,10 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
        proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
                        # dfields = ['ftype', 'short_in'])
+
+       # if not making a script (e.g. with -show_tracked_files), terminate here
+       if not proc.make_main_script:
+           return 0, None
 
     return 0, proc
 

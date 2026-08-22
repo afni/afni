@@ -2300,7 +2300,8 @@ read.AFNI.labeltable <- function (ltfile=NULL,
 
 
 write.AFNI.matrix <- function (m, fname='test.1D') {
-    if (class(m) == "AFNI_c_dataset") {
+    #if (class(m) == "AFNI_c_dataset") {# GC 01/25/2025: class(m) may return a vector of strings
+    if (any(class(m) == "AFNI_c_dataset")) {
         m <- m$brk
     }
     if (is.vector(m)) {

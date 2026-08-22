@@ -1,4 +1,4 @@
-#!/bin/tcsh
+#!/usr/bin/env tcsh
 
 #set version   = "0.5";  set rev_dat   = "April 18, 2024"
 # + initial program for getting a pair of middling (and maybe

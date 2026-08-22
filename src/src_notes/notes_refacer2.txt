@@ -1,0 +1,39 @@
+The program 'afni_refacer2' is a slightly updated version of the
+original @afni_refacer_run program.  The changes mostly occurred under
+the hood, as it were, to make the guts of the program easier to
+maintain.  The options, behavior and outputs stayed very similar.
+
+Some new de/refacing modes were added, the '-mode2_*' ones.  These
+were added to provide some more training/validation/testing cases for
+3dBrainTeaser.  These new modes are not generally recommended for
+users.
+
+By default, the new afni_refacer2 uses slightly modified reference
+dataset shells. Importantly, the default shells will remove more face
+and ears, which was viewed as desirable. (See below for other minor
+improvements in them.)
+
+-----------------------------------------------------------------------------
+New de/refacing shells
+
+One important change was that the default de/refacing shells changed,
+to be the 2.0 and 2.1 versions. These were created from the original
+versions using this new script:
+
+    adjunct_refacer_make_master_addendum2
+
+This script runs without any options, and just assumes that these two 
+datasets are present+loadable:
+
+    afni_refacer_shell_sym_1.0.nii.gz
+    afni_refacer_shell_sym_1.1.nii.gz
+
+The script runs through a lot of rigamarole and intermediate datasets, and
+creates:
+
+    afni_refacer_shell_sym_2.0.nii.gz
+    afni_refacer_shell_sym_2.1.nii.gz
+
+These shells have the slightly improved properties of not having tiny
+holes.  They are just cleaner versions of the original ones.  They
+don't materially change the de/refacing.

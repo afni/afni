@@ -1,0 +1,381 @@
+#!/usr/bin/env tcsh
+
+# for olay, default will be "show all"-- update fatcats to call for
+# 98%iles of non-zeros
+
+# update fatcats for ulays, as well
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# -----------------------------------------------------------------
+# work like a simplified form of @chauffeur_afni, but just output cbar
+# (likely for colorbar_tool.py)
+# 
+# This function constructed by: PA Taylor (NIMH, NIH, USoA)
+# 
+set version   = "6.9";   set rev_dat   = "Jan 6, 2025"
+#    + [PT] add -olay_boxed_color opt
+#
+# =====================================================================
+
+# For more info about opts/fields, see:
+#
+# https://afni.nimh.nih.gov/pub/dist/doc/program_help/AFNI.afnirc.html
+#
+# https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.environment.html
+
+# ----------------- default/initialized environments --------------
+
+# GUI settings for simplicity
+setenv AFNI_NOSPLASH          YES
+setenv AFNI_SPLASH_MELT       NO
+setenv AFNI_ENVIRON_WARNINGS  NO
+
+setenv AFNI_NEVER_SAY_GOODBYE    YES     # [PT: Mar 06, 2021]
+setenv AFNI_STARTUP_WARNINGS     NO
+setenv AFNI_MOTD_CHECK           NO
+setenv AFNI_NIFTI_TYPE_WARN      NO
+setenv AFNI_MESSAGE_COLORIZE     NO      # [PT: Jul 06, 2023]
+setenv AFNI_SKIP_DYLD_WARNING    YES     # [PT: Jul 01, 2024]
+
+# -------------------------------------------------------------------
+
+# ------------------- default/initialized variables -----------------
+
+set my_cbar          = ""            # colorbar, here is necessary
+set com_pbar_str_dim = "dim=64x512H" # default size+orient
+set com_pbar_str     = "DO_NOTHING"  # so we can save cbar 
+
+# for SET_PBAR_ALL
+set pbar_sign = "-"                  # + is pos. only, - is both
+set ncolors   = "99"                 # default number of colors
+set topval    = 1                    # upper scale value in colorbar
+
+set USER_CSCALE  = 0             # [PT: Apr 23, 2020] for AFNI_COLORSCALE_xx
+set cscale_idx   = ""
+set cscale_fname = ""
+
+set odir     = "."                   # default output directory is "here"
+set read_dir = ""
+set do_quit  = "QUITT"               # quick-quit; not subject to change
+
+# -------------------------------------------------------------------
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == "-echo" ) then
+        set echo
+
+    # ----- required  
+      
+    else if ( "$argv[$ac]" == "-cbar" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set my_cbar = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-pbar_saveim" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set pbar_fname = "$argv[$ac]"
+        set odir       = `dirname  "$argv[$ac]"`
+
+        # control only valid extensions, so we 1) know it's valid, and
+        # 2) can use it later in JSON-ish file.
+        set pbext = "${pbar_fname:e}"
+        if ( ( "$pbext" == "png" ) || \
+             ( "$pbext" == "jpg" ) || \
+             ( "$pbext" == "ppm" ) ) then
+
+            #echo "++ pbar name has known extension: $pbext"
+        else
+            echo "*+ Setting pbar file extension: jpg"
+            set pbar_fname = "${pbar_fname}.jpg"
+        endif
+
+        set com_pbar_str = "PBAR_SAVEIM $pbar_fname"
+        set SAVE_PBAR = 1
+
+    # ----- opt
+
+    # [PT: Oct 21, 2018] save colorbar (and range to text file)
+    else if ( "$argv[$ac]" == "-pbar_dim" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set com_pbar_str_dim = "dim=$argv[$ac]"
+
+    # enable AFNI_COLORSCALE_xx env var behavior.
+    # NB: this will *require* 2 args: index in range [01,99], and filename
+    else if ( "$argv[$ac]" == "-colorscale_idx_file" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set cscale_idx   = "$argv[$ac]"
+        @ ac += 1
+        set cscale_fname = "$argv[$ac]"
+        set USER_CSCALE  = 1
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        exit 2
+
+    endif
+    @ ac += 1
+end    ### end of main option loop
+
+# -------------------------------------------------------------------
+# ------------------ check about auxiliary progs --------------------
+
+# from Bob's @snapshot* progs
+
+set nerr = 0
+set errm = "** ERROR:"
+
+# (Ubuntu hassle ->) not using: pamcomp
+#set plist = ( Xvfb djpeg cjpeg pnmcat pbmtext  \
+#                pamstretch pbmtopgm )
+# [PT: Dec 5, 2018] just need this dependency, at the moment
+set plist = ( Xvfb  )
+foreach pppp ( $plist )
+  set wwww = `which $pppp`
+  if ( $status != 0 ) then
+    @ nerr++
+    set errm = "$errm $pppp"
+  endif
+end
+if ( $nerr > 0 ) then
+  echo "$errm -- not found in path -- program fails"
+  goto BAD_EXIT
+endif
+
+# -------------------------------------------------------------------
+# -------------------------- check INPUTS ---------------------------
+
+if ( ${USER_CSCALE} ) then
+    echo "++ Using user-specified colorscale:"
+    if ( "${cscale_fname}" == "" ) then
+        echo "** ERROR: need colorscale file name"
+        goto BAD_EXIT
+    else if ( ! -f "${cscale_fname}" ) then
+        echo "** ERROR: cannot find colorscale with file name: ${cscale_fname}"
+        goto BAD_EXIT
+    endif
+
+    if ( "${cscale_idx}" == "" ) then
+        echo "** ERROR: need colorscale index."
+        goto BAD_EXIT
+    endif
+
+    echo "   colorscale index : ${cscale_idx}"
+    echo "   colorscale fname : ${cscale_fname}"
+
+    setenv AFNI_COLORSCALE_${cscale_idx}  "${cscale_fname}"
+
+    # get new cbar name from top line of file
+    set my_cbar = `head -n 1 "${cscale_fname}"`
+endif
+
+# ------------------- cbar saving stuff
+if ( "${my_cbar}" == "" ) then
+    echo "** ERROR: No cbar entered."
+    exit 1
+else
+    set com_pbar_str = "$com_pbar_str $com_pbar_str_dim"
+endif
+
+
+# if output dir doesn't exist, make it
+if ( ! -e "${odir}" ) then
+    \mkdir -p "${odir}"
+endif
+
+# -------------------------------------------------------------------
+# ------------------------- Make virtual frame ----------------------
+
+# start the X virtual frame buffer on display #xdisplay, a la bob
+
+# allow user to set extra options, such as "-nolisten inet6", in
+# case IPv6 is not configured; consider a test like:
+#     if -d /proc/net && [insert exclamation point] -f /proc/net/if_inet6
+#        then add: -nolisten inet6
+#     or maybe if -d /proc/sys/net/ipv6
+if ( $?AFNI_DRIVE_OPTS_XVFB ) then
+   set opts_xvfb = ( $AFNI_DRIVE_OPTS_XVFB )
+else
+   set opts_xvfb = ( )
+endif
+
+set ranval = `count_afni -dig 1 1 999999 R1`
+
+if ( $?xdisplay == 0 ) then
+  set killX     = 1
+  set ntry      = 1
+  set Xnotfound = 1
+  while( $Xnotfound )
+    set xdisplay = `count_afni -dig 1 3 999 R1`
+    if ( -e /tmp/.X${xdisplay}-lock ) continue
+    #echo " -- trying to start Xvfb :${xdisplay} $opts_xvfb"
+    Xvfb :${xdisplay} $opts_xvfb -screen 0 1024x768x24 &
+    sleep 1
+    jobs > zzerm.$ranval.txt
+    grep -q Xvfb zzerm.$ranval.txt
+    set Xnotfound = $status
+    \rm -f zzerm.$ranval.txt
+    if ( $Xnotfound == 0 ) break ;
+    @ ntry++
+    if ( $ntry > 99 ) then
+      echo "** ERROR: can't start Xvfb -- exiting"
+      goto BAD_EXIT
+    endif
+  end
+endif
+
+setenv DISPLAY :${xdisplay}
+
+# ---- do processing
+
+# the command run with xvfb (don't search recursively)
+afni -q -no1D -noplugins -no_detach                                \
+    -R1                                                            \
+    -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
+    -com "$com_pbar_str"                                           \
+    -com "${do_quit}"                                              \
+    "${read_dir}"  >& /dev/null
+
+# ------------------------------- finish -----------------------------------
+
+# A la bob:  stop Xvfb if we started it ourselves
+if ( $?killX ) kill %1
+ 
+goto GOOD_EXIT
+
+# ===========================================================================
+
+# various GOOD/FAIL condition labels follow
+
+SHOW_VERSION:
+
+    echo "$version"
+
+    exit 0
+
+# ---------------------------------- 
+
+SHOW_HELP:
+
+cat <<EOF
+
+OVERVIEW ~1~
+
+** This is an adjunct program, so it doesn't have a full help and
+   probably is just mean to be used by another program, not by users **
+
+The purpose of this function is to generate an image of a known cbar
+in the AFNI realm easily.  This program can't check to see if the
+chosen colorbar actually exists.  It will just output some default one
+if the name is unrecognized (rather than erroring out).
+
+++ constructed by PA Taylor (NIMH, NIH, USA).
+
+# =========================================================================
+
+COMMAND OPTIONS ~1~
+
+-help, -h          :see helpfile (here, in fact)
+-hview             :popup help
+-ver               :see version number
+
+-cbar    CCC       :specify a new colorbar, where CCC can be any of the
+                    cbars in the standard AFNI list, Matplotlib colornames,
+                    or hex values (def: $my_cbar).
+
+-colorscale_idx_file CI CF 
+                   :another way to specify a colorbar, in this case
+                    one created by the user.  Two arguments must be
+                    input.  First, CI is a colorscale index, which
+                    must be in the (inclusive) range [01, 99], using
+                    two numbers.  (The user has to enter this, because
+                    they might have one/more of these specified
+                    already in their ~/.afnirc file, and hence avoid
+                    duplicating an index.)  Second, CF is the
+                    colorscale filename; the file contains the name of
+                    the colorbar in the first line, and then either 2
+                    columns (values and colors) or 1 column (just
+                    colors; will be evenly spaced).  An example CF is:
+                          Yellow-Lime-Red-Blue
+                            1.0 #ffff00
+                            0.7 limegreen
+                            0.5 #ff0000
+                            0.3 #aa00aa
+                            0.0 #0000ff
+                    Note the types of AFNI-allowed colornames used here
+                    (hex and specific colorname). 
+                    (see ENV: AFNI_COLORSCALE_xx)
+
+-pbar_saveim PBS   :if an olay is used, then you can save the color pbar
+                    (=colorbar) that is used in plotting.  PBS is the
+                    name of the file (including path), with allowed
+                    extensions jpg, png, or ppm (def: jpg).  
+                    When this option is used, a text file of the same
+                    name as PBS but with extension 'txt' will also be
+                    saved, which is now (>May 8, 2019) a
+                    dictionary-like file of relevant information:
+                    min/max range, threshold value (0, if no thr is
+                    specified), as well as the ability to store
+                    comments on what those values mean (see
+                    -pbar_comm_* options, below).  See also '-pbar_dim
+                    ..'  for relation pbar optioning.  (See DR:
+                    PBAR_SAVEIM)
+
+-echo              :run script verbosely (with 'set echo' executed)
+
+# ========================================================================
+
+EXAMPLES ~1~
+
+  1) Simply save a colorbar file as a JPG:
+
+     adjunct_cbar_out                        \
+         -cbar         Virids                \
+         -pbar_saveim  CBAR_Viridis.jpg
+
+  2) Simply save a colorbar file as a PNG:
+
+     adjunct_cbar_out                        \
+         -cbar         GoogleTurbo           \
+         -pbar_saveim  CBAR_GoogleTurbo.png
+
+EOF
+
+    exit 0
+
+# ---------------------------------- 
+
+FAIL_MISSING_ARG:
+   echo "** missing parameter for option $argv[$ac]"
+   goto BAD_EXIT
+
+# ---------------------------------- 
+
+BAD_EXIT:
+    # A la bob:  stop Xvfb if we started it ourselves
+    if ( $?killX ) kill %1
+
+    echo ""
+    echo "++ DONE (bad exit): check for errors"
+    echo ""
+    exit 1
+
+# ---------------------------------- 
+
+GOOD_EXIT:
+    exit 0

@@ -63,7 +63,7 @@ if ($help) {
 # open read in and write out files.
 open(IN,$args{input});
 if (!(-e $args{input})) {
-	print "ERROR!! Input file $args{input} does not exist\n";
+	print "ERROR: Input file $args{input} does not exist\n";
 	exit;
 }
 if ($args{output}) {

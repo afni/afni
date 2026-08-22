@@ -306,7 +306,8 @@ SEG_OPTS *Infill_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 }
 
 
-void Infill_usage() 
+/* must take int, but not currently used   [25 Jul 2025 rickr] */
+void Infill_usage(int verb)
 {
    int i = 0;
    

@@ -1639,7 +1639,7 @@ void updateModel(MODEL *model, AFNI_MODEL *afni_model, int comb)
 
   if( model->kernel_parm.kernel_type == LINEAR ) {         
     /* essentially replacing call to add_weight_vector_to_linear_model(model)*/
-    /* that function mallocs, which we don't want since we are re-using */
+    /* that function mallocs, which we don't want since we are reusing */
     
     /* JL July 2011: This part causes memory corruption problems. Read the comment
      * in allocateModel for more details. TODO: we should fix this soon. */

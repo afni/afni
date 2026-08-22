@@ -1,0 +1,633 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.0";  set rev_dat   = "Jan 5, 2025"
+# + take ROI-valued dsets and display them as transparent thresholded
+#   maps
+#
+set version   = "1.0";  set rev_dat   = "March 18, 2025"
+# + take ROI-valued dsets and display them as transparent thresholded
+#   maps
+#
+# ----------------------------------------------------------------
+
+set this_prog = "chauffeur_map_rois"
+set prog_abbr = "CMR"
+#set tpname    = "${this_prog:gas///}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set in_dset_rois = ""
+set in_dset_ulay = ""
+set in_map_olay  = ""
+set in_map_thr   = ""
+
+set prefix    = ""
+set odir      = $here
+set opref     = ""
+set wdir      = ""
+set DO_CLEAN  = 1                       # def: keep working dir
+
+set DO_OWRITE   = ""                    # def: don't overwrite
+set DO_OUT_DSET = 0                     # def: don't copy olay+thr out
+
+set thr_val   = 0                       # where to threshold
+set all_alpha = ( )                     # alpha values for images
+
+set list_valid_alpha = ( Yes Linear Quadratic No )
+
+set chauff_opts = ( )
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    if ( "$argv[$ac]" == '-echo' ) then
+        set echo
+
+    # --------- required
+
+    else if ( "$argv[$ac]" == "-in_dset_rois" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_dset_rois = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_dset_ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_dset_ulay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_map_olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_map_olay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_map_thr" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set in_map_thr = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-thr_val" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set thr_val = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set prefix = "$argv[$ac]"
+        set opref  = `basename "$argv[$ac]"`
+        set odir   = `dirname  "$argv[$ac]"`
+
+    # --------- opt
+
+    else if ( "$argv[$ac]" == "-workdir" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set wdir = "$argv[$ac]"
+
+        set tf = `python -c "print('/' in '${wdir}')"`
+        if ( "${tf}" == "True" ) then
+            echo "** ERROR: '-workdir ..' is a name only, no '/' allowed\n"
+            goto BAD_EXIT
+        endif
+
+    else if ( ("$argv[$ac]" == "-list_alphas") ) then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        while ($ac <= $#argv)
+            # go until an option starting with a hyphen appears
+            set poss_inp = `echo $argv[$ac] | grep -- "^-"`
+            if ("$argv[$ac]" == "$poss_inp") then
+               break
+            else
+               set all_alpha = ( $all_alpha "$argv[$ac]" )
+            endif
+            @ ac ++
+        end
+        if ( ${#all_alpha} == 0 ) then
+            echo "** missing dataset for option '${this_opt}'"
+            exit 1
+        endif
+        @ ac --        
+
+    else if ( "$argv[$ac]" == "-chauffeur_opts_start" ) then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        set chauff_opts = ( )
+        while ($ac <= $#argv)
+            # go until the closing option appears
+            if ( "$argv[$ac]" == "-chauffeur_opts_end" ) then
+               break
+            else
+               set chauff_opts = ( ${chauff_opts} "$argv[$ac]" )
+            endif
+            @ ac ++
+        end
+        if ( ${#chauff_opts} == 0 ) then
+            echo "** missing dataset for option '${this_opt}'"
+            exit 1
+        endif
+        if ( $ac > $#argv ) then
+            echo "** ERROR: when using '${this_opt}', you must have a"
+            echo "   '-chauff_opts_end' to end the @chauffeur_afni opt list"
+            exit 1
+        endif
+        ###@ ac --
+
+    else if ( "$argv[$ac]" == "-chauffeur_opts_end" ) then
+        set this_opt = "-chauffeur_opts_end"
+        echo "** ERROR: when using '${this_opt}', you must have a"
+        echo "   '-chauff_opts_start' to start the @chauffeur_afni opt list"
+        exit 1
+
+    else if ( "$argv[$ac]" == "-do_output_dset" ) then
+        set DO_OUT_DSET = 1
+        
+    else if ( "$argv[$ac]" == "-overwrite" ) then
+        set DO_OWRITE = "-overwrite"
+        
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ======================== ** Verify + setup ** =========================
+# =======================================================================
+
+# ----- check input and output names
+
+if ( "${prefix}" == "" ) then
+    echo "** ERROR: need to provide output name with '-prefix ..'"
+    goto BAD_EXIT
+endif
+
+if ( "${in_dset_rois}" == "" ) then
+    echo "** ERROR: need to provide input dataset with '-in_dset_rois ..'"
+    goto BAD_EXIT
+endif
+
+# ----- have threshold value?
+
+if ( ${thr_val} == 0 ) then
+    echo "** ERROR: need to provide threshold value via '-thr_val ..'"
+    goto BAD_EXIT
+endif
+
+# ----- check map text files
+
+# ... which should exist
+if ( "${in_map_olay}" == "" ) then
+    echo "** ERROR: need to provide olay map text file with '-in_map_olay ..'"
+    goto BAD_EXIT
+else if ( ! -f "${in_map_olay}" ) then
+    echo "** ERROR: could not find '-in_map_olay ..' file"
+    goto BAD_EXIT
+endif
+if ( "${in_map_thr}" == "" ) then
+    echo "** ERROR: need to provide thr map text file with '-in_map_thr ..'"
+    goto BAD_EXIT
+else if ( ! -f "${in_map_thr}" ) then
+    echo "** ERROR: could not find '-in_map_thr ..' file"
+    goto BAD_EXIT
+endif
+
+# ... and which should have exactly 2 cols
+set dims_olay = `1d_tool.py -verb 0 -show_rows_cols -infile "${in_map_olay}"`
+set dims_thr  = `1d_tool.py -verb 0 -show_rows_cols -infile "${in_map_thr}"`
+
+if ( ${dims_olay[2]} != 2 ) then
+    echo "** ERROR: the '-in_map_olay ..' file has ${dims_olay[2]} cols, not 2"
+    goto BAD_EXIT
+else if ( ${dims_thr[2]} != 2 ) then
+    echo "** ERROR: the '-in_map_thr ..' file has ${dims_thr[2]} cols, not 2"
+    goto BAD_EXIT
+endif
+
+# ----- make workdir name, if nec
+
+if ( "${wdir}" == "" ) then
+    set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
+    set wdir     = __workdir_${this_prog}_${tmp_code}
+endif
+
+# check output directory, use input one if nothing given
+if ( ! -e "${odir}" ) then
+    echo "++ Making new output directory: $odir"
+    \mkdir -p "${odir}"
+endif
+
+# make the working directory
+if ( ! -e "${odir}/${wdir}" ) then
+    echo "++ Making working directory: ${odir}/${wdir}"
+    \mkdir -p "${odir}/${wdir}"
+else
+    echo "+* WARNING:  Somehow found a premade working directory (?):"
+    echo "      ${odir}/${wdir}"
+endif
+
+# ----- alpha list
+
+set nalpha = ${#all_alpha}
+
+if ( ${nalpha} == 0 ) then
+    set all_alpha = ( Yes )
+else
+    foreach alpha ( ${all_alpha} ) 
+        set FOUND = 0
+        foreach val ( ${list_valid_alpha} )
+            if ( ${alpha} == ${val} ) then
+                set FOUND = 1
+                break
+            endif
+        end
+        if ( ${FOUND} == 0 ) then
+            echo "** ERROR: input alpha '${alpha}' is not valid." 
+            echo "   Must be from this list: ${list_valid_alpha}."
+            goto BAD_EXIT
+        endif
+    end
+endif
+
+# =======================================================================
+# =========================== ** Main work ** ===========================
+# =======================================================================
+
+# ---------------------------------------------------------------------
+# copy data to wdir (have to be prepared for subbrick selectors in dsets)
+
+# ----- ULAY 
+
+# since this might be a reference dset, see if it can be found this way
+set uuu = `@FindAfniDsetPath -full_path -append_file "${in_dset_ulay}"`
+if ( "${uuu}" == "" ) then
+    # ... but if not (like if it contains subbrick selector), then just use
+    # user's name
+    set uuu = "${in_dset_ulay}"
+endif
+
+3dcalc -a "${uuu}" -expr 'a' -prefix "${odir}/${wdir}/dset_00_ulay.nii.gz" \
+    -datum float -nscale
+
+# ----- ROIS 
+
+# since this might be a reference dset, see if it can be found this way
+set uuu = `@FindAfniDsetPath -full_path -append_file "${in_dset_rois}"`
+if ( "${uuu}" == "" ) then
+    # ... but if not (like if it contains subbrick selector), then just use
+    # user's name
+    set uuu = "${in_dset_rois}"
+endif
+
+3dcalc -a "${uuu}" -expr 'a' -prefix "${odir}/${wdir}/dset_00_rois.nii.gz" \
+    -datum float -nscale
+
+# ----- MAPS
+
+\cp ${in_map_olay} "${odir}/${wdir}/map_00_olay.1D"
+\cp ${in_map_thr}  "${odir}/${wdir}/map_00_thr.1D"
+
+# ---------------------------------------------------------------------
+# move to wdir 
+
+cd "${odir}/${wdir}"
+
+# ---------------------------------------------------------------------
+# do primary calculations
+
+# make olay volume
+3dExchange                                                           \
+    -prefix     dset_01_mapped_olay.nii.gz                           \
+    -map        map_00_olay.1D                                       \
+    -input      dset_00_rois.nii.gz                                  \
+    -overwrite                                                       
+
+# make thr volume
+3dExchange                                                           \
+    -prefix     dset_01_mapped_thr.nii.gz                            \
+    -map        map_00_thr.1D                                        \
+    -input      dset_00_rois.nii.gz                                  \
+    -overwrite                                                       
+
+# combine the dsets (set TR=1s, merely to avoid whining)
+3dTcat                                                               \
+    -overwrite                                                       \
+    -tr 1                                                            \
+    -prefix     dset_02_mapped_combo.nii.gz                          \
+    dset_01_mapped_olay.nii.gz  dset_01_mapped_thr.nii.gz
+
+# ---------------------------------------------------------------------
+# ready to make images
+
+foreach alpha ( ${all_alpha} )
+
+    if ( ${alpha} == No ) then
+        set boxed = No
+    else
+        set boxed = Yes
+    endif
+
+    set img_pref  = ../${opref}_alpha-${alpha}
+
+    # default options, if none are provided
+    if ( ${#chauff_opts} == 0 ) then
+        set chauff_opts = ( \
+            -olay_boxed        ${boxed}                                      \
+            -box_focus_slices  dset_02_mapped_combo.nii.gz                   \
+            -opacity           9                                             \
+            -ulay_range        0% 98%                                        \
+            -cbar              Reds_and_Blues_Inv                            \
+            -func_range_perc   100                                           \
+            -set_xhairs        OFF                                           \
+            -montx             6                                             \
+            -monty             1                                             \
+            -label_mode        1                                             \
+            -label_size        4 )
+    endif
+
+    # Unchangeable opts
+    @chauffeur_afni                                                          \
+        -ulay           dset_00_ulay.nii.gz                                  \
+        -olay           dset_02_mapped_combo.nii.gz                          \
+        -set_subbricks  0 0 1                                                \
+        -thr_olay       ${thr_val}                                           \
+        -olay_alpha     ${alpha}                                             \
+        -prefix         ${img_pref}                                          \
+        -pbar_saveim    ${img_pref}.pbar.jpg                                 \
+        ${chauff_opts}
+
+end
+
+# copy the olay dset to the odir
+if ( $DO_OUT_DSET ) then
+    3dcopy $DO_OWRITE dset_02_mapped_combo.nii.gz ../${opref}.nii.gz
+endif
+
+
+# ---------------------------------------------------------------------
+
+# move out of wdir to the odir
+cd ..
+set whereout = $PWD
+
+if ( $DO_CLEAN == 1 ) then
+    echo "++ Clean working dir"
+    \rm -rf ${wdir}
+else
+    echo "++ NOT removing temporary working dir: ${wdir}"
+endif
+
+cat <<EOF
+
+++ DONE. See the output:
+   $whereout/${opref}*"
+
+EOF
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+Overview ~1~
+
+This program facilitates making ROI-based images with transparent
+thresholding and outlining, using @chauffeur_afni.
+
+Many ROI-based calculations are output as text files (like, columns of
+numbers). This program helps with combining output that has simple
+structure (a text file of effect estimates and a text file of stats
+values) with an ROI map, to make images of the stats in the ROIs. In
+particular, users are encouraged to make use of transparent
+thresholding here.
+
+written by: PA Taylor (SSCC, NIMH, NIH, USA)
+
+-------------------------------------------------------------------------
+
+Options ~1~
+
+-in_dset_rois DR   :(req) dataset to be the overlay in the images; can 
+                    include subbrick selector
+
+-in_dset_ulay DU   :(req) dataset to be the underlay in the images; can 
+                    include subbrick selector
+
+-in_map_olay  MO   :(req) text file mapping ROI values to overlay-dset
+                    values.  This file has 2 columns:
+                      1st col: ROI integer values
+                      2nd col: overlay data value the ROI should have
+                               (e.g., effect estimate value)
+
+-in_map_thr   MT   :(req) text file mapping ROI values to threshold-dset
+                    values.  This file has 2 columns:
+                      1st col: ROI integer values
+                      2nd col: threshold data value the ROI should have
+                               (e.g., statistic value)
+
+-thr_val THR       :(req) threshold value to apply
+
+-prefix PREFIX     :(req) output prefix for generated images. This can 
+                    include path, but should not include an extension
+                    because the given alpha value will be appended
+
+-list_alphas A1 [A2 A3 ...]
+                   :list of alpha values to cycle through when making a 
+                    set of images. Must be one of the following allowed
+                    names:
+                       Yes Linear Quadratic No
+                    (def: Yes)
+
+-chauffeur_opts_start [list of options for @chauffeur_afni ...]
+-chauffeur_opts_end 
+                   :a *pair* of options that work together to specify 
+                    options for the @chauffeur_afni command that actually
+                    makes the images.  If adding chauffeur options, *both*
+                    of these options *must* be used to delimit the list.
+                    See the Notes below for more details.                    
+
+-do_output_dset    :output the created overlay+threshold dataset to the 
+                    same location as the images.  This will create a new
+                    dset called PREFIX.nii.gz.
+
+-overwrite         :when '-do_output_dset' is used, add the '-overwrite' opt
+                    to the 3dcopy command that puts the dset in its place
+
+-workdir WDIR      :working dir name. If not chosen, one will be created
+                    that includes a random string
+
+-no_clean          :do not remove the working dir when done (by default,
+                    it will be cleaned)
+
+-------------------------------------------------------------------------
+
+Notes ~1~
+
+Provide your own options for @chauffeur_afni ~2~
+
+This program creates images of ROI-based data, primarily by combining
+data and driving @chauffeur_afni.  It is meant to facilitate applying
+transparent thresholding to region-based results.
+
+First, the program takes text files of values and an atlas dataset and
+combines these into an appropriate overlay+threshold dataset. This is
+called 'dset_02_mapped_combo.nii.gz'.
+
+Another direct input to this program is a volume to be the underlay,
+which gets called 'dset_00_ulay.nii.gz'.
+
+Then, with a couple other parameter like a threshold value and alpha
+thresholding mode, it builds an @chauffeur_afni command to drive the
+image making.  The constructed command has some basic settings
+generated from the user inputs, which are:
+
+|    @chauffeur_afni                                             \
+|        -ulay           dset_00_ulay.nii.gz                     \
+|        -olay           dset_02_mapped_combo.nii.gz             \
+|        -set_subbricks  0 0 1                                   \
+|        -thr_olay       \${thr_val}                              \
+|        -olay_alpha     \${alpha}                                \
+|        -prefix         \${img_pref}                             \
+|        -pbar_saveim    \${img_pref}.pbar.jpg  
+
+The values with the \${...} syntax are determined within the program,
+from user inputs. Then, it applies some default options, which are:
+
+|        -olay_boxed        \${boxed}                             \
+|        -box_focus_slices  dset_02_mapped_combo.nii.gz          \
+|        -opacity           9                                    \
+|        -ulay_range        0% 98%                               \
+|        -cbar              Reds_and_Blues_Inv                   \
+|        -func_range_perc   100                                  \
+|        -set_xhairs        OFF                                  \
+|        -montx             6                                    \
+|        -monty             1                                    \
+|        -label_mode        1                                    \
+|        -label_size        4 
+
+The first set of basic options ('-ulay ..', '-olay ..', etc.) are
+*not* changeable.  However, the second set are completely
+configurable/replaceable/overwriteable.  We note that the above
+options were not necessarily chosen because they are the absolute
+best, but we did have to choose _something_ and those are a reasonable
+starting point. The user can provide a *replacement* set for the
+second batch, by using this program's '-chauffeur_opts_start
+.... -chauffeur_opts_end' pair of options.
+
+For example, the user could provide the following set of options, with
+the important fact that *all* options besides the initial basic set
+have to be provided---so you might have to re-state the same colorbar
+as you see in the optional default part:
+
+|    -chauffeur_opts_start                                      \
+|         -olay_boxed      Yes                                  \
+|         -set_dicom_xyz   -5 -5 15                             \
+|         -delta_slices    10 10 15                             \
+|         -opacity         9                                    \
+|         -ulay_range      0% 98%                               \
+|         -cbar            Reds_and_Blues_Inv                   \
+|         -func_range      0.002                                \
+|         -set_xhairs      OFF                                  \
+|         -montx           5                                    \
+|         -monty           1                                    \
+|         -zerocolor       white                                \
+|         -label_mode      1                                    \
+|         -label_size      4                                    \
+|         -label_color     black                                \
+|    -chauffeur_opts_end
+
+In this way, the user should have the same full flexibility for making
+images for these ROI-based datasets that @chauffeur_afni allows.
+
+-------------------------------------------------------------------------
+
+Examples ~1~
+
+1) Basic usage, usage default @chauffeur_afni opts
+
+   chauffeur_map_rois                                       \
+    -in_dset_rois          MNI_Glasser_HCP_v1.0.nii.gz      \
+    -in_dset_ulay          MNI152_2009_template.nii.gz      \
+    -in_map_olay           dset_glass_effect_size.dat       \
+    -in_map_thr            dset_glass_ttest_stats.dat       \
+    -thr_val               3.0                              \
+    -prefix                image_rois_ttest
+
+2) Basic usage, for example with RBA output
+
+   chauffeur_map_rois                                       \
+    -in_dset_rois          MNI_Glasser_HCP_v1.0.nii.gz      \
+    -in_dset_ulay          MNI152_2009_template.nii.gz      \
+    -in_map_olay           dset_glass_rba_eff_med.dat       \
+    -in_map_thr            dset_glass_rba_pplus_sh.dat      \
+    -thr_val               0.95                             \
+    -prefix                image_rois_rba
+
+3) Take example 2, and implement advanced control of @chauffeur_afni
+   options:
+
+|   chauffeur_map_rois                                        \
+|    -in_dset_rois          MNI_Glasser_HCP_v1.0.nii.gz       \
+|    -in_dset_ulay          MNI152_2009_template.nii.gz       \
+|    -in_map_olay           dset_glass_rba_eff_med.dat        \
+|    -in_map_thr            dset_glass_rba_pplus_sh.dat       \
+|    -thr_val               0.95                              \
+|    -prefix                image_narps_hyp2_rba              \
+|    -chauffeur_opts_start  -olay_boxed Yes                   \
+|                           -set_dicom_xyz -5 -5 15           \
+|                           -delta_slices 10 10 15            \
+|                           -opacity 9                        \
+|                           -ulay_range 0% 98%                \
+|                           -cbar Reds_and_Blues_Inv          \
+|                           -func_range 0.002                 \
+|                           -set_xhairs OFF                   \
+|                           -montx 5                          \
+|                           -monty 1                          \
+|                           -zerocolor white                  \
+|                           -label_mode 1                     \
+|                           -label_size 4                     \
+|                           -label_color black                \
+|    -chauffeur_opts_end
+ 
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR: Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

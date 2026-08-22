@@ -146,9 +146,10 @@ static char g_history[] =
  "      - add any missing newline character at end of file\n"
  " 3.19 Jun 18, 2018    - return status 0 on options like -help\n"
  " 3.20 Jan 21, 2024    - add -wrap_lines and -wrap_method\n"
+ " 3.21 Aug 12, 2025    - -show_bad_* opts can process from stdin\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION         "3.20 (January 21, 2024)"
+#define VERSION         "3.21 (August 12, 2025)"
 
 
 /* ----------------------------------------------------------------------
@@ -502,6 +503,8 @@ scr_show_bad_bs( char ** fname, param_t * p )
 
     if(bad > 255) bad = 255;  /* limit on exit status */
 
+    /* fdata is static for multiple reads, so do not free */
+
     return bad;
 }
 
@@ -587,6 +590,8 @@ scr_show_bad_ch( char ** fname, param_t * p )
         }
         fclose(outfp);
     }
+
+    /* fdata is static for multiple reads, so do not free */
 
     return 0;
 }
@@ -681,6 +686,8 @@ scr_show_file( char ** fname, param_t * p )
     if( bin && p->debug )putchar('\n');
     if( warn ) printf("%s file type: UNIX\n", filename);
     if( outfp ) fclose(outfp);
+    /* fdata is static for multiple reads, so do not free */
+
     return 0;
 }
 
@@ -897,6 +904,22 @@ read_file( char * filename, char ** fdata, int * flen )
     {
         fprintf(stderr,"** read_file: bad Ptrs %p,%p,%p\n",filename,fdata,flen);
         return -1;
+    }
+
+    /* if stdin or -, suck from stdin */
+    if( ! strcmp(filename, "-") || ! strcmp(filename, "stdin") ) {
+       /* allow this later, if there is ever need */
+       if( *fdata ) {
+          fprintf(stderr,"** read_file(stdin) requires *fdata == NULL\n");
+          return -1;
+       }
+
+       *fdata = suck_stdin(flen);
+       if( *fdata ) {
+          return *flen;
+       } else {
+          return -1;
+       }
     }
 
     length = THD_filesize(filename);
@@ -1500,7 +1523,8 @@ set_params( param_t * p, int argc, char * argv[] )
             ac++;
 
             p->flist = argv + ac;
-            while( ac < argc && argv[ac][0] != '-' ) {
+            /* take as a file anything but "-NAME" */
+            while( ac<argc && (argv[ac][0] != '-' || strlen(argv[ac]) == 1) ) {
                 p->num_files++;
                 ac++;
             }
@@ -2641,3 +2665,75 @@ disp_ge_offsets( char * info, ge_off * D )
     return 0;
 }
 
+/*------------------------------------------------------------
+ *  read in all bytes from stdin until done
+ *
+ *  - return the read buffer  ** this should be freed **
+ *  - return the number of bytes read in updated nread
+ *
+ *  - init alloc for 32 K, and add that each time
+ *  - subject to a limit of max_size bytes (use 16 MB)
+ *  - akin to uncomment.c:suck_file()
+ *------------------------------------------------------------
+*/
+char *
+suck_stdin(int * nread)
+{
+   int    block_size=32768, max_size=16777216+1;
+   int    ii, lnread, nbuf;  /* cur read, local num read, buf size */
+   char   * buf;
+
+   if( !nread ) {
+      fprintf(stderr,"** suck_file: requires non-NULL nread ptr\n");
+      return NULL;
+   }
+   *nread = 0;
+
+   /* init alloc */
+   nbuf = block_size+1;
+   buf = (char *)malloc(nbuf * sizeof(char));
+   if( !buf ) {
+      fprintf(stderr,"** suck_stdin: failed to alloc %d bytes\n", nbuf);
+      return NULL;
+   }
+
+   /* read until max_bytes, break when done */
+   lnread = 0;
+   while( nbuf <= max_size ) {
+      ii = (int)fread(buf+lnread, (size_t)1, (size_t)block_size, stdin);
+      if( ii < 0 ) ii = 0;  /* should never happen */
+
+      lnread += ii;         /* add to local nread */
+      buf[lnread] = '\0';   /* terminate */
+
+      /* are we done? */
+      if( feof(stdin) ) {
+         *nread = lnread;
+         return buf;
+      }
+      if( ferror(stdin) ) {
+         fprintf(stderr,"** suck_stdin: read error after %d bytes\n",lnread);
+         *nread = lnread;
+         return buf;
+      }
+
+      /* not finished yet, ii should be block_size */
+      if( ii != block_size )
+         fprintf(stderr,"** suck_stdin: continue read with odd count %d\n", ii);
+
+      /* prepare to continue */
+      nbuf += block_size;
+
+      /* realloc if we are not at the limit */
+      if( nbuf > max_size ) break;
+
+      buf = (char *)realloc(buf, nbuf * sizeof(char));
+   }
+
+   /* if we get here, the file is too big */
+   fprintf(stderr, "** suck_stdin: exceeded the  %d byte limit for stdin\n"
+                   "   returning a short read of %d bytes\n", max_size, lnread);
+
+   *nread = lnread;
+   return buf;
+}

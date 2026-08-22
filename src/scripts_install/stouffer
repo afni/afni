@@ -1,0 +1,109 @@
+#!/usr/bin/env tcsh
+
+HELP:
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
+   echo ""
+   echo "Program 'stouffer': meta-analysis using Stouffer's method"
+   echo ""
+   echo "                          Gang Chen "
+   echo "                     gangchen@mail.nih.gov"
+   echo "                        July 22, 2026 "
+   echo "                      SSCC/NIMH/NIH/DHHS"
+   echo ""
+   echo "Usage: "
+   echo ""
+   echo "  stouffer -prefix output.file.name -input here.is.a.list.of.input.files"
+   echo ""
+   echo "The program is intended to perform meta-analysis using the Stouffer"
+   echo "method. Input files contain Z-statistic values, typically derived from"
+   echo "multiple studies. They can be in NIfTI or AFNI-tlrc format. T-statistic"
+   echo "values may also be used if the degrees of freedom are sufficiently large"
+   echo "(e.g., ≥30); otherwise, they should first be converted to Z-statistics."
+   echo "The sample sizes for the individual studies are assumed to roughly equal."
+   echo "The output is a Z-statistic reflecting the pooled evidence across studies."
+   echo "The output file name can be specified with a suffix (.nii, .nii.gz, +tlrc);"
+   echo "the absence of a suffix defaults to an output in AFNI-tlrc format."
+   echo ""
+   goto END
+endif
+
+
+# Prevent wildcard errors
+set nonomatch
+
+# Parse arguments
+set prefix = ""
+set inputs = ()
+
+while ( $#argv > 0 )
+    switch ( $argv[1] )
+        case "-prefix":
+            if ( $#argv < 2 ) then
+                echo "Error: Missing argument for -prefix"
+                exit 1
+            endif
+            set prefix = $argv[2]
+            shift; shift
+            breaksw
+        case "-input":
+            shift
+            while ( $#argv > 0 )
+                if ( "$argv[1]" =~ "-*" ) then
+                  break
+                endif
+                # Check if file exists
+                #if ( ! -e "$argv[1]" ) then
+	        #echo "Here: '$argv[1]'"
+                # Check if file exists using 3dinfo
+                set nvols = `3dinfo -nv "$argv[1]" 2>/dev/null`
+                if ( "$nvols" == "NO-DSET" ) then
+                    echo "Error: Input file '$argv[1]' does not exist"
+                    exit 1
+                endif
+                set inputs = ( $inputs "$argv[1]" )
+                shift
+            end
+            breaksw
+        default:
+            echo "Unknown option: $argv[1]"
+            exit 1
+    endsw
+end
+
+# Check required arguments
+if ( "$prefix" == "" || $#inputs == 0 ) then
+    echo "Usage: Stouffer -prefix output -input 'file1' 'file2' ..."
+    exit 1
+endif
+
+# Create temporary mean image
+set tmp = "./ZYXtmp_stouffer_$$.nii.gz"
+
+3dMean -prefix "$tmp" $inputs
+if ( $status != 0 ) then
+    echo "Error: 3dMean failed. Check input files or AFNI installation."
+    exit 1
+endif
+
+# Get number of input files
+set N = $#inputs
+
+# Compute Stouffer's Z-score
+3dcalc -a "$tmp" -expr "a*sqrt($N)" -prefix "${prefix}"
+if ( $status != 0 ) then
+    echo "Error: 3dcalc failed."
+    rm -f "$tmp"
+    exit 1
+endif
+
+# Declare the output as Z-statistic
+if ( -e ${prefix}+tlrc.HEAD ) then
+    3drefit -sublabel 0 'stouffer-Z' -substatpar 0 fizt ${prefix}+tlrc
+else
+    3drefit -sublabel 0 'stouffer-Z' -substatpar 0 fizt ${prefix}
+endif
+
+# Clean up
+rm -f "$tmp"
+
+END:

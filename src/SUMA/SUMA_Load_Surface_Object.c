@@ -5332,7 +5332,7 @@ int SUMA_spec_select_surfs( SUMA_SurfSpecFile * spec, char ** names, int nnames,
     if ( nnames <= 0 )
 	SUMA_RETURN( 0 );
 
-    /* first, check for existence and uniquenes in list */
+    /* first, check for existence and uniqueness in list */
     for ( name = 0; name < nnames; name++ )
     {
 	if ( ! names[name] )	/* then end the process */
