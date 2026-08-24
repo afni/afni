@@ -85,6 +85,8 @@
 * Independence,...
 * */
 
+/* [pt: 2026-08-23] update to re-enable LiteClue hover help on macOS */
+
 #include "xutil.h"
 #include "afni_environ.h"
 #include "debugtrace.h"    /* 12 Mar 2001 */
@@ -1348,8 +1350,13 @@ void MCW_register_hint( Widget w , char *msg )
 
       cfont = XGetDefault(XtDisplay(wpar),"AFNI","cluefont") ;
       if( cfont == NULL ) cfont = "10x20" ;                    /* 08 Jan 2021 */
+      /* [pt: 2026-08-23] the "if" condition for function args is a 
+         chatgpt fix to re-enable LiteClue-based hover help on macOS */
       liteClue = XtVaCreatePopupShell( "help", xcgLiteClueWidgetClass, wpar,
+#if XtSpecificationRelease >= 5
                                           RES_CONVERT(XtNfontSet,cfont) ,
+#endif
+                                          RES_CONVERT(XtNfont,cfont) ,
                                        NULL);
       if( !RWC_liteclue_has_fontset(liteClue) ){   /* Failed :( */
 /* removing warning for Macs */
