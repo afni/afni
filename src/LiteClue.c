@@ -30,6 +30,12 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+
+Revision 1.19  2026/08/23 21:55:24  ptaylor
+Implement ChatGPT-suggested fixes for having hover helps
+work on macOS again; now also include some text padding to enhance
+aesthetics/readability
+
 Revision 1.18  2009/03/05 21:55:24  rickr
 Cput
 
@@ -358,13 +364,15 @@ static void compute_font_info(XcgLiteClueWidget cw)
 	}
 
 	if (cw->liteClue.font) {
-		XTextExtents(cw->liteClue.font, "1", 1,
-			&direction_return, &font_ascent_return,
-			&font_descent_return, &oret);
-
-		cw->liteClue.font_baseline = oret.ascent;
-		cw->liteClue.font_width = oret.width;
-		cw->liteClue.font_height = oret.ascent + oret.descent;
+        /* [pt: 2026-08-23] chatgpt update to have more aesthetic 
+           padding of text in hover window */
+		cw->liteClue.font_baseline =
+			(Dimension)cw->liteClue.font->ascent;
+		cw->liteClue.font_width =
+			(Dimension)XTextWidth(cw->liteClue.font, "1", 1);
+		cw->liteClue.font_height =
+			(Dimension)(cw->liteClue.font->ascent +
+			            cw->liteClue.font->descent);
 	}
 }
 
@@ -537,7 +545,8 @@ static Boolean setValues( Widget _current, Widget _request, Widget _new, ArgList
 */
 static void timeout_event( XtPointer client_data, XtIntervalId *id)
 {
-#define BorderPix 3
+#define CLUE_PAD_X 5
+#define CLUE_PAD_Y 4
 	struct liteClue_context_str * obj = (struct liteClue_context_str *) client_data;
 	XcgLiteClueWidget cw = obj->cw;
 	Position  abs_x, abs_y;
@@ -590,25 +599,26 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 	}
 #endif
 
-        RWC_width  = 2*BorderPix +logical.width ;
-        RWC_height = 2*BorderPix + cw->liteClue.font_height ;
+        /* [pt: 2026-08-23] better padding, here and below */
+        RWC_width  = 2*CLUE_PAD_X + logical.width ;
+        RWC_height = 2*CLUE_PAD_Y + cw->liteClue.font_height ;
 	XtResizeWidget((Widget) cw, RWC_width , RWC_height ,
 			cw->core.border_width );
 
 /** RWCox change to widget location **/
         { int scw = WidthOfScreen(XtScreen(cw)) , sch = HeightOfScreen(XtScreen(cw)) ;
           int newx = abs_x + 1 , newy = abs_y+1 ; int xx,yy ;
-          if( newx + logical.width > scw ) newx = scw - logical.width - 2*BorderPix ;
-          if( newx < 0 )                   newx = 0 ;
-          if( newy + cw->liteClue.font_height + 2 >= sch )
-             newy = newy - w_height - cw->liteClue.font_height - 2*BorderPix ;
+          if( newx + RWC_width > scw ) newx = scw - RWC_width ;
+          if( newx < 0 )                 newx = 0 ;
+          if( newy + RWC_height >= sch )
+             newy = newy - w_height - RWC_height ;
           if( newy < 0 ) newy = 0 ;
 
 #if 1
           RWC_xineramize( XtDisplay(w) ,      /* 27 Sep 2000 - see xutil.[ch] */
                           newx,newy , RWC_width,RWC_height , &xx,&yy ) ;
           if( yy < newy )
-             yy = newy - w_height - cw->liteClue.font_height - 2*BorderPix ;
+             yy = newy - w_height - RWC_height ;
 	  XtMoveWidget((Widget) cw, xx,yy);
 #else
 	  XtMoveWidget((Widget) cw, newx,newy);
@@ -620,20 +630,20 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 
 #if XtSpecificationRelease < 5		/* R4 hack */
 	XDrawImageString(XtDisplay((Widget) cw), XtWindow((Widget) cw), 
-		cw->liteClue.text_GC , BorderPix, 
-		BorderPix + cw->liteClue.font_baseline, obj->text , obj->text_size);
+		cw->liteClue.text_GC , CLUE_PAD_X, 
+		CLUE_PAD_Y + cw->liteClue.font_baseline, obj->text , obj->text_size);
 #else
     /* [pt: 2026-08-23] chatgpt fix+update to re-enable 
        LiteClue-based hover help on macOS */
 	if (cw->liteClue.fontset != NULL) {
 		XmbDrawImageString(XtDisplay((Widget) cw), XtWindow((Widget) cw),
-			cw->liteClue.fontset, cw->liteClue.text_GC, BorderPix,
-			BorderPix + cw->liteClue.font_baseline,
+			cw->liteClue.fontset, cw->liteClue.text_GC, CLUE_PAD_X,
+			CLUE_PAD_Y + cw->liteClue.font_baseline,
 			obj->text, obj->text_size);
 	} else {
 		XDrawImageString(XtDisplay((Widget) cw), XtWindow((Widget) cw),
-			cw->liteClue.text_GC, BorderPix,
-			BorderPix + cw->liteClue.font_baseline,
+			cw->liteClue.text_GC, CLUE_PAD_X,
+			CLUE_PAD_Y + cw->liteClue.font_baseline,
 			obj->text, obj->text_size);
 	}
 #endif
