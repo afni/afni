@@ -396,6 +396,7 @@ int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
     int           ival, dsize;
     int           nx, ny, nz, nxy, nxyz, nv;
     int           slice;
+    int64_t       vsize;
 
     if ( DSET_LOADED(dset) )
     {
@@ -419,9 +420,17 @@ int r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam )
         /* first create memory to deposit the slices into */
         dsize = mri_datum_size( DSET_BRICK_TYPE(dset, ival) );
 
+        /* add a separate check for overflow  [11 Jun 2026 rickr] */
+        vsize = ((int64_t)nxyz) * dsize;
+        if ( vsize > INT_MAX ) {
+            fprintf( stderr, "** r frdb: volume alloc exceeds max signed int, "
+                             "want %" PRId64 " bytes\n", vsize );
+            return FAIL;
+        }
+
         if ( (newdata = (char *)malloc( nxyz * dsize )) == NULL )
         {
-            fprintf( stderr, "r frdb: alloc failure: %d bytes!\n",
+            fprintf( stderr, "** r frdb: alloc failure: %d bytes\n",
                      nxyz * dsize );
             return FAIL;
         }

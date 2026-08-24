@@ -25,7 +25,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dLME ==================          
     AFNI Group Analysis Program with Linear Mixed-Effects Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 2.1.5, March 15, 2024
+Version 2.2.0, Aug 3, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/lme.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -44,6 +44,12 @@ Usage:
  the output for all variables. In addition, Student t-tests for quantitative 
  variables are also in the output. In addition, general linear tests (GLTs) can 
  be requested via symbolic coding.
+
+ WARNING: The statistical values provided by this program can be poorly 
+ approximated in small samples due to the difficulty of accurately 
+ assigning degrees of freedom. Users should exercise caution and ensure an 
+ adequate sample size (e.g., at least 15 to 20 individuals) to ensure reliable 
+ model convergence and reasonable approximation for statistical values.
  
  If you want to cite the analysis approach, use the following:
  
@@ -264,8 +270,19 @@ read.LME.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-jobs' = apl(n = 1, d = 1, h = paste(
-   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
-   "         up the program significantly.",
+   "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
+   "         up the program significantly. However, increasing the number of CPUs",
+   "         up the program significantly. NOTE: Increasing the number of CPUs", 
+   "         processes does not necessarily improve performance. Because each",
+   "         CPU is an independent R process, aggregate memory usage grows",
+   "         with the number of CPUs. It is therefore advisable to identify",
+   "         the largest number of CPUs that fits comfortably within physical",
+   "         RAM while avoiding swap activity, rather than simply using all",
+   "         available CPU cores. A useful strategy is to benchmark several",
+   "         CPU counts while monitoring memory usage (e.g., with free -h,",
+   "         vmstat, or htop) and choose the largest number that avoids",
+   "         sustained swapping, as memory thrashing can more than offset the",
+   "         benefits of additional parallelism.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 

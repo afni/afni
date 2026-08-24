@@ -916,7 +916,7 @@ interesting milestones for afni_proc.py:
 
 
 g_process_changes_str = """
----------- changes to afni_proc.py that might afftect results ----------
+---------- changes to afni_proc.py that might affect results ----------
 
 Miscellaneous older changes:
 

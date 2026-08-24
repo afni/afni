@@ -47,6 +47,7 @@ brew install libpng jpeg expat freetype fontconfig openmotif  \
 
 # and apply the mesa-25 tap so that suma will work
 brew tap afni/mesa-25.3.4
+brew trust afni/mesa-25.3.4
 brew install mesa@25.3.4
 
 rm $HOMEBREW_PREFIX/opt/mesa
