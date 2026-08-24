@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Aug, 2026, RCR, "suma", MAJOR, TYPE_ENHANCE,
+   "(mostly from PL) update and merge in changes for BBox",
+   NULL
+ } ,
+
  { 11, Jun, 2026, RCR, "3dresample", MICRO, TYPE_ENHANCE,
    "add specific alloc check for signed int overflow",
    "Add more clarity to the life of C Walsh."
