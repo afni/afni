@@ -1372,6 +1372,69 @@ def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries,
                     added_troughs, outlier_ts_ranges, 
                     output_file_name, interpolatedPeaks, interpolatedTroughs)
 
+# def plotCorrectedRespiratoryImage(output_file_name, num_rows, points_per_row,
+#                                    x_scaled, y,
+#                                    x_peaks_scaled, y_peaks,
+#                                    x_troughs_scaled, y_troughs,
+#                                    respiratoryPeaks_scaled, respiratoryTroughs_scaled,
+#                                    peakVals, troughVals,
+#                                    addedPeaks_scaled, addedTroughs_scaled,
+#                                    addedPeakVals, addedTroughVals,
+#                                    outlier_ts_ranges, troughPeakMismatchRanges,
+#                                    samp_freq, offset=0):
+
+#     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+#     if num_rows == 1:
+#         axes = [axes]
+
+#     windowTitle = 'Corrected Respiratory Peaks ('+output_file_name+')'
+#     fig.canvas.manager.set_window_title(windowTitle)
+
+#     for row in range(num_rows):
+#         local_start = round(row * points_per_row)
+#         local_end = round(min((row + 1) * points_per_row, len(y)))
+#         # global-index equivalents, for band comparisons/plotting
+#         start = local_start + offset
+#         end = local_end + offset
+
+#         ax = axes[row]
+
+#         ax.plot(x_peaks_scaled[local_start:local_end], y_peaks[local_start:local_end],
+#                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="magenta")
+
+#         ax.plot(x_troughs_scaled[local_start:local_end], y_troughs[local_start:local_end],
+#                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="green")
+
+#         ax.plot(x_scaled[local_start:local_end], y[local_start:local_end],
+#                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="black")
+
+#         ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
+#         ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
+#         ax.plot(addedPeaks_scaled, addedPeakVals, "mo")
+#         ax.plot(addedTroughs_scaled, addedTroughVals, "go")
+
+#         for band_start, band_end in outlier_ts_ranges:
+#             if band_end <= start or band_start >= end:
+#                 continue
+#             ax.axvspan(max(band_start, start)/samp_freq, min(band_end, end)/samp_freq,
+#                        color='red', alpha=0.15)
+
+#         for bandrange in troughPeakMismatchRanges:
+#             if bandrange[1] <= start or bandrange[0] >= end:
+#                 continue
+#             ax.axvspan(max(bandrange[0], start)/samp_freq, min(bandrange[1], end)/samp_freq,
+#                        color='blue', alpha=0.15)
+
+#         ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
+#         ax.set_ylim(min(y[local_start:local_end]), max(y[local_start:local_end]))
+#         ax.set_ylabel("Respiratory Amplitude")
+
+#     print('Set axes and save plot to file')
+#     axes[-1].set_xlabel("Time (minutes)")
+#     plt.tight_layout()
+#     plt.savefig(output_file_name)
+#     plt.show()
+
 def plotCorrectedRespiratoryImage(output_file_name, num_rows, points_per_row,
                                    x_scaled, y,
                                    x_peaks_scaled, y_peaks,
@@ -1383,59 +1446,80 @@ def plotCorrectedRespiratoryImage(output_file_name, num_rows, points_per_row,
                                    outlier_ts_ranges, troughPeakMismatchRanges,
                                    samp_freq, offset=0):
 
+    def valuesOutsideOutliers(x_pts, vals):
+        """Keep only vals whose x-position (already in scaled/time units)
+        does not fall inside any outlier range (converted from sample-index
+        ranges to the same time units via samp_freq)."""
+        x_pts = np.asarray(x_pts)
+        vals = np.asarray(vals)
+        if x_pts.size == 0:
+            return vals
+        mask = np.ones(len(x_pts), dtype=bool)
+        for band_start, band_end in outlier_ts_ranges:
+            band_start_t = band_start / samp_freq
+            band_end_t = band_end / samp_freq
+            mask &= ~((x_pts >= band_start_t) & (x_pts <= band_end_t))
+        return vals[mask]
+
+    # Gather all peak/trough values (real + added), excluding outlier regions
+    peak_vals_clean = np.concatenate([
+        valuesOutsideOutliers(respiratoryPeaks_scaled, peakVals),
+        valuesOutsideOutliers(addedPeaks_scaled, addedPeakVals),
+    ])
+    trough_vals_clean = np.concatenate([
+        valuesOutsideOutliers(respiratoryTroughs_scaled, troughVals),
+        valuesOutsideOutliers(addedTroughs_scaled, addedTroughVals),
+    ])
+
+    if peak_vals_clean.size == 0 or trough_vals_clean.size == 0:
+        # Fallback: if everything got excluded (shouldn't normally happen),
+        # use the raw signal's overall range.
+        global_ymax = np.max(y)
+        global_ymin = np.min(y)
+    else:
+        global_ymax = np.max(peak_vals_clean)
+        global_ymin = np.min(trough_vals_clean)
+
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
     if num_rows == 1:
         axes = [axes]
-
     windowTitle = 'Corrected Respiratory Peaks ('+output_file_name+')'
     fig.canvas.manager.set_window_title(windowTitle)
-
     for row in range(num_rows):
         local_start = round(row * points_per_row)
         local_end = round(min((row + 1) * points_per_row, len(y)))
         # global-index equivalents, for band comparisons/plotting
         start = local_start + offset
         end = local_end + offset
-
         ax = axes[row]
-
         ax.plot(x_peaks_scaled[local_start:local_end], y_peaks[local_start:local_end],
                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="magenta")
-
         ax.plot(x_troughs_scaled[local_start:local_end], y_troughs[local_start:local_end],
                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="green")
-
         ax.plot(x_scaled[local_start:local_end], y[local_start:local_end],
                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="black")
-
         ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
         ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
         ax.plot(addedPeaks_scaled, addedPeakVals, "mo")
         ax.plot(addedTroughs_scaled, addedTroughVals, "go")
-
         for band_start, band_end in outlier_ts_ranges:
             if band_end <= start or band_start >= end:
                 continue
             ax.axvspan(max(band_start, start)/samp_freq, min(band_end, end)/samp_freq,
                        color='red', alpha=0.15)
-
         for bandrange in troughPeakMismatchRanges:
             if bandrange[1] <= start or bandrange[0] >= end:
                 continue
             ax.axvspan(max(bandrange[0], start)/samp_freq, min(bandrange[1], end)/samp_freq,
                        color='blue', alpha=0.15)
-
         ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
-        ax.set_ylim(min(y[local_start:local_end]), max(y[local_start:local_end]))
+        ax.set_ylim(global_ymin, global_ymax)
         ax.set_ylabel("Respiratory Amplitude")
-
     print('Set axes and save plot to file')
     axes[-1].set_xlabel("Time (minutes)")
     plt.tight_layout()
     plt.savefig(output_file_name)
     plt.show()
-
-
 def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
                       respiratoryTroughs, samp_freq, added_peaks,
                       added_troughs, outlier_ts_ranges,
