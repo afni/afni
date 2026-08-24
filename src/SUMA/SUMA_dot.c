@@ -1125,6 +1125,10 @@ SUMA_Boolean SUMA_GICOR_Dsets(SUMA_SurfaceObject *SOv[],
                SUMA_RETURN(NOPE);
             }
             /* add the columns */
+            if (SDSET_VECLEN(sdsetv[i]) < 0) {
+                SUMA_SL_Err("Invalid negative stdsetv dimension");
+                SUMA_RETURN(NOPE);
+            }
             Ti = (int *) SUMA_calloc(SDSET_VECLEN(sdsetv[i]), sizeof(int));
             for (ii=0; ii <SDSET_VECLEN(sdsetv[i]); ++ii) Ti[ii]=ii;
             SUMA_AddDsetNelCol (sdsetv[i], "node index", 

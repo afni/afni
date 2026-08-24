@@ -831,7 +831,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
       int debug)
 {/*SUMA_Load_Surface_Object_eng*/
    static char FuncName[]={"SUMA_Load_Surface_Object_eng"};
-   char stmp[1000], *SO_FileName=NULL;
+   char stmp[5001], *SO_FileName=NULL;
    SUMA_SFname *SF_FileName;
    SUMA_SureFit_struct *SF;
    SUMA_FreeSurfer_struct *FS;
@@ -1271,7 +1271,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (
          SO->Name = SUMA_StripPath(SO_FileName);
          /* check for file existence  */
          if (!SUMA_filexists(SO_FileName)) {
-            snprintf(stmp,998,"File %s not found!", SO_FileName);
+            snprintf(stmp,2517,"File %s not found!", SO_FileName);
             SUMA_error_message(FuncName, stmp, 0);
             SUMA_RETURN (NULL);
          }

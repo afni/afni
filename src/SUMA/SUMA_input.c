@@ -1077,7 +1077,6 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                SUMA_RETURN(0);
             }
          }
-
          do {
             if (LocalHead && nxtstateID > -1) {
                note = SUMA_append_string("Skipping state ",sv->State);
@@ -1114,6 +1113,7 @@ int SUMA_period_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
 
          } while (!SUMA_Selectable_ADOs(sv, SUMAg_DOv, NULL) &&
                    sv->iState != origState);
+
          /* register a call to redisplay
          (you also need to copy the color data, in case the next surface
           is of the same family)*/
@@ -2157,6 +2157,8 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    DListElmt *NextElm= NULL;
    SUMA_Boolean LocalHead = NOPE;
    Widget w = NULL;
+   SUMA_SurfaceObject *SO = SUMA_SV_Focus_SO(sv);
+   char *cmapname;
    static SUMA_Boolean clippingPlanesInitialized = NOPE;
 
    SUMA_ENTRY;
@@ -2188,11 +2190,17 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 activeClipPlanes = activeClippingPlanes();
             }
         } else if (SUMA_CTRL_KEY(key)){
+           /* Save active color plane name */
+           if (SO->N_Overlays > 0){
+              cmapname = nifti_strdup(SO->Overlays[SO->N_Overlays-1]->cmapname);
+              if (!cmapname) SUMA_RETURN(0); /* nifti_strdup should whine */
+           }
+
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
                 fprintf(stderr, "### SUMA_C_Key: toggleClippingPlaneMode\n");
             toggleClippingPlaneMode(sv, w, &locallySelectedPlane);
             if (SUMAg_CF->clippingPlaneVerbose && SUMAg_CF->clippingPlaneVerbosityLevel>1)
-                fprintf(stderr, "### axisObject = %d\n", axisObject);
+                fprintf(stderr, "### axisObject = %p\n", axisObject);
             if (!axisObject) makeAxisObject(w, sv);
             if (!clippingPlanesInitialized){
                 clippingPlanesInitialized = 1;
@@ -2200,9 +2208,9 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                 SUMA_S_Err("Failed to initialize clipping plane.");
                 }
             }
-            
+
             if (clippingPlaneMode && !clipPlaneIdentificationMode){
-                // Toggle clip plane identification mode on 
+                // Toggle clip plane identification mode on
                 if (!SUMA_C_Key(sv, "Shift+C", "interactive")) {
                     SUMA_S_Err("Failed in key func.");
                 }
@@ -2211,6 +2219,13 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             // Update vewier header with initialized scroll inc.
             sv->clippingPlaneIncrement = scrollInc;
             SUMA_UpdateViewerTitle(sv);
+
+           /* Restore active color plane name */
+           /* rcr - where above does cmapname get lost? */
+           if (SO->N_Overlays > 0){
+               free(SO->Overlays[SO->N_Overlays-1]->cmapname);
+               SO->Overlays[SO->N_Overlays-1]->cmapname = cmapname;
+           }
         }else if (clippingPlaneMode) {
 
             SUMA_GLXAREA_WIDGET2SV(w, sv, isv);
@@ -3500,6 +3515,14 @@ int SUMA_P_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
             if (sv->PolyMode <= SRM_ViewerDefault) sv->PolyMode = SRM_Fill;
 
             SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
+            
+            /* Update PolyMode on surface control menu */
+            /* rcr - revisit */
+            if ((ado = SUMA_SV_Focus_ADO(sv))) {
+                SO = (SUMA_SurfaceObject *)ado; 
+                SUMA_Set_Menu_Widget( SO->SurfCont->RenderModeMenu, 
+                            SUMA_RenderMode2RenderModeMenuItem(sv->PolyMode+1));
+            }
          }
          SUMA_postRedisplay(sv->X->GLXAREA, NULL, NULL);
          break;
@@ -3724,7 +3747,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                                   SUMAg_CF->SUMA_SnapshotOverSampling),
                                 0);
                /* use explicit tcsh to avoid sh syntax  25 Apr 2017 [rickr] */
-               system(  "tcsh -c 'rm -f HighRes_Suma_tmp* >& /dev/null' ; "
+               (void)system( "tcsh -c 'rm -f HighRes_Suma_tmp* >& /dev/null' ; "
                         "2dcat -prefix HighRes_Suma_tmp HighRes_Photo___tmp* ; "
                         "rm -f HighRes_Photo___tmp*");
             }
@@ -3742,16 +3765,16 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
                            SUMAg_CF->autorecord->Path,
                            SUMAg_CF->autorecord->FileName_NoExt);
                if (callmode && strcmp(callmode, "interactive") == 0) {
-                  SUMA_SLP_Note ("%s",sbuf); }
-               else { SUMA_S_Note ("%s",sbuf); }
+                  SUMA_SLP_Note (sbuf); }
+               else { SUMA_S_Note (sbuf); }
             } else {
                snprintf(sbuf,256*sizeof(char),
                         "Disk Recording OFF. Results in: %s%s*",
                            SUMAg_CF->autorecord->Path,
                            SUMAg_CF->autorecord->FileName_NoExt);
                if (callmode && strcmp(callmode, "interactive") == 0) {
-                  SUMA_SLP_Note ("%s",sbuf); }
-               else { SUMA_S_Note ("%s",sbuf);}
+                  SUMA_SLP_Note (sbuf); }
+               else { SUMA_S_Note (sbuf); }
             }
             SUMA_UpdateViewerTitle(sv);
          } else {
@@ -5291,7 +5314,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          xls = XLookupString((XKeyEvent *) cd->event, buffer, 8, &keysym, NULL);
       }
         // Modifier
-        sprintf(modifierBuf, "\0");
+        modifierBuf[0] = '\0';
         if (SUMA_ALTHELL) strcat(modifierBuf, "Alt+");
         if ((Kev.state & ControlMask)) strcat(modifierBuf, "Ctrl+");
 
