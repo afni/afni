@@ -270,13 +270,19 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
    # ** cases of special datasets: errts, all_runs
    #    (any more and we make a list)
+   #  - all_runs : warn about - we will not properly detrend if multi-run
+   #  - errts    : okay - do not detrend (useless and wasteful)
+
+   set do_detrend = 1
    set dset = $dset_list[$index]
    if ( $dset =~ errts* ) then
       set ichr = d
       set ind02 = `ccalc -form '%02d' $dind`
       set prefix = radcor.$sphere_rad.$ichr$ind02.errts
+      set do_detrend = 0
       @ dind += 1
    else if ( $dset =~ all_runs* ) then
+      echo "** warning: will not properly detrend a multi-run dataset"
       set ichr = d
       set ind02 = `ccalc -form '%02d' $dind`
       set prefix = radcor.$sphere_rad.$ichr$ind02.all_runs
@@ -316,11 +322,13 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
    # ----------------------------------------
    # possibly detrend (after any automask)
-   if ( $polort >= 0 ) then
+   if ( $polort >= 0 && $do_detrend ) then
       set detset = det.$ichr$ind02
       echo "-- radcor: detrend -polort $polort, new eset = $detset"
       3dTproject -quiet -polort $polort -prefix $detset -input $eset$view
       set eset = $detset
+   else if ( $polort >= 0 && ! $do_detrend ) then
+      echo "-- omitting detrending for $dset"
    endif
 
    # ----------------------------------------
@@ -846,6 +854,9 @@ $prog modification history:
    0.8  : Mar 17, 2022: change saved ulay to be from orig EPI
    0.9  : Apr  1, 2022: extract ulay also in non-clean case
    1.0  : Feb 23, 2024: fail if no corr dset is made (no -e in script)
+   1.1  : Aug 25, 2026:
+          - do not detrend errts, warn on all_runs
+          - afni_proc.py will stop passing all_runs, volreg should be enough
 
 EOF
 

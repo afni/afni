@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Aug, 2026, RCR, "@radial_correlate", MICRO, TYPE_MODIFY,
+   "do not apply useless detrending to an errts dset",
+   NULL
+ } ,
+
  { 24, Aug, 2026, RCR, "suma", MAJOR, TYPE_ENHANCE,
    "(mostly from PL) update and merge in changes for BBox",
    NULL
