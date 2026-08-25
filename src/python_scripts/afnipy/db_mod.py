@@ -1011,8 +1011,8 @@ def run_radial_correlate(proc, block, full=0):
        if proc.errts_final == '':
           print("** missing errts dataset for @radial_correlate in regress")
           return 1, ''
-       dsets = '%s%s.HEAD %s%s.HEAD' % (proc.all_runs, proc.view,
-                                        proc.errts_final, proc.view)
+       # pass only the errts dataset, no longer all_runs
+       dsets = '%s%s.HEAD' % (proc.errts_final, proc.view)
     elif full:
        dsets = proc.prev_dset_form_wild(block, view=1, eind=-1)
     else:
