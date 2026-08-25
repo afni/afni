@@ -53,6 +53,17 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Aug, 2026, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "no longer pass all_runs to @radial_correlate",
+   NULL
+ } ,
+
+ { 25, Aug, 2026, RCR, "@radial_correlate", MICRO, TYPE_NEW_OPT,
+   "add yes/no option -do_detrend",
+   "By default, do not apply useless detrending to an errts dset.\n"
+   "But if -do_detrend is given, apply as specified."
+ } ,
+
  { 24, Aug, 2026, RCR, "suma", MAJOR, TYPE_ENHANCE,
    "(mostly from PL) update and merge in changes for BBox",
    NULL
