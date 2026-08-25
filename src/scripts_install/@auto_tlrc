@@ -51,7 +51,7 @@ PARSE:
    set KeepTmp = 0
    set verb = 0
    set pd = $pd_default
-   #set suf = "_at"	
+   #set suf = "_at"
    set suf = ""
    set prefix = ""
    set gz = ""
@@ -148,15 +148,15 @@ PARSE:
          endif   
       endif
       if ($donext && "$argv[$cnt]" == "-clip_below") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need Zmm after -clip_below"
+         set pLoc = $cnt
+         if ($pLoc == $Narg) then
+            echo "Need Zmm after -clip_below"
             goto END
-			else
+         else
             @ cnt ++
             set clpbelow = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0
+         endif
       endif
       if ($donext && "$argv[$cnt]" == "-rmode") then
          set pLoc = $cnt      
@@ -302,7 +302,7 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-copy_warp") then
          set apar_copyWarpinfo = 1
-         set donext = 0		
+         set donext = 0
       endif
       
       if (  $donext && \
@@ -338,33 +338,33 @@ PARSE:
       # now default, here for old scripts
       if ($donext && "$argv[$cnt]" == "-OK_maxite") then
          set accept_maxite = 1
-         set donext = 0		
+         set donext = 0
       endif
 
       if ($donext && "$argv[$cnt]" == "-not_OK_maxite") then
          set accept_maxite = 0
-         set donext = 0		
+         set donext = 0
       endif
 
       if ($donext && "$argv[$cnt]" == "-onepass") then
          set npass = ''
-         set donext = 0		
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-twopass") then
          set npass = '-twopass'
-         set donext = 0		
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-ncr") then
          set cropt = ''
-         set donext = 0		
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-inweight") then
-         set inweight = 1		
-         set donext = 0		
+         set inweight = 1
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-ok_notice") then
-         set ok_notice = 1;		
-         set donext = 0		
+         set ok_notice = 1;
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-no_ss") then
          set RemoveSkull = 0;      
@@ -850,10 +850,10 @@ AUTO_TLRC_MODE:
                      -input ${ns_pref}${anat_view} -prefix ${ns_pref}_clpbel
       set ns_pref = ${ns_pref}_clpbel
       if (`@CheckForAfniDset ${ns_pref}${anat_view}` != 2) then 
-			echo "Error: Failed to clip below $clpbelow mm"
+         echo "Error: Failed to clip below $clpbelow mm"
          set estat = 1
          goto END
-		endif
+      endif
    endif
       
    RES:
@@ -1284,9 +1284,9 @@ AUTO_TLRC_MODE:
       endif
 
       if ($KeepView == 0) then
- 	     set rigid_outview =  ${ref_view}
-	  else
-	     set rigid_outview =  ${anat_view}
+         set rigid_outview =  ${ref_view}
+      else
+         set rigid_outview =  ${anat_view}
       endif
        
       if ("$isNIFTI" == 1) then
