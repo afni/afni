@@ -1149,6 +1149,65 @@ def merge_ranges(ranges):
             merged.append(current)
 
     return merged
+
+def is_cycle_clean(cycle, merged_outlier_ts_ranges):
+    """A cycle (p1, t, p2) is 'clean' if no part of it overlaps a bad region."""
+    p1, t, p2 = cycle
+    for lo, hi in merged_outlier_ts_ranges:
+        # cycle overlaps this bad region if their spans intersect at all
+        if p1 <= hi and p2 >= lo:
+            return False
+    return True
+
+
+def local_typical_amplitude(clean_cycles, ts, near_idx, n_nearby=10):
+    """
+    Median peak-minus-trough amplitude, biased toward cycles near `near_idx`.
+    Falls back to 0 if there are no clean cycles at all (caller should handle).
+    """
+    if len(clean_cycles) == 0:
+        return 0.0
+
+    scored = sorted(
+        clean_cycles,
+        key=lambda c: min(abs(c[0] - near_idx), abs(c[2] - near_idx))
+    )
+    nearby = scored[:n_nearby] if len(scored) > n_nearby else scored
+
+    amps = []
+    for p1, t, p2 in nearby:
+        p1i, ti, p2i = int(round(p1)), int(round(t)), int(round(p2))
+        amps.append(ts[p1i] - ts[ti])
+        amps.append(ts[p2i] - ts[ti])
+
+    return float(np.median(amps))
+
+def find_anchor_cycle(clean_cycles, bad_region, side, ts, margin):
+    """
+    Walk outward from a bad region through clean cycles (already sorted by
+    position) looking for one with peak-trough amplitude >= margin on the
+    relevant side. 'side' is 'before' or 'after'.
+
+    Returns the chosen cycle (p1, t, p2), and a bool for whether the margin
+    was actually satisfied (False => fallback / best-effort pick).
+    """
+    if side == 'before':
+        candidates = [c for c in clean_cycles if c[2] <= bad_region[0]]
+        candidates.sort(key=lambda c: c[2], reverse=True)  # nearest first
+    else:
+        candidates = [c for c in clean_cycles if c[0] >= bad_region[1]]
+        candidates.sort(key=lambda c: c[0])  # nearest first
+
+    if len(candidates) == 0:
+        return None, False
+
+    for cycle in candidates:
+        p1, t, p2 = cycle
+        p1i, ti, p2i = int(round(p1)), int(round(t)), int(round(p2))
+        if (ts[p1i] - ts[ti]) >= margin and (ts[p2i] - ts[ti]) >= margin:
+            return cycle, True
+
+    return candidates[0], False
     
 def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks, 
             respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq,
@@ -1276,71 +1335,94 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
     # Either move peaks/troughs in bad regions to local maxima/minima or
     # linearly interpolate peak/trough profiles between peak/trough just before
     # and after bad region
+    # Build the list of cycles that don't overlap any bad region at all,
+    # so a spurious peak/trough pair inside one bad region can't be used
+    # to anchor the interpolation for another.
+    clean_cycles = [c for c in valid_cycles
+                     if is_cycle_clean(c, merged_outlier_ts_ranges)]
+
     if moveToLocalPeaks:
         print('TODO: Add code')
-        
+
     else:
-        # Make profiles for interpolated peaks and troughs
         interpolatedPeaks = respiratoryTimeSeries.copy()
         interpolatedTroughs = respiratoryTimeSeries.copy()
-    
+
+        MARGIN_FRACTION = 0.3  # how much of the typical amplitude to require
+
         for bad_region in merged_outlier_ts_ranges:
-            
-            # PEAKS
-            idx_before = max(np.searchsorted(respiratoryPeaks, bad_region[0]) - 2, 0)
-            idx_after  = min(np.searchsorted(respiratoryPeaks, bad_region[1]) + 1,\
-                             len(respiratoryPeaks) - 1)
-            
-            # To avoid noise just to the left of the bad region, more the before
-            # back until the value is at least the 85th percentile of the 
-            # preceding region.
-            leftRegion=[idx_before]*2
-            idx = merged_outlier_ts_ranges.index(bad_region)
-            
-            
-            before = int(np.round(respiratoryPeaks[idx_before])) \
-                if idx_before >= 0 else None
-            after  = int(np.round(respiratoryPeaks[idx_after])) \
-                if idx_after < len(respiratoryPeaks) else None  
-            
-            if before is None or after is None:
+
+            region_center = (bad_region[0] + bad_region[1]) / 2
+            typical_amp = local_typical_amplitude(
+                clean_cycles, respiratoryTimeSeries, region_center
+            )
+            margin = MARGIN_FRACTION * typical_amp
+
+            before_cycle, before_ok = find_anchor_cycle(
+                clean_cycles, bad_region, 'before',
+                respiratoryTimeSeries, margin
+            )
+            after_cycle, after_ok = find_anchor_cycle(
+                clean_cycles, bad_region, 'after',
+                respiratoryTimeSeries, margin
+            )
+
+            if before_cycle is None or after_cycle is None:
                 continue
 
-            # Form s atraight clothesline between the good peaks on either side
-            interpolatedPeaks[before+1:after] = np.linspace(
-                interpolatedPeaks[before],
-                interpolatedPeaks[after],
-                after - before + 1
-            )[1:-1]
-        
-            # TROUGHS
-            idx_before = max(np.searchsorted(respiratoryTroughs, bad_region[0]) - 2, 0)
-            idx_after  = min(np.searchsorted(respiratoryTroughs, bad_region[1]) + 1,\
-                             len(respiratoryPeaks) - 1)
-            
-            before = int(np.round(respiratoryTroughs[idx_before])) \
-                if idx_before >= 0 else None
-            after  = int(np.round(respiratoryTroughs[idx_after])) \
-                if idx_after < len(respiratoryTroughs) else None  
-            
-            if before is None or after is None:
-                continue
+            p_before, t_before, _ = before_cycle
+            _, t_after, p_after = after_cycle
 
-            # Form s atraight clothesline between the good troughs on either side
-            interpolatedTroughs[before+1:after] = np.linspace(
-                interpolatedTroughs[before],
-                interpolatedTroughs[after],
-                after - before + 1
+            # Cast to plain ints now that we're using these as array indices
+            p_before = int(round(p_before))
+            t_before = int(round(t_before))
+            t_after  = int(round(t_after))
+            p_after  = int(round(p_after))
+            # PEAKS: straight line between the two anchor peaks
+            interpolatedPeaks[p_before + 1:p_after] = np.linspace(
+                interpolatedPeaks[p_before],
+                interpolatedPeaks[p_after],
+                p_after - p_before + 1
             )[1:-1]
 
+            # TROUGHS: straight line between the two anchor troughs
+            interpolatedTroughs[t_before + 1:t_after] = np.linspace(
+                interpolatedTroughs[t_before],
+                interpolatedTroughs[t_after],
+                t_after - t_before + 1
+            )[1:-1]
+
+            interpolatedPeaks = np.asarray(respiratoryTimeSeries, dtype=float).copy()
+            interpolatedTroughs = np.asarray(respiratoryTimeSeries, dtype=float).copy()
+
+            # Safety net: even with good anchors, extreme baseline drift could
+            # still leave the lines too close (or crossed) somewhere in the
+            # overlap. Clip so peaks stay comfortably above troughs everywhere,
+            # using the same margin as the search above.
+            lo = max(p_before, t_before)
+            hi = min(p_after, t_after)
+            if hi > lo:
+                idx = slice(lo, hi + 1)
+                gap = interpolatedPeaks[idx] - interpolatedTroughs[idx]
+                violation = gap < margin
+                if np.any(violation):
+                    shortfall = margin - gap[violation]
+                    interpolatedPeaks[idx][violation] += shortfall / 2
+                    interpolatedTroughs[idx][violation] -= shortfall / 2
+
+            if not (before_ok and after_ok):
+                # Nothing clean enough was found nearby even after searching
+                # outward — worth flagging for a human to sanity-check.
+                print(f'Warning: no clean peak/trough pair with sufficient '
+                      f'amplitude found near region {bad_region}; used best '
+                      f'available anchors and clipped to margin.')
+                
     # Write out a plot of the corrected time series with green peaks (to show
     # the corrections) and bad regions in pink
     writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries, 
                 respiratoryPeaks, respiratoryTroughs, outlier_ts_ranges, 
                 added_peaks, added_troughs, OutDir, samp_freq,
                 interpolatedPeaks, interpolatedTroughs)
-        
-    # Merge added points into cardiacPeaks
     
 def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries, 
                 respiratoryPeaks, respiratoryTroughs, outlier_ts_ranges, 
