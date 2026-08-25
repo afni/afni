@@ -2158,7 +2158,7 @@ int SUMA_C_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
    Widget w = NULL;
    SUMA_SurfaceObject *SO = SUMA_SV_Focus_SO(sv);
-   char *cmapname;
+   char *cmapname=NULL;
    static SUMA_Boolean clippingPlanesInitialized = NOPE;
 
    SUMA_ENTRY;
