@@ -17,7 +17,12 @@
 #                    for auto_warp.py to be able to be used happily, because
 #                    now it will use *.nii.gz volumes, instead of *.nii
 #                    because of current AFNI_COMPRESSOR behavior (gzips *.nii)
-
+# 
+# [PT: Aug 25, 2026] remove some "-view .." options added to 3drefit; they
+#                    do the correct thing, but the code was written to check
+#                    separately about updating views. So, things finished
+#                    correctly, but there were some non-fatal error messages
+#                    during runtime execution, which are better to avoid.
 
 PARSE: 
    #exit status
@@ -1215,8 +1220,19 @@ AUTO_TLRC_MODE:
    endif
       UP:       
 
-   # set the space of the output to match the template space
-   3drefit -space $ref_space -view ${ref_aview} ${tt_prefupad}${anat_view}
+   # set the space of the output to match the template space;
+   # [pt: 2026-08-25] in Dec, 2025, this next command was updated to 
+   # update the view via "-view ${ref_aview}"; however, while this gives
+   # the file in question the _correct_ properties, the logic of the 
+   # pre-existing code did not welcome that (it checks below about the 
+   # value of $KeepView in an if-condition), and so throws some errors,
+   # even though the script will eventually finish with what it needs 
+   # correctly. To avoid this woe and apparent stain on the script's valid
+   # execution, I am now withdrawing the "-view ${ref_aview}" command and
+   # beg a thousand pardons for every having introduced it.
+   echo "++ NB: you can likely ignore any 3drefit warning in the next line"
+   echo "   about updating the view; that is checked separately, just below"
+   3drefit -space $ref_space ${tt_prefupad}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]"   \
@@ -1305,8 +1321,10 @@ AUTO_TLRC_MODE:
       if ($KeepView == 0 && $isNIFTI == 0) then
          3drefit -space "ACPC" -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
       else
-         # reset the space of the output to be ACPC
-         # [PT] the view here be +tlrc, then, right?  
+         # reset the space of the output to be ACPC;
+         # [PT] the view here be +tlrc, then, right? -> actually, no, because
+         # this code will check separately below about whether to update
+         # the view, based on the $KeepView value
          3drefit  -space "ACPC" ${rigid_inprefix}
       endif
 #      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
@@ -1437,7 +1455,18 @@ APAR_MODE:
    endif
    
    # reset the space of the output to match the template space
-   3drefit -space $ref_space -view ${ref_aview} ${tmp_out_pref}${anat_view}
+   # [pt: 2026-08-25] in Dec, 2025, this next command was updated to 
+   # update the view via "-view ${ref_aview}"; however, while this gives
+   # the file in question the _correct_ properties, the logic of the 
+   # pre-existing code did not welcome that (it checks below about the 
+   # value of $KeepView in an if-condition), and so throws some errors,
+   # even though the script will eventually finish with what it needs 
+   # correctly. To avoid this woe and apparent stain on the script's valid
+   # execution, I am now withdrawing the "-view ${ref_aview}" command and
+   # beg a thousand pardons for every having introduced it.
+   echo "++ NB: you can likely ignore any 3drefit warning in the next line"
+   echo "   about updating the view; that is checked separately, just below"
+   3drefit -space $ref_space ${tmp_out_pref}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
