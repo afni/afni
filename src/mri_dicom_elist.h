@@ -72,7 +72,7 @@ static char *elist[] = {
  "5200 9230" ,  /* Per-frame Functional Groups Sequence */
  "0018 9074" ,  /* Frame Acquisition DateTime */
  "0018 9082" ,  /* Effective Echo Time */
- "0008 002A" ,  /* Acquisition DateTime */
+ "0008 002a" ,  /* Acquisition DateTime */
 
 
 NULL } ;
