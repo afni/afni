@@ -8,6 +8,11 @@
  Based on SUMA_prompt_user.c 
  */
 
+/*
+  [pt: 2026-08-21] testing Claude-proposed fixes for various crashes when
+  using/closing the prompt dialogue popups.  See "FIX" comments below.
+*/
+
 
 static char * read_file_text(FILE * fp);  /* 29 Jun 2012 [rickr] */
 
@@ -56,7 +61,13 @@ int SUMA_PauseForUserDisco(  Widget parent,char *question,char *yes_user,char *n
     int ii;
     XmString text, yes, no, help;
     struct  timeval  tt;
-    static int answer;
+
+    /* [pt: 2026-08-21] Claude-rec to help fix popup message crash ---
+       FIX: use XtPointer (8 bytes on 64-bit) instead of int (4 bytes);
+       XmNuserData is pointer-sized, so XtVaGetValues would corrupt
+       the stack writing 8 bytes into a 4-byte int on ARM/64-bit */
+    static XtPointer answer;
+
     SUMA_Boolean LocalHead = NOPE;
 
     SUMA_ENTRY;
@@ -99,10 +110,11 @@ int SUMA_PauseForUserDisco(  Widget parent,char *question,char *yes_user,char *n
 
     // text for buttons
     text = XmStringCreateLocalized (question);
-    yes = XmStringCreateLocalized (yes_user);
-    no = XmStringCreateLocalized (no_user);
-    help = XmStringCreateLocalized (help_user);
-    answer = 0;
+    /* FIX: guard against NULL button labels; XmStringCreateLocalized crashes on NULL */
+    yes  = XmStringCreateLocalized (yes_user  ? yes_user  : "Ok");
+    no   = XmStringCreateLocalized (no_user   ? no_user   : " ");
+    help = XmStringCreateLocalized (help_user ? help_user : " ");
+    answer = (XtPointer)0; /* FIX: cast to XtPointer to match widened type */
 
     // set to widget?
     XtVaSetValues (dialog,
@@ -165,7 +177,8 @@ See bit of illustration code in SUMA_Engine where PauseForUser
 is called*/
     XtUnmanageChild(dialog);
 #endif
-    SUMA_RETURN(answer);
+    /* FIX: cast XtPointer back down to int safely via intptr_t */
+    SUMA_RETURN((int)(intptr_t)answer);
 }
 
 // parse the arguments
@@ -278,8 +291,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_prompt_popup_ParseInput(char *argv[],int 
 static char * read_file_text(FILE * fp)
 {
     static char FuncName[]={"read_file_text"};
-    char * str, ch;
+    int    ch;  /* FIX: use int (not char) so EOF (-1) is distinguishable from valid bytes */
     int    i, len, nalloc;
+    char * str;
 
     SUMA_ENTRY;
 
@@ -295,9 +309,11 @@ static char * read_file_text(FILE * fp)
             fprintf(stderr,"** RFT alloc fail on len %d\n", nalloc);
             SUMA_RETURN(NULL);
         }
-        for( i=0; i < 100 && !feof(fp); i++ )
-            str[len++] = fgetc(fp);
-        if( feof(fp) ) len--;
+        for( i=0; i < 100 && !feof(fp); i++ ) {
+            ch = fgetc(fp);                      /* FIX: store in int before narrowing */
+            if( ch == EOF ) break;               /* FIX: check EOF before storing */
+            str[len++] = (char)ch;
+        }
     }
     str[len] = '\0'; /* terminate */
 
@@ -355,6 +371,11 @@ int main (int argc,char *argv[])
 
     switch (Opt->b1) {
         case 1:
+            /* FIX: guard against NULL from read_file_text before passing to unescape_unix_str */
+            if (!Opt->in_name) {
+                SUMA_S_Err("Empty or unreadable message string.\n");
+                exit(1);
+            }
             /* apply some escape characters     31 Jul 2009 [rickr] */
             esc_str = unescape_unix_str(Opt->in_name);
 

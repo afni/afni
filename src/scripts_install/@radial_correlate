@@ -31,6 +31,7 @@ set din_list = ( )
 set do_corr = yes       # use no for testing only
 set do_clust = no       # use no to just create correlation volumes
 set do_clean = no       # remove everything but the correlation datasets?
+set do_detrend = unset  # if not errts, detrend by default (note whether set)
 set clean_dir = .clean
 set mask_in = ''
 
@@ -83,6 +84,13 @@ while ( $ac <= $#argv )
          echo "** -do_corr requires either 'yes' or 'no'"
          exit 1
       endif
+   else if ( "$argv[$ac]" == "-do_detrend" ) then
+      @ ac += 1
+      set do_detrend = "$argv[$ac]"
+      if ( "$do_detrend" != 'yes' && "$do_detrend" != 'no' ) then
+         echo "** -do_detrend requires either 'yes' or 'no'"
+         exit 1
+      endif
    else if ( "$argv[$ac]" == "-frac_limit" ) then
       @ ac += 1
       set frac_limit = $argv[$ac]
@@ -129,7 +137,8 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-ver" ) then
       echo "version $version"
       exit
-   else if ( "$argv[$ac]" == "-verb" ) then
+   # set echo for either -verb or -echo
+   else if ( "$argv[$ac]" == "-verb" || "$argv[$ac]" == "-echo" ) then
       set echo
    else
       # the rest are assumed to be input datasets
@@ -270,13 +279,31 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
    # ** cases of special datasets: errts, all_runs
    #    (any more and we make a list)
+   #  - all_runs : warn about - we will not properly detrend if multi-run
+   #  - errts    : okay - do not detrend (useless and wasteful)
+
+   # init local detrending per run (to handle errts by itself)
+   #    - if unset, default to yes (if not errts)
+   #    - if set, apply as specified
+   if ( $do_detrend == unset ) then
+      set do_det_local = yes
+   else
+      set do_det_local = $do_detrend
+   endif
+
    set dset = $dset_list[$index]
    if ( $dset =~ errts* ) then
       set ichr = d
       set ind02 = `ccalc -form '%02d' $dind`
       set prefix = radcor.$sphere_rad.$ichr$ind02.errts
+      # if polort and detrending has not been specified, turn off for errts
+      if ( $polort >= 0 && $do_detrend == unset ) then
+         echo "-- omitting detrending for $dset"
+         set do_det_local = no
+      endif
       @ dind += 1
    else if ( $dset =~ all_runs* ) then
+      echo "** warning: will not properly detrend a multi-run dataset"
       set ichr = d
       set ind02 = `ccalc -form '%02d' $dind`
       set prefix = radcor.$sphere_rad.$ichr$ind02.all_runs
@@ -316,9 +343,10 @@ foreach index ( `count_afni -digits 1 1 $#dset_list` )
 
    # ----------------------------------------
    # possibly detrend (after any automask)
-   if ( $polort >= 0 ) then
+   if ( $polort >= 0 && $do_det_local == "yes" ) then
       set detset = det.$ichr$ind02
       echo "-- radcor: detrend -polort $polort, new eset = $detset"
+      echo "   input : $eset$view"
       3dTproject -quiet -polort $polort -prefix $detset -input $eset$view
       set eset = $detset
    endif
@@ -581,6 +609,10 @@ echo ""
 echo "  inputs: a list of EPI datasets (after any options)"
 echo "  output: a directory containing correlation volumes (and more)"
 echo ""
+echo "Note: if the input is a multi-run dataset that still has trends in it,"
+echo "      detrending per run will not be done (as it should be)"
+echo "      - the program does not know where the run breaks are."
+echo ""
 echo "-----------------------------------------------------------------"
 echo ""
 echo "Common examples (note that datasets are always passed last):"
@@ -731,6 +763,14 @@ echo "                       If 'yes', create the correlation volumes."
 echo "                       If 'no', simply assume they already exist."
 echo "                       This is for re-testing a previous execution."
 echo ""
+echo "   -do_detrend yes/no: detrend input datasets (yes or no)"
+echo "                       default = yes, if non-errts"
+echo ""
+echo "                       By default, detrend any (non-errts) datasets."
+echo ""
+echo "                       If this option is given, detrend as specified,"
+echo "                       regardless of errts."
+echo ""
 echo "   -polort POLORT    : detrend time series with given poly degree"
 echo "                       default = $polort"
 echo ""
@@ -750,6 +790,7 @@ echo ""
 echo "   -ver              : show version number"
 echo ""
 echo "   -verb             : make verbose: set echo"
+echo "   -echo             : make verbose: set echo"
 echo ""
 echo "---------------------------------------------"
 echo ""
@@ -838,7 +879,7 @@ $prog modification history:
           - add -do_clean and -verb
           - on clean, save epi.ulay datasets
    0.5  : May 15, 2019:
-          - handle special cases of errts and all_runs
+          - handle special case of errts (all_runs should not be used)
           - do this by partitioning results into r* and d* dataset names
    0.6  : May 30, 2019: full Gaussian by default, not truncated
    0.7  : Mar  7, 2022: add -polort; minor cleanup
@@ -846,6 +887,9 @@ $prog modification history:
    0.8  : Mar 17, 2022: change saved ulay to be from orig EPI
    0.9  : Apr  1, 2022: extract ulay also in non-clean case
    1.0  : Feb 23, 2024: fail if no corr dset is made (no -e in script)
+   1.1  : Aug 25, 2026:
+          - do not detrend errts, warn on all_runs
+          - afni_proc.py will stop passing all_runs, volreg should be enough
 
 EOF
 
