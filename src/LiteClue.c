@@ -30,6 +30,12 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+
+Revision 1.19  2026/08/23 21:55:24  ptaylor
+Implement ChatGPT-suggested fixes for having hover helps
+work on macOS again; now also include some text padding to enhance
+aesthetics/readability
+
 Revision 1.18  2009/03/05 21:55:24  rickr
 Cput
 
@@ -173,6 +179,8 @@ static XtResource resources[] =
 #else
 	{XtNfontSet, XtCFontSet, XtRFontSet, sizeof(XFontSet),
 		offset(liteClue.fontset), XtRString, "-adobe-new century schoolbook-bold-r-normal-*-12-*"},
+	{XtNfont, XtCFont, XtRFontStruct, sizeof(XFontStruct *),
+		offset(liteClue.font), XtRString, "fixed"},
 #endif
 	{XgcNwaitPeriod, XgcCWaitPeriod, XtRInt , sizeof(int),
 		offset(liteClue.waitPeriod),XtRString, "500" },
@@ -331,7 +339,8 @@ void RWC_fixup_fontset(Widget cww,Widget www) /* 08 Jan 2021 -- does not work */
 int RWC_liteclue_has_fontset( Widget cww ) /* 10 Jan 2021 */
 {
    XcgLiteClueWidget cw = (XcgLiteClueWidget)cww ;
-   return ( (cw != NULL) && (cw->liteClue.fontset != NULL) ) ;
+   return ( (cw != NULL) &&
+            (cw->liteClue.fontset != NULL || cw->liteClue.font != NULL) ) ;
 }
 /*------------------------------------------------------------------*/
 
@@ -339,15 +348,32 @@ static void compute_font_info(XcgLiteClueWidget cw)
 {
 	XRectangle ink;
 	XRectangle logical;
+	int direction_return;
+	int font_ascent_return, font_descent_return;
+	XCharStruct oret;
 
-	if (!cw->liteClue.fontset)
+    /* [pt: 2026-08-23] chatgpt fix+updates here to re-enable 
+       LiteClue-based hover help on macOS */
+	if (cw->liteClue.fontset) {
+		XmbTextExtents(cw->liteClue.fontset, "1", 1,&ink, &logical);
+
+		cw->liteClue.font_baseline = -logical.y;
+		cw->liteClue.font_width = logical.width;
+		cw->liteClue.font_height = logical.height;
 		return;
-	XmbTextExtents(cw->liteClue.fontset, "1", 1,&ink, &logical);
+	}
 
-	cw->liteClue.font_baseline = -logical.y;	/* y offset from top to baseline, 
-			don't know why this is returned as negative */
-	cw->liteClue.font_width = logical.width;	/* the width and height of the object */
-	cw->liteClue.font_height = logical.height;
+	if (cw->liteClue.font) {
+        /* [pt: 2026-08-23] chatgpt update to have more aesthetic 
+           padding of text in hover window */
+		cw->liteClue.font_baseline =
+			(Dimension)cw->liteClue.font->ascent;
+		cw->liteClue.font_width =
+			(Dimension)XTextWidth(cw->liteClue.font, "1", 1);
+		cw->liteClue.font_height =
+			(Dimension)(cw->liteClue.font->ascent +
+			            cw->liteClue.font->descent);
+	}
 }
 
 #else
@@ -378,15 +404,18 @@ static void create_GC(XcgLiteClueWidget cw )
 	XtGCMask valuemask;
 	XGCValues myXGCV;
 
-
+	memset(&myXGCV, 0, sizeof(myXGCV)); // also added 2026-08-23
 	valuemask = GCForeground | GCBackground | GCFillStyle ;
 	myXGCV.foreground = cw->liteClue.foreground;
 	myXGCV.background = cw->core.background_pixel;
 	myXGCV.fill_style = FillSolid; 
 
-#if XtSpecificationRelease < 5		/* R4 hack */
-	myXGCV.font = cw->liteClue.font->fid; 
-#endif	/* end R4 hack */
+    /* [pt: 2026-08-23] chatgpt fix+update to re-enable 
+       LiteClue-based hover help on macOS */
+	if (cw->liteClue.font != NULL) {
+		valuemask |= GCFont;
+		myXGCV.font = cw->liteClue.font->fid;
+	}
 
 	if (cw->liteClue.text_GC )
 		XtReleaseGC((Widget) cw, cw->liteClue.text_GC );
@@ -495,6 +524,18 @@ static Boolean setValues( Widget _current, Widget _request, Widget _new, ArgList
 		create_GC(cw_new);
 	}
 
+    /* [pt: 2026-08-23] chatgpt fix+update to re-enable 
+       LiteClue-based hover help on macOS */
+#if XtSpecificationRelease >= 5
+	if (cw_new->liteClue.fontset != cw_cur->liteClue.fontset ||
+	    cw_new->liteClue.font    != cw_cur->liteClue.font) {
+#else
+	if (cw_new->liteClue.font != cw_cur->liteClue.font) {
+#endif
+		compute_font_info(cw_new);
+		create_GC(cw_new);
+	}
+
 	return FALSE;
 }
 
@@ -504,7 +545,8 @@ static Boolean setValues( Widget _current, Widget _request, Widget _new, ArgList
 */
 static void timeout_event( XtPointer client_data, XtIntervalId *id)
 {
-#define BorderPix 3
+#define CLUE_PAD_X 5
+#define CLUE_PAD_Y 4
 	struct liteClue_context_str * obj = (struct liteClue_context_str *) client_data;
 	XcgLiteClueWidget cw = obj->cw;
 	Position  abs_x, abs_y;
@@ -538,29 +580,45 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 	logical.width = oret.width;
 	}
 #else
-   if( cw->liteClue.fontset == NULL ) return ;  /* If fontset not found [RWC - 08 Jan 2021] */
-	XmbTextExtents(cw->liteClue.fontset, obj->text , obj->text_size ,&ink, &logical);
+    /* [pt: 2026-08-23] this else-branch is a chatgpt fix+update, 
+       as part of work to re-enable LiteClue-based hover help on macOS */
+	if (cw->liteClue.fontset != NULL) {
+		XmbTextExtents(cw->liteClue.fontset, obj->text, obj->text_size,
+		               &ink, &logical);
+	} else if (cw->liteClue.font != NULL) {
+		int direction_return;
+		int font_ascent_return, font_descent_return;
+		XCharStruct oret;
+
+		XTextExtents(cw->liteClue.font, obj->text, obj->text_size,
+			&direction_return, &font_ascent_return,
+			&font_descent_return, &oret);
+		logical.width = oret.width;
+	} else {
+		return;
+	}
 #endif
 
-        RWC_width  = 2*BorderPix +logical.width ;
-        RWC_height = 2*BorderPix + cw->liteClue.font_height ;
+        /* [pt: 2026-08-23] better padding, here and below */
+        RWC_width  = 2*CLUE_PAD_X + logical.width ;
+        RWC_height = 2*CLUE_PAD_Y + cw->liteClue.font_height ;
 	XtResizeWidget((Widget) cw, RWC_width , RWC_height ,
 			cw->core.border_width );
 
 /** RWCox change to widget location **/
         { int scw = WidthOfScreen(XtScreen(cw)) , sch = HeightOfScreen(XtScreen(cw)) ;
           int newx = abs_x + 1 , newy = abs_y+1 ; int xx,yy ;
-          if( newx + logical.width > scw ) newx = scw - logical.width - 2*BorderPix ;
-          if( newx < 0 )                   newx = 0 ;
-          if( newy + cw->liteClue.font_height + 2 >= sch )
-             newy = newy - w_height - cw->liteClue.font_height - 2*BorderPix ;
+          if( newx + RWC_width > scw ) newx = scw - RWC_width ;
+          if( newx < 0 )                 newx = 0 ;
+          if( newy + RWC_height >= sch )
+             newy = newy - w_height - RWC_height ;
           if( newy < 0 ) newy = 0 ;
 
 #if 1
           RWC_xineramize( XtDisplay(w) ,      /* 27 Sep 2000 - see xutil.[ch] */
                           newx,newy , RWC_width,RWC_height , &xx,&yy ) ;
           if( yy < newy )
-             yy = newy - w_height - cw->liteClue.font_height - 2*BorderPix ;
+             yy = newy - w_height - RWC_height ;
 	  XtMoveWidget((Widget) cw, xx,yy);
 #else
 	  XtMoveWidget((Widget) cw, newx,newy);
@@ -572,13 +630,22 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 
 #if XtSpecificationRelease < 5		/* R4 hack */
 	XDrawImageString(XtDisplay((Widget) cw), XtWindow((Widget) cw), 
-		cw->liteClue.text_GC , BorderPix, 
-		BorderPix + cw->liteClue.font_baseline, obj->text , obj->text_size);
+		cw->liteClue.text_GC , CLUE_PAD_X, 
+		CLUE_PAD_Y + cw->liteClue.font_baseline, obj->text , obj->text_size);
 #else
-	XmbDrawImageString(XtDisplay((Widget) cw), XtWindow((Widget) cw), 
-		cw->liteClue.fontset,
-		cw->liteClue.text_GC , BorderPix, 
-		BorderPix + cw->liteClue.font_baseline, obj->text , obj->text_size);
+    /* [pt: 2026-08-23] chatgpt fix+update to re-enable 
+       LiteClue-based hover help on macOS */
+	if (cw->liteClue.fontset != NULL) {
+		XmbDrawImageString(XtDisplay((Widget) cw), XtWindow((Widget) cw),
+			cw->liteClue.fontset, cw->liteClue.text_GC, CLUE_PAD_X,
+			CLUE_PAD_Y + cw->liteClue.font_baseline,
+			obj->text, obj->text_size);
+	} else {
+		XDrawImageString(XtDisplay((Widget) cw), XtWindow((Widget) cw),
+			cw->liteClue.text_GC, CLUE_PAD_X,
+			CLUE_PAD_Y + cw->liteClue.font_baseline,
+			obj->text, obj->text_size);
+	}
 #endif
 
 /** RWCox change to add a rectangle **/
@@ -692,7 +759,14 @@ void XcgLiteClueAddWidget(Widget w, Widget watch,  char * text, int size, int op
 
 	CheckWidgetClass(ROUTINE);	/* make sure we are called with a LiteClue widget */
 
-   if( cw->liteClue.fontset == NULL ) return ;  /* If fontset not found [RWC - 08 Jan 2021] */
+    /* [pt: 2026-08-23] chatgpt fix+update to re-enable 
+       LiteClue-based hover help on macOS; deal with fontset-not-found 
+       differently now */
+#if XtSpecificationRelease >= 5
+	if (cw->liteClue.fontset == NULL && cw->liteClue.font == NULL) return;
+#else
+	if (cw->liteClue.font == NULL) return;
+#endif
 	obj = find_watched_widget(cw, watch);
 	if (obj)
 	{

@@ -1,3 +1,4 @@
+# ##### items for libmri
 add_library(libheaders INTERFACE)
 set_source_files_properties(debugtrace.h PROPERTIES COMPILE_DEFINITIONS "SHOWOFF")
 target_sources(
@@ -507,6 +508,11 @@ add_library(
   mri_write_angif.c
   mri_zeropad.c
   rcmat.c
+  # Gaussian deviate generators.  These live in a subdirectory and were added
+  # to MRI_OBJS in Makefile.INCLUDE but not here, so the CMake build had no
+  # definition for zgaussian2()/zgaussian2_init() and libmri failed to link.
+  zgaussian/zgaussian.c
+  zgaussian/ziggurat.c
 )
 target_link_libraries(mri_objs PRIVATE libheaders)
 

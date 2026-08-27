@@ -166,7 +166,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD   \
-           3dedgedog p2dsetstat dsetstat2p get_afni_model_PRF_DN              \
+           3dedgedog p2dsetstat dsetstat2p get_afni_model_PRF_DN 3dShuffle    \
            $(EXTRAS)
 
 progs_1:$(PROGS_1)
@@ -419,7 +419,7 @@ gitignore: prog_list
         fi
 	echo "" >> .gitignore
 	echo "" >> .gitignore
-	echo '## Ignore the build directory created by the make build' >> .gitinore
+	echo '## Ignore the build directory created by the make build' >> .gitignore
 	echo '$(INSTALLDIR)' >> .gitignore
 	echo "" >> .gitignore
 	echo "" >> .gitignore
@@ -634,13 +634,13 @@ imreg:imreg.o pcor.o
 	$(RM) $@
 	$(CC) -o imreg imreg.o pcor.o $(LFLAGS) $(LLIBS)
 
-FIRdesign.o:FIRdesign.c remez-exchange/remez.c
+FIRdesign.o:FIRdesign.c
 	$(RM) $@
-	$(CC) -c FIRdesign.c $(INFLAGS) -Iremez-exchange
+	$(CC) -c FIRdesign.c $(INFLAGS)
 
-FIRdesign:FIRdesign.o
+FIRdesign:FIRdesign.o remez.o
 	$(RM) $@
-	$(CC) -o FIRdesign FIRdesign.o $(LFLAGS) $(LLIBS)
+	$(CC) -o FIRdesign FIRdesign.o remez.o $(LFLAGS) $(LLIBS)
 
 imfit:imfit.o
 	$(RM) $@
@@ -1157,7 +1157,8 @@ strblast:strblast.o
 
 3dNormalityTest:3dNormalityTest.o
 	$(RM) $@
-	$(CCFAST) -o 3dNormalityTest 3dNormalityTest.o $(LFLAGS) $(LLIBS)
+	$(CCFAST) -o 3dNormalityTest 3dNormalityTest.o \
+             $(LFLAGS) $(LLIBS)
 
 3dClipLevel:3dClipLevel.o
 	$(RM) $@
@@ -1236,6 +1237,10 @@ qm:qm.o
 3dSharpen:3dSharpen.o
 	$(RM) $@
 	$(CC) -o 3dSharpen 3dSharpen.o $(LFLAGS) $(LLIBS)
+
+3dShuffle:3dShuffle.o
+	$(RM) $@
+	$(CC) -o 3dShuffle 3dShuffle.o $(LFLAGS) $(LLIBS)
 
 rotcom:rotcom.o
 	$(RM) $@
@@ -1389,6 +1394,10 @@ GLTsymtest:GLTsymtest.o
 waver:waver.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o waver waver.o parser.o parser_int.o $(LFLAGS) $(LLIBS)
+
+3dSimARMA11.o: 3dSimARMA11.c
+	$(RM) $@
+	$(CC) -c 3dSimARMA11.c $(INFLAGS)
 
 3dSimARMA11:3dSimARMA11.o
 	$(RM) $@
@@ -1551,7 +1560,7 @@ qqqOMP:qqqOMP.o
 	$(RM) $@
 	$(CCOMP) -o 3dLocalstat 3dLocalstat.o $(LFLAGS) $(LLIBS)
 
-AlphaSim.o:AlphaSim.c zgaussian.c
+AlphaSim.o:AlphaSim.c
 	$(RM) $@
 	$(CCOMP) -c AlphaSim.c $(INFLAGS)
 
@@ -1560,7 +1569,7 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CCOMP) -o AlphaSim AlphaSim.o $(LFLAGS) $(LLIBS)
 
-3dClustSim.o:3dClustSim.c zgaussian.c mri_radial_random_field.c
+3dClustSim.o:3dClustSim.c  mri_radial_random_field.c
 	$(RM) $@
 	$(CCOMP) -c 3dClustSim.c $(INFLAGS)
 
@@ -1973,6 +1982,8 @@ afni_vcheck:afni_vcheck.o
 	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS)
 
 1dgenARMA11.o: 1dgenARMA11.c armacor.c
+	$(RM) $@
+	$(CC) -c 1dgenARMA11.c $(INFLAGS)
 
 1dgenARMA11:1dgenARMA11.o
 	$(RM) $@
@@ -2012,6 +2023,10 @@ qtest:thd_bstrap_corr.o
 1dcorr:1dcorr.o
 	$(RM) $@
 	$(CC) -o 1dcorr 1dcorr.o $(LFLAGS) $(LLIBS)
+
+1dCorrelate.o:1dCorrelate.c
+	$(RM) $@
+	$(CC) -c 1dCorrelate.c $(INFLAGS) 
 
 1dCorrelate:1dCorrelate.o
 	$(RM) $@
@@ -2224,6 +2239,7 @@ afni_src.tgz:
 	$(CP) -pr SUMA svm matlab rickr faces poems gifti            ./afni_src
 	$(CP) -pr ni_test_? README.*                                 ./afni_src
 	$(CP) -pr XmHTML html other_builds Audio                     ./afni_src
+	$(CP) -pr zgaussian remez-exchange                           ./afni_src
 	chmod -R  ugo+rw                                             ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r ./afni_src
@@ -2579,7 +2595,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_warpfield.o mri_dicom_stuff.o mri_check.o mri_allzero.o         \
            mri_subset.o mri_to_fvect.o mri_genalign_util.o rcmat.o dmat44.o    \
            mri_sharpness.o mri_genARMA11.o mri_catvol.o mri_polyfit.o          \
-           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o mri_invert.o
+           mri_nwarp.o mri_extract.o mri_to_pval.o mri_sharpen3D.o mri_invert.o \
+           zgaussian.o ziggurat.o
 
 THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_auxdata.o thd_editdaxes.o thd_initdblk.o thd_sarr.o  \
@@ -3784,6 +3801,23 @@ libsegtools.a: avovk/cluster_floatNOMASK.c avovk/thd_segtools_fNM.c
 	$(CP) libsegtools.a ../;	\
 	cd ../	;		)
 
+#############
+#REMEZ* directory
+
+remez.o: remez-exchange/remez.c remez-exchange/remez.h
+	$(RM) $@
+	$(CC) -c remez-exchange/remez.c $(INFLAGS)
+
+#############
+#ZGAUSSIAN directory (included in libmri, above)
+
+zgaussian.o: zgaussian/zgaussian.c zgaussian/zgaussian.h
+	$(RM) $@
+	$(CC) -c zgaussian/zgaussian.c $(INFLAGS) -Izgaussian
+
+ziggurat.o: zgaussian/ziggurat.c zgaussian/ziggurat.h
+	$(RM) $@
+	$(CC) -c zgaussian/ziggurat.c $(INFLAGS) -Izgaussian
 
 #############
 #PTAYLOR directory
@@ -4286,4 +4320,3 @@ AFNI_version.txt: AFNI_version_base.txt
 	date +'%b %d %Y' >> AFNI_version.txt ;           \
 	echo $(AFNI_WHOMADEIT) >> AFNI_version.txt ;     \
 	)
-
