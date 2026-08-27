@@ -97,6 +97,12 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   // find ties in sorted, record how many per time 
   //  series, and fix in IND
   for( m=1 ; m<TDIM ; m++)
+
+    /* [pt: 2026-08-27] implemented a fix for the following (now 2)
+       if-conditions from Kevin Tran, to appropriately catch ties at
+       the end of time series */
+
+    /* this if condition looks for the start+continuation of any tie... */
     if( (sorted[m]==sorted[m-1]) && LENTIE==0 ) {
       ISTIE = m-1; //record where it starts
       LENTIE = 2;
@@ -104,6 +110,8 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
     else if( (sorted[m]==sorted[m-1]) && LENTIE>0 ) {
       LENTIE+= 1 ;
     }
+
+    /* ... and this if condition looks for the end of any tie... */
     if( ((sorted[m]!=sorted[m-1]) || (m == TDIM-1)) && LENTIE>0 ) {
       // end of tie: calc mean index
       TIERANK = 1.0*ISTIE; // where tie started
