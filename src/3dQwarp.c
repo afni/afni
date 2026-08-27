@@ -273,7 +273,8 @@ void Qhelp(void)
     " ++ The detail allowed in the warping is set by the '-minpatch' option.\n"
     " ++ The discrete warp computed herein is a representation of an underlying\n"
     "    piecewise polynomial C1 diffeomorphism.\n"
-    " ++ See the OUTLINE OF WARP OPTIMIZATION METHOD section, far below, for details.\n"
+    " ++ See the 'OUTLINE of warp optimization method' section, far below,\n"
+    "    for details.\n"
 
     "\n"
     "* Other AFNI programs in this nonlinear warping collection include:\n"

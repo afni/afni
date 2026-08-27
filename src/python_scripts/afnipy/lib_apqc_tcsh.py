@@ -4446,6 +4446,11 @@ num : int
             ppp  = ' -censor_files "{}" '.format(ap_ssdict['censor_dset'])
             ap_ssdict_loc['censor_files']+= ppp
 
+        # add this to fix case when only one of motion and outlier
+        # censoring are applied (otherwise, the 1dplot.py failed, and
+        # the grayplot was not displayed in the HTML)
+        ap_ssdict_loc['cen_lim_all'] = ap_ssdict_loc['cen_lim_all'].replace('NONE', '')
+
         uuu2+= " rows: ordered by similarity to top two principal comps "
         uuu2+= "in mask ({})".format(mask_pref)
 

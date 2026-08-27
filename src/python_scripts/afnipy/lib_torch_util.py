@@ -11,7 +11,8 @@
 import sys, os
 import torch
 
-from   afnipy   import afni_base as ab
+from   afnipy   import afni_base         as ab
+from   afnipy   import lib_system_check  as lsc
 
 # ==========================================================================
 
@@ -32,6 +33,8 @@ For list of allowed dev_in values, see: LIST_allowed_device_general.
 
 Logic flow of 'auto' case:
 + try to use 'mps'
+  - if 'mps' available, then:
+    if arch is x86_64, use 'cpu'; else, use 'mps'
 + try to use 'cuda'
 + try to use 'cpu'
 
@@ -61,6 +64,10 @@ dev_out : str
     if dev_in == 'cpu' :
         return 0, 'cpu'
 
+    # what is the cpu architecture?
+    SI       = lsc.SysInfo()
+    cpu_arch = SI.cpu
+
     # text for cases below where user asked for non-cpu but will get cpu.
     msg_to_cpu = "User requested {}, ".format(dev_in)
     msg_to_cpu+= "but will use {}".format('cpu')
@@ -71,9 +78,18 @@ dev_out : str
     HAS_MPS += torch.backends.mps.is_built()
 
     if dev_in == 'auto' :
-        if   HAS_MPS :   dev_out = 'mps'
-        elif HAS_CUDA :  dev_out = 'cuda'
-        else:            dev_out = 'cpu'
+        if HAS_MPS :
+            if cpu_arch == 'x86_64' :
+                # don't default to mps even if available on these
+                # archs; at least on Intel 64, mps led to crashing
+                # (user could still choose explicitly, if desired)
+                dev_out = 'cpu'
+            else:
+                dev_out = 'mps'
+        elif HAS_CUDA :
+            dev_out = 'cuda'
+        else:
+            dev_out = 'cpu'
         
         if verb : ab.IP("Automatic device is: {}".format(dev_out))
 

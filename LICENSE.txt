@@ -287,9 +287,13 @@ Location: src/whirlgif.c
 Authors:  Kevin Kadow, Mark Podlipec
 License:  Permissive [top of file]
 
-Location: src/zgaussian.c
-Authors:  Jochen Voss
-License:  GNU GPL 2 or later [top of file]
+Location: src/remez-exchange/remez.c
+Authors:  Jake Janovetz
+License:  MIT license [src/remez-exchange/LICENSE]
+
+Location: src/zgaussian/ziggurat.{c,h}
+Authors:  John Burkardt
+License:  MIT license [top of file]
 
 Location: src/gifsicle/
 Authors:  Eddie Kohler (and Anne Dudfield, David Hedbor, Emil Mikulic,
@@ -362,18 +366,6 @@ Location: src/plug_{permtest,threshold}.c
 Authors:  Matthew Belmonte
 License:  GNU GPL 2.0 or later [top of file]
 
-Location: src/efence.c 
-Authors:  Bruce Perens
-License:  GNU GPL 2.0 [https://opensource.apple.com/source/binutils/binutils-36/src/electric-fence/COPYING.auto.html]
-
-Location: src/FIRdesign.c
-Authors:  Jake Janovetz
-License:  GNU GPL 2.0 or higher [top of file]
-
-Location: src/remez.c
-Authors:  Jake Janovetz
-License:  GNU GPL 2.0 or higher [top of file]
-
 ===============================================================================
                               COPYRIGHT F.A.Q.
 
@@ -415,11 +407,11 @@ Q. So, what _is_ the distribution license?
 A. It can be summarized as follows: 
 
      Primarily Public Domain (U.S. Government Work) with substantial
-     portions licensed under CC BY 4.0 and third-party dependencies
-     under MIT, BSD, Apache 2.0, GPL v2/v3, and miscellaneous
-     permissive/open-source licenses; see included notices for
-     exceptions and restrictions.  Users may freely use and
-     redistribute the software consistent with the applicable
+     portions licensed under CC BY 4.0, as well as third-party
+     dependencies under MIT, BSD, Apache 2.0, GPL v2/v3, and
+     miscellaneous permissive/open-source licenses; see included
+     notices for exceptions and restrictions.  Users may freely use
+     and redistribute the software consistent with the applicable
      component licenses; attribution to the AFNI authors and other
      third-party contributors should be provided where required and is
      strongly requested for all uses.
