@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*** Adapted from AlphaSim.c ***/
@@ -12,9 +12,14 @@
 #include <omp.h>
 #endif
 
+/*
+  [pt: 2026-08-13] Update this program to use a newer+faster
+  zgaussian2() function, for getting random Gaussian-distribution
+  values via the Ziggurat algorithm.  No functionality/outputs should
+  really change, just the speed.
+*/
+
 /**** C source codes to include, for compilation efficiency (we hope & pray) ***/
-/*----------------------------------------------------------------------------*/
-#include "zgaussian.c"         /** Ziggurat Gaussian random number generator **/
 /*----------------------------------------------------------------------------*/
 #include "mri_radial_random_field.c" /** 3D FFT-based random field generator **/
 /*----------------------------------------------------------------------------*/
@@ -1377,6 +1382,7 @@ ENTRY("get_options") ;
   if( mask_ngood == 0 ) mask_ngood = nxyz ;
 
   srand48(gseed) ;  /* not really needed */
+  zgaussian2_init( gseed ) ;
 
   /*-- z-score thresholds for the various p-values --*/
 
@@ -1493,7 +1499,7 @@ void generate_fim_inset( float *fim , int ival )
 /*---------------------------------------------------------------------------*/
 /* Create the "functional" image, the ACF way [30 Nov 2015]. */
 
-void generate_fim_acf( float *fim , unsigned short xran[] )
+void generate_fim_acf( float *fim , uint64_t *xran )
 {
   DECLARE_ithr ;
   int ii,jj,kk,pp,qq ;
@@ -1538,13 +1544,13 @@ void generate_fim_acf( float *fim , unsigned short xran[] )
 /*---------------------------------------------------------------------------*/
 /* Create the "functional" image, with smoothing and padding [12 May 2015] */
 
-void generate_fim_padded( float *fim , float *pfim , unsigned short xran[] )
+void generate_fim_padded( float *fim , float *pfim , uint64_t *xran )
 {
   int ii,jj,kk,pp,qq ;
 
   /* random N(0,1) stuff to create the larger (padded) volume */
 
-  for( ii=0 ; ii < nxyz_pad ; ii++ ) pfim[ii] = zgaussian_sss(xran) ;
+  for( ii=0 ; ii < nxyz_pad ; ii++ ) pfim[ii] = zgaussian2_sss(xran) ;
 
   /* smoothization */
 
@@ -1565,13 +1571,13 @@ void generate_fim_padded( float *fim , float *pfim , unsigned short xran[] )
 /*---------------------------------------------------------------------------*/
 /* Create the functional "image", with no padding and optional smoothing. */
 
-void generate_fim_unpadded( float *fim , unsigned short xran[] )
+void generate_fim_unpadded( float *fim , uint64_t *xran )
 {
   int ii ; float sum ;
 
   /* random N(0,1) stuff */
 
-  for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = zgaussian_sss(xran) ;
+  for( ii=0 ; ii < nxyz ; ii++ ) fim[ii] = zgaussian2_sss(xran) ;
 
   /* smoothization */
 
@@ -1584,7 +1590,7 @@ void generate_fim_unpadded( float *fim , unsigned short xran[] )
 /*---------------------------------------------------------------------------*/
 /* Generate random smoothed masked image, with stdev=1. */
 
-void generate_image( float *fim , float *pfim , unsigned short xran[] , int iter )
+void generate_image( float *fim , float *pfim , uint64_t *xran , int iter )
 {
   register int ii ; register float sum ;
 
@@ -2661,7 +2667,7 @@ int main( int argc , char **argv )
  {
    DECLARE_ithr ;
    int iter, ipthr, **mt_1sid[4],**mt_2sid[4],**mt_bsid[4] , nnn ;
-   float *fim ; byte *bfim ; unsigned short xran[3] ;
+   float *fim ; byte *bfim ; uint64_t xran ;
    float *pfim ;
    int vstep , vii ;
 
@@ -2712,14 +2718,10 @@ int main( int argc , char **argv )
    }
 
    /* initialize random seed array for each thread separately */
-   xran[2] = ( gseed        & 0xffff) + (unsigned short)ithr ;
-   xran[1] = ((gseed >> 16) & 0xffff) - (unsigned short)ithr ;
-   xran[0] = 0x330e                   + (unsigned short)ithr ;
+   xran = zgaussian2_thread_seed( ithr ) ;
 
 #else /* not OpenMP ==> only one set of tables */
-   xran[2] = ( gseed        & 0xffff) ;
-   xran[1] = ((gseed >> 16) & 0xffff) ;
-   xran[0] = 0x330e ;
+   xran = zgaussian2_thread_seed( 0 ) ;
    nall_g = (int *)   malloc(sizeof(int)    *nthr) ;
    inow_g = (short **)malloc(sizeof(short *)*nthr) ;
    jnow_g = (short **)malloc(sizeof(short *)*nthr) ;
@@ -2759,7 +2761,7 @@ int main( int argc , char **argv )
       vii++ ; if( vii%vstep == 2 ) vstep_print() ;
     }
 
-    generate_image( fim , pfim , xran , iter ) ;
+    generate_image( fim , pfim , &xran , iter ) ;
 
 #ifdef USE_SHAVE
     if( do_shave ) fim_to_shave(fim,iter-1) ;

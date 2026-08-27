@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
  
 #ifndef _MCW_XUTIL_HEADER_
@@ -51,6 +51,21 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 
 #define   TEAROFFIZE(w) XtVaSetValues((w),XmNtearOffModel,XmTEAR_OFF_ENABLED ,NULL)
 #define UNTEAROFFIZE(w) XtVaSetValues((w),XmNtearOffModel,XmTEAR_OFF_DISABLED,NULL)
+
+extern void forceExpose(Widget w, int source) ;   /* Dec 2025 - for Mac Tahoe */
+extern void sendExpose (Widget w, int source) ;
+extern int  have_MACOS_FORCE_EXPOSE(void) ;
+extern int  needsX11Redraw(void) ;
+void AFNI_widget_expose_EV( Widget w , XtPointer cd ,
+      XEvent *event , RwcBoolean *continue_to_dispatch );
+/* global variable for needsX11Redraw verbosity, also in xutil.c */
+extern int g_needs_x11_redraw_verb;
+
+#if 1
+# define EXPOSEME forceExpose
+#else
+# define EXPOSEME sendExpose
+#endif
 
 extern void MCW_expose_widget( Widget ) ;
 extern void MCW_invert_widget( Widget ) ;

@@ -1,4 +1,11 @@
 project(SUMA)
+
+set(
+  _SUMA_GLU_TARGETS
+  $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
+  $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
+)
+
 # SUMA library
 add_afni_library(
   SUMA
@@ -68,14 +75,21 @@ target_link_libraries(
           $<TARGET_NAME_IF_EXISTS:GLUT::GLUT>
           $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLUT>
   PRIVATE AFNI::mrix
-          $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
-          $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
+          ${_SUMA_GLU_TARGETS}
           segtools
           $<IF:$<BOOL:${APPLE}>,X11::Xmu,>
           AFNI::3DEdge
           NIFTI::nifti2
           NIFTI::nifticdf
 )
+
+# These mirror the long-standing SUMA_MDEFS entries in the macOS Makefiles.
+if(AFNI_IS_MACOS)
+  target_compile_definitions(SUMA PUBLIC SUMA_GL_NO_CHECK_FRAME_BUFFER)
+  if(AFNI_IS_ARM)
+    target_compile_definitions(SUMA PUBLIC ARM_M1)
+  endif()
+endif()
 
 # suma GUI:
 add_afni_executable(suma SUMA_suma.c)
@@ -84,8 +98,7 @@ target_link_libraries(
   PRIVATE SUMA
           AFNI::mrix
           AFNI::segtools
-          $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
-          $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
+          ${_SUMA_GLU_TARGETS}
 )
 
 # Add build time check for correct linking in suma gui.
@@ -169,8 +182,7 @@ endforeach(program)
 add_afni_executable(volume_render SUMA_volume_render.c)
 target_link_libraries(
   volume_render
-  PRIVATE SUMA AFNI::mrix $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
-          $<TARGET_NAME_IF_EXISTS:OpenGL::GLU> NIFTI::nifti2
+  PRIVATE SUMA AFNI::mrix ${_SUMA_GLU_TARGETS} NIFTI::nifti2
           NIFTI::nifticdf
 )
 set_target_properties(
@@ -207,8 +219,7 @@ foreach(suma_target pixmap2eps;glxdino;paperplane)
             X11::Xmu
             NIFTI::nifti2
             NIFTI::nifticdf
-            $<TARGET_NAME_IF_EXISTS:OpenGL::GLU>
-            $<TARGET_NAME_IF_EXISTS:XQuartzGL::GLU>
+            ${_SUMA_GLU_TARGETS}
   )
 endforeach()
 

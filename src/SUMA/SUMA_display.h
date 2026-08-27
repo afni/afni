@@ -343,6 +343,12 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_closeSumaCont(Widget w, XtPointer data, XtPointer callData);
 Widget SUMA_GetTopShell(Widget w);
 void SUMA_cb_createViewerCont(Widget w, XtPointer data, XtPointer callData);
+void SUMA_mainform_EV( Widget w, XtPointer cd,
+      XEvent *ev , RwcBoolean *continue_to_dispatch );
+void SUMA_expose_EV( Widget w, XtPointer cd,
+      XEvent *ev , RwcBoolean *continue_to_dispatch );
+void SUMA_surfcont_expose_EV( Widget w, XtPointer cd,
+      XEvent *ev , RwcBoolean *continue_to_dispatch );
 void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHlock_toggled(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer data, XtPointer callData);

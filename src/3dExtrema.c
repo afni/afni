@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -1540,7 +1540,7 @@ void write_bucket ()
   int ibrick;                      /* extrema sub-brick index */
   int ierror;                      /* number of errors in editing data */
 
-  char message[80];           /* error message */
+  char message[THD_MAX_NAME+80];   /* error message */
 
 
   /*----- Initialize local variables -----*/

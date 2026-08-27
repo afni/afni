@@ -246,14 +246,14 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
                   "did not close the connection, you \n"
                   "can recover by pressing 't' twice in SUMA.\n"
                   "The disconnection is a known bug with\n"
-                  "an as of yet unknown source. \n"
-                  "\n"
+                  "an as of yet unknown source. \n");
+                  SUMA_SLP_Note("\n"
                   "You can also turn on the automatic recovery mode,\n"
                   "with the environment variable \n"
                   "SUMA_AttemptTalkRecover set to yes (see \n"
                   "suma -environment or the environment section in\n"
-                  "SUMA's ctrl+h help output for details.)\n"
-                  "\n"
+                  "SUMA's ctrl+h help output for details.)\n");
+                  SUMA_SLP_Note("\n"
                   "Lastly, you can use -ah 127.0.0.1 to use sockets\n"
                   "instead of shared memory. But that kind of connection\n"
                   "is slow.\n"

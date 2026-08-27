@@ -1320,7 +1320,7 @@ DList *SUMA_FindClusters ( SUMA_SurfaceObject *SO, int *ni,
    DListElmt *elm=NULL;
    float *ToBeAssigned=NULL;
    float mean;
-   int N_n, nc, i, kk, PureNothing=0;
+   int N_n=0, nc, i, kk, PureNothing=0;
    SUMA_CLUST_DATUM *Clust = NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1486,7 +1486,8 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
    SUMA_STRING *SS = NULL;
    DListElmt *elmt=NULL;
    SUMA_CLUST_DATUM *cd=NULL;
-   char *s=NULL, *pad_str, str[20];   
+   char *s=NULL, *pad_str;
+   /* char str[20]; */
    int lc[]= { 6, 6, 9, 9, 9, 6, 6, 9, 6, 9, 6, 9, 9, 9, 8, 9, 8, 
                9, 9, 9, 9, 9, 9 };
    char Col[][12] = { 
@@ -1540,9 +1541,11 @@ char *SUMA_Show_SurfClust_list_Info(DList *list, int detail, char *params,
       SS = SUMA_StringAppend_va (SS,"#Command history:\n"
                                     "#%s\n", params);
       for (ic=0; ic<23; ++ic) {
-         if (ic == 0) sprintf(str,"%s", Col[ic]); 
-         else sprintf(str,"%s", Col[ic]); 
-         pad_str = SUMA_pad_string(str, ' ', lc[ic], 0);
+         /* str does not really seem to be used here [16 Jun 2026 rickr]
+         if (ic == 0) sprintf(str, "%s", Col[ic]); 
+         else sprintf(str, "%s", Col[ic]); 
+         */
+         pad_str = SUMA_pad_string(Col[ic], ' ', lc[ic], 0);
          SS = SUMA_StringAppend_va (SS,"%s   ", pad_str);
          SUMA_free(pad_str);
       }

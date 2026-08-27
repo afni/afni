@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
    
 /***************************************************************
@@ -19,7 +19,7 @@
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
 
-static char afni_host[128] = "." ;
+static char afni_host[120] = "." ; /* tighen to fit in afni_name */
 static char afni_name[128] = "\0" ;
 static int  afni_port      = 0 ;  /* Init. before parsing command line  
                                     ZSS June 2011 */

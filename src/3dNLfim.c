@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #ifdef USE_SUNPERF       /** for Solaris **/
@@ -2554,7 +2554,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   float * fsp=NULL;                   /* float version of 2nd sub data */
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
-  float top, func_scale_short;        /* parameters for scaling data */
+  float top, func_scale_short=1.0;    /* parameters for scaling data */
   char label[THD_MAX_NAME];           /* label for output file history */
   int nbad;                           /* number of bad voxels in volume */
   int outfloat;                       /* output stat as float? [14 Nov 2023] */

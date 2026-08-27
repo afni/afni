@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2000, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 #include "mrilib.h"
@@ -130,7 +130,8 @@ int Syntax(TFORM targ, int detail)
 "   -orient: Value of orientation string.\n"
 "            For example, LPI means:\n"
 "               i direction grows from Left(negative) to Right(positive).\n"
-"               j direction grows from Posterior (neg.) to Anterior (pos.)\n"     "               k direction grows from Inferior (neg.) to Superior (pos.)\n"
+"               j direction grows from Posterior (neg.) to Anterior (pos.)\n"
+"               k direction grows from Inferior (neg.) to Superior (pos.)\n"
 "   -extent: The spatial extent of the dataset along R, L, A, P, I and S\n"
 "   -Rextent: Extent along R\n"
 "   -Lextent: Extent along L\n"

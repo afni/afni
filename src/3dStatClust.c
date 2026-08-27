@@ -1,7 +1,7 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2001, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
+   of Wisconsin, 1994-2001, and are released under the Creative Commons
+   Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -518,7 +518,7 @@ THD_3dim_dataset * form_clusters ()
   matrix s;                   /* square root of covariance matrix */
   matrix sinv;                /* inverse of square root of covariance matrix */
 
-  char message[80];           /* error message */
+  char message[THD_MAX_NAME+80];   /* error message */
 
 
   /*----- Initialize vectors and matrices -----*/

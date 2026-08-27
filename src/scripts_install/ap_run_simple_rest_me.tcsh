@@ -1,5 +1,7 @@
 #!/usr/bin/env tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 # ===========================================================================
 # Run a simple afni_proc.py resting state analysis, possibly to get QC output.
 # This version is for processing multi-echo data, combining echoes using the
@@ -511,9 +513,14 @@ SHOW_HELP:
 cat << EOF
 
 ------------------------------------------------------------------------------
-$prog  - run a quick afni_proc.py analysis for QC on multi-echo data
+ap_run_simple_rest_me.tcsh 
 
-   usage: $prog [options] -anat ANAT -epi_me_run epi_run1_echo_*.nii ...
+Run a quick afni_proc.py analysis for QC on multi-echo data.
+
+   usage:  ap_run_simple_rest_me.tcsh            \
+               [options]                         \
+               -anat        anat.nii             \
+               -epi_me_run  epi_run1_echo_*.nii ...
 
 This program is meant to run a moderately quick single subject analysis,
 treating the EPI as resting state data.
@@ -543,7 +550,8 @@ This program may be devoured by afni_proc.py itself, at some point.
 ------------------------------------------------------------------------------
 example 0: just create an afni_proc.py script, run_ap_SUBJ, no data required
 
-      $prog -anat anat.nii -epi_me_run epi_echo_*.nii -echo_times 20 30 40
+      ap_run_simple_rest_me.tcsh -anat anat.nii \
+          -epi_me_run epi_echo_*.nii -echo_times 20 30 40
 
 
 example 1: quickly process EPI (no anat, so no align/tlrc blocks)
