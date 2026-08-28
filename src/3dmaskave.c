@@ -676,7 +676,9 @@ int main( int argc , char * argv[] )
               float *qar=(float *)malloc(sizeof(float)*mc) ; int iq ;
               memcpy(qar,exar,sizeof(float)*mc) ;
               qsort_float(mc,qar) ;
-              iq = (int)rintf(0.01f*perc*mc) ; sum = qar[iq] ; free(qar) ;
+              iq = (int)rintf(0.01f*perc*mc) ;
+              if( iq >= mc ) iq = mc-1 ;   /* -perc near 100 rounded to mc: OOB read */
+              sum = qar[iq] ; free(qar) ;
             }
 
             sum = mfac * sum ;
@@ -738,7 +740,9 @@ int main( int argc , char * argv[] )
               float *qar=(float *)malloc(sizeof(float)*mc) ; int iq ;
               memcpy(qar,exar,sizeof(float)*mc) ;
               qsort_float(mc,qar) ;
-              iq = (int)rintf(0.01f*perc*mc) ; sum = qar[iq] ; free(qar) ;
+              iq = (int)rintf(0.01f*perc*mc) ;
+              if( iq >= mc ) iq = mc-1 ;   /* -perc near 100 rounded to mc: OOB read */
+              sum = qar[iq] ; free(qar) ;
             }
             sum = mfac * sum ;
 
@@ -799,7 +803,9 @@ int main( int argc , char * argv[] )
               float *qar=(float *)malloc(sizeof(float)*mc) ; int iq ;
               memcpy(qar,exar,sizeof(float)*mc) ;
               qsort_float(mc,qar) ;
-              iq = (int)rintf(0.01f*perc*mc) ; sum = qar[iq] ; free(qar) ;
+              iq = (int)rintf(0.01f*perc*mc) ;
+              if( iq >= mc ) iq = mc-1 ;   /* -perc near 100 rounded to mc: OOB read */
+              sum = qar[iq] ; free(qar) ;
             }
             sum = mfac * sum ;
 
