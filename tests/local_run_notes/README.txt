@@ -36,6 +36,26 @@ data_management.py
   home, but this file works better with the datalad syntax that gets
   installed with this environment.
 
+=============================================================================
+
+When running locally, to be able to get some details about ptaylor/*
+tests failing, this was a useful command to run for starters:
+
+  ./run_afni_tests.py --file  scripts/test_ptaylor.py     \
+       --runslow --runveryslow --verbosity diarrhetic     \
+       --extra-args="--tb=long --show-capture=all -vv"    \
+       local                                              \
+       2>&1 | tee log_test_output_v1.txt
+
+To run just a single test, this was useful:
+
+  ./run_afni_tests.py --file  scripts/test_ptaylor.py     \
+       --runslow --runveryslow --verbosity diarrhetic     \
+       --extra-args="-k 3dNetCorr --tb=long --show-capture=all -vv"    \
+       local                                              \
+       2>&1 | tee log_test_output_v1.txt
+
+
 
 
 
