@@ -422,7 +422,8 @@ def test_3dClusterize(data, ptaylor_env):
     # > {opref}_REP.txt
     cmd = " ".join(cmd.split())
     differ = tools.OutputDiffer(data, cmd)
-    differ.run(skip_output_diff=True)
+    #differ.run(skip_output_diff=True)
+    differ.run()
 
 
 def test_3dClusterize_new(data, ptaylor_env):
@@ -442,10 +443,12 @@ def test_3dClusterize_new(data, ptaylor_env):
     """
     # > {opref}_REP.txt
     cmd = " ".join(cmd.split())
-    differ = tools.OutputDiffer(
-        data, cmd, kwargs_log={"append_to_ignored": "Mean and SEM based"}
-    )
-    differ.run(skip_output_diff=True)
+    #differ = tools.OutputDiffer(
+    #    data, cmd, kwargs_log={"append_to_ignored": "Mean and SEM based"}
+    #)
+    #differ.run(skip_output_diff=True)
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()
 
 
 # -------------------------------------------------------------------------
