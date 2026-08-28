@@ -194,8 +194,8 @@ RUN python3 -m pip install \
 
 # Install atlases
 RUN wget -nv -O /tmp/afni_atlases.tgz https://afni.nimh.nih.gov/pub/dist/atlases/afni_atlases_dist.tgz \
-    && mkdir "$AFNI_ROOT/atlases" \
-    && tar -xzf /tmp/afni_atlases.tgz -C "$AFNI_ROOT/atlases" --strip-components=1 \
+    && mkdir "$AFNI_ATLAS_PATH" \
+    && tar -xzf /tmp/afni_atlases.tgz -C "$AFNI_ATLAS_PATH" --strip-components=1 \
     && rm /tmp/afni_atlases.tgz
 
 # add pdb alias ipy for easier pdb debugging
