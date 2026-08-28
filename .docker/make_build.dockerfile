@@ -27,7 +27,7 @@ RUN cd $AFNI_ROOT/src \
     # Build AFNI.
     && /bin/bash -c \
     'make itall 2>&1 | tee build_log.txt && test ${PIPESTATUS[0]} -eq 0' \
-    && mv $AFNI_MAKEFILE_SUFFIX/* $AFNI_ROOT/../install \
+    && cp -a "$AFNI_MAKEFILE_SUFFIX"/. "$AFNI_ROOT/../install"/ \
     # Remove build tree to drop image size
     && if [ "$KEEP_BUILD_DIR" = "0" ]; then \
       rm -rf $AFNI_ROOT/../build; \
