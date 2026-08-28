@@ -373,11 +373,14 @@
 #set version   = "7.1"; set rev_dat   = "Jun 18, 2025"
 #   + [PT] generalized use of -pbar_thr_alpha functionality
 #
-set version   = "7.2"; set rev_dat   = "Aug 27, 2026"
+#set version   = "7.2"; set rev_dat   = "Aug 27, 2026"
 #   + [PT] capture xvfb startup warnings---which can be voluminous---
 #          into a log/text file in the temp dir. Keeps the terminal
 #          text slightly less onerous, while also preserving the content
 #          in case there really is a problem
+#
+set version   = "7.3"; set rev_dat   = "Aug 28, 2026"
+#   + [PT] -pbar_thr_alpha ON by default now
 #
 # =====================================================================
 
@@ -469,7 +472,7 @@ set gen_comm   = ""            # [PT: Feb 22, 2021] pbar json output
 set pbar_for   = ""
 set ulay_comm  = ""
 
-set do_pbar_alpha = 0          # [PT: May 202 2025] can fade with colorbar_tool.py
+set do_pbar_alpha = 1          # [PT: May 202 2025] fade with colorbar_tool.py
 set pbar_orth  = ""            # [PT: May 202 2025] fade is not orth
 
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
