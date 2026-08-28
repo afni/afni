@@ -181,6 +181,7 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
   double bigR = 0.;
   double fac1,fac2;
   double Tfac = 0.0;
+  double denom = 0.0;
 	
   if( (M<1) || (N<2) )
     ERROR_exit("WARNING: either neighborhood size (M=%d) or time series\n"
@@ -201,8 +202,12 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
     bigR+= miniR*miniR;
   }
 
-  W = 12.*bigR-fac1;
-  W/= fac2 - 1.*M*Tfac;
+  // guard against divide by 0; if such happens, return W as 0
+  denom = fac2 - 1.*M*Tfac;
+  if (denom == 0.0 )
+     W = 0.0;
+  else
+     W = (12.*bigR-fac1) / denom ;
 	
   return (float) W;
 }
