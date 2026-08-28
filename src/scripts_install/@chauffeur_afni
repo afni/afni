@@ -2404,7 +2404,9 @@ EOF
                   echo ""
                   echo "++ Just for the (debugging) record, these were the"
                   echo "   Xvfb startup messages:"
+                  echo "--------------------------------------------------"
                   cat "${log_xvfb}"
+                  echo "--------------------------------------------------"
               else
                   echo "+* and the Xvfb log file is empty or nonexistent"
               endif
