@@ -495,9 +495,12 @@ int main( int argc , char * argv[] )
 
    if(automask && mmm == NULL ){
       mmm = THD_automask( old_dset ) ;
-      for(i=0;i<nxyz;i++) {
-         if(mmm[i]!=0) ++mmvox;
-      }
+      /* mmvox is used below as the voxel-scan bound in Max_func, where
+         the -mask case sets it to the full grid size; setting it to the
+         in-mask COUNT made the scan silently stop mmvox voxels into the
+         volume, dropping roughly the upper part of the brain in storage
+         order from -mean/-sum/-var/-stdev/-min/-max etc. */
+      mmvox = nxyz ;
    }
 
    if(quick_flag)
@@ -795,7 +798,8 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
                }
             }
             /* use only absolute values */
-            if(Absflag) voxval = abs(voxval);
+            if(Absflag) voxval = fabs(voxval); /* abs() truncated the
+                                    double to int, flooring magnitudes */
             /* limit data by sign */
             if(((voxval<0)&&Negflag)||((voxval==0)&&Zeroflag)
                ||((voxval>0)&&Posflag)) {
