@@ -96,7 +96,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   // ******** start tie rank adjustment *******
   // find ties in sorted, record how many per time 
   //  series, and fix in IND
-  for( m=1 ; m<TDIM ; m++)
+  for( m=1 ; m<TDIM ; m++) {
 
     /* [pt: 2026-08-27] implemented a fix for the following (now 2)
        if-conditions from Kevin Tran, to appropriately catch ties at
@@ -123,8 +123,9 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
       }
       ISTIE = -1; // reset, prob unnec
       LENTIE = 0; // reset
-    } // ******* end of tie rank adjustment ***********
-  
+    } 
+  }// ******* end of tie rank adjustment ***********
+
   // FREE
   gsl_vector_free(Y);
   gsl_permutation_free(P);
