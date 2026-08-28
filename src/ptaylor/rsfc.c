@@ -60,7 +60,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   int LENTIE = 0;
   float TIERANK;
   int *toP=NULL; // to reset permuts
-  int *sorted=NULL; // hold sorted time course, assume has been turned into int
+  float *sorted=NULL; // hold sorted time course
   int val;
 
   // GSL stuff
@@ -69,7 +69,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
 
 
   toP = (int *)calloc(TDIM,sizeof(int)); 
-  sorted = (int *)calloc(TDIM,sizeof(int)); 
+  sorted = (float *)calloc(TDIM,sizeof(float)); 
 
   if( (toP ==NULL) || (sorted ==NULL) ) { 
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
