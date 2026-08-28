@@ -650,7 +650,7 @@ ENTRY("THD_open_nifti") ;
          break ;
          case NIFTI_SLICE_SEQ_DEC:
            tsl = 0.0 ;
-           for( kk=nim->slice_end ; kk >= nim->slice_end ; kk-- ){
+           for( kk=nim->slice_end ; kk >= nim->slice_start ; kk-- ){
              toff[kk] = tsl ; tsl += nim->slice_duration ;
            }
          break ;
