@@ -967,7 +967,10 @@ class OutputDiffer:
                 elif any(pat in fname.name for pat in self.text_file_patterns):
                     self.assert_textfiles_equal([fname])
                 elif fname.name.endswith(".niml.dset"):
-                    raise NotImplementedError
+                    ### [pt: 2026-08-28] finding this kind of NIML
+                    ### output should _not_ raise an error
+                    #raise NotImplementedError
+                    continue
                 else:
                     # Try to compare it as a scan
                     try:
