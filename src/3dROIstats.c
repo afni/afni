@@ -1179,8 +1179,11 @@ int main(int argc, char *argv[])
                      sumsq[i] /= (double) voxels[i];
                      if (voxels[i] == 1)
                         sig = 1e30; /* a really big number */
-                     else
-                        sig = sqrt((voxels[i] / (voxels[i] - 1)) * (sumsq[i] - mean * mean));
+                     else  /* force the Bessel factor N/(N-1) into floating
+                              point: in long arithmetic it was always 1, so
+                              the reported SD was the population SD, biased
+                              low by sqrt((N-1)/N) */
+                        sig = sqrt((voxels[i] / (double) (voxels[i] - 1)) * (sumsq[i] - mean * mean));
                      RS_DISP_FLOAT(-1, sig);
                   }
                   if (nzsigma) {
@@ -1191,8 +1194,8 @@ int main(int argc, char *argv[])
                         nzsumsq[i] /= (double) nzvoxels[i];
                         if (nzvoxels[i] == 1)
                            sig = 1e30; /* a really big number */
-                        else
-                           sig = sqrt( (nzvoxels[i] / (nzvoxels[i] - 1)) *
+                        else  /* same Bessel-factor integer-division fix */
+                           sig = sqrt( (nzvoxels[i] / (double) (nzvoxels[i] - 1)) *
                                  (nzsumsq[i] - mean * mean) );
                      }
                      RS_DISP_FLOAT(-1, sig);
