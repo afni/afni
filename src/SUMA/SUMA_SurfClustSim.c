@@ -643,17 +643,6 @@ static void sscs_help(void)
       "   -itersize (default 10).\n");
 }
 
-static void sscs_set_list(double **dest, int *ndest,
-                          const double *source, int nsource)
-{
-   double *copy = (double *)malloc((size_t)nsource * sizeof(double));
-   if (!copy) ERROR_exit("Out of memory copying threshold list");
-   memcpy(copy, source, (size_t)nsource * sizeof(double));
-   free(*dest);
-   *dest = copy;
-   *ndest = nsource;
-}
-
 static int sscs_double_desc(const void *aa, const void *bb)
 {
    double a = *(const double *)aa, b = *(const double *)bb;
@@ -664,6 +653,22 @@ static int sscs_float_asc(const void *aa, const void *bb)
 {
    float a = *(const float *)aa, b = *(const float *)bb;
    return a < b ? -1 : a > b ? 1 : 0;
+}
+
+static void sscs_set_list(double **dest, int *ndest,
+                          const double *source, int nsource)
+{
+   double *copy = (double *)malloc((size_t)nsource * sizeof(double));
+   if (!copy) ERROR_exit("Out of memory copying threshold list");
+   memcpy(copy, source, (size_t)nsource * sizeof(double));
+   /* The alpha-table monotonization and the sweep's nondecreasing-z
+      precondition both assume descending thresholds.  User lists are sorted in
+      sscs_parse_list(); sort the built-in defaults here too so the invariant
+      cannot be broken by an out-of-order edit to the constant arrays. */
+   qsort(copy, (size_t)nsource, sizeof(double), sscs_double_desc);
+   free(*dest);
+   *dest = copy;
+   *ndest = nsource;
 }
 
 static void sscs_parse_list(int argc, char **argv, int *index,
@@ -1968,14 +1973,22 @@ int main(int argc, char **argv)
                      double bfs = SUMA_SurfClustSim_MaxArea(
                         graph, node_area, myfield[mycol], surf_mask,
                         checks[check].zthr[pindex], checks[check].sign, work);
-                     if (bfs != checks[check].swept[pindex]) {
+                     double swept = checks[check].swept[pindex];
+                     /* The flood fill and the union-find sweep sum the SAME
+                        node areas but in different orders, and floating-point
+                        addition is not associative, so a few ULPs of drift are
+                        expected and harmless.  Compare within a relative
+                        tolerance rather than bitwise -- an exact test turns a
+                        rounding difference into a fatal ERROR_exit. */
+                     if (fabs(bfs - swept) >
+                         1.0e-9 * (fabs(bfs) + fabs(swept)) + 1.0e-30) {
                         ERROR_message(
                            "-selfcheck FAILED: sim %d, %s%s, pthr %g, z %.10g: "
                            "sweep %.10g vs BFS %.10g",
                            sim_index, sscs_mode_label(checks[check].mode),
                            checks[check].half, opt.pthr[pindex],
                            checks[check].zthr[pindex],
-                           checks[check].swept[pindex], bfs);
+                           swept, bfs);
                         worker_ok = 0;
                         break;
                      }
