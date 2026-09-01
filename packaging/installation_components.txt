@@ -44,6 +44,7 @@ track_tools, suma
 1dMarry, corebinaries
 1dNLfit, corebinaries
 1dSEM, corebinaries
+1dTrdm, corebinaries
 1dTsort, corebinaries
 1dUpsample, corebinaries
 1dcat, corebinaries
@@ -161,6 +162,7 @@ track_tools, suma
 3dREMLfit, corebinaries
 3dROIMaker, suma
 3dROIstats, corebinaries
+3dRSA, corebinaries
 3dRSFC, suma
 3dRank, corebinaries
 3dRankizer, corebinaries

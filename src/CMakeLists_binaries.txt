@@ -265,6 +265,57 @@ foreach(target
   )
 endforeach(target)
 
+# 3dRSA and its private support modules.  The base target is a core binary;
+# src/CMakeLists.txt adds optional SUMA support after the SUMA target exists.
+add_afni_executable(
+  3dRSA
+  3dRSA.c
+  thd_datatable.c
+  thd_mapinfer.c
+  thd_patterns.c
+  thd_permute.c
+  thd_simmatrix.c
+  thd_phasefft.c
+)
+target_link_libraries(
+  3dRSA
+  PRIVATE
+    AFNI::mri
+    NIFTI::nifti2
+    NIFTI::nifticdf
+    $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C>
+    m
+)
+target_compile_definitions(
+  3dRSA
+  PRIVATE
+    "$<IF:$<TARGET_EXISTS:OpenMP::OpenMP_C>,USE_OMP,>"
+)
+
+# Temporal RDM companion: labeled observation files -> subject RDM movies.
+add_afni_executable(
+  1dTrdm
+  1dTrdm.c
+  thd_datatable.c
+  thd_mapinfer.c
+  thd_permute.c
+  thd_simmatrix.c
+)
+target_link_libraries(
+  1dTrdm
+  PRIVATE
+    AFNI::mri
+    NIFTI::nifti2
+    NIFTI::nifticdf
+    $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C>
+    m
+)
+target_compile_definitions(
+  1dTrdm
+  PRIVATE
+    "$<IF:$<TARGET_EXISTS:OpenMP::OpenMP_C>,USE_OMP,>"
+)
+
 # OMP targets with mri and either nifti2 or nifticdf and needs sparse_array.c
 foreach(target 3dMSE 3dECM)
   add_afni_executable(${target} ${target}.c sparse_array.c)
