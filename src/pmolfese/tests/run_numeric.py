@@ -4558,9 +4558,9 @@ def run_checks(BIN, work, threads, verbose):
                                                   -0.999329, 0.999329)) for D in Ds])
         meanD = np.mean(Ds, axis=0); hi, lo = [], []
         for sj, D in enumerate(Ds):
-            looD = (meanD * NSc - D) / (NSc - 1)
+            loo_D = (meanD * NSc - D) / (NSc - 1)
             hi.append(f4cmp(tri(D), tri(meanD), center))
-            lo.append(f4cmp(tri(D), tri(looD), center))
+            lo.append(f4cmp(tri(D), tri(loo_D), center))
         bd = [np.tanh(np.mean(zt[ix])) for ix in bootstrap_indices(NSc, 101, 251)]
         return (np.tanh(zt.mean()), np.mean(zt - za),
                 np.mean(lo), np.mean(hi), percentile_linear(bd, (0.05, 0.95)))
