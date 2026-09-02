@@ -3641,7 +3641,7 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
             GLOBAL_library.have_dummy_dataset  &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
     int horz = MAIN_im3d->vwid->view->session_horz ; /* 29 Apr 2010 */
-    char hstr[1024] ;
+    char hstr[1035] ;
     sprintf( hstr ,
              "***** NOTICE *** UWAGA *** AVVISO *** WARNUNG *** RABHADH *****\n"
              "                                                               \n"
@@ -4117,7 +4117,7 @@ if(PRINT_TRACING){ char str[1024] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(
       grstat->ny         = br->n2 ;
       grstat->nz         = br->n3 ;
 
-      grstat->send_CB    = (void (*)(void))AFNI_gra_send_CB ;
+      grstat->send_CB    = AFNI_gra_send_CB ;
       grstat->parent     = (XtPointer) br ;
       grstat->aux        = NULL ;
 
@@ -4206,7 +4206,7 @@ STATUS("get status") ;
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
-      stat->send_CB    = (void (*)(void))AFNI_seq_send_CB ;
+      stat->send_CB    = AFNI_seq_send_CB ;
       stat->parent     = (XtPointer) br ;
       stat->aux        = NULL ;
 
@@ -5501,8 +5501,9 @@ void AFNI_jumpto_clus_nearby( Three_D_View *im3d , int dci ) /* 29 Apr 2019 */
    respond to events that one of the MCW_imseq's sends to us
 ------------------------------------------------------------------------*/
 
-void AFNI_seq_send_CB( MCW_imseq *seq , FD_brick *br , ISQ_cbs *cbs )
+void AFNI_seq_send_CB( MCW_imseq *seq , XtPointer xptr , ISQ_cbs *cbs )
 {
+   FD_brick *br=(FD_brick *)xptr;
    Three_D_View *im3d = (Three_D_View *) seq->parent ;
 
 ENTRY("AFNI_seq_send_CB") ;
@@ -6495,7 +6496,7 @@ ENTRY("AFNI_read_inputs") ;
 
    else if( GLOBAL_argopt.read_sessions ){   /*--- the usual method ---*/
 
-      char str[256] ;
+      char str[THD_MAX_NAME+51] ;
       RwcBoolean good ;
       int num_ss , qd , qs , vv=0 , no_args , jj , nskip_noanat=0 ;
       THD_string_array *flist , *dlist=NULL , *elist=NULL , *qlist ;

@@ -33,8 +33,9 @@ EXT int RWC_nxim , RWC_nyim ;             /* dimensions of overlay */
 
 EXT short * RWC_imover INIT(= NULL) ;    /* data array for overlaying */
 
-extern int     RWC_short_overlay() ;
-extern short * RWC_create_overlay() ;
+extern int RWC_short_overlay(int nxim, int nyim, short * image, int nxover, int nyover,
+  short flag, short dont_overlay, int checker, short * overlay);
+extern short * RWC_create_overlay(int nxover, int nyover);
 
 /*** actual color stuff ***/
 
@@ -79,7 +80,7 @@ EXT short RWC_fim_colors_neg[MAX_FIM_COLORS] ;
 EXT short extra_color_x11[MAX_EXTRA_COLORS] ;
 
 EXT int EXTRA_STD_colors() ;
-EXT void add_extra_color() ;
+EXT void add_extra_color(int r, int g, int b, int ind);
 EXT void RWC_init_fim_colors() ;
 
 /*** fim2 stuff ***/

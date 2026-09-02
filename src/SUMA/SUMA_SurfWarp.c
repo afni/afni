@@ -451,7 +451,6 @@ SUMA_Boolean Change_in_Energy(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SU
 {
    static char FuncName[]={"Change_in_Energy"};
    matrix Kern, Kern_p, delKern, KernI, delKernI, Xm_t, A, B;
-   matrix *nullptr = NULL;
    vector Xm, Xm_mid, Xm_p, Pert, del_S1, del_S2, del_SF; 
    int nr, nc, i, i3, q, m, p, r, c, k, j, j3; 
    double mag_mid, mag_p, cond = 0.0;
@@ -612,7 +611,7 @@ SUMA_Boolean Change_in_Energy(   MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SU
                
                
                
-               matrix_psinv(Kern, nullptr, &KernI);
+               matrix_psinv(Kern, NULL, &KernI);
                if(LocalHead) { 
                   fprintf(SUMA_STDERR, "\nKern = ");  Print_Matrix(opt, Kern, NULL); 
                   fprintf(SUMA_STDERR, "\nKernI = "); Print_Matrix(opt, KernI, NULL); 
@@ -727,7 +726,6 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX , SUMA_GENERIC_ARGV_PARSE *
    int j, i, m, i3;
    double *dp_m = NULL, *dp_m1 = NULL, S_grad = 0.0, Xm_mag;
    vector Xm, Xm_mid, Sm;
-   matrix *nullptr = NULL;
    matrix Xm_t, Kern, KernI, A;
 
    SUMA_Boolean LocalHead = NOPE;
@@ -807,7 +805,7 @@ double S_energy( MyCircleOpt *opt, SUMA_MX_VEC *VecX , SUMA_GENERIC_ARGV_PARSE *
       }
                
       Rotation_Matrix( opt, Xm_mid, Kern );
-      matrix_psinv(Kern, nullptr, &KernI);
+      matrix_psinv(Kern, NULL, &KernI);
       
       matrix_multiply(Xm_t, KernI, &A);
       vector_multiply(A, Xm, &Sm);
@@ -950,7 +948,6 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
    char stmp[500];
    vector Change, G;
    matrix E, Et, EtE, EtEI, R;
-   matrix *nullptr = NULL;
    
    SUMA_Boolean LocalHead = NOPE;
 
@@ -1046,7 +1043,7 @@ double Find_Lamda( MyCircleOpt *opt, SUMA_MX_VEC *ControlCurve, SUMA_MX_VEC *Max
    
    matrix_transpose(E, &Et);
    matrix_multiply(Et, E, &EtE);
-   matrix_psinv(EtE, nullptr, &EtEI);
+   matrix_psinv(EtE, NULL, &EtEI);
    matrix_multiply(E, EtEI, &R);       /* A is temporary. */
    vector_multiply(R, Change, &G);     /* G for gradient. */
    
@@ -1406,7 +1403,6 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt, FILE *condition_n
    double t_rc = 0.0, nrm_rc[3]={0.0,0.0,0.0};
    double tan_v[3]={0.0,0.0,0.0};  /* Meaning tangent velocity vector. Stores cross product when calculating given velocity. */
    double Vv_mag = 0.0, t_cr, expand_cr = 0.0; 
-   matrix *nullptr = NULL;
    double I[3][3], sI[3][3], cond;
    
    SUMA_Boolean LocalHead = NOPE;
@@ -1619,7 +1615,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt, FILE *condition_n
    SUMA_LH("Calculating inverse...");
    matrix_initialize(&Mi);
    matrix_create(nr, nc, &Mi);
-   matrix_psinv (M, nullptr, &Mi); 
+   matrix_psinv (M, NULL, &Mi); 
    SUMA_LH("   Done."); 
 
    /* if( LocalHead ) Debug_Weights(C, opt, M, Mi, Vv); */

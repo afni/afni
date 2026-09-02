@@ -132,14 +132,16 @@ typedef struct {
 
 #ifndef HAVE_GET_PTR_TYPEDEF
 #  define HAVE_GET_PTR_TYPEDEF
-   typedef XtPointer (*get_ptr)() ;  /* function type */
+   typedef XtPointer (*get_ptr)(int n , int type , XtPointer handle) ;  /* function type */
 #endif
 
+typedef struct MCW_grapher MCW_grapher; /* Forward declarations */
+typedef struct GRA_cbs GRA_cbs;
 typedef struct {
       int num_total , num_series ;  /* # of images, # in "series" */
       int nx , ny , nz ;            /* image dimensions */
 
-      void (* send_CB)() ;   /* callback, if non_NULL */
+      void (* send_CB)(MCW_grapher *grapher , FD_brick *br , GRA_cbs *cbs) ;   /* callback, if non_NULL */
 
       MCW_function_list *transforms0D ;
       MCW_function_list *transforms1D ;
@@ -472,7 +474,7 @@ extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
 
 #define PLOTCODE_AUTOSCALE 1
 
-typedef struct {
+typedef struct MCW_grapher {
    int type , valid ;
 
    int gx_max , gy_max ;  /* window sizes */
@@ -659,7 +661,7 @@ static int fd_y[8] = {100, 130, 160, 190, 220, 250, 280, 310};
 
 /*--- "callback" data stuff: info about events in grapher window ---*/
 
-typedef struct {
+typedef struct GRA_cbs {
       int          reason ;              /* graCR_??? defined below */
       XEvent *     event ;               /* may be NULL */
       int          xcen,ycen,zcen, mat ; /* new x , new y , new matrix */
