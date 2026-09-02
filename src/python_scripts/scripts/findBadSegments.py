@@ -918,7 +918,6 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
         output_file_name = OutDir + '/respOutliersWithPeaks_LECW.pdf'
 
     if als_baseline_display:
-        # displayTimeSeries = hpfTimeSeries(cardiacTimeSeries)
         baseline = alsBaseline(respiratoryTimeSeries, lam=1e6, p=0.01)
         displayTimeSeries = respiratoryTimeSeries - baseline
     else:
@@ -945,21 +944,6 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
      respiratoryTroughs, 
      respiratoryTroughVals
      )
-
-# def hpfTimeSeries(timeSeries):
-#     FourierTransform = np.fft.fft(timeSeries)
-    
-#     # Zero part of FT outside limits
-#     rawDataLength = len(timeSeries)
-#     filterArray = np.zeros(rawDataLength)
-#     filterArray[99000:] = 1
-#     filteredFT = FourierTransform * filterArray
-    
-#     # Get IFT
-#     filteredRawData = np.real(np.fft.ifft(filteredFT))
-    
-#     # Return filtered time series
-#     return filteredRawData
 
 def hpfTimeSeries(timeSeries, cutoff=99000, transitionWidth=2000):
     """
@@ -2380,7 +2364,13 @@ troughPeakMismatchRanges = list(zip(respiratoryPeaks[:-1][mask],
     ) = correctRespiratoryBijectivity(respiratoryPeaks, respiratoryTroughs)
 
 # Display bijectivity correction
-dsplayBijectivityCcorrection(OutDir, respiratoryTimeSeries, respiratoryPeaks, 
+if als_baseline_display:
+    baseline = alsBaseline(respiratoryTimeSeries, lam=1e6, p=0.01)
+    displayTimeSeries = respiratoryTimeSeries - baseline
+else:
+    displayTimeSeries = respiratoryTimeSeries
+    
+dsplayBijectivityCcorrection(OutDir, displayTimeSeries, respiratoryPeaks, 
                              respiratoryTroughs, added_peaks, added_troughs,
                              samp_freq)
 
