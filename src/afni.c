@@ -693,11 +693,18 @@ void AFNI_syntax(void)
      "                  variable will still be read (if this variable is\n"
      "                  not set, then './' will be scanned for *.1D files).\n"
      "\n"
-     "   -nocsv       Each of these option flags does the same thing (i.e.,\n"
-     "   -notsv         they are synonyms): each tells AFNI not to read\n"
+     "   -nocsv       Each of these 3 option flags does the same thing (i.e.,\n"
+     "   -notsv         they are synonyms): each tells afni not to read\n"
      "   -notcsv        *.csv or *.tsv files from the dataset directories.\n"
      "                  You can also set env AFNI_SKIP_TCSV_SCAN = YES to the\n"
      "                  same effect.\n"
+     "                * This option is set by default, such files are not\n"
+     "                  scanned.\n"
+     "   -yestcsv     The opposite.  This option tells afni to indeed read\n"
+     "                  the *.csv and *.tsv files.\n"
+     "                  You can also set env AFNI_SKIP_TCSV_SCAN = NO to the\n"
+     "                  same effect.\n"
+     "                * default: -notcsv : do not scan such files\n"
 #if 0
      "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
@@ -1373,7 +1380,6 @@ ENTRY("AFNI_parse_args") ;
     *                  [2 Sep 2026 rickr]                            */
    GLOBAL_argopt.read_tcsv = AFNI_noenv("AFNI_SKIP_TCSV_SCAN") ;
 
-
    while( narg < argc ){
 
       if( argv[narg][0] != '-' ) break ;   /* no - ==> quit */
@@ -1500,10 +1506,18 @@ ENTRY("AFNI_parse_args") ;
 
       /*----- -notcsv option (16 Jun 2020) ----- */
 
+      /* now the default [2 Sep 2026 rickr] */
       if( strncmp(argv[narg],"-notcsv",7) == 0 ||
           strncmp(argv[narg],"-notsv" ,6) == 0 ||
           strncmp(argv[narg],"-nocsv" ,6) == 0   ){
          GLOBAL_argopt.read_tcsv = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -yestcsv option (2 Sep 2026) ----- */
+
+      if( strncmp(argv[narg],"-yestcsv",8) == 0 ){
+         GLOBAL_argopt.read_tcsv = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 

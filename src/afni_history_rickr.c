@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Sep, 2026, RCR, "afni", MINOR, TYPE_MODIFY,
+   "default change: AFNI_SKIP_TCSV_SCAN defaults to YES",
+   "Now a recursive (maxdepth 4) search for CSV/TSV files will not happen\n"
+   "by default.  It requires 'afni -yestcsv' or AFNI_SKIP_TCSV_SCAN=NO."
+ } ,
+
  { 25, Aug, 2026, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "no longer pass all_runs to @radial_correlate",
    NULL
