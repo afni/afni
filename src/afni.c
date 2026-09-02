@@ -1365,7 +1365,14 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.all_dsets_startup = AFNI_yesenv("ALL_DSETS_STARTUP") ;
 
    /* Jan 2022 ZSS */
-   GLOBAL_argopt.read_tcsv = !AFNI_yesenv("AFNI_SKIP_TCSV_SCAN") ;
+   /* default change - require SKIP to be "NO" <sigh> to search for tcsv
+    *                - was set to !AFNI_yesenv()
+    *                - "find -maxdepth 4" seems a bit much
+    *                - and starting at ./ hits forbidden directories
+    *                - the maxdepth search is still done in data dirs
+    *                  [2 Sep 2026 rickr]                            */
+   GLOBAL_argopt.read_tcsv = AFNI_noenv("AFNI_SKIP_TCSV_SCAN") ;
+
 
    while( narg < argc ){
 
