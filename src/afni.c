@@ -5785,13 +5785,13 @@ if(PRINT_TRACING)
          LOAD_DSET_VIEWS(im3d) ;  /* 20 Nov 2003 */
          daxes = CURRENT_DAXES(im3d->anat_now) ;
 
-              if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
+         if     ( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
          else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
 
-              if( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
+         if     ( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
          else if( id.ijk[1] >= daxes->nyy ) id.ijk[1] -= daxes->nyy ;
 
-              if( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
+         if     ( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
          else if( id.ijk[2] >= daxes->nzz ) id.ijk[2] -= daxes->nzz ;
 
          if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
@@ -7950,9 +7950,9 @@ STATUS("realizing new image viewer") ;
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
       AFNI_sleep(17) ;                                                /* 17 Oct 2005 */
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
-if( !AFNI_yesenv("TMONT") )
-      drive_MCW_imseq( *snew, isqDR_periodicmont,
-                      (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
+      if( !AFNI_yesenv("TMONT") ) /* indent to clarify */
+         drive_MCW_imseq( *snew, isqDR_periodicmont,
+                         (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
       drive_MCW_imseq( *snew , isqDR_allowmerger , NULL ) ;           /* 25 Aug 2014 */
       AFNI_set_rinfo_labels( im3d ) ;                                 /* 11 Mar 2020 */
 
