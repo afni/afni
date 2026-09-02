@@ -4198,10 +4198,13 @@ double GIC_student_t2z( double tt , double dof )
    xx = dof/(dof + tt*tt) ;
    pp = GIC_incbeta( xx , 0.5*dof , 0.5 , bb ) ;
 
-   if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
-   else           pp = 0.5 * pp ;
+   /* compute z directly from the (small) 2-sided tail probability pp;
+      the old form 1.0-0.5*pp rounds to 1.0 for pp < 2e-16, which
+      saturated the result at ZMAX and lost precision above z ~ 7.7
+      (same roundoff fix as student_t2z in mri_stats.c) */
 
-   xx = - GIC_qginv(pp) ;
+   if( tt > 0.0 ) xx =  GIC_qginv(0.5*pp) ;
+   else           xx = -GIC_qginv(0.5*pp) ;
    if( xx > ZMAX ) xx = ZMAX ; else if( xx < -ZMAX ) xx = -ZMAX ;
    return xx ;
 }
