@@ -543,7 +543,7 @@ def outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
             troughVals = respiratoryTimeSeries[respiratoryTroughs]
             imageFileName = output_file_name[:-4] + "_image_" + str(image) + ".pdf"
             num_rows = MAX_ROWS_PER_IMAGE
-            plotRespiratoryImage(imageFileName, num_rows, points_per_row,
+            plotRespiratoryImage(imageFileName, num_rows,
                         x_scaled[start:end], y[start:end],
                         respiratoryPeaks_scaled,
                         respiratoryTroughs_scaled, peakVals,
@@ -564,7 +564,7 @@ def outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
             imageFileName = output_file_name[:-4] + "_image_" + str(image) + ".pdf"
             remaining_points = len(respiratoryTimeSeries) - num_full_images * points_per_image
             num_rows = int(np.ceil(remaining_points / points_per_row))
-            plotRespiratoryImage(imageFileName, num_rows, points_per_row,
+            plotRespiratoryImage(imageFileName, num_rows, 
                         x_scaled[start:end], y[start:end],
                         respiratoryPeaks_scaled,
                         respiratoryTroughs_scaled, peakVals,
@@ -574,83 +574,6 @@ def outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
         peakVals,
         troughVals
         )
-
-# def outputCardiacPlots(cardiacTimeSeries, cardiacPeaks, samp_freq,
-#                        peak_outliers, 
-#                        outlier_ts_ranges, 
-#                        output_file_name):
-#     y = cardiacTimeSeries              # length 
-#     x = np.arange(len(y))             # original index
-#     x_scaled = x / samp_freq          # scaled index
-#     cardiacPeaks_scaled = np.array(cardiacPeaks) / samp_freq
-
-#     # Limit length of each row for clarity
-#     print('Limit length of each row for clarity')
-#     points_per_row = 3000             
-#     num_rows = int(np.ceil(len(y) / points_per_row))
-
-#     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
-#     if num_rows == 1:
-#         axes = [axes]
-
-#     #set window title
-#     windowTitle = 'Cardiac Plots ('+output_file_name+')'
-#     fig.canvas.manager.set_window_title(windowTitle)
-
-#     # Ensure index array is of integer type
-#     if cardiacPeaks.dtype!=int:
-#         cardiacPeaks = cardiacPeaks.astype(int)
-      
-#     # Get peak values
-#     peakVals = cardiacTimeSeries[cardiacPeaks]
-
-#     for row in range(num_rows):
-#         start = row * points_per_row
-#         end = min((row + 1) * points_per_row, len(y))
-
-#         ax = axes[row]
-
-#         # --- plot scaled x ---
-#         ax.plot(
-#             x_scaled[start:end],
-#             y[start:end],
-#             linewidth=0.5,
-#             solid_capstyle='butt',
-#             solid_joinstyle='miter',
-#             color="black"
-#         )
-
-#         # Peaks
-#         ax.plot(cardiacPeaks_scaled, peakVals, "bo")
-
-#         # Main outlier peaks
-#         ax.plot(cardiacPeaks_scaled[peak_outliers],
-#                 cardiacTimeSeries[cardiacPeaks[peak_outliers]],
-#                 "ro")
-
-#         # --- Draw bands (also scaled) ---
-#         for band_start, band_end in outlier_ts_ranges:
-#             if band_end <= start or band_start >= end:
-#                 continue
-#             ax.axvspan(
-#                 max(band_start, start) / samp_freq,
-#                 min(band_end, end) / samp_freq,
-#                 color='red',
-#                 alpha=0.15
-#             )
-
-#         # --- scaled x-limits ---
-#         ax.set_xlim(x_scaled[start], x_scaled[end - 1])
-#         ax.set_ylabel("ECG Amplitude")
-
-#     # Set axes and save plot to file
-#     print('Set axes and save plot to file')
-#     ax.set_xlabel(f"Time (minutes)")
-#     axes[-1].set_xlabel("Time (minutes)")
-#     plt.tight_layout()
-
-#     plt.savefig(output_file_name)
-#     plt.show()
 
 def plotCardiacImage(output_file_name, num_rows, points_per_row,
                       x_scaled, y,
@@ -1219,9 +1142,6 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
     
     # Merge overlapping peaks
     merged_outlier_ts_ranges = merge_ranges(outlier_ts_ranges)
-    
-    # Estimate global respiratory period
-    # resp_intervals = np.diff(respiratoryPeaks)
 
     # Build valid respiratory cycles
     valid_cycles = []
@@ -1454,69 +1374,6 @@ def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries,
                     added_troughs, outlier_ts_ranges, 
                     output_file_name, interpolatedPeaks, interpolatedTroughs)
 
-# def plotCorrectedRespiratoryImage(output_file_name, num_rows, points_per_row,
-#                                    x_scaled, y,
-#                                    x_peaks_scaled, y_peaks,
-#                                    x_troughs_scaled, y_troughs,
-#                                    respiratoryPeaks_scaled, respiratoryTroughs_scaled,
-#                                    peakVals, troughVals,
-#                                    addedPeaks_scaled, addedTroughs_scaled,
-#                                    addedPeakVals, addedTroughVals,
-#                                    outlier_ts_ranges, troughPeakMismatchRanges,
-#                                    samp_freq, offset=0):
-
-#     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
-#     if num_rows == 1:
-#         axes = [axes]
-
-#     windowTitle = 'Corrected Respiratory Peaks ('+output_file_name+')'
-#     fig.canvas.manager.set_window_title(windowTitle)
-
-#     for row in range(num_rows):
-#         local_start = round(row * points_per_row)
-#         local_end = round(min((row + 1) * points_per_row, len(y)))
-#         # global-index equivalents, for band comparisons/plotting
-#         start = local_start + offset
-#         end = local_end + offset
-
-#         ax = axes[row]
-
-#         ax.plot(x_peaks_scaled[local_start:local_end], y_peaks[local_start:local_end],
-#                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="magenta")
-
-#         ax.plot(x_troughs_scaled[local_start:local_end], y_troughs[local_start:local_end],
-#                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="green")
-
-#         ax.plot(x_scaled[local_start:local_end], y[local_start:local_end],
-#                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="black")
-
-#         ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
-#         ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
-#         ax.plot(addedPeaks_scaled, addedPeakVals, "mo")
-#         ax.plot(addedTroughs_scaled, addedTroughVals, "go")
-
-#         for band_start, band_end in outlier_ts_ranges:
-#             if band_end <= start or band_start >= end:
-#                 continue
-#             ax.axvspan(max(band_start, start)/samp_freq, min(band_end, end)/samp_freq,
-#                        color='red', alpha=0.15)
-
-#         for bandrange in troughPeakMismatchRanges:
-#             if bandrange[1] <= start or bandrange[0] >= end:
-#                 continue
-#             ax.axvspan(max(bandrange[0], start)/samp_freq, min(bandrange[1], end)/samp_freq,
-#                        color='blue', alpha=0.15)
-
-#         ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
-#         ax.set_ylim(min(y[local_start:local_end]), max(y[local_start:local_end]))
-#         ax.set_ylabel("Respiratory Amplitude")
-
-#     print('Set axes and save plot to file')
-#     axes[-1].set_xlabel("Time (minutes)")
-#     plt.tight_layout()
-#     plt.savefig(output_file_name)
-#     plt.show()
-
 def plotCorrectedRespiratoryImage(output_file_name, num_rows, points_per_row,
                                    x_scaled, y,
                                    x_peaks_scaled, y_peaks,
@@ -1602,6 +1459,7 @@ def plotCorrectedRespiratoryImage(output_file_name, num_rows, points_per_row,
     plt.tight_layout()
     plt.savefig(output_file_name)
     plt.show()
+    
 def outputCorrectedRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
                       respiratoryTroughs, samp_freq, added_peaks,
                       added_troughs, outlier_ts_ranges,
@@ -2136,59 +1994,47 @@ def dsplayBijectivityCcorrection(OutDir, respiratoryTimeSeries, respiratoryPeaks
     plt.savefig(output_file_name)
     plt.show()
     
-def plotRespiratoryImage(output_file_name, num_rows, points_per_row, x_scaled,
+def plotRespiratoryImage(output_file_name, num_rows, x_scaled,
                           y, respiratoryPeaks_scaled, respiratoryTroughs_scaled,
                           peakVals, troughVals, outlier_ts_ranges, samp_freq,
                           offset=0):
-
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
     if num_rows == 1:
         axes = [axes]
     windowTitle = 'Respiratory ('+output_file_name+')'
     fig.canvas.manager.set_window_title(windowTitle)
 
+    # Equal-width rows within THIS frame only; other frames compute their
+    # own boundaries independently, so widths can differ frame-to-frame.
+    boundaries = np.round(np.linspace(0, len(y), num_rows + 1)).astype(int)
+
     for row in range(num_rows):
-        local_start = row * points_per_row
-        local_end = min((row + 1) * points_per_row, len(y))
-        # global-index equivalents, for comparing against / plotting outlier_ts_ranges
+        local_start = boundaries[row]
+        local_end = boundaries[row + 1]
         start = local_start + offset
         end = local_end + offset
-
         ax = axes[row]
-
         ax.plot(
-            x_scaled[local_start:local_end],
+            x_scaled[start:end],
             y[local_start:local_end],
             linewidth=0.5,
             solid_capstyle='butt',
             solid_joinstyle='miter',
             color="black"
         )
-
         ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
         ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
-
         for band_start, band_end in outlier_ts_ranges:
             if band_end <= start or band_start >= end:
                 continue
-            ax.axvspan(
-                max(band_start, start) / samp_freq,
-                min(band_end, end) / samp_freq,
-                color='red',
-                alpha=0.15
-            )
-
+            ax.axvspan(max(band_start, start) / samp_freq, min(band_end, end) / samp_freq,
+                       color='red', alpha=0.15)
         for bandrange in troughPeakMismatchRanges:
             if bandrange[1] <= start or bandrange[0] >= end:
                 continue
-            ax.axvspan(
-                max(bandrange[0], start) / samp_freq,
-                min(bandrange[1], end) / samp_freq,
-                color='blue',
-                alpha=0.15
-            )
-
-        ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
+            ax.axvspan(max(bandrange[0], start) / samp_freq, min(bandrange[1], end) / samp_freq,
+                       color='blue', alpha=0.15)
+        ax.set_xlim(x_scaled[start], x_scaled[end - 1])
         ax.set_ylabel("Respiratory Amplitude")
 
     print('Set axes and save plot to file')
@@ -2196,6 +2042,67 @@ def plotRespiratoryImage(output_file_name, num_rows, points_per_row, x_scaled,
     plt.tight_layout()
     plt.savefig(output_file_name)
     plt.show()
+    
+# def plotRespiratoryImage(output_file_name, num_rows, points_per_row, x_scaled,
+#                           y, respiratoryPeaks_scaled, respiratoryTroughs_scaled,
+#                           peakVals, troughVals, outlier_ts_ranges, samp_freq,
+#                           offset=0):
+
+#     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+#     if num_rows == 1:
+#         axes = [axes]
+#     windowTitle = 'Respiratory ('+output_file_name+')'
+#     fig.canvas.manager.set_window_title(windowTitle)
+
+#     for row in range(num_rows):
+#         local_start = row * points_per_row
+#         local_end = min((row + 1) * points_per_row, len(y))
+#         # global-index equivalents, for comparing against / plotting outlier_ts_ranges
+#         start = local_start + offset
+#         end = local_end + offset
+
+#         ax = axes[row]
+
+#         ax.plot(
+#             x_scaled[local_start:local_end],
+#             y[local_start:local_end],
+#             linewidth=0.5,
+#             solid_capstyle='butt',
+#             solid_joinstyle='miter',
+#             color="black"
+#         )
+
+#         ax.plot(respiratoryPeaks_scaled, peakVals, "ro")
+#         ax.plot(respiratoryTroughs_scaled, troughVals, "bo")
+
+#         for band_start, band_end in outlier_ts_ranges:
+#             if band_end <= start or band_start >= end:
+#                 continue
+#             ax.axvspan(
+#                 max(band_start, start) / samp_freq,
+#                 min(band_end, end) / samp_freq,
+#                 color='red',
+#                 alpha=0.15
+#             )
+
+#         for bandrange in troughPeakMismatchRanges:
+#             if bandrange[1] <= start or bandrange[0] >= end:
+#                 continue
+#             ax.axvspan(
+#                 max(bandrange[0], start) / samp_freq,
+#                 min(bandrange[1], end) / samp_freq,
+#                 color='blue',
+#                 alpha=0.15
+#             )
+
+#         ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
+#         ax.set_ylabel("Respiratory Amplitude")
+
+#     print('Set axes and save plot to file')
+#     axes[-1].set_xlabel("Time (minutes)")
+#     plt.tight_layout()
+#     plt.savefig(output_file_name)
+#     plt.show()
     
 #################### MAIN  ##########################################
     
