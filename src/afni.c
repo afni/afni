@@ -693,11 +693,18 @@ void AFNI_syntax(void)
      "                  variable will still be read (if this variable is\n"
      "                  not set, then './' will be scanned for *.1D files).\n"
      "\n"
-     "   -nocsv       Each of these option flags does the same thing (i.e.,\n"
-     "   -notsv         they are synonyms): each tells AFNI not to read\n"
+     "   -nocsv       Each of these 3 option flags does the same thing (i.e.,\n"
+     "   -notsv         they are synonyms): each tells afni not to read\n"
      "   -notcsv        *.csv or *.tsv files from the dataset directories.\n"
      "                  You can also set env AFNI_SKIP_TCSV_SCAN = YES to the\n"
      "                  same effect.\n"
+     "                * This option is set by default, such files are not\n"
+     "                  scanned.\n"
+     "   -yestcsv     The opposite.  This option tells afni to indeed read\n"
+     "                  the *.csv and *.tsv files.\n"
+     "                  You can also set env AFNI_SKIP_TCSV_SCAN = NO to the\n"
+     "                  same effect.\n"
+     "                * default: -notcsv : do not scan such files\n"
 #if 0
      "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
@@ -1365,7 +1372,13 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.all_dsets_startup = AFNI_yesenv("ALL_DSETS_STARTUP") ;
 
    /* Jan 2022 ZSS */
-   GLOBAL_argopt.read_tcsv = !AFNI_yesenv("AFNI_SKIP_TCSV_SCAN") ;
+   /* default change - require SKIP to be "NO" <sigh> to search for tcsv
+    *                - was set to !AFNI_yesenv()
+    *                - "find -maxdepth 4" seems a bit much
+    *                - and starting at ./ hits forbidden directories
+    *                - the maxdepth search is still done in data dirs
+    *                  [2 Sep 2026 rickr]                            */
+   GLOBAL_argopt.read_tcsv = AFNI_noenv("AFNI_SKIP_TCSV_SCAN") ;
 
    while( narg < argc ){
 
@@ -1493,10 +1506,18 @@ ENTRY("AFNI_parse_args") ;
 
       /*----- -notcsv option (16 Jun 2020) ----- */
 
+      /* now the default [2 Sep 2026 rickr] */
       if( strncmp(argv[narg],"-notcsv",7) == 0 ||
           strncmp(argv[narg],"-notsv" ,6) == 0 ||
           strncmp(argv[narg],"-nocsv" ,6) == 0   ){
          GLOBAL_argopt.read_tcsv = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -yestcsv option (2 Sep 2026) ----- */
+
+      if( strncmp(argv[narg],"-yestcsv",8) == 0 ){
+         GLOBAL_argopt.read_tcsv = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -5778,13 +5799,13 @@ if(PRINT_TRACING)
          LOAD_DSET_VIEWS(im3d) ;  /* 20 Nov 2003 */
          daxes = CURRENT_DAXES(im3d->anat_now) ;
 
-              if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
+         if     ( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
          else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
 
-              if( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
+         if     ( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
          else if( id.ijk[1] >= daxes->nyy ) id.ijk[1] -= daxes->nyy ;
 
-              if( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
+         if     ( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
          else if( id.ijk[2] >= daxes->nzz ) id.ijk[2] -= daxes->nzz ;
 
          if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
@@ -7943,9 +7964,9 @@ STATUS("realizing new image viewer") ;
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
       AFNI_sleep(17) ;                                                /* 17 Oct 2005 */
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
-if( !AFNI_yesenv("TMONT") )
-      drive_MCW_imseq( *snew, isqDR_periodicmont,
-                      (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
+      if( !AFNI_yesenv("TMONT") ) /* indent to clarify */
+         drive_MCW_imseq( *snew, isqDR_periodicmont,
+                         (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
       drive_MCW_imseq( *snew , isqDR_allowmerger , NULL ) ;           /* 25 Aug 2014 */
       AFNI_set_rinfo_labels( im3d ) ;                                 /* 11 Mar 2020 */
 
