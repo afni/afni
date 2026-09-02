@@ -2015,7 +2015,7 @@ def plotRespiratoryImage(output_file_name, num_rows, x_scaled,
         end = local_end + offset
         ax = axes[row]
         ax.plot(
-            x_scaled[start:end],
+            x_scaled[local_start:local_end],
             y[local_start:local_end],
             linewidth=0.5,
             solid_capstyle='butt',
@@ -2034,7 +2034,7 @@ def plotRespiratoryImage(output_file_name, num_rows, x_scaled,
                 continue
             ax.axvspan(max(bandrange[0], start) / samp_freq, min(bandrange[1], end) / samp_freq,
                        color='blue', alpha=0.15)
-        ax.set_xlim(x_scaled[start], x_scaled[end - 1])
+        ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
         ax.set_ylabel("Respiratory Amplitude")
 
     print('Set axes and save plot to file')
