@@ -1398,8 +1398,10 @@ if(lop$TRR) {
    #   statsym <- c(statsym, list(list(sb=n-1, typ="fizt", par=NULL)))
    if(lop$num_glt > 0) for (n in 1:lop$num_glt)
       statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fizt", par=NULL)))
-   if(lop$num_glf > 0) for (n in 1:lop$num_glf)
-      statsym <- c(statsym, list(list(sb=lop$nF+lop$num_glt+n-1, typ="fict", par=2)))
+   if(lop$num_glf > 0) for (n in 1:lop$num_glf)  # each GLT occupies TWO bricks (value+Z), so the
+      # GLF chi-sq brick sits at nF+2*num_glt+n (1-based); the old index nF+num_glt+n-1 stamped
+      # the chi-sq declaration onto a GLT brick whenever num_glt > 0
+      statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+n-1, typ="fict", par=2)))
 #      statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+n, typ="fizt", par=NULL)))
 }
 
