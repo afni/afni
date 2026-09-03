@@ -1296,8 +1296,8 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
                 t_after - t_before + 1
             )[1:-1]
 
-            interpolatedPeaks = np.asarray(respiratoryTimeSeries, dtype=float).copy()
-            interpolatedTroughs = np.asarray(respiratoryTimeSeries, dtype=float).copy()
+            # interpolatedPeaks = np.asarray(respiratoryTimeSeries, dtype=float).copy()
+            # interpolatedTroughs = np.asarray(respiratoryTimeSeries, dtype=float).copy()
 
             # Safety net: even with good anchors, extreme baseline drift could
             # still leave the lines too close (or crossed) somewhere in the
