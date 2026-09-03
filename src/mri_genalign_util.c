@@ -70,6 +70,53 @@ ENTRY("GA_smooth") ;
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef ALLIN_DOWNSAMPLE_COARSE
+/*! Build a 2x anti-aliased decimated copy of 'im' for the 3dAllineate coarse
+    pass.  Gaussian prefilter at sigma = 1 voxel per axis, then stride-2 pick.
+    dx/dy/dz metadata doubled so world-coordinate transforms still apply.
+    Returns a new float image the caller must mri_free(), or NULL if the
+    input is too small or NULL (callers should fall back to full-resolution). */
+
+MRI_IMAGE * GA_downsample2x( MRI_IMAGE *im )
+{
+   MRI_IMAGE *sm , *ds ;
+   int nx,ny,nz , nxn,nyn,nzn , nxy,nxyn , ii,jj,kk , js,ks , is3d ;
+   float *sar , *dar ;
+   if( im == NULL ) return NULL ;
+   nx = im->nx ; ny = im->ny ; nz = im->nz ;
+   is3d = (nz > 1) ;
+   if( nx < 16 || ny < 16 || (is3d && nz < 4) ) return NULL ;
+   sm = mri_to_float(im) ;
+   if( sm == NULL ) return NULL ;
+   nxy = nx*ny ;
+   nxn = nx/2 ; nyn = ny/2 ; nzn = is3d ? nz/2 : 1 ;
+   nxyn = nxn*nyn ;
+   FIR_blur_volume_3d( nx, ny, nz,
+                       im->dx, im->dy, im->dz,
+                       MRI_FLOAT_PTR(sm),
+                       im->dx, im->dy, is3d ? im->dz : 0.0f ) ;
+   ds = mri_new_vol( nxn, nyn, nzn, MRI_float ) ;
+   sar = MRI_FLOAT_PTR(sm) ; dar = MRI_FLOAT_PTR(ds) ;
+   for( kk=0 ; kk < nzn ; kk++ ){
+     ks = is3d ? 2*kk : 0 ;
+     for( jj=0 ; jj < nyn ; jj++ ){
+       js = 2*jj ;
+       for( ii=0 ; ii < nxn ; ii++ ){
+         dar[ii + jj*nxn + kk*nxyn] = sar[2*ii + js*nx + ks*nxy] ;
+       }
+     }
+   }
+   MRI_COPY_AUX(ds, im) ;              /* copies dx/dy/dz from im */
+   ds->dx = 2.0f * im->dx ;            /* so override AFTER the copy */
+   ds->dy = 2.0f * im->dy ;
+   ds->dz = is3d ? 2.0f * im->dz : im->dz ;
+   mri_free(sm) ;
+   return ds ;
+}
+#endif /* ALLIN_DOWNSAMPLE_COARSE */
+
+/*---------------------------------------------------------------------------*/
+
 /* for interpolation access to the (i,j,k) element of an array */
 
 #undef  FAR
