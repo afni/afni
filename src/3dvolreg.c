@@ -1301,8 +1301,12 @@ int main( int argc , char *argv[] )
 
    /*-- save new dataset to disk --*/
 
+   /* exit non-zero if a write fails, rather than leaving an empty
+    * or missing output file behind     [issue #73]   3 Sep 2026 */
+
    if( !null_output ){
-     DSET_write(new_dset) ;
+     if( !DSET_write(new_dset) )
+       ERROR_exit("Failed to write output dataset %s",DSET_BRIKNAME(new_dset)) ;
      if( VL_verbose )
        INFO_message("Wrote dataset to disk in %s",DSET_BRIKNAME(new_dset));
    }
@@ -1311,17 +1315,20 @@ int main( int argc , char *argv[] )
 
    if( VL_xdset != NULL ){    /* 04 Apr 2012 */
      if( VL_savedisp19 ) VL_normalize_timeseries(VL_xdset) ;
-     DSET_write(VL_xdset) ;
+     if( !DSET_write(VL_xdset) )
+       ERROR_exit("Failed to write output dataset %s",DSET_BRIKNAME(VL_xdset)) ;
      if( VL_verbose ) INFO_message("Wrote dataset to disk in %s",DSET_BRIKNAME(VL_xdset));
    }
    if( VL_ydset != NULL ){
      if( VL_savedisp19 ) VL_normalize_timeseries(VL_ydset) ;
-     DSET_write(VL_ydset) ;
+     if( !DSET_write(VL_ydset) )
+       ERROR_exit("Failed to write output dataset %s",DSET_BRIKNAME(VL_ydset)) ;
      if( VL_verbose ) INFO_message("Wrote dataset to disk in %s",DSET_BRIKNAME(VL_ydset));
    }
    if( VL_zdset != NULL ){
      if( VL_savedisp19 ) VL_normalize_timeseries(VL_zdset) ;
-     DSET_write(VL_zdset) ;
+     if( !DSET_write(VL_zdset) )
+       ERROR_exit("Failed to write output dataset %s",DSET_BRIKNAME(VL_zdset)) ;
      if( VL_verbose ) INFO_message("Wrote dataset to disk in %s",DSET_BRIKNAME(VL_zdset));
    }
 
