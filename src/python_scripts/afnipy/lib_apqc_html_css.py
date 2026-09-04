@@ -102,22 +102,24 @@ css_text = '''
   font-weight: bold;
 }
 
-/* Still FiraCode, but diff label for diff bold weight;
-   this one is used in tables, like warns and qsumm;
-   the combined use of ascent-override and descent-override
-   in the cases below is to make the tables a bit more compact,
-   as they were in previous versions with different fonts*/
+/* Still FiraCode, but diff label for diff bold weight; this one is
+   used in tables, like warns and qsumm; the combined use of
+   *-override values in the cases below is to make the tables a bit
+   more compact, as they were in previous versions with different
+   fonts, so that at default (100%) zoom, the lines mostly match up. */
 @font-face {
   font-family: 'myFiraCode2';
   src: url('FiraCode-Regular.woff2') format('woff2');
   ascent-override: 90%;
-  descent-override: 27.5%;
+  descent-override: 25%;
+  line-gap-override: 0%;
 }
 @font-face {
   font-family: 'myFiraCode2';
   src: url('FiraCode-Medium.woff2') format('woff2');
   ascent-override: 90%;
-  descent-override: 27.5%;
+  descent-override: 25%;
+  line-gap-override: 0%;
   font-weight: bold;
 }
 
