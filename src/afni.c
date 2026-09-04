@@ -12079,14 +12079,17 @@ ENTRY("AFNI_mnito_CB") ;
 
 -----------------------------------------------------------------------*/
 
-int AFNI_parse_jumpto_coord( char *str, char negdir, float *val )
+int AFNI_parse_jumpto_coord( char *str, char negdir, float *val, 
+                             int *is_lettered )
 {
    char *end ;
    char dir='\0' ;
    double vv ;
    int had_sign = 0 ;
 
-   if( str == NULL || val == NULL ) return 0 ;
+   if( str == NULL || val == NULL || is_lettered == NULL ) return 0 ;
+
+   *is_lettered = 0 ;
 
    while( isspace((unsigned char)*str) ) str++ ;
    if( *str == '\0' ) return 0 ;
@@ -12109,16 +12112,16 @@ int AFNI_parse_jumpto_coord( char *str, char negdir, float *val )
    if( *end != '\0' ) return 0 ;
 
    /*
-      Ordinary numeric form: sign, if any, has its usual meaning.
+      Ordinary numeric form.
    */
    if( dir == '\0' ){
       *val = (float)vv ;
+      *is_lettered = 0 ;
       return 1 ;
    }
 
    /*
-      Lettered form must use an unsigned magnitude.
-      Thus reject -12R and +12R.
+      Lettered form may not also have an explicit sign.
    */
    if( had_sign )
       return 0 ;
@@ -12128,13 +12131,12 @@ int AFNI_parse_jumpto_coord( char *str, char negdir, float *val )
    if( dir != negdir && dir != AFNI_opposite_dir(negdir) )
       return 0 ;
 
-   /*
-      Letter supplies the sign.
-   */
    if( dir == negdir )
       vv = -vv ;
 
    *val = (float)vv ;
+   *is_lettered = 1 ;
+
    return 1 ;
 }
 
@@ -12175,6 +12177,7 @@ void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    char *xyzstr , *cpt ;
    char *tok[3] ;
    int ntok , nn ;
+   int let0,let1,let2 ;
 
    ENTRY("AFNI_jumpto_CB") ;
 
@@ -12208,7 +12211,7 @@ void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
    if( ntok != 3 || cpt != NULL ){
       free(xyzstr) ;
       BEEPIT ;
-      WARNING_message("bad Jumpto entries!?") ;
+      WARNING_message("bad Jumpto entries: wrong number of coords!?") ;
       EXRETURN ;
    }
 
@@ -12224,13 +12227,24 @@ void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
       and the opposite letters give positive coordinates.
    */
 
-   if( !AFNI_parse_jumpto_coord(tok[0],GLOBAL_library.cord.orcode[0],&xx) ||
-       !AFNI_parse_jumpto_coord(tok[1],GLOBAL_library.cord.orcode[1],&yy) ||
-       !AFNI_parse_jumpto_coord(tok[2],GLOBAL_library.cord.orcode[2],&zz)   ){
+   if( !AFNI_parse_jumpto_coord(tok[0],GLOBAL_library.cord.orcode[0],
+                                &xx,&let0) ||
+       !AFNI_parse_jumpto_coord(tok[1],GLOBAL_library.cord.orcode[1],
+                                &yy,&let1) ||
+       !AFNI_parse_jumpto_coord(tok[2],GLOBAL_library.cord.orcode[2],
+                                &zz,&let2)   ){
 
       free(xyzstr) ;
       BEEPIT ;
-      WARNING_message("bad Jumpto entries!?") ;
+      WARNING_message("bad Jumpto entries: unparseable item(s)!?") ;
+      EXRETURN ;
+   }
+
+   /* extra failure mode: mix of lettered and non-lettered coords */
+   if( let0 != let1 || let0 != let2 ){
+      free(xyzstr) ;
+      BEEPIT ;
+      WARNING_message("bad Jumpto entries: use letters on all or none") ;
       EXRETURN ;
    }
 
