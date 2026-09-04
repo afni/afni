@@ -303,6 +303,11 @@ all_logo = [ 'apqc_logo_main.svg',
 # font info
 all_font = [ 'FiraCode-Bold.woff2',
              'FiraCode-Regular.woff2',
+             'FiraCode-Medium.woff2',
+             'cousine-v31-latin-regular.woff2',
+             'cousine-v31-latin-700.woff2',
+             'arimo-v36-latin-regular.woff2',
+             'arimo-v36-latin-700.woff2',
 ]
 
 blur_label = 'blur_for_qc'
