@@ -12049,17 +12049,134 @@ ENTRY("AFNI_mnito_CB") ;
 }
 
 /*---------------------------------------------------------------------
+
+   [pt: 2026-09-04] using chatgpt, below are two helper functions for
+   translating "lettered" coordinate notation to numbers.
+
+   Below, "negdir" is the direction represented by negative
+   coordinates in the current GUI coordinate system -- e.g. 'R' for
+   the first coordinate in RAI mode.
+
+   For lettered input, the numeric part is treated as a magnitude, and
+   cannot have a sign attached separately. Valid formats for individual 
+   coordinates include (and similarly for other directions):
+
+       -12.3  ;  12.3  ;  12.3R
+
+   Invalid formats include:
+
+       R12.3  ;  L12.3  ;  -R12.3  ;  -L12.3  ;  -12.3R  ;  -12.3L
+
+   These triplets are valid for RAI or LPS coords: 
+
+       12R 34A 56I
+       12L,34P,56S
+       12.5R 20A 3S
+
+   It is invalid to mix the order:
+
+       34A 56I 12R
+
+-----------------------------------------------------------------------*/
+
+int AFNI_parse_jumpto_coord( char *str, char negdir, float *val )
+{
+   char *end ;
+   char dir='\0' ;
+   double vv ;
+   int had_sign = 0 ;
+
+   if( str == NULL || val == NULL ) return 0 ;
+
+   while( isspace((unsigned char)*str) ) str++ ;
+   if( *str == '\0' ) return 0 ;
+
+   if( *str == '+' || *str == '-' )
+      had_sign = 1 ;
+
+   vv = strtod( str , &end ) ;
+   if( end == str ) return 0 ;
+
+   while( isspace((unsigned char)*end) ) end++ ;
+
+   /* optional trailing anatomical direction */
+   if( isalpha((unsigned char)*end) ){
+      dir = toupper((unsigned char)*end) ;
+      end++ ;
+      while( isspace((unsigned char)*end) ) end++ ;
+   }
+
+   if( *end != '\0' ) return 0 ;
+
+   /*
+      Ordinary numeric form: sign, if any, has its usual meaning.
+   */
+   if( dir == '\0' ){
+      *val = (float)vv ;
+      return 1 ;
+   }
+
+   /*
+      Lettered form must use an unsigned magnitude.
+      Thus reject -12R and +12R.
+   */
+   if( had_sign )
+      return 0 ;
+
+   negdir = toupper((unsigned char)negdir) ;
+
+   if( dir != negdir && dir != AFNI_opposite_dir(negdir) )
+      return 0 ;
+
+   /*
+      Letter supplies the sign.
+   */
+   if( dir == negdir )
+      vv = -vv ;
+
+   *val = (float)vv ;
+   return 1 ;
+}
+
+/* Return the anatomical direction opposite cc. */
+
+char AFNI_opposite_dir( char cc )
+{
+   switch( toupper((unsigned char)cc) ){
+      case 'R': return 'L' ;
+      case 'L': return 'R' ;
+      case 'A': return 'P' ;
+      case 'P': return 'A' ;
+      case 'I': return 'S' ;
+      case 'S': return 'I' ;
+   }
+
+   return '\0' ;
+}
+
+/*---------------------------------------------------------------------
    called when the jumpto chooser is set
+
+   [pt: 2026-09-04] updated using chatgpt, to accept input coords
+   using a single, appended letter to denote pos/neg for a given
+   coordinate instead of sign; this uses GLOBAL_library.cord.orcode[n]
+   information to know how to translate, say "R" to positive or
+   negative.  So, this is how an input of the "lettered" sign format
+   would translate when RAI coords are being used:
+
+      12.3R 34.0P 56I   -->   -12.3 34.0 -56
+
 -----------------------------------------------------------------------*/
 
 void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
    float xx,yy,zz ;
-   char dum1[32],dum2[32];
-   int nn ;
+   char *xyzstr , *cpt ;
+   char *tok[3] ;
+   int ntok , nn ;
 
-ENTRY("AFNI_jumpto_CB") ;
+   ENTRY("AFNI_jumpto_CB") ;
 
    if( ! IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
@@ -12067,8 +12184,57 @@ ENTRY("AFNI_jumpto_CB") ;
    if( last_jumpto_xyz_string != NULL ) free(last_jumpto_xyz_string) ;
    last_jumpto_xyz_string = strdup(cbs->cval) ;
 
-   nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
-   if( nn != 5 ){ BEEPIT ; WARNING_message("bad Jumpto entries!?") ; EXRETURN ; }
+   /*
+      Make a scratch copy, converting commas to spaces.
+   */
+
+   xyzstr = strdup(cbs->cval) ;
+
+   for( cpt=xyzstr ; *cpt != '\0' ; cpt++ )
+      if( *cpt == ',' ) *cpt = ' ' ;
+
+   /*
+      Split into exactly 3 whitespace-separated coordinates.
+   */
+
+   ntok = 0 ;
+   cpt = strtok( xyzstr , " \t\n\r" ) ;
+
+   while( cpt != NULL && ntok < 3 ){
+      tok[ntok++] = cpt ;
+      cpt = strtok( NULL , " \t\n\r" ) ;
+   }
+
+   if( ntok != 3 || cpt != NULL ){
+      free(xyzstr) ;
+      BEEPIT ;
+      WARNING_message("bad Jumpto entries!?") ;
+      EXRETURN ;
+   }
+
+   /*
+      orcode[] gives the negative-direction letter for each coordinate
+      in the GUI coordinate system.
+
+      Thus, for RAI:
+          R -> negative first coordinate
+          A -> negative second coordinate
+          I -> negative third coordinate
+
+      and the opposite letters give positive coordinates.
+   */
+
+   if( !AFNI_parse_jumpto_coord(tok[0],GLOBAL_library.cord.orcode[0],&xx) ||
+       !AFNI_parse_jumpto_coord(tok[1],GLOBAL_library.cord.orcode[1],&yy) ||
+       !AFNI_parse_jumpto_coord(tok[2],GLOBAL_library.cord.orcode[2],&zz)   ){
+
+      free(xyzstr) ;
+      BEEPIT ;
+      WARNING_message("bad Jumpto entries!?") ;
+      EXRETURN ;
+   }
+
+   free(xyzstr) ;
 
    THD_coorder_to_dicom( &GLOBAL_library.cord , &xx,&yy,&zz ) ;
 

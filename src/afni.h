@@ -2027,6 +2027,8 @@ extern void AFNI_writeout_dataset    ( THD_3dim_dataset * , char * ) ;     /* 16
 
 extern void AFNI_do_many_writes      ( Widget , XtPointer , MCW_choose_cbs * ) ; /* 23 Nov 1996 */
 extern void AFNI_finalize_dataset_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern int  AFNI_parse_jumpto_coord  ( char *str, char negdir, float *val ) ;
+extern char AFNI_opposite_dir        ( char cc ) ;
 extern void AFNI_jumpto_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_jump_and_seed       ( Three_D_View * , float, float, float  ) ;
