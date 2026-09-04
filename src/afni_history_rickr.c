@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Sep, 2026, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "if results dir already exists, properly report any -out_dir",
+   "Thanks to S Francis for noting the problem."
+ } ,
+
  {  2, Sep, 2026, RCR, "afni", MINOR, TYPE_MODIFY,
    "default change: AFNI_SKIP_TCSV_SCAN defaults to YES",
    "Now a recursive (maxdepth 4) search for CSV/TSV files will not happen\n"
