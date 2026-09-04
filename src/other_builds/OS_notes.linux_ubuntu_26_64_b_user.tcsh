@@ -4,6 +4,8 @@
 # From tcsh shell:
 #   tcsh OS_notes.linux_ubuntu_26_64_b_user.tcsh |& tee o.ubu_26_b.txt
 
+# ------------------------------------------------------------------------
+
 echo "++ Get AFNI binaries"
 
 cd
@@ -19,6 +21,8 @@ else
    echo "-- no .cshrc file, assuming afni is already in PATH"
 endif
 rehash
+
+# ------------------------------------------------------------------------
 
 echo "++ Download Bootcamp data, **if** it doesn't appear to exist already"
 
@@ -36,15 +40,35 @@ else
    echo "         so I will *not* download+install the Bootcamp data CD.tgz"
 endif
 
+# ------------------------------------------------------------------------
+
 echo "++ Prepare to install R and its packages (will take a while)"
 
-setenv R_LIBS $HOME/R
-mkdir  $R_LIBS
-echo  'export R_LIBS=$HOME/R' >> ~/.bashrc
-echo  'setenv R_LIBS ~/R'     >> ~/.cshrc
+set rver = `R --version | head -n 1 | cut -d ' ' -f 3`
+if ( $status ) then
+   echo "** failed to set R version: R --version"
+   exit 1
+endif
 
-rPkgsInstall -pkgs ALL
+echo "R ver : $rver"
+echo ""
 
+if ( ! $?R_LIBS ) then
+   echo "++ setting R_LIBS=$HOME/sw/R-$rver"
+   # start by setting R_LIBS in shell
+   setenv R_LIBS $HOME/sw/R-$rver
+
+   echo "export R_LIBS=$R_LIBS" >> ~/.bashrc
+   echo "setenv R_LIBS $HOME/sw/R-$rver" >> ~/.cshrc
+else
+   echo "-- already have R_LIBS=$R_LIBS"
+endif
+
+echo "++ building R libraries: rPkgsInstall -pkgs ALL"
+\mkdir -p $R_LIBS
+rPkgsInstall -pkgs ALL |& tee out.rPkgsInstall.txt
+
+# ------------------------------------------------------------------------
 
 set asc  = ~/o.afni_system_check.txt
 echo "++ Run system check, saving to: ${asc}"
