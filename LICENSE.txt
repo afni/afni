@@ -255,6 +255,18 @@ Location: src/mcw_glob.{c,h}
 Authors:  Guido van Rossum (The Regents of the University of California)
 License:  Permissive [top of file]
 
+Location: src/html/arimo*.woff2
+Authors:  The Arimo Project Authors
+License:  SIL Open Font License v1.1 [src/html/LICENSE_OFL_arimo.txt]
+
+Location: src/html/cousine*.woff2
+Authors:  The Cousine Project Authors
+License:  SIL Open Font License v1.1 [src/html/LICENSE_OFL_cousine.txt]
+
+Location: src/html/FiraCode*.woff2
+Authors:  The Fira Code Project Authors
+License:  SIL Open Font License v1.1 [src/html/LICENSE_OFL_firacode.txt]
+
 Location: src/ktaub.c
 Authors:  David Simcha 
 License:  Boost Software License [top of file]
