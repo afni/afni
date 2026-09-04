@@ -829,9 +829,11 @@ g_history = """
     8.05 Jan 13, 2026: create enorm time series even if no volreg or censoring
     8.06 Apr 24, 2026: if tedana masking, suggest -blur_in_mask yes
     8.07 Aug 25, 2026: do not pass all_runs to @radial_correlate
+    8.08 Sep  4, 2026:
+       - if results dir already exists, properly report any -out_dir
 """
 
-g_version = "version 8.07, August 25, 2026"
+g_version = "version 8.08, September 4, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -3324,9 +3326,9 @@ class SubjProcSream:
            self.write_text( \
                 '# verify that the results directory does not yet exist\n'\
                 'if ( -d %s ) then\n'                                     \
-                '    echo output dir "$subj.results" already exists\n'    \
+                '    echo output dir "%s" already exists\n'    \
                 '    exit\n'                                              \
-                'endif\n\n' % self.od_var)
+                'endif\n\n' % (self.od_var, self.od_var))
         self.write_text('# set list of runs\n')
         digs = 2
         if self.runs > 99: digs = 3
