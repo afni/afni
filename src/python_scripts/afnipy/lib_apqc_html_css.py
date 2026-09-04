@@ -82,7 +82,16 @@ wlevel_str = '  '.join(list(wlevel_ranks.keys()))
 
 # The CSS!
 css_text = '''
-/* Include nice (open) font for reading */
+/* A note about all font-faces defined here: The 'my' that starts the
+   name of the font-family labels here is just to ensure we are using
+   the local file versions; this is not to imply that any changes in
+   the fonts have been made, because there have not been any made.
+   These are distributed, with their appropriate license files,
+   unchanged. These are all open fonts.
+*/
+
+/* Include nice (open) font for reading: FiraCode;
+   this is used in the gold and silver text as titles/subtitles */
 @font-face {
   font-family: 'myFiraCode';
   src: url('FiraCode-Regular.woff2') format('woff2');
@@ -90,6 +99,49 @@ css_text = '''
 @font-face {
   font-family: 'myFiraCode';
   src: url('FiraCode-Bold.woff2') format('woff2');
+  font-weight: bold;
+}
+
+/* Still FiraCode, but diff label for diff bold weight; this one is
+   used in tables, like warns and qsumm; the combined use of
+   *-override values in the cases below is to make the tables a bit
+   more compact, as they were in previous versions with different
+   fonts, so that at default (100%) zoom, the lines mostly match up. */
+@font-face {
+  font-family: 'myFiraCode2';
+  src: url('FiraCode-Regular.woff2') format('woff2');
+  ascent-override: 90%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'myFiraCode2';
+  src: url('FiraCode-Medium.woff2') format('woff2');
+  ascent-override: 90%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+  font-weight: bold;
+}
+
+/* Cousine: open font, monospace, instead of Courier New */
+@font-face {
+  font-family: 'myCousine';
+  src: url('cousine-v31-latin-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'myCousine';
+  src: url('cousine-v31-latin-700.woff2') format('woff2');
+  font-weight: bold;
+}
+
+/* Arimo: open font, sans serif, instead of Arial (and for Helvetica here) */
+@font-face {
+  font-family: 'myArimo';
+  src: url('arimo-v36-latin-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'myArimo';
+  src: url('arimo-v36-latin-700.woff2') format('woff2');
   font-weight: bold;
 }
 
@@ -193,7 +245,7 @@ css_text+= '''
     margin-right: auto;
     width: 90%; 
     text-align: left;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode2, "courier new", courier, monospace;
     font-weight: bold;
 }}
 
@@ -233,7 +285,7 @@ css_text+= '''
     margin-right: auto;
     width:90%; 
     text-align: left;
-    font-family: "courier new", courier, monospace;
+    font-family: myFiraCode2, "courier new", courier, monospace;
     font-weight: bold;
 }}
 '''.format(**wlevel_colors)
@@ -248,7 +300,7 @@ css_text+= '''
     color: #014E33;
     border: solid 2px black;
     border-radius: 20px;
-    font-family:  Arial, "courier new", courier, monospace;
+    font-family:  myArimo, Arial, "courier new", courier, monospace;
     font-size: 16px;
     font-weight: normal; 
 }
@@ -260,7 +312,7 @@ css_text+= '''
     color: #FFC310;
     border: solid 2px #FFC310;
     border-radius: 20px;
-    font-family:  Arial, "courier new", courier, monospace;
+    font-family: myArimo, Arial, "courier new", courier, monospace;
     font-weight: normal; 
 }
 
@@ -421,7 +473,7 @@ css_text+= '''
     color: #FFF;
     border: none;
     border-radius: 0px;
-    font-family: "courier new", courier, monospace;
+    font-family: myCousine, "courier new", courier, monospace;
     font-size: 24px;
     font-weight: bold;
 }
@@ -432,7 +484,7 @@ css_text+= '''
     color: #000; /* #444; */
     border: solid 2px #bbb; /* transparent; none; */
     border-radius: 12px;
-    font-family:  "courier new", courier, monospace;
+    font-family:  myCousine, "courier new", courier, monospace;
     font-size: 23px;
     font-weight: bold;
     margin-top: 2px;
@@ -443,7 +495,7 @@ css_text+= '''
     color: #FFF; /* #ffea00; /#FFF; */
     border: solid 1px transparent;
     border-radius: 0px;
-    font-family: Arial, "courier new", courier, monospace;
+    font-family: myArimo, Arial, "courier new", courier, monospace;
     font-size: 21px;
     font-weight: normal; /* bold; */
 }
@@ -465,7 +517,7 @@ css_text+= '''
 /* turning img/text headings into (subtle) buttons */
 .btn_title {
     background-color: #014E33;
-    font-family: "Lucida Console", Monaco, monospace;
+    font-family: myCousine, "Lucida Console", Monaco, monospace;
     border: solid 0px #014E33!important;
     border-color: #014E33!important; 
 }
@@ -524,7 +576,7 @@ canvas {
     border-color:  #fff #aaa #aaa #fff;
     border-radius: 5px;
     text-decoration: none;
-    font-family: Arial, "courier new", courier, monospace;
+    font-family: myArimo, Arial, "courier new", courier, monospace;
     font-size: 18px;
     font-weight: normal; /* bold; */
 }
@@ -564,7 +616,7 @@ css_text+= '''
 .button-RHS {
     border: solid 1px transparent;
     border-radius: 4px;
-    font-family: "courier new", courier, monospace;
+    font-family: myCousine, "courier new", courier, monospace;
     font-size: 22px;
     font-weight: bold;
 }
@@ -685,7 +737,7 @@ css_text+= '''
   margin: 0px 0px 0px 0px;
   border: none;
   background: #eee;
-  font-family: helvetica, "courier new", courier, monospace;
+  font-family: myArimo, helvetica, "courier new", courier, monospace;
   font-size: 18px;
   color: black;
 }
@@ -709,6 +761,7 @@ css_text+= '''
   width: 33.3%;
   height: 30px;
   opacity: 1;
+  font-family: myCousine, helvetica, "courier new", courier, monospace;
   font-weight: bold;
   /*color: #FFF;*/
   color: #000;
