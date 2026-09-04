@@ -12236,7 +12236,7 @@ void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
       free(xyzstr) ;
       BEEPIT ;
-      WARNING_message("bad Jumpto entries: unparseable item(s)!?") ;
+      WARNING_message("bad Jumpto entries: unparsable item(s)!?") ;
       EXRETURN ;
    }
 
