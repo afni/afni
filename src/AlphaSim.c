@@ -1072,7 +1072,7 @@ void activation_region (int nx, int ny, int nz, int ax, int ay, int az,
 
 void generate_image (int nx, int ny, int nz, int power,
 		     int ax, int ay, int az, float zsep, float * fim,
-           uint32_t *xran )
+           uint64_t *xran )
 {
   int nxy, nxyz;
   int nxyzdiv2;
@@ -1940,7 +1940,7 @@ int main (int argc, char ** argv)
 #ifdef USE_OMP
    ithr = omp_get_thread_num() ;
    /* initialize single uint32_t seed for zgaussian2_sss() calls */
-   uint32_t xran = zgaussian2_thread_seed( ithr ) ;
+   uint64_t xran = zgaussian2_thread_seed( ithr ) ;
 
 #pragma omp master  /* only in the master thread */
  {
