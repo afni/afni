@@ -28,7 +28,7 @@ subjects.
 | **1** | **Native repeated-run ingestion and concatenation** | ✅ Complete (2026-08-30) | A long `Subj × Run` `-dataTable`, `-run_column`, and `-run_normalize` ingest native per-run time series. Runs are matched by label, detrended/normalized separately, then concatenated. The table must be balanced; corresponding run lengths must match; row order and OpenMP count do not change results; preconcatenated input is an exact reference. |
 | **2** | **Run-resolved neural IS-RSA** | ✅ Complete (2026-08-30) | `-run_analysis separate` reports each labeled run plus the equal-run mean of signed association effects; `mean` reports only that summary. One subject-label permutation is synchronized across run × space. Separate-run BH/max-FWE cover the joint run × space family; the mean has its spatial family. Independent single-run references, shuffled rows/run order, ROI/searchlight, and thread identity pass. |
 | **3** | **Run-varying behavioral state models** | ✅ Complete (2026-08-30) | `-run_model COLUMN:NN|AnnaK` builds a behavioral subject RDM for each matching run. `-run_center COLUMN subject` emits both a within-subject state-deviation model and an across-run subject-mean trait model. A null relabels each subject's complete behavioral trajectory as one unit across every run and location. Raw/centered numerical references, row/run-order identity, multiplicity, help, and provenance are the gate. This is repeated-measures permutation IS-RSA, not yet a general mixed-effects regression. |
-| **4** | **Explicit run design and planned contrasts** | ✅ Complete (2026-08-30) | `-run_factor Condition`/`Movie` validates fixed run metadata and `-run_contrast NAME=FACTOR:POS-NEG` tests the equal-run level difference for every fixed or run-varying model. `-model Group:match` creates a categorical same-group geometry, so its happy−sad contrast is the representational Group × Condition interaction. Whole trajectories are relabeled synchronously. Per model, `separate` shares run/contrast × space BH/max-FWE and `mean` shares contrast × space; different behavioral models remain separate planned families. Exact exhaustive references, multiple factors/contrasts, ROI/searchlight, row/run-order identity, dataset labels, and thread identity pass. Movies/runs are explicitly fixed, not sampled random effects. |
+| **4** | **Explicit run design and planned contrasts** | ✅ Complete (2026-08-30) | `-run_factor Condition`/`Movie` validates fixed run metadata and `-run_contrast NAME=FACTOR:POS-NEG` tests the equal-run level difference for every fixed or run-varying model. `-model group Group:match` creates a categorical same-group geometry, so its happy−sad contrast is the representational Group × Condition interaction. Whole trajectories are relabeled synchronously. Per model, `separate` shares run/contrast × space BH/max-FWE and `mean` shares contrast × space; different behavioral models remain separate planned families. Exact exhaustive references, multiple factors/contrasts, ROI/searchlight, row/run-order identity, dataset labels, and thread identity pass. Movies/runs are explicitly fixed, not sampled random effects. |
 | **5** | **Covariate-adjusted repeated-run model** | ✅ Complete (2026-08-30) | `-model_joint` now fits every run's fixed and run-varying model RDMs together after rank transformation when requested and column standardization. It reports conditional standardized coefficients and partial correlations per run and as equal-run means. `-run_contrast` combines the signed coefficients, so `Group:match` happy−sad is the fixed-movie representational Group × Condition interaction adjusted for run-level Happiness (and, with `-run_center`, separate state/trait geometries). Model-specific Freedman–Lane reduced residuals use one synchronized subject permutation across runs and space; coefficient/contrast families retain Stage-4 BH/max-FWE. Per-run model correlations, high-correlation warnings, exact-duplicate rejection, explicit coefficient labels/provenance, NumPy regression references, shuffled-row and OpenMP identity form the gate. This stage is partial association, not Group × Happiness moderation and not a random-movie mixed model. |
 | **6** | **Population/random-effects and incomplete-run extension** | ⬜ Next | Decide whether random subject slopes and movie/run sampling require a true hierarchical model beyond synchronized permutation. Only then add unbalanced/missing runs, run-level bootstrap/uncertainty, and general joint/contrast families. The gate requires an explicit population estimand, missingness policy, variance-component behavior, type-I-error simulations, and thread/spatial reproducibility. |
 
@@ -528,9 +528,9 @@ checks in `run_numeric.py`): both modes write the maps and the painted value
 equals the text-table column exactly.
 
 3b. **Model contrasts + paired sign-flip test.** ✅ Done (2026-07-31).
-`-model_label NAME` names the next model; `-model_contrast A-B` (repeatable)
-tests whether model A fits better than B; `-group_test signflip|signedrank`
-picks the classic-RSA paired test.
+Models are named directly in `-model`, `-model_mat`, or `-model_dset`;
+`-model_contrast A-B` (repeatable) tests whether model A fits better than B;
+`-group_test signflip|signedrank` picks the classic-RSA paired test.
 
 - **IS-RSA**: statistic is `r(neural,A) - r(neural,B)` per ROI, with the SAME
   subject relabeling applied to both models at every draw (`THD_mantel_contrast`)
@@ -601,8 +601,8 @@ two brain-derived RDMs may each add something.
   ```
 
   ```text
-  -model_label eeg   -model_dset EEGFile
-  -model_label behav -model MADRS:nn
+  -model_dset eeg EEGFile
+  -model behav MADRS:nn
   -model_commonality eeg,behav
   ```
 - **Three-predictor scope is now delivered as F8.** A request of the form
@@ -777,7 +777,7 @@ estimation remains with `3dDeconvolve`, `3dREMLfit`, or `3dLSS`.
 
 ### 5. Mahalanobis behavioral profiles  ·  ✅ Done (2026-07-31)
 
-`-model A,B,C:mahal` (alongside the existing `:euclid`) whitens the behavioral
+`-model profile A,B,C:mahal` (alongside the existing `:euclid`) whitens the behavioral
 profile by the measures' covariance, so correlated measures no longer
 double-count: `d(i,j)^2 = (z_i - z_j)' R_reg^-1 (z_i - z_j)`, with `R` the
 correlation matrix of the z-scored columns.
@@ -1220,7 +1220,7 @@ system, not glue around a correlation.
 | **Behavioral rules** | Anna Karenina, nearest-neighbor, Euclidean similarity/distance, absolute difference, and multivariate profiles — standardized-Euclidean (`:euclid`) or covariance-whitened **Mahalanobis** (`:mahal`, Ledoit-Wolf-regularized). |
 | **Explicit and cross-modal models** | `-model_mat` supplies one fixed matrix; `-model_series` supplies an ordered set of time-resolved fixed matrices; `-model_dset` turns a same-grid second modality into a model rebuilt independently at each atlas ROI or searchlight center. Multiple dataset models, mean/pattern/RDM features, streamed collinearity diagnostics, commonality, and circular-shift inference are supported. Under second-order IS-RSA, each modality first builds its own subject condition RDMs. |
 | **Multiple models and nuisance adjustment** | `-model_joint` uses Freedman–Lane reduced-model relabeling; `-ortvec` removes a per-subject confound as *both* its `\|diff\|` and `sum` pairwise forms. Subject bootstrap refits the matching compact regression after invalid repeated-subject dyads are removed and reports coefficient intervals. |
-| **Model contrasts (A vs B)** | `-model_contrast A-B` tests whether A fits better than B — paired same-relabeling Mantel difference (IS-RSA) or within-subject sign-flip / Wilcoxon signed-rank (classic RSA), with its own max-stat FWE family and optional paired subject-bootstrap interval. IS-RSA accepts fixed, mixed fixed/`-model_dset`, and two per-location dataset models in atlas/searchlight analyses. `-model_label` names models; hyphenated names are resolved by the longest valid A prefix. |
+| **Model contrasts (A vs B)** | `-model_contrast A-B` tests whether A fits better than B — paired same-relabeling Mantel difference (IS-RSA) or within-subject sign-flip / Wilcoxon signed-rank (classic RSA), with its own max-stat FWE family and optional paired subject-bootstrap interval. IS-RSA accepts fixed, mixed fixed/`-model_dset`, and two per-location dataset models in atlas/searchlight analyses. Model names are supplied directly by `-model`, `-model_mat`, or `-model_dset`; hyphenated names are resolved by the longest valid A prefix. |
 | **Model commonality (A,B[,C])** | `-model_commonality A,B` preserves the raw unique-A / unique-B / common decomposition (`common` may be negative = suppression, kept unclipped) and appends `partialR2_A/B`. `A,B,C` reports seven exhaustive raw regions plus three conditional partial-R² effects. IS-RSA and classic RSA use predictor-specific reduced-model Freedman–Lane nulls for unique/partial effects and the complete neural-item null for shared regions. Classic effects average subject decompositions and synchronize condition relabelings across subjects/locations, including ordinary and runwise/crossnobis searchlights. All quantities get maps and optional synchronized subject-bootstrap bounds; IS-RSA also accepts per-location `-model_dset` predictors for atlas/searchlight EEG–fMRI fusion. |
 | **Cross-validated (crossnobis) distances** | `-runwiseTable` (subject × run betas) → unbiased cross-validated squared Euclidean condition RDMs, with negatives kept unclipped. Optional per-row `ConditionFile` mappings permit missing, reordered, and repeated conditions. Alternatively, `TrialFile` supplies an explicit unique trial ID and condition for every already-estimated beta sub-brick. Repeats/trials are averaged within run and each condition pair uses only its valid independent runs. `-noise_norm diag\|shrinkage` adds univariate or full (Ledoit-Wolf-whitened) normalization from `ResidFile`. Runs in atlas ROIs or volumetric searchlights for classic RSA and as the inner subject geometry for second-order IS-RSA. |
 | **Comparison metrics** | Pearson, ordinary Spearman, expected Spearman `rhoa`, Kendall tau-b, Kendall tau-a, plus covariance-whitened `corr_cov` and origin-sensitive `cosine_cov`/WUC for balanced runwise classic-RSA crossnobis. Rho-a and tau-a avoid favoring tied categorical predictions; rho-a is the faster familiar-correlation option and remains a scalar comparator rather than a regression objective. The F4 metrics use the exchangeable-condition zero-distance covariance; unsupported contracts fail explicitly. |
@@ -2022,8 +2022,8 @@ accounts for the fixed permutation cache where it is used.
 
 Combinations needing a different time-series statistic are rejected explicitly:
 `-model_joint`, `-ortvec`, `-model_contrast`, `-model_commonality`, and `-loo`.
-`-model_series` is also mutually exclusive with every single-model source and
-`-model_label`. Six new checks independently reconstruct exact sign-flip
+`-model_series` is also mutually exclusive with every single-model source.
+Six new checks independently reconstruct exact sign-flip
 statistics and the joint FDR/FWE family, compare atlas with a whole-volume
 searchlight, inspect table/brick provenance, verify thread reproducibility, and
 exercise malformed/mixed-input rejections. The complete suite passes 239/239.
@@ -2048,7 +2048,7 @@ family; A4b–A4e preserve reported numeric results.
 
 **A4a. LOO duplicates its statistic and its FWE family.** ✅ Done 2026-08-25.
 `-loo` predicts the raw column values, so two models built from the same column
-with different rules (`-model beh:nn -model beh:annak`) produce byte-identical
+with different rules (`-model beh_nn beh:nn -model beh_ak beh:annak`) produce byte-identical
 `looR`/`looP`. Models are now grouped by `mod[mm].icol`: each distinct source
 column is predicted once per location and owns one max-null family, while every
 requested model label retains its `looR/P/Q/Pfwe` table columns and map bricks.

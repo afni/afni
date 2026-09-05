@@ -408,7 +408,7 @@ def run_checks(BIN, work, threads, verbose):
     #    Mantel recomputation from the tool's own saved RDMs
     # =====================================================================
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model", "behav:nn", "-metric", "spearman", "-nperm", "2000",
+                   "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-nperm", "2000",
                    "-seed", "1", "-save_rdm", os.path.join(work, "sv"),
                    "-prefix", os.path.join(work, "planted"), "-quiet"])
     if rc != 0:
@@ -433,8 +433,8 @@ def run_checks(BIN, work, threads, verbose):
     # contracts are stable enough to guard.  Keep these runs inference-light;
     # the numerical paths receive their full checks below.
     pbase = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-             "-model_label", "NN", "-model", "behav:nn",
-             "-model_label", "AnnaK", "-model", "behav:annak",
+             "-model", "NN", "behav:nn",
+             "-model", "AnnaK", "behav:annak",
              "-metric", "spearman", "-nperm", "0",
              "-no_dset"]
     rpl, opl = rsa(pbase + ["-progress", "line", "-prefix",
@@ -503,7 +503,7 @@ def run_checks(BIN, work, threads, verbose):
                 fo.write("s%02d %g %s\n" % (sj, sj, fn))
         return tf
 
-    vbase = ["-mask", vmaskfn, "-mode", "IS-RSA", "-model", "behav:nn",
+    vbase = ["-mask", vmaskfn, "-mode", "IS-RSA", "-model", "behav_nn", "behav:nn",
              "-featuretype", "pattern", "-metric", "spearman", "-nperm", "0",
              "-no_dset", "-quiet"]
     fin_env = dict(os.environ, AFNI_FLOATSCAN="NO", AFNI_NOMMAP="YES",
@@ -536,16 +536,16 @@ def run_checks(BIN, work, threads, verbose):
     cleantab = finite_table("clean", 100)
     rvm, ovm = rsa(["-dataTableFile", cleantab, "-mask", nanmaskfn, "-mode", "IS-RSA",
                     "-featuretype", "pattern", "-searchlight", "SPHERE(2)",
-                    "-model", "behav:nn", "-nperm", "0", "-prefix", os.path.join(vdir, "nanmask_out")],
+                    "-model", "behav_nn", "behav:nn", "-nperm", "0", "-prefix", os.path.join(vdir, "nanmask_out")],
                    env=fin_env)
     rvf, ovf = rsa(["-dataTableFile", cleantab, "-mask", fracmaskfn, "-mode", "IS-RSA",
-                    "-model", "behav:nn", "-nperm", "0", "-prefix", os.path.join(vdir, "fracmask_out")])
+                    "-model", "behav_nn", "behav:nn", "-nperm", "0", "-prefix", os.path.join(vdir, "fracmask_out")])
     check("S7 atlas masks reject non-finite and non-integer positive labels",
           rvm != 0 and "non-finite" in ovm and rvf != 0 and "non-integer label" in ovf,
           "nan=%s frac=%s" % (ovm.strip()[-100:], ovf.strip()[-100:]))
 
     optbase = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-               "-model", "behav:nn", "-no_dset", "-prefix", os.path.join(vdir, "badopt")]
+               "-model", "behav_nn", "behav:nn", "-no_dset", "-prefix", os.path.join(vdir, "badopt")]
     badopts = [("-nperm", "20junk"), ("-seed", "1x"), ("-boot_ci", "nan"),
                ("-memory_limit", "inf"), ("-searchlight", "SPHERE(2)junk")]
     ores = [rsa(optbase + [o, v]) for o, v in badopts]
@@ -582,7 +582,7 @@ def run_checks(BIN, work, threads, verbose):
     def typed_run(tabname, pre):
         rc0, out0 = rsa(["-dataTableFile", tabname, "-mask", tmask,
                          "-searchlight", "SPHERE(2)", "-mode", "IS-RSA",
-                         "-featuretype", "pattern", "-model", "behav:nn",
+                         "-featuretype", "pattern", "-model", "behav_nn", "behav:nn",
                          "-metric", "spearman", "-nperm", "31", "-seed", "91",
                          "-no_dset", "-quiet", "-prefix", os.path.join(tdir, pre)],
                         env=env1)
@@ -604,8 +604,7 @@ def run_checks(BIN, work, threads, verbose):
     # inclusion of those artificial diagonal dyads gives a different answer.
     NBOOT, BSEED = 401, 73
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model", "behav:nn", "-model_label", "AK",
-                   "-model", "behav:annak", "-model_contrast", "behav_nn-AK",
+                   "-model", "behav_nn", "behav:nn", "-model", "AK", "behav:annak", "-model_contrast", "behav_nn-AK",
                    "-metric", "spearman", "-nperm", "0",
                    "-bootstrap", str(NBOOT), "-boot_ci", "90", "-seed", str(BSEED),
                    "-save_rdm", os.path.join(work, "bsv"),
@@ -661,7 +660,7 @@ def run_checks(BIN, work, threads, verbose):
 
     for tag, env in (("1", env1), ("N", envN)):
         rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-             "-model", "behav:nn", "-metric", "spearman", "-nperm", "0",
+             "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-nperm", "0",
              "-bootstrap", "101", "-boot_ci", "90", "-seed", "17", "-no_dset",
              "-prefix", os.path.join(work, "boot_thr" + tag)], env=env)
     bt1 = read_table(os.path.join(work, "boot_thr1.rsa.1D"), "behav_nn")[1]
@@ -703,7 +702,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def run_shift(pre, env=None, nshift=TSP):
         args = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                "-model", "behav:nn", "-metric", "spearman",
+                "-model", "behav_nn", "behav:nn", "-metric", "spearman",
                 "-null", "timeshift", "-min_shift", str(TSMIN),
                 "-nperm", str(nshift), "-seed", str(TSSEED), "-no_dset",
                 "-prefix", os.path.join(work, pre)]
@@ -731,7 +730,7 @@ def run_checks(BIN, work, threads, verbose):
     # same offset set drives both its pointwise and max-statistic nulls.
     SLP = 20
     slargs = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-              "-model", "behav:nn", "-metric", "spearman", "-searchlight", "SPHERE(100)",
+              "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-searchlight", "SPHERE(100)",
               "-null", "timeshift", "-min_shift", str(TSMIN), "-nperm", str(SLP),
               "-seed", str(TSSEED), "-prefix", os.path.join(work, "timeshift_sl")]
     rcsl, osl = rsa(slargs, env=envN)
@@ -776,7 +775,7 @@ def run_checks(BIN, work, threads, verbose):
         else:
             rc19, out19 = rsa([
                 "-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                "-model", "behav:nn", "-metric", "spearman",
+                "-model", "behav_nn", "behav:nn", "-metric", "spearman",
                 "-neural_metric", metric, "-null", "timeshift",
                 "-min_shift", str(TSMIN), "-nperm", str(f19n),
                 "-seed", str(TSSEED), "-no_dset", "-prefix",
@@ -848,8 +847,8 @@ def run_checks(BIN, work, threads, verbose):
         return np.column_stack((obs, pu, pf))
 
     f18base = ["-dataTableFile", tsregtab, "-mask", atlas, "-mode", "IS-RSA",
-               "-model_label", "NN", "-model", "behav:nn",
-               "-model_label", "AK", "-model", "behav:annak",
+               "-model", "NN", "behav:nn",
+               "-model", "AK", "behav:annak",
                "-ortvec", "motion", "-metric", "spearman",
                "-null", "timeshift", "-min_shift", str(TSMIN),
                "-nperm", str(TSP), "-seed", str(TSSEED), "-no_dset"]
@@ -906,7 +905,7 @@ def run_checks(BIN, work, threads, verbose):
           (rcp18, gotjp, refjp, gotcp, refcp, op18.strip()[-80:]))
 
     ortargs = ["-dataTableFile", tsregtab, "-mask", atlas, "-mode", "IS-RSA",
-               "-model_label", "NN", "-model", "behav:nn", "-ortvec", "motion",
+               "-model", "NN", "behav:nn", "-ortvec", "motion",
                "-metric", "spearman", "-null", "timeshift", "-min_shift", str(TSMIN),
                "-nperm", str(TSP), "-seed", str(TSSEED), "-no_dset",
                "-prefix", os.path.join(work, "f18_ort")]
@@ -972,7 +971,7 @@ def run_checks(BIN, work, threads, verbose):
           spectral_ok)
 
     f5args = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-              "-model", "behav:nn", "-metric", "spearman", "-null", "phase",
+              "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-null", "phase",
               "-nperm", str(F5N), "-seed", str(F5SEED), "-no_dset"]
     rcf5, of5 = rsa(f5args + ["-prefix", os.path.join(work, "f5_primary")], env=env1)
     rf5 = read_table(os.path.join(work, "f5_primary.rsa.1D"), "behav_nn")[1] if rcf5 == 0 else []
@@ -1016,8 +1015,8 @@ def run_checks(BIN, work, threads, verbose):
           f5metric_ok, "%s" % f5metric_detail)
 
     f5regbase = ["-dataTableFile", tsregtab, "-mask", atlas, "-mode", "IS-RSA",
-                 "-model_label", "NN", "-model", "behav:nn",
-                 "-model_label", "AK", "-model", "behav:annak",
+                 "-model", "NN", "behav:nn",
+                 "-model", "AK", "behav:annak",
                  "-ortvec", "motion", "-metric", "spearman", "-null", "phase",
                  "-nperm", str(F5N), "-seed", str(F5SEED), "-no_dset"]
     rcf5r, of5r = rsa(f5regbase + ["-model_joint", "-model_contrast", "NN-AK",
@@ -1037,7 +1036,7 @@ def run_checks(BIN, work, threads, verbose):
           "rc=%d 3dRSA=%s ref=%s" % (rcf5r, gotf5c, reff5c))
 
     f5ortargs = ["-dataTableFile", tsregtab, "-mask", atlas, "-mode", "IS-RSA",
-                 "-model_label", "NN", "-model", "behav:nn", "-ortvec", "motion",
+                 "-model", "NN", "behav:nn", "-ortvec", "motion",
                  "-metric", "spearman", "-null", "phase", "-nperm", str(F5N),
                  "-seed", str(F5SEED), "-no_dset", "-prefix",
                  os.path.join(work, "f5_ort")]
@@ -1074,8 +1073,8 @@ def run_checks(BIN, work, threads, verbose):
     f23pre = os.path.join(work, "f23_tied")
     f23save = os.path.join(work, "f23save")
     f23base = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-               "-model_label", "NN", "-model", "behav:nn",
-               "-model_label", "AK", "-model", "behav:annak",
+               "-model", "NN", "behav:nn",
+               "-model", "AK", "behav:annak",
                "-model_contrast", "NN-AK", "-metric", "rhoa", "-nperm", "0",
                "-no_dset", "-save_rdm", f23save, "-prefix", f23pre]
     rc23, o23 = rsa(f23base, env=env1)
@@ -1108,8 +1107,7 @@ def run_checks(BIN, work, threads, verbose):
     def f23_unique_run(metric, tag):
         pre = os.path.join(work, "f23_unique_" + tag)
         rc0, out0 = rsa(["-dataTableFile", table, "-mask", atlas,
-                         "-mode", "IS-RSA", "-model_label", "U",
-                         "-model_mat", f23uf,
+                         "-mode", "IS-RSA", "-model_mat", "U", f23uf,
                          "-metric", metric, "-nperm", "0", "-no_dset",
                          "-prefix", pre], env=env1)
         rows0 = read_table(pre + ".rsa.1D", "U")[1] if rc0 == 0 else []
@@ -1170,7 +1168,7 @@ def run_checks(BIN, work, threads, verbose):
     # Contract failures are explicit: this null has a different estimand and
     # must never silently fall back to subject-label permutation.
     base_ts = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-               "-model", "behav:nn", "-nperm", "20"]
+               "-model", "behav_nn", "behav:nn", "-nperm", "20"]
     rcpat, opat = rsa(base_ts + ["-featuretype", "pattern", "-null", "timeshift",
                                   "-prefix", os.path.join(work, "bad_ts_pattern")])
     rcmin, omin = rsa(base_ts + ["-min_shift", "3",
@@ -1209,8 +1207,8 @@ def run_checks(BIN, work, threads, verbose):
 
     def f9_run(metric, pre, searchlight=False, env=None, nper=101, maskname=allmask):
         aa = ["-dataTableFile", table, "-mask", maskname, "-mode", "IS-RSA",
-              "-model_label", "nn", "-model", "behav:nn",
-              "-model_label", "ak", "-model", "behav:annak",
+              "-model", "nn", "behav:nn",
+              "-model", "ak", "behav:annak",
               "-model_contrast", "nn-ak", "-metric", metric,
               "-nperm", str(nper), "-seed", "73", "-no_dset",
               "-prefix", os.path.join(work, pre)]
@@ -1289,8 +1287,8 @@ def run_checks(BIN, work, threads, verbose):
     oref = percentile_linear(odraw, (0.05, 0.95))
 
     jbase = ["-dataTableFile", regtab, "-mask", atlas, "-mode", "IS-RSA",
-             "-model_label", "NN", "-model", "behav:nn",
-             "-model_label", "AK", "-model", "behav:annak",
+             "-model", "NN", "behav:nn",
+             "-model", "AK", "behav:annak",
              "-model_joint", "-ortvec", "motion", "-metric", "spearman",
              "-nperm", "0", "-bootstrap", "401", "-boot_ci", "90",
              "-seed", "37", "-prefix", os.path.join(work, "boot_joint_is")]
@@ -1304,7 +1302,7 @@ def run_checks(BIN, work, threads, verbose):
           "rc=%d 3dRSA=%s reference=%s %s" % (rcj, jgot, jref, oj.strip()[-100:]))
 
     obase = ["-dataTableFile", regtab, "-mask", atlas, "-mode", "IS-RSA",
-             "-model_label", "NN", "-model", "behav:nn",
+             "-model", "NN", "behav:nn",
              "-ortvec", "motion", "-metric", "spearman", "-nperm", "0",
              "-bootstrap", "401", "-boot_ci", "90", "-seed", "37",
              "-prefix", os.path.join(work, "boot_ort_is")]
@@ -1333,7 +1331,7 @@ def run_checks(BIN, work, threads, verbose):
     # makes every resample the identity.  This is a sharp contract check that
     # -block drives within-stratum resampling rather than being ignored.
     rcb, ob = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model", "behav:nn", "-block", "behav", "-bootstrap", "20",
+                   "-model", "behav_nn", "behav:nn", "-block", "behav", "-bootstrap", "20",
                    "-nperm", "0", "-no_dset",
                    "-prefix", os.path.join(work, "boot_singleton_block")])
     brow = (read_table(os.path.join(work, "boot_singleton_block.rsa.1D"),
@@ -1348,7 +1346,7 @@ def run_checks(BIN, work, threads, verbose):
     # 2. null-200 FWE calibration + monotonicity
     # =====================================================================
     rc, out = rsa(["-dataTableFile", ntable, "-mask", natlas, "-mode", "IS-RSA",
-                   "-model", "behav:nn", "-metric", "spearman", "-nperm", "3000",
+                   "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-nperm", "3000",
                    "-seed", "1", "-no_dset",
                    "-prefix", os.path.join(work, "null")], env=env1)
     if rc != 0:
@@ -1369,7 +1367,7 @@ def run_checks(BIN, work, threads, verbose):
     # =====================================================================
     for tag, env in (("1", env1), ("N", envN)):
         rsa(["-dataTableFile", ntable, "-mask", natlas, "-mode", "IS-RSA",
-             "-model", "behav:nn", "-metric", "spearman", "-nperm", "1500",
+             "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-nperm", "1500",
              "-seed", "9", "-no_dset",
              "-prefix", os.path.join(work, "thr%s" % tag)], env=env)
     _, a = read_table(os.path.join(work, "thr1.rsa.1D"), "behav_nn")
@@ -1383,7 +1381,7 @@ def run_checks(BIN, work, threads, verbose):
     # 4. LOO: positive on planted, monotone FWE
     # =====================================================================
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model", "behav:nn", "-metric", "spearman", "-nperm", "2000",
+                   "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-nperm", "2000",
                    "-seed", "1", "-loo", "-no_dset",
                    "-prefix", os.path.join(work, "loo")])
     _, lrows = read_table(os.path.join(work, "loo.rsa.1D"), "behav_nn")
@@ -1399,10 +1397,10 @@ def run_checks(BIN, work, threads, verbose):
     # valid parses: a-(b-c) and (a-b)-c; the documented longest A prefix wins.
     a4pre = os.path.join(work, "a4ab")
     rca4, oa4 = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                     "-model_label", "a", "-model", "behav:nn",
-                     "-model_label", "b-c", "-model", "behav:nn",
-                     "-model_label", "a-b", "-model", "behav:nn",
-                     "-model_label", "c", "-model", "behav:annak",
+                     "-model", "a", "behav:nn",
+                     "-model", "b-c", "behav:nn",
+                     "-model", "a-b", "behav:nn",
+                     "-model", "c", "behav:annak",
                      "-model_contrast", "a-b-c", "-loo", "-metric", "spearman",
                      "-nperm", "200", "-seed", "7", "-no_dset", "-prefix", a4pre])
     a4rows = (read_table(a4pre + ".rsa.1D", "a")[1] if rca4 == 0 else [])
@@ -1435,7 +1433,7 @@ def run_checks(BIN, work, threads, verbose):
     # AUDIT FIX 2: -neural_metric euclid must NOT invert LOO
     # =====================================================================
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model", "behav:nn", "-neural_metric", "euclid",
+                   "-model", "behav_nn", "behav:nn", "-neural_metric", "euclid",
                    "-metric", "spearman", "-nperm", "500", "-seed", "1", "-loo",
                    "-no_dset", "-prefix", os.path.join(work, "le")])
     _, erows = read_table(os.path.join(work, "le.rsa.1D"), "behav_nn")
@@ -1574,9 +1572,9 @@ def run_checks(BIN, work, threads, verbose):
                          for r in range(3)] for m in range(3)])
 
     f10args = ["-dataTableFile", f10tab, "-mask", atlas, "-mode", "IS-RSA",
-               "-model_label", "NN", "-model", "behav:nn",
-               "-model_label", "AK", "-model", "behav:annak",
-               "-model_label", "MV", "-model", "behav,behav2:euclid",
+               "-model", "NN", "behav:nn",
+               "-model", "AK", "behav:annak",
+               "-model", "MV", "behav,behav2:euclid",
                "-metric", "spearman", "-block", "Pair", "-nperm", "1024",
                "-seed", "71", "-loo", "-no_dset"]
     rc10, o10 = rsa(f10args + ["-prefix", os.path.join(work, "f10_exact")], env=env1)
@@ -1619,9 +1617,9 @@ def run_checks(BIN, work, threads, verbose):
                      for ix in f17ix if len(set(map(int, ix))) >= 3]
             f17ref[mi, ri] = percentile_linear(draws, (0.05, 0.95))
     f17args = ["-dataTableFile", f10tab, "-mask", atlas, "-mode", "IS-RSA",
-               "-model_label", "NN", "-model", "behav:nn",
-               "-model_label", "AK", "-model", "behav:annak",
-               "-model_label", "MV", "-model", "behav,behav2:euclid",
+               "-model", "NN", "behav:nn",
+               "-model", "AK", "behav:annak",
+               "-model", "MV", "behav,behav2:euclid",
                "-metric", "spearman", "-block", "Pair", "-nperm", "0",
                "-seed", str(SDLOO), "-loo", "-bootstrap", str(NBLOO),
                "-boot_ci", "90", "-no_dset",
@@ -1647,9 +1645,9 @@ def run_checks(BIN, work, threads, verbose):
                              ai.affine), f10mask)
     f10slbase = ["-dataTableFile", f10tab, "-mask", f10mask,
                  "-searchlight", "SPHERE(100)", "-mode", "IS-RSA",
-                 "-model_label", "NN", "-model", "behav:nn",
-                 "-model_label", "AK", "-model", "behav:annak",
-                 "-model_label", "MV", "-model", "behav,behav2:mahal",
+                 "-model", "NN", "behav:nn",
+                 "-model", "AK", "behav:annak",
+                 "-model", "MV", "behav,behav2:mahal",
                  "-metric", "spearman", "-block", "Pair", "-nperm", "64",
                  "-seed", "73", "-loo", "-bootstrap", "101", "-boot_ci", "90"]
     sl10 = []
@@ -1677,7 +1675,7 @@ def run_checks(BIN, work, threads, verbose):
     # AUDIT FIX 3: -nperm 0 IS-RSA => untyped _FZ; classic => typed _Z
     # =====================================================================
     rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-         "-model", "behav:nn", "-nperm", "0",
+         "-model", "behav_nn", "behav:nn", "-nperm", "0",
          "-prefix", os.path.join(work, "z0"), "-quiet"])
     z0h = os.path.join(work, "z0+orig.HEAD")
     labs = head_brick_labs(z0h)
@@ -1691,7 +1689,7 @@ def run_checks(BIN, work, threads, verbose):
     M = (mm[:, None] != mm[None, :]).astype(float)
     np.savetxt(os.path.join(work, "cat.1D"), M, fmt="%.1f")
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                   "-model_mat", os.path.join(work, "cat.1D"), "-nperm", "0",
+                   "-model_mat", "cat", os.path.join(work, "cat.1D"), "-nperm", "0",
                    "-prefix", os.path.join(work, "rc0"), "-quiet"])
     rc0h = os.path.join(work, "rc0+orig.HEAD")
     check("FIX3 classic RSA nperm0 keeps FIZT _Z (real t-test)",
@@ -1739,7 +1737,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def ordinary_sl_run(pre, searchlight=False, env=None):
         aa = ["-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-              "-model_label", "condition", "-model_mat", omodfn,
+              "-model_mat", "condition", omodfn,
               "-metric", "spearman", "-nperm", "61", "-seed", "103",
               "-no_dset", "-prefix", os.path.join(osd, pre)]
         if searchlight:
@@ -1786,8 +1784,7 @@ def run_checks(BIN, work, threads, verbose):
     def condition_long_run(table_path, pre):
         aa = ["-dataTableFile", table_path, "-condition_column", "cond",
               "-condition_order", ",".join("c%d" % c for c in range(OCOND)),
-              "-mask", omask, "-mode", "RSA", "-model_label", "condition",
-              "-model_mat", omodfn, "-metric", "spearman", "-nperm", "61",
+              "-mask", omask, "-mode", "RSA", "-model_mat", "condition", omodfn, "-metric", "spearman", "-nperm", "61",
               "-seed", "103", "-no_dset", "-prefix", os.path.join(osd, pre)]
         rc0, out0 = rsa(aa, env=env1)
         rows0 = (read_table(os.path.join(osd, pre + ".rsa.1D"), "condition")[1]
@@ -1858,7 +1855,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def s2_run(pre, inner="corr", center="subject", searchlight=False, env=None):
         aa = ["-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-              "-model_label", "condition", "-model_mat", omodfn,
+              "-model_mat", "condition", omodfn,
               "-neural_metric", inner, "-metric", "spearman",
               "-center_conditions", center, "-nperm", "61", "-seed", "103",
               "-no_dset", "-prefix", os.path.join(osd, pre)]
@@ -1907,11 +1904,11 @@ def run_checks(BIN, work, threads, verbose):
           len(s2t1) == len(s2tn) == np.prod(OSHAPE) and s2t1 == s2tn)
     s2bi, s2bio = rsa([
         "-dataTableFile", otab, "-mask", omask, "-mode", "IS-RSA",
-        "-model", "behav:nn", "-center_conditions", "subject", "-nperm", "20",
+        "-model", "behav_nn", "behav:nn", "-center_conditions", "subject", "-nperm", "20",
         "-no_dset", "-prefix", os.path.join(osd, "s2_bad_is")])
     s2bv, s2bvo = rsa([
         "-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-        "-model_mat", omodfn, "-center_conditions", "partition", "-nperm", "20",
+        "-model_mat", "condition", omodfn, "-center_conditions", "partition", "-nperm", "20",
         "-no_dset", "-prefix", os.path.join(osd, "s2_bad_value")])
     check("S2 invalid feature and option-value contracts are explicit",
           s2bi != 0 and "needs an ordinary condition" in s2bio and
@@ -1942,7 +1939,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def s1_run(pre, searchlight=False, env=None, tablefile=otab, extra=()):
         aa = ["-dataTableFile", tablefile, "-mask", omask, "-mode", "RSA",
-              "-model_label", "condition", "-model_mat", omodfn,
+              "-model_mat", "condition", omodfn,
               "-metric", "spearman", "-classic_null", "conditions",
               "-nperm", "720", "-seed", "307", "-no_dset",
               "-prefix", os.path.join(osd, pre)] + list(extra)
@@ -1995,7 +1992,7 @@ def run_checks(BIN, work, threads, verbose):
                   if s1o else None), np.tanh(s1one_obs), s1one_p,
            os1o.strip()[-120:]))
     rbad1, obad1 = rsa(["-dataTableFile", otab1, "-mask", omask, "-mode", "RSA",
-                        "-model_mat", omodfn, "-nperm", "20", "-no_dset",
+                        "-model_mat", "condition", omodfn, "-nperm", "20", "-no_dset",
                         "-prefix", os.path.join(osd, "s1_bad_subjects")])
     check("S1 single-subject population null is rejected explicitly",
           rbad1 != 0 and "needs at least 2 independent" in obad1)
@@ -2011,7 +2008,7 @@ def run_checks(BIN, work, threads, verbose):
     s1crdiff = np.mean([
         spearman_tri(N, omodel) - spearman_tri(N, omodel2) for N in oinner
     ])
-    extra = ("-model_label", "alternate", "-model_mat", omodfn2,
+    extra = ("-model_mat", "alternate", omodfn2,
              "-model_contrast", "condition-alternate",
              "-contrast_hypothesis", "alignment")
     rs1c, os1c, s1c, ms1c = s1_run("s1_contrast", False, env1, otab, extra)
@@ -2033,7 +2030,7 @@ def run_checks(BIN, work, threads, verbose):
           "(sharp alignment null; not an equal-performance null)" in ms1c)
     rs1sup, os1sup = s1_run(
         "s1_bad_superiority", False, env1, otab,
-        ("-model_label", "alternate", "-model_mat", omodfn2,
+        ("-model_mat", "alternate", omodfn2,
          "-model_contrast", "condition-alternate",
          "-contrast_hypothesis", "superiority"))[:2]
     check("S1 fixed-condition superiority rejects the alignment permutation",
@@ -2042,10 +2039,10 @@ def run_checks(BIN, work, threads, verbose):
     # First-contract exclusions are explicit rather than silently borrowing a
     # global complete-null interpretation for conditional regression effects.
     rbj, obj = s1_run("s1_bad_joint", False, env1, otab,
-                      ("-model_label", "alternate", "-model_mat", omodfn2,
+                      ("-model_mat", "alternate", omodfn2,
                        "-model_joint"))[:2]
     rbi, obi = rsa(["-dataTableFile", otab, "-mask", omask, "-mode", "IS-RSA",
-                    "-model", "behav:nn", "-classic_null", "conditions",
+                    "-model", "behav_nn", "behav:nn", "-classic_null", "conditions",
                     "-nperm", "20", "-no_dset",
                     "-prefix", os.path.join(osd, "s1_bad_is")])
     rbg, obg = s1_run("s1_bad_group", False, env1, otab,
@@ -2203,7 +2200,7 @@ def run_checks(BIN, work, threads, verbose):
 
     rbm, obm = rsa(["-dataTableFile", sctab, "-mask", sctargetfn,
                     "-seed_mask", scseedfn, "-mode", "IS-RSA",
-                    "-model_mat", omodfn, "-nperm", "20",
+                    "-model_mat", "condition", omodfn, "-nperm", "20",
                     "-prefix", os.path.join(scd, "bad_mixed")])
     rbr, obr = rsa(["-dataTableFile", sctab, "-mask", sctargetfn,
                     "-seed_mask", scmfn, "-mode", "IS-RSA", "-nperm", "20",
@@ -2277,9 +2274,9 @@ def run_checks(BIN, work, threads, verbose):
     f14ref = np.arctanh(np.clip(f7ref, -0.999329, 0.999329)) - \
              np.arctanh(np.clip(f14badref, -0.999329, 0.999329))
     f7base = ["-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-              "-model_label", "TRUE", "-model_mat", omodfn,
-              "-model_label", "ALT", "-model_mat", f7altfn,
-              "-model_label", "ALT2", "-model_mat", f7alt2fn,
+              "-model_mat", "TRUE", omodfn,
+              "-model_mat", "ALT", f7altfn,
+              "-model_mat", "ALT2", f7alt2fn,
               "-metric", "pearson", "-model_fit", "MIX=TRUE,ALT",
               "-model_fit", "NULLFIT=ALT,ALT2", "-model_contrast", "MIX-NULLFIT",
               "-fit_ridge", "0.01", "-nperm", "37", "-seed", "211", "-quiet"]
@@ -2392,9 +2389,9 @@ def run_checks(BIN, work, threads, verbose):
     f22diffref = np.arctanh(np.clip(f22ref, -0.999329, 0.999329)) - \
                  np.arctanh(np.clip(f22badref, -0.999329, 0.999329))
     f22base = ["-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-               "-model_label", "TRUE", "-model_mat", omodfn,
-               "-model_label", "ALT", "-model_mat", f7altfn,
-               "-model_label", "NOISE", "-model_mat", f22noisefn,
+               "-model_mat", "TRUE", omodfn,
+               "-model_mat", "ALT", f7altfn,
+               "-model_mat", "NOISE", f22noisefn,
                "-metric", "pearson", "-model_fit", "MIX=TRUE,ALT",
                "-model_fit", "BAD=ALT,NOISE", "-model_contrast", "MIX-BAD",
                "-fit_condfold", f22foldfn, "-fit_ridge", "0.01",
@@ -2449,13 +2446,13 @@ def run_checks(BIN, work, threads, verbose):
     rc22l, o22l = rsa(f22base[:f22base.index("-fit_condfold")] +
                       ["-fit_condfold", f22short, "-prefix", os.path.join(osd, "f22_short_out")])
     rc22i, o22i = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                       "-model_label", "NN", "-model", "behav:nn",
-                       "-model_label", "AK", "-model", "behav:annak",
+                       "-model", "NN", "behav:nn",
+                       "-model", "AK", "behav:annak",
                        "-metric", "pearson", "-model_fit", "MIX=NN,AK",
                        "-fit_condfold", f22foldfn,
                        "-prefix", os.path.join(osd, "f22_is_bad")])
     rc22n, o22n = rsa(["-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-                       "-model_mat", omodfn, "-fit_condfold", f22foldfn,
+                       "-model_mat", "condition", omodfn, "-fit_condfold", f22foldfn,
                        "-prefix", os.path.join(osd, "f22_no_fit")])
     check("F22 rejects malformed folds, IS-RSA, and descriptors without a fitted model",
           rc22s != 0 and "holds 2 and leaves 4" in o22s and
@@ -2467,8 +2464,8 @@ def run_checks(BIN, work, threads, verbose):
            o22n.strip()[-100:]))
 
     rcmix14, omix14 = rsa(["-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-                           "-model_label", "TRUE", "-model_mat", omodfn,
-                           "-model_label", "ALT", "-model_mat", f7altfn,
+                           "-model_mat", "TRUE", omodfn,
+                           "-model_mat", "ALT", f7altfn,
                            "-metric", "pearson", "-model_fit", "MIX=TRUE,ALT",
                            "-model_contrast", "TRUE-MIX", "-no_dset",
                            "-prefix", os.path.join(osd, "f14_mixed")])
@@ -2509,9 +2506,9 @@ def run_checks(BIN, work, threads, verbose):
               np.arctanh(np.clip(f14ibadref, -0.999329, 0.999329))
     f7ipre = os.path.join(work, "f7_is")
     f14ibase = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                "-model_label", "NN", "-model", "behav:nn",
-                "-model_label", "AK", "-model", "behav:annak",
-                "-model_label", "NOISE", "-model_mat", f14inoisefn,
+                "-model", "NN", "behav:nn",
+                "-model", "AK", "behav:annak",
+                "-model_mat", "NOISE", f14inoisefn,
                 "-metric", "pearson", "-model_fit", "MIX=NN,AK",
                 "-model_fit", "BAD=AK,NOISE", "-model_contrast", "MIX-BAD",
                 "-nperm", "37", "-seed", "212", "-no_dset", "-quiet"]
@@ -2646,7 +2643,7 @@ def run_checks(BIN, work, threads, verbose):
           len(f20t1) == len(f20tn) > 0 and f20t1 == f20tn)
 
     rcmix, omix = rsa(["-dataTableFile", otab, "-mask", omask, "-mode", "RSA",
-                       "-model_series", f20_list, "-model_mat", omodfn,
+                       "-model_series", f20_list, "-model_mat", "condition", omodfn,
                        "-nperm", "20", "-no_dset", "-prefix", os.path.join(osd, "f20_mix")])
     badlist = os.path.join(osd, "f20_bad.txt")
     with open(badlist, "w") as f:
@@ -2687,8 +2684,8 @@ def run_checks(BIN, work, threads, verbose):
     def a3_run(pre, searchlight=False, env=None, save=False, extra=()):
         aa = ["-dataTableFile", otab, "-mask", omask, "-mode", "IS-RSA",
               "-featuretype", "rdm", "-condition_metric", "corr",
-              "-neural_metric", "corr", "-model", "behav:nn",
-              "-model_label", "modality", "-model_dset", "ModFile",
+              "-neural_metric", "corr", "-model", "behav_nn", "behav:nn",
+              "-model_dset", "modality", "ModFile",
               "-metric", "spearman", "-nperm", "61", "-seed", "107",
               "-no_dset", "-prefix", os.path.join(osd, pre)] + list(extra)
         if searchlight:
@@ -2747,7 +2744,7 @@ def run_checks(BIN, work, threads, verbose):
     # group Fisher-z percentile interval.
     OCB, OSEED = 201, 31
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                   "-model_label", "cat", "-model_mat", os.path.join(work, "cat.1D"),
+                   "-model_mat", "cat", os.path.join(work, "cat.1D"),
                    "-metric", "spearman", "-nperm", "0",
                    "-cond_bootstrap", str(OCB), "-boot_ci", "90", "-seed", str(OSEED),
                    "-no_dset", "-prefix", os.path.join(work, "ordinary_cboot")])
@@ -2787,27 +2784,27 @@ def run_checks(BIN, work, threads, verbose):
     # AUDIT FIX 4: -block rejected under classic RSA
     # =====================================================================
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                   "-model_mat", os.path.join(work, "cat.1D"), "-block", "behav",
+                   "-model_mat", "cat", os.path.join(work, "cat.1D"), "-block", "behav",
                    "-nperm", "100", "-prefix", os.path.join(work, "blk"), "-quiet"])
     check("FIX4 -block + classic RSA errors out",
           rc != 0 and "block" in out.lower(), "rc=%d" % rc)
 
     rc_is, o_is = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                       "-model", "behav:nn", "-cond_bootstrap", "20",
+                       "-model", "behav_nn", "behav:nn", "-cond_bootstrap", "20",
                        "-prefix", os.path.join(work, "bad_cboot_is")])
     rc_dual, o_dual = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                           "-model_mat", os.path.join(work, "cat.1D"),
+                           "-model_mat", "cat", os.path.join(work, "cat.1D"),
                            "-bootstrap", "20", "-cond_bootstrap", "21",
                            "-prefix", os.path.join(work, "bad_dual")])
     lone_group = os.path.join(work, "lone_group.txt")
     with open(lone_group, "w") as f:
         f.write("g\n" * NT)
     rc_grp, o_grp = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                         "-model_mat", os.path.join(work, "cat.1D"),
+                         "-model_mat", "cat", os.path.join(work, "cat.1D"),
                          "-cond_group", lone_group,
                          "-prefix", os.path.join(work, "bad_group")])
     rc_gn, o_gn = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                       "-model_mat", os.path.join(work, "cat.1D"),
+                       "-model_mat", "cat", os.path.join(work, "cat.1D"),
                        "-cond_bootstrap", "20", "-cond_group", lone_group,
                        "-prefix", os.path.join(work, "bad_group_count")])
     check("F2 condition bootstrap is classic-RSA-only",
@@ -2836,7 +2833,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def vm(fname):
         return rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                    "-model_mat", os.path.join(work, fname), "-nperm", "0",
+                    "-model_mat", "mat", os.path.join(work, fname), "-nperm", "0",
                     "-prefix", os.path.join(work, "vm"), "-quiet"])
     rc_a, o_a = vm("asym.1D")
     rc_o, o_o = vm("ovf.1D")
@@ -2856,7 +2853,7 @@ def run_checks(BIN, work, threads, verbose):
     outs = {}
     for tag, env in (("1", env1), ("N", envN)):
         rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                       "-model_joint", "-model", "behav:nn", "-model", "behav2:nn",
+                       "-model_joint", "-model", "behav_nn", "behav:nn", "-model", "behav2_nn", "behav2:nn",
                        "-metric", "spearman", "-nperm", "2000", "-seed", "3",
                        "-no_dset", "-prefix", os.path.join(work, "deg%s" % tag)],
                       env=env)
@@ -2886,8 +2883,8 @@ def run_checks(BIN, work, threads, verbose):
     # =====================================================================
     def con_run(prefix, args, env=None):
         base = ["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                "-model_label", "nn", "-model", "behav:nn",
-                "-model_label", "ak", "-model", "behav:annak",
+                "-model", "nn", "behav:nn",
+                "-model", "ak", "behav:annak",
                 "-metric", "spearman", "-nperm", "2000", "-seed", "1",
                 "-no_dset", "-prefix", os.path.join(work, prefix)]
         return rsa(base + args, env=env)
@@ -3007,8 +3004,8 @@ def run_checks(BIN, work, threads, verbose):
 
     # identical models -> exactly zero difference, p == 1
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model_label", "x", "-model", "behav:nn",
-                   "-model_label", "y", "-model", "behav:nn",
+                   "-model", "x", "behav:nn",
+                   "-model", "y", "behav:nn",
                    "-model_contrast", "x-y", "-metric", "spearman",
                    "-nperm", "1000", "-seed", "1", "-no_dset",
                    "-prefix", os.path.join(work, "coni")])
@@ -3023,8 +3020,8 @@ def run_checks(BIN, work, threads, verbose):
     semM = (sem != sem.T).astype(float); np.savetxt(os.path.join(work, "sem.1D"), semM, fmt="%.1f")
     for gt, tag in (("signflip", "csf"), ("signedrank", "csr")):
         rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                       "-model_label", "vis", "-model_mat", os.path.join(work, "vis.1D"),
-                       "-model_label", "sem", "-model_mat", os.path.join(work, "sem.1D"),
+                       "-model_mat", "vis", os.path.join(work, "vis.1D"),
+                       "-model_mat", "sem", os.path.join(work, "sem.1D"),
                        "-model_contrast", "vis-sem", "-group_test", gt,
                        "-contrast_hypothesis", "superiority",
                        "-nperm", "2000", "-seed", "1", "-no_dset",
@@ -3042,8 +3039,8 @@ def run_checks(BIN, work, threads, verbose):
               "rc=%d" % rc)
 
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                   "-model_label", "vis", "-model_mat", os.path.join(work, "vis.1D"),
-                   "-model_label", "sem", "-model_mat", os.path.join(work, "sem.1D"),
+                   "-model_mat", "vis", os.path.join(work, "vis.1D"),
+                   "-model_mat", "sem", os.path.join(work, "sem.1D"),
                    "-model_joint", "-bootstrap", "101", "-boot_ci", "90",
                    "-nperm", "100", "-seed", "31", "-no_dset",
                    "-prefix", os.path.join(work, "boot_joint"), "-quiet"])
@@ -3147,8 +3144,8 @@ def run_checks(BIN, work, threads, verbose):
 
     def ca_run(pre, extra, tab=table, env=None):
         base = ["-dataTableFile", tab, "-mask", atlas, "-mode", "IS-RSA",
-                "-model_label", "nn", "-model", "behav:nn",
-                "-model_label", "ak", "-model", "behav:annak",
+                "-model", "nn", "behav:nn",
+                "-model", "ak", "behav:annak",
                 "-metric", "spearman", "-nperm", "1000", "-seed", "1", "-no_dset",
                 "-prefix", os.path.join(work, pre)]
         return rsa(base + extra, env=env)
@@ -3246,9 +3243,9 @@ def run_checks(BIN, work, threads, verbose):
             C = np.loadtxt(cfn)  # reference the exact values parsed by 3dRSA
             f8pre = os.path.join(work, "f8_is")
             f8args = ["-dataTableFile", pairtab, "-mask", atlas, "-mode", "IS-RSA",
-                      "-model_label", "nn", "-model", "behav:nn",
-                      "-model_label", "ak", "-model", "behav:annak",
-                      "-model_label", "c", "-model_mat", cfn,
+                      "-model", "nn", "behav:nn",
+                      "-model", "ak", "behav:annak",
+                      "-model_mat", "c", cfn,
                       "-model_commonality", "nn,ak,c", "-metric", "spearman",
                       "-block", "Pair", "-nperm", "1024", "-seed", "231"]
             rcf8, of8 = rsa(f8args + ["-prefix", f8pre], env=env1)
@@ -3354,8 +3351,8 @@ def run_checks(BIN, work, threads, verbose):
 
     # identical models (same model under two labels) -> unique == 0, common == R2
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model_label", "p", "-model", "behav:nn",
-                   "-model_label", "q", "-model", "behav:nn",
+                   "-model", "p", "behav:nn",
+                   "-model", "q", "behav:nn",
                    "-model_commonality", "p,q", "-metric", "spearman",
                    "-nperm", "200", "-seed", "1", "-no_dset",
                    "-prefix", os.path.join(work, "cai")])
@@ -3392,8 +3389,8 @@ def run_checks(BIN, work, threads, verbose):
     # decomposition.  The small-condition exhaustive inference reference is
     # exercised below on the runwise fixture.
     rcx, outx = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                     "-model_mat", os.path.join(work, "vis.1D"),
-                     "-model_label", "s2", "-model_mat", os.path.join(work, "sem.1D"),
+                     "-model_mat", "vis", os.path.join(work, "vis.1D"),
+                     "-model_mat", "s2", os.path.join(work, "sem.1D"),
                      "-model_commonality", "vis,s2", "-nperm", "0", "-no_dset",
                      "-prefix", os.path.join(work, "cax"), "-quiet"])
     _, cxrows = (read_table(os.path.join(work, "cax.rsa.1D"), "vis")
@@ -3412,7 +3409,7 @@ def run_checks(BIN, work, threads, verbose):
     #     vector has no matched-repetition reliability axis.
     # =====================================================================
     rcp, outp = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                     "-featuretype", "pattern", "-model", "behav:nn",
+                     "-featuretype", "pattern", "-model", "behav_nn", "behav:nn",
                      "-noise_ceiling", "-nperm", "0", "-no_dset",
                      "-prefix", os.path.join(work, "bad_pattern_nc"), "-quiet"])
     check("A2 noise ceiling rejects pattern-mode flattened split",
@@ -3420,7 +3417,7 @@ def run_checks(BIN, work, threads, verbose):
           "matched-repetition axis" in outp, "rc=%d %s" % (rcp, outp.strip()[-240:]))
 
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "IS-RSA",
-                   "-model", "behav:nn", "-noise_ceiling", "-nperm", "500",
+                   "-model", "behav_nn", "behav:nn", "-noise_ceiling", "-nperm", "500",
                    "-seed", "1", "-prefix", os.path.join(work, "ncd"), "-quiet"])
     hd = os.path.join(work, "ncd+orig.HEAD")
     labs = head_brick_labs(hd)
@@ -3436,7 +3433,7 @@ def run_checks(BIN, work, threads, verbose):
               len(brick_roi1) == 1 and abs(brick_roi1[0] - nr[0]["reliability"]) < 1e-5,
               "brick=%s table=%.6f" % (brick_roi1, nr[0]["reliability"]))
     rc, out = rsa(["-dataTableFile", table, "-mask", atlas, "-mode", "RSA",
-                   "-model_mat", os.path.join(work, "vis.1D"), "-noise_ceiling",
+                   "-model_mat", "vis", os.path.join(work, "vis.1D"), "-noise_ceiling",
                    "-nperm", "500", "-seed", "1",
                    "-prefix", os.path.join(work, "ncc"), "-quiet"])
     clabs = head_brick_labs(os.path.join(work, "ncc+orig.HEAD"))
@@ -3482,7 +3479,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def save_rdm(model, tab, pre):
         rsa(["-dataTableFile", tab, "-mask", atlas, "-mode", "IS-RSA",
-             "-model", model, "-metric", "spearman", "-nperm", "2", "-seed", "1",
+             "-model", "profile", model, "-metric", "spearman", "-nperm", "2", "-seed", "1",
              "-no_dset", "-save_rdm", os.path.join(work, pre),
              "-prefix", os.path.join(work, pre), "-quiet"])
         g = glob.glob(os.path.join(work, pre + "_model_*.1D"))
@@ -3514,7 +3511,7 @@ def run_checks(BIN, work, threads, verbose):
     # constant column -> clear rejection
     mk_tab([A, np.full(nsub, 3.0)], ["A", "K"], os.path.join(work, "tk.txt"))
     rck, ok = rsa(["-dataTableFile", os.path.join(work, "tk.txt"), "-mask", atlas,
-                   "-mode", "IS-RSA", "-model", "A,K:mahal", "-nperm", "2",
+                   "-mode", "IS-RSA", "-model", "A+K_mvM", "A,K:mahal", "-nperm", "2",
                    "-prefix", os.path.join(work, "mk"), "-quiet"])
     check("5 constant measure in :mahal rejected with a clear message",
           rck != 0 and "constant" in ok.lower(), "rc=%d" % rck)
@@ -3556,7 +3553,7 @@ def run_checks(BIN, work, threads, verbose):
     # a NC-condition model so a valid table runs end to end
     gm = (np.arange(NC) // 2)[:, None]
     np.savetxt(os.path.join(rwd, "m.1D"), (gm != gm.T).astype(float), fmt="%.1f")
-    mm_arg = ["-model_mat", os.path.join(rwd, "m.1D"), "-nperm", "200",
+    mm_arg = ["-model_mat", "m", os.path.join(rwd, "m.1D"), "-nperm", "200",
               "-seed", "1", "-no_dset"]
 
     def rw(fn, mask=rmask, mode="RSA", model=False):
@@ -3839,10 +3836,9 @@ def run_checks(BIN, work, threads, verbose):
         aa = ["-runwiseTable", tablefile, "-mask", os.path.join(cnd, "mask.nii.gz"),
               "-mode", mode]
         if mode == "RSA":
-            aa += ["-model_label", "block", "-model_mat", os.path.join(cnd, "block.1D")]
+            aa += ["-model_mat", "block", os.path.join(cnd, "block.1D")]
         else:
-            aa += ["-featuretype", "rdm", "-model_label", "subject",
-                   "-model_mat", a3rmfn]
+            aa += ["-featuretype", "rdm", "-model_mat", "subject", a3rmfn]
         aa += ["-metric", "spearman", "-nperm", "61", "-seed", "313",
                "-prefix", os.path.join(cnd, pre)]
         if search:
@@ -3943,8 +3939,7 @@ def run_checks(BIN, work, threads, verbose):
     def a3_runwise(pre, searchlight=False, env=None, extra=None):
         aa = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
               os.path.join(cnd, "mask.nii.gz"), "-mode", "IS-RSA",
-              "-featuretype", "rdm", "-model_label", "subject",
-              "-model_mat", a3rmfn, "-metric", "spearman",
+              "-featuretype", "rdm", "-model_mat", "subject", a3rmfn, "-metric", "spearman",
               "-nperm", "61", "-seed", "109", "-no_dset",
               "-prefix", os.path.join(cnd, pre)]
         if searchlight:
@@ -3984,14 +3979,14 @@ def run_checks(BIN, work, threads, verbose):
     a3bad, a3bado = rsa([
         "-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
         os.path.join(cnd, "mask.nii.gz"), "-mode", "IS-RSA",
-        "-featuretype", "rdm", "-model", "behav:nn",
+        "-featuretype", "rdm", "-model", "behav_nn", "behav:nn",
         "-prefix", os.path.join(cnd, "a3_bad_model")])
     check("A3 runwise rejects unavailable subject-column models clearly",
           a3bad != 0 and "subject-level columns" in a3bado and "-model_mat" in a3bado)
 
     def runx(pre, extra=None, env=None):
         a = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
-             os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA", "-model_mat",
+             os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA", "-model_mat", "block",
              os.path.join(cnd, "block.1D"), "-metric", "spearman", "-nperm",
              "2000", "-seed", "1", "-no_dset", "-prefix", os.path.join(cnd, pre)]
         return rsa(a + (extra or []), env=env)
@@ -4017,8 +4012,7 @@ def run_checks(BIN, work, threads, verbose):
     ncdpre = os.path.join(cnd, "f16_nc_dset")
     rc, ncdout = rsa([
         "-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
-        os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA", "-model_label", "block",
-        "-model_mat", os.path.join(cnd, "block.1D"), "-metric", "spearman",
+        os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA", "-model_mat", "block", os.path.join(cnd, "block.1D"), "-metric", "spearman",
         "-noise_ceiling", "-nperm", "200", "-seed", "1", "-prefix", ncdpre])
     nclabs = head_brick_labs(ncdpre + "+orig.HEAD") if rc == 0 else []
     if rc == 0 and "nc_low" in nclabs and "nc_high" in nclabs:
@@ -4050,8 +4044,7 @@ def run_checks(BIN, work, threads, verbose):
     f22rwpre = os.path.join(cnd, "f22_unbalanced")
     f22rwrc, f22rwout = rsa([
         "-runwiseTable", urw, "-mask", os.path.join(cnd, "mask.nii.gz"),
-        "-mode", "RSA", "-model_label", "A", "-model_mat",
-        os.path.join(cnd, "block.1D"), "-model_label", "B", "-model_mat", maltfn,
+        "-mode", "RSA", "-model_mat", "A", os.path.join(cnd, "block.1D"), "-model_mat", "B", maltfn,
         "-metric", "pearson", "-model_fit", "MIX=A,B",
         "-fit_condfold", f22rwfold, "-nperm", "37", "-seed", "229",
         "-no_dset", "-prefix", f22rwpre])
@@ -4155,8 +4148,8 @@ def run_checks(BIN, work, threads, verbose):
     def f15_run(pre, nper=720, search=False, env=None, dset=False, boot=False):
         aa = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
               os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-              "-model_label", "A", "-model_mat", os.path.join(cnd, "block.1D"),
-              "-model_label", "B", "-model_mat", maltfn,
+              "-model_mat", "A", os.path.join(cnd, "block.1D"),
+              "-model_mat", "B", maltfn,
               "-model_commonality", "A,B", "-metric", "spearman",
               "-nperm", str(nper), "-seed", "223", "-prefix", os.path.join(cnd, pre)]
         if search: aa += ["-searchlight", "SPHERE(100)"]
@@ -4233,9 +4226,9 @@ def run_checks(BIN, work, threads, verbose):
     def f8c_run(pre, nper=720, search=False, env=None, dset=False, boot=False):
         aa = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
               os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-              "-model_label", "A", "-model_mat", os.path.join(cnd, "block.1D"),
-              "-model_label", "B", "-model_mat", maltfn,
-              "-model_label", "C", "-model_mat", mthirdfn,
+              "-model_mat", "A", os.path.join(cnd, "block.1D"),
+              "-model_mat", "B", maltfn,
+              "-model_mat", "C", mthirdfn,
               "-model_commonality", "A,B,C", "-metric", "spearman",
               "-nperm", str(nper), "-seed", "239", "-prefix", os.path.join(cnd, pre)]
         if search: aa += ["-searchlight", "SPHERE(100)"]
@@ -4277,9 +4270,9 @@ def run_checks(BIN, work, threads, verbose):
     f8bad, f8bado = rsa([
         "-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
         os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-        "-model_label", "A", "-model_mat", os.path.join(cnd, "block.1D"),
-        "-model_label", "B", "-model_mat", maltfn,
-        "-model_label", "C", "-model_mat", mthirdfn,
+        "-model_mat", "A", os.path.join(cnd, "block.1D"),
+        "-model_mat", "B", maltfn,
+        "-model_mat", "C", mthirdfn,
         "-model_commonality", "A,B,C,A", "-nperm", "0", "-no_dset",
         "-prefix", os.path.join(cnd, "f8_bad")])
     check("F8 rejects more than three commonality predictors",
@@ -4289,8 +4282,8 @@ def run_checks(BIN, work, threads, verbose):
     f15bad, f15bado = rsa([
         "-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
         os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-        "-model_label", "A", "-model_mat", os.path.join(cnd, "block.1D"),
-        "-model_label", "B", "-model_mat", maltfn, "-model_commonality", "A,B",
+        "-model_mat", "A", os.path.join(cnd, "block.1D"),
+        "-model_mat", "B", maltfn, "-model_commonality", "A,B",
         "-metric", "ktaub", "-nperm", "20", "-no_dset",
         "-prefix", os.path.join(cnd, "f15_bad")])
     check("F15 classic commonality rejects non-regression metrics",
@@ -4334,8 +4327,7 @@ def run_checks(BIN, work, threads, verbose):
     s2xpre = os.path.join(cnd, "s2_crossnobis_shift")
     s2xrc, s2xout = rsa([
         "-runwiseTable", s2rw, "-mask", os.path.join(cnd, "mask.nii.gz"),
-        "-mode", "RSA", "-model_label", "block", "-model_mat",
-        os.path.join(cnd, "block.1D"), "-metric", "spearman", "-nperm", "61",
+        "-mode", "RSA", "-model_mat", "block", os.path.join(cnd, "block.1D"), "-metric", "spearman", "-nperm", "61",
         "-seed", "1", "-no_dset", "-prefix", s2xpre])
     s2xrows = (read_table(s2xpre + ".rsa.1D", "block")[1] if s2xrc == 0 else [])
     s2xmeta = open(s2xpre + ".rsa.1D").read() if s2xrc == 0 else ""
@@ -4570,8 +4562,8 @@ def run_checks(BIN, work, threads, verbose):
         pre = os.path.join(cnd, "f4_" + metric)
         aa = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
               os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-              "-model_label", "true", "-model_mat", os.path.join(cnd, "block.1D"),
-              "-model_label", "alt", "-model_mat", altfn,
+              "-model_mat", "true", os.path.join(cnd, "block.1D"),
+              "-model_mat", "alt", altfn,
               "-model_contrast", "true-alt", "-metric", metric,
               "-noise_ceiling", "-bootstrap", "101", "-boot_ci", "90",
               "-nperm", "101", "-seed", "251", "-no_dset", "-prefix", pre]
@@ -4647,7 +4639,7 @@ def run_checks(BIN, work, threads, verbose):
                               f4rows[1][1].strip()[-120:]))
 
     f4common = ["-mask", os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-                "-model_label", "true", "-model_mat", os.path.join(cnd, "block.1D"),
+                "-model_mat", "true", os.path.join(cnd, "block.1D"),
                 "-metric", "corr_cov", "-nperm", "20", "-no_dset"]
     rcu, ou = rsa(["-runwiseTable", urw] + f4common +
                   ["-prefix", os.path.join(cnd, "f4_bad_unbalanced")])
@@ -4659,7 +4651,7 @@ def run_checks(BIN, work, threads, verbose):
                     ["-model_joint", "-prefix", os.path.join(cnd, "f4_bad_joint")])
     rci4, oi4 = rsa(["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
                      os.path.join(cnd, "mask.nii.gz"), "-mode", "IS-RSA",
-                     "-featuretype", "rdm", "-model_mat", os.path.join(cnd, "block.1D"),
+                     "-featuretype", "rdm", "-model_mat", "block", os.path.join(cnd, "block.1D"),
                      "-metric", "corr_cov", "-prefix", os.path.join(cnd, "f4_bad_is")])
     check("F4 rejects unequal-support, condition-bootstrap, regression, and IS-RSA misuse",
           rcu != 0 and "ConditionFile/TrialFile mappings" in ou and
@@ -4675,8 +4667,8 @@ def run_checks(BIN, work, threads, verbose):
     # dyadic regression within every subject, then averages beta over subjects.
     jargs = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
              os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-             "-model_label", "true", "-model_mat", os.path.join(cnd, "block.1D"),
-             "-model_label", "alt", "-model_mat", altfn, "-model_joint",
+             "-model_mat", "true", os.path.join(cnd, "block.1D"),
+             "-model_mat", "alt", altfn, "-model_joint",
              "-metric", "spearman", "-nperm", "100", "-seed", "1",
              "-cond_bootstrap", "401", "-boot_ci", "90", "-no_dset",
              "-prefix", os.path.join(cnd, "cboot_joint")]
@@ -4738,8 +4730,8 @@ def run_checks(BIN, work, threads, verbose):
     def runxc(pre, env=None, extra=None):
         a = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
              os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-             "-model_label", "true", "-model_mat", os.path.join(cnd, "block.1D"),
-             "-model_label", "alt", "-model_mat", altfn,
+             "-model_mat", "true", os.path.join(cnd, "block.1D"),
+             "-model_mat", "alt", altfn,
              "-model_contrast", "true-alt", "-metric", "spearman",
              "-nperm", "500", "-seed", "1", "-no_dset",
              "-prefix", os.path.join(cnd, pre)]
@@ -4865,7 +4857,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def runw(pre, mode, tbl="rww.txt", env=None):
         a = ["-runwiseTable", os.path.join(cnd, tbl), "-mask", os.path.join(cnd, "mask.nii.gz"),
-             "-mode", "RSA", "-model_mat", os.path.join(cnd, "block.1D"), "-metric", "spearman",
+             "-mode", "RSA", "-model_mat", "block", os.path.join(cnd, "block.1D"), "-metric", "spearman",
              "-nperm", "500", "-seed", "1", "-no_dset", "-prefix", os.path.join(cnd, pre)]
         if mode != "none": a += ["-noise_norm", mode]
         rsa(a, env=env)
@@ -4876,7 +4868,7 @@ def run_checks(BIN, work, threads, verbose):
     # implicit fallback to unwhitened crossnobis.
     rc, out = rsa(["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
                    os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-                   "-model_mat", os.path.join(cnd, "block.1D"),
+                   "-model_mat", "block", os.path.join(cnd, "block.1D"),
                    "-noise_norm", "diag", "-nperm", "20", "-no_dset",
                    "-prefix", os.path.join(cnd, "missing_resid")])
     check("4c noise_norm rejects runwiseTable without ResidFile",
@@ -4917,7 +4909,7 @@ def run_checks(BIN, work, threads, verbose):
     rc4w, o4w = rsa([
         "-runwiseTable", os.path.join(cnd, "rww.txt"), "-mask",
         os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-        "-model_mat", os.path.join(cnd, "block.1D"), "-metric", "cosine_cov",
+        "-model_mat", "block", os.path.join(cnd, "block.1D"), "-metric", "cosine_cov",
         "-noise_norm", "diag", "-nperm", "101", "-seed", "251", "-no_dset",
         "-prefix", f4wpre])
     f4wrow = (read_table(f4wpre + ".rsa.1D", "block")[1][0] if rc4w == 0 else {})
@@ -4938,8 +4930,7 @@ def run_checks(BIN, work, threads, verbose):
     wncpre = os.path.join(cnd, "f16_nc_diag")
     rc, wncout = rsa([
         "-runwiseTable", os.path.join(cnd, "rww.txt"), "-mask",
-        os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA", "-model_mat",
-        os.path.join(cnd, "block.1D"), "-metric", "spearman", "-noise_norm", "diag",
+        os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA", "-model_mat", "block", os.path.join(cnd, "block.1D"), "-metric", "spearman", "-noise_norm", "diag",
         "-noise_ceiling", "-nperm", "200", "-seed", "1", "-no_dset",
         "-prefix", wncpre])
     _, wncrows = (read_table(wncpre + ".rsa.1D", "block")
@@ -4981,7 +4972,7 @@ def run_checks(BIN, work, threads, verbose):
         tbl = "rw.txt" if mode == "none" else "rww.txt"
         a = ["-runwiseTable", os.path.join(cnd, tbl), "-mask",
              os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-             "-model_label", "block", "-model_mat", os.path.join(cnd, "block.1D"),
+             "-model_mat", "block", os.path.join(cnd, "block.1D"),
              "-searchlight", "SPHERE(100)", "-metric", "spearman",
              "-nperm", "200", "-seed", "1", "-prefix", os.path.join(cnd, pre)]
         if mode != "none":
@@ -5083,7 +5074,7 @@ def run_checks(BIN, work, threads, verbose):
     # override must acknowledge the same estimate and allow the job to finish.
     mem_base = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
                 os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
-                "-model_label", "block", "-model_mat", os.path.join(cnd, "block.1D"),
+                "-model_mat", "block", os.path.join(cnd, "block.1D"),
                 "-searchlight", "SPHERE(100)", "-metric", "spearman",
                 "-nperm", "20", "-seed", "1", "-no_dset",
                 "-memory_limit", "0.000001"]
@@ -5134,7 +5125,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def md_atlas(ft):
         a = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA", "-model_dset",
-             "Mod2", "-metric", "spearman", "-nperm", "100", "-seed", "1", "-no_dset",
+             "Mod2", "Mod2", "-metric", "spearman", "-nperm", "100", "-seed", "1", "-no_dset",
              "-prefix", os.path.join(md, "a_" + ft)]
         if ft == "pattern": a += ["-featuretype", "pattern"]
         rsa(a)
@@ -5142,7 +5133,7 @@ def run_checks(BIN, work, threads, verbose):
 
     def md_sl(ft):
         a = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA", "-model_dset",
-             "Mod2", "-searchlight", "SPHERE(100)", "-metric", "spearman", "-nperm",
+             "Mod2", "Mod2", "-searchlight", "SPHERE(100)", "-metric", "spearman", "-nperm",
              "100", "-seed", "1", "-prefix", os.path.join(md, "s_" + ft)]
         if ft == "pattern": a += ["-featuretype", "pattern"]
         rc, out = rsa(a)
@@ -5164,7 +5155,7 @@ def run_checks(BIN, work, threads, verbose):
     # The same shared subject draws must also work when both neural and model
     # RDMs are rebuilt per searchlight from separate modalities.
     ba = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-          "-model_label", "M2", "-model_dset", "Mod2", "-metric", "spearman",
+          "-model_dset", "M2", "Mod2", "-metric", "spearman",
           "-nperm", "0", "-bootstrap", "101", "-boot_ci", "90", "-seed", "19",
           "-no_dset", "-prefix", os.path.join(md, "boot_atlas")]
     bs = ba[:-3] + ["-searchlight", "SPHERE(100)",
@@ -5182,7 +5173,7 @@ def run_checks(BIN, work, threads, verbose):
     # A whole-volume sphere must therefore match the atlas result for the
     # observed effect and both synchronized-null p-values.
     ta = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-          "-model_label", "M2", "-model_dset", "Mod2", "-metric", "spearman",
+          "-model_dset", "M2", "Mod2", "-metric", "spearman",
           "-null", "timeshift", "-min_shift", "3", "-nperm", "20", "-seed", "23",
           "-no_dset", "-prefix", os.path.join(md, "shift_atlas")]
     ts = ta[:-3] + ["-searchlight", "SPHERE(100)", "-no_dset",
@@ -5201,8 +5192,8 @@ def run_checks(BIN, work, threads, verbose):
     # together, including the volumetric output labels and threaded searchlight.
     def f18md_run(pre, searchlight=False, env=None):
         aa = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-              "-model_label", "M2", "-model_dset", "Mod2",
-              "-model_label", "M3", "-model_dset", "Mod3",
+              "-model_dset", "M2", "Mod2",
+              "-model_dset", "M3", "Mod3",
               "-model_joint", "-model_contrast", "M3-M2", "-metric", "spearman",
               "-null", "timeshift", "-min_shift", "3", "-nperm", "31",
               "-seed", "29", "-prefix", os.path.join(md, pre)]
@@ -5235,8 +5226,8 @@ def run_checks(BIN, work, threads, verbose):
     # analysis.  In a searchlight it must reduce each sampled sphere on the fly;
     # atlas-only cmean storage does not exist in streaming mode.
     ma = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-          "-model_label", "M2", "-model_dset", "Mod2",
-          "-model_label", "M3", "-model_dset", "Mod3",
+          "-model_dset", "M2", "Mod2",
+          "-model_dset", "M3", "Mod3",
           "-searchlight", "SPHERE(100)", "-metric", "spearman",
           "-nperm", "20", "-seed", "1", "-no_dset",
           "-prefix", os.path.join(md, "multi")]
@@ -5276,8 +5267,8 @@ def run_checks(BIN, work, threads, verbose):
 
     def f13_run(pre, searchlight=False, env=None):
         aa = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-              "-model_label", "M2", "-model_dset", "Mod2",
-              "-model_label", "M3", "-model_dset", "Mod3",
+              "-model_dset", "M2", "Mod2",
+              "-model_dset", "M3", "Mod3",
               "-model_contrast", "M3-M2", "-metric", "spearman",
               "-block", "Pair", "-nperm", "100", "-seed", "41",
               "-prefix", os.path.join(md, pre)]
@@ -5314,8 +5305,8 @@ def run_checks(BIN, work, threads, verbose):
     # Mixed fixed/per-location contrasts must use the ordinary paired path even
     # though F9 caches the fixed model's primary searchlight test.
     mix13 = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-             "-model_label", "T", "-model", "Theta:nn",
-             "-model_label", "M2", "-model_dset", "Mod2",
+             "-model", "T", "Theta:nn",
+             "-model_dset", "M2", "Mod2",
              "-model_contrast", "T-M2", "-metric", "spearman",
              "-searchlight", "SPHERE(100)", "-nperm", "20", "-seed", "19",
              "-no_dset", "-prefix", os.path.join(md, "f13_mixed")]
@@ -5349,8 +5340,8 @@ def run_checks(BIN, work, threads, verbose):
 
     def f17_run(pre, searchlight=False, env=None):
         aa = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-              "-model_label", "M2", "-model_dset", "Mod2",
-              "-model_label", "M3", "-model_dset", "Mod3",
+              "-model_dset", "M2", "Mod2",
+              "-model_dset", "M3", "Mod3",
               "-model_contrast", "M3-M2", "-metric", "spearman",
               "-nperm", "0", "-bootstrap", str(NB17), "-boot_ci", "90",
               "-seed", str(SD17), "-prefix", os.path.join(md, pre)]
@@ -5390,8 +5381,8 @@ def run_checks(BIN, work, threads, verbose):
     # makes the atlas and every searchlight coefficient interval identical.
     def f17_reg_run(pre, searchlight=False, env=None):
         aa = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-              "-model_label", "M2", "-model_dset", "Mod2",
-              "-model_label", "M3", "-model_dset", "Mod3", "-model_joint",
+              "-model_dset", "M2", "Mod2",
+              "-model_dset", "M3", "Mod3", "-model_joint",
               "-ortvec", "Theta", "-metric", "spearman", "-nperm", "0",
               "-bootstrap", "101", "-boot_ci", "90", "-seed", "47",
               "-prefix", os.path.join(md, pre)]
@@ -5441,8 +5432,8 @@ def run_checks(BIN, work, threads, verbose):
 
     def f17_ca_run(pre, searchlight=False, env=None):
         aa = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-              "-model_label", "M3", "-model_dset", "Mod3",
-              "-model_label", "M2", "-model_dset", "Mod2",
+              "-model_dset", "M3", "Mod3",
+              "-model_dset", "M2", "Mod2",
               "-model_commonality", "M3,M2", "-metric", "spearman",
               "-nperm", "0", "-bootstrap", str(NBC), "-boot_ci", "90",
               "-seed", str(SDC), "-prefix", os.path.join(md, pre)]
@@ -5485,7 +5476,7 @@ def run_checks(BIN, work, threads, verbose):
     # by ROI and therefore has no single fixed model file to plot.
     sb = os.path.join(md, "saved")
     ha = ["-dataTableFile", mtab, "-mask", mmk, "-mode", "IS-RSA",
-          "-model_label", "M2", "-model_dset", "Mod2", "-nperm", "0",
+          "-model_dset", "M2", "Mod2", "-nperm", "0",
           "-no_dset", "-save_rdm", sb, "-prefix", os.path.join(md, "hints")]
     rc, out = rsa(ha)
     phantom = sb + "_model_M2.1D"
@@ -5599,7 +5590,7 @@ def run_checks(BIN, work, threads, verbose):
     def s5j_run(pre, tabfile, env):
         aa = ["-dataTableFile", tabfile, "-mask", jmask, "-mode", "IS-RSA",
               "-run_column", "Run", "-run_analysis", "separate",
-              "-model", "Group:match", "-run_model", "Happiness:NN",
+              "-model", "Group_match", "Group:match", "-run_model", "Happiness:NN",
               "-run_factor", "Condition",
               "-run_contrast", "HappyMinusSad=Condition:happy-sad",
               "-model_joint", "-metric", "pearson", "-nperm", "720",
@@ -5659,7 +5650,7 @@ def run_checks(BIN, work, threads, verbose):
     sfd = os.path.join(work, "sf"); os.makedirs(sfd, exist_ok=True)
     # a throwaway command that reaches the -surf/-DUSE_SUMA branch (real
     # dataTable + a model, so nothing earlier in validation short-circuits it)
-    probe_rc, probe_out = rsa(["-dataTableFile", table, "-model", "behav:nn",
+    probe_rc, probe_out = rsa(["-dataTableFile", table, "-model", "behav_nn", "behav:nn",
                                "-nperm", "0", "-surf", os.devnull, "-searchlight", "5",
                                "-prefix", os.path.join(sfd, "probe")])
     if "compile with -DUSE_SUMA" in probe_out:
@@ -5695,7 +5686,7 @@ def run_checks(BIN, work, threads, verbose):
         def sfrun(pre, use_mask):
             a = ["-dataTableFile", os.path.join(sfd, "tab.txt"), "-surf",
                  os.path.join(sfd, "mesh.gii"), "-searchlight", "4", "-mode", "IS-RSA",
-                 "-model", "behav:nn", "-metric", "spearman", "-nperm", "50", "-seed", "1",
+                 "-model", "behav_nn", "behav:nn", "-metric", "spearman", "-nperm", "50", "-seed", "1",
                  "-no_dset", "-prefix", os.path.join(sfd, pre)]
             if use_mask: a = ["-mask", os.path.join(sfd, "allmask.gii")] + a
             return rsa(a)

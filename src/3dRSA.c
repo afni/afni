@@ -1702,7 +1702,7 @@ void usage_3dRSA(int detail)
 "                 per model; with 'mean', each model's reported contrasts share\n"
 "                 contrast x space. Different behavioral models remain separate\n"
 "                 planned families, matching the ordinary 3dRSA convention.\n"
-"                 A subject model '-model Group:match' gives same-group similarity;\n"
+"                 A subject model '-model group Group:match' gives same-group similarity;\n"
 "                 its HappyMinusSad result is the representational Group x\n"
 "                 Condition interaction. Add '-model_joint' with a Happiness\n"
 "                 -run_model to adjust that Group coefficient for Happiness in\n"
@@ -1763,7 +1763,7 @@ void usage_3dRSA(int detail)
 "                      compares subjects by their crossnobis RDM geometry.\n"
 "                      A runwise table has no subject-level behavioral columns,\n"
 "                      so runwise second-order IS-RSA currently uses -model_mat\n"
-"                      rather than '-model COLUMN:RULE'.\n"
+"                      rather than '-model LABEL COLUMN:RULE'.\n"
 "                      Requires >= 2 runs per subject; all InputFiles must share\n"
 "                      the grid. Without ConditionFile/TrialFile they must share the\n"
 "                      condition count/order. Run labels must be unique within a\n"
@@ -1816,13 +1816,13 @@ void usage_3dRSA(int detail)
 "second set of datasets.\n"
 "\n"
 "-------------------------------------------------------------------\n"
-"  -model CCC:RRR -- build a matrix from a behavioral column   ~2~\n"
+"  -model LABEL CCC:RRR -- build a matrix from a behavioral column   ~2~\n"
 "-------------------------------------------------------------------\n"
 "Takes dataTable column 'CCC' and turns it into a subject-by-subject matrix\n"
 "using rule 'RRR'.  May be given more than once.  Only for '-mode IS-RSA'.\n"
 "\n"
 "  A model column may also be a COMMA-SEPARATED list of columns, which builds\n"
-"  a multivariate profile model: '-model PANAS_PA_Var,PANAS_NA_Var:euclid'.\n"
+"  a multivariate profile model: '-model mood PANAS_PA_Var,PANAS_NA_Var:euclid'.\n"
 "  Each column is standardized and the subject-by-subject Euclidean distance\n"
 "  over the whole profile is used -- a richer dyadic predictor than any single\n"
 "  scalar (Chen et al. 2020).  The rank rules below are for single columns.\n"
@@ -1862,7 +1862,7 @@ void usage_3dRSA(int detail)
 "\n"
 "  match    Categorical similarity: 1 when the two subjects have the same\n"
 "           data-table label, 0 otherwise. Labels may be text or numeric. Use\n"
-"           '-model Group:match' for a categorical group-geometry hypothesis.\n"
+"           '-model group Group:match' for a categorical group-geometry hypothesis.\n"
 "           A positive effect means within-group brains are more similar than\n"
 "           between-group brains; it does not encode which group is higher.\n"
 "\n"
@@ -1888,7 +1888,7 @@ void usage_3dRSA(int detail)
 "     (MADRS and HAM-D, say), or a behavior and a confound.\n"
 "\n"
 "-------------------------------------------------------------------\n"
-"  -model_mat FFF -- read a matrix from a file   ~2~\n"
+"  -model_mat LABEL FFF -- read a matrix from a file   ~2~\n"
 "-------------------------------------------------------------------\n"
 "Reads a square matrix from the 1D file FFF, which must match the number of\n"
 "rows of the neural matrix.  May be given more than once.\n"
@@ -1928,11 +1928,11 @@ void usage_3dRSA(int detail)
 "May be used with classic RSA (condition RDMs), IS-RSA (subject matrices),\n"
 "ordinary or runwise/crossnobis input, atlas ROIs, and searchlights.  It defines\n"
 "the complete model set, so do not combine it with '-model', '-model_mat',\n"
-"'-model_dset', or '-model_label'.  Fitted/joint/nuisance models, contrasts, commonality,\n"
+"'-model_dset'.  Fitted/joint/nuisance models, contrasts, commonality,\n"
 "and LOO need distinct time-series statistics and are rejected for now.\n"
 "\n"
 "-------------------------------------------------------------------\n"
-"  -model_dset CCC -- use another modality as the model   ~2~\n"
+"  -model_dset LABEL CCC -- use another modality as the model   ~2~\n"
 "-------------------------------------------------------------------\n"
 "Takes dataTable column 'CCC', which must hold DATASET names (one per\n"
 "subject, like InputFile), and builds a neural matrix from them for EACH ROI\n"
@@ -1963,8 +1963,8 @@ void usage_3dRSA(int detail)
 "  -model_fit NAME=A,B,... -- fitted weighted component model (F7)   ~2~\n"
 "-------------------------------------------------------------------\n"
 "Fits a nonnegative weighted mixture of two or more already named model RDMs.\n"
-"Name components with '-model_label', select '-metric pearson', then request,\n"
-"for example, '-model_fit combined=visual,semantic'.  Components may be fixed\n"
+"Name components directly in the model options, select '-metric pearson', then\n"
+"request, for example, '-model_fit combined=visual,semantic'.  Components may be fixed\n"
 "matrices or per-location '-model_dset' matrices, but must all be similarities\n"
 "or all be distances.  The fit is deliberately constrained and nested:\n"
 "  * Each subject is held out in turn.  Classic RSA learns weights from every\n"
@@ -2054,7 +2054,7 @@ void usage_3dRSA(int detail)
 "coefficient and is never tested: a regressor of no interest, exactly like\n"
 "motion in an fMRI GLM.  May be given more than once.  IS-RSA only.\n"
 "\n"
-"The subtlety, and why this is not just '-model Motion:something': IS-RSA\n"
+"The subtlety, and why this is not just '-model motion Motion:something': IS-RSA\n"
 "lives in PAIR space.  The neural outcome is one value per pair of subjects,\n"
 "so a per-subject nuisance has to be given a per-pair form before it can be\n"
 "removed -- there is no 'raw' version, because similarity is a property of a\n"
@@ -2083,21 +2083,20 @@ void usage_3dRSA(int detail)
 "neither tells you whether the DIFFERENCE is reliable.  '-model_contrast A-B'\n"
 "tests that difference directly.\n"
 "\n"
-"Name the models with '-model_label' so the contrast reads cleanly:\n"
+"Name the models in their model options so the contrast reads cleanly:\n"
 "\n"
-"    -model_label visual   -model_mat visual.1D\n"
-"    -model_label semantic -model_mat semantic.1D\n"
+"    -model_mat visual   visual.1D\n"
+"    -model_mat semantic semantic.1D\n"
 "    -model_contrast visual-semantic\n"
 "\n"
-"(A and B are model names; -model_label sets the name of the NEXT model, else\n"
-"the auto-generated name is used.  May be given more than once for several\n"
-"contrasts.  Under IS-RSA either side may also be a per-location '-model_dset';\n"
+"(A and B are model names.  May be given more than once for several contrasts.\n"
+"Under IS-RSA either side may also be a per-location '-model_dset';\n"
 "both modality RDMs are rebuilt in the same ROI/searchlight before comparison.)\n"
 "\n"
 "For a spatially varying multimodal contrast:\n"
 "\n"
-"    -model_label EEG  -model_dset EEGfile \\\n"
-"    -model_label fMRI -model_dset fMRIfile \\\n"
+"    -model_dset EEG  EEGfile \\\n"
+"    -model_dset fMRI fMRIfile \\\n"
 "    -model_contrast EEG-fMRI\n"
 "\n"
 "The comparison is always paired, but PAIRING DOES NOT DETERMINE THE NULL.\n"
@@ -2198,10 +2197,10 @@ void usage_3dRSA(int detail)
 "  pair together explains MORE than the sum of their separate fits (each model\n"
 "  soaks up noise the other is confused by).  3dRSA reports it unclipped.\n"
 "\n"
-"Name the two models (comma-separated), ideally with -model_label:\n"
+"Name the two models directly in their model options, then list them comma-separated:\n"
 "\n"
-"    -model_label EEG  -model_dset EEGfile\n"
-"    -model_label fMRI -model_dset fMRIfile\n"
+"    -model_dset EEG  EEGfile\n"
+"    -model_dset fMRI fMRIfile\n"
 "    -model_commonality EEG,fMRI\n"
 "\n"
 "F8 accepts THREE named models in the same option.  A,B,C returns the seven\n"
@@ -2708,7 +2707,8 @@ void usage_3dRSA(int detail)
 "\n"
 "     3dRSA -mask Schaefer_200+tlrc  -mode IS-RSA          \\\n"
 "           -dataTableFile mood.txt                         \\\n"
-"           -model PANAS_Var:annak  -model PANAS_Var:nn     \\\n"
+"           -model PANAS_ak PANAS_Var:annak                 \\\n"
+"           -model PANAS_nn PANAS_Var:nn                    \\\n"
 "           -nperm 5000  -prefix rsa_theta\n"
 "\n"
 "2. The same, but removing head motion as a nuisance and testing two\n"
@@ -2716,7 +2716,7 @@ void usage_3dRSA(int detail)
 "\n"
 "     3dRSA -mask Schaefer_200+tlrc  -mode IS-RSA          \\\n"
 "           -dataTableFile mood.txt  -model_joint           \\\n"
-"           -model PANAS_Var:nn  -model MADRS:nn            \\\n"
+"           -model PANAS PANAS_Var:nn  -model MADRS MADRS:nn \\\n"
 "           -ortvec MeanFD                                  \\\n"
 "           -nperm 5000  -prefix rsa_ctl\n"
 "\n"
@@ -2731,7 +2731,7 @@ void usage_3dRSA(int detail)
 "\n"
 "     3dRSA -mask Schaefer_200+tlrc  -mode IS-RSA          \\\n"
 "           -dataTableFile both.txt  -model_joint           \\\n"
-"           -model PANAS_Var:nn  -model_dset fMRIFile       \\\n"
+"           -model PANAS PANAS_Var:nn  -model_dset fMRI fMRIFile \\\n"
 "           -nperm 5000  -prefix rsa_cross\n"
 "\n"
 "   where both.txt has an fMRIFile column of datasets beside InputFile.\n"
@@ -2772,7 +2772,7 @@ void usage_3dRSA(int detail)
 "\n"
 "     3dRSA -mask atlas+tlrc  -mode RSA                         \\\n"
 "           -dataTableFile subs.txt                              \\\n"
-"           -model_label happiness -model_mat happiness.1D       \\\n"
+"           -model_mat happiness happiness.1D                    \\\n"
 "           -neural_metric corr -metric spearman                 \\\n"
 "           -nperm 5000 -prefix rsa_happiness\n"
 "\n"
@@ -2791,7 +2791,7 @@ void usage_3dRSA(int detail)
 "           -dataTableFile subs_by_condition.txt                \\\n"
 "           -condition_column cond                              \\\n"
 "           -condition_order house,face,tree                    \\\n"
-"           -model_label happiness -model_mat happiness.1D      \\\n"
+"           -model_mat happiness happiness.1D                   \\\n"
 "           -nperm 5000 -prefix rsa_happiness_long\n"
 "\n"
 "   The two input forms are numerically equivalent. The long-table rows need\n"
@@ -2806,7 +2806,7 @@ void usage_3dRSA(int detail)
 "\n"
 "     3dRSA -mask brain+tlrc -mode IS-RSA -featuretype rdm       \\\n"
 "           -dataTableFile task.txt -condition_metric corr        \\\n"
-"           -model symptoms:nn -searchlight 'SPHERE(6)'           \\\n"
+"           -model symptoms symptoms:nn -searchlight 'SPHERE(6)'  \\\n"
 "           -nperm 10000 -prefix rsa_second_order\n"
 "\n"
 "   For crossnobis inner RDMs, replace -dataTableFile with -runwiseTable,\n"
@@ -2823,15 +2823,15 @@ void usage_3dRSA(int detail)
 "   positive over the whole map:\n"
 "\n"
 "     3dRSA -mask brain+tlrc  -mode IS-RSA  -searchlight 'SPHERE(6)' \\\n"
-"           -dataTableFile mood.txt  -model PANAS_Var:nn            \\\n"
+"           -dataTableFile mood.txt  -model PANAS PANAS_Var:nn      \\\n"
 "           -loo  -nperm 10000  -prefix rsa_sl\n"
 "\n"
 "8. Does a visual model fit the patterns better than a semantic one?  A paired\n"
 "   contrast (classic within-subject RSA):\n"
 "\n"
 "     3dRSA -mask atlas+tlrc  -mode RSA  -dataTableFile subs.txt   \\\n"
-"           -model_label visual   -model_mat visual.1D             \\\n"
-"           -model_label semantic -model_mat semantic.1D           \\\n"
+"           -model_mat visual   visual.1D                          \\\n"
+"           -model_mat semantic semantic.1D                        \\\n"
 "           -model_contrast visual-semantic                        \\\n"
 "           -nperm 5000  -prefix rsa_vs\n"
 "\n"
@@ -2840,8 +2840,8 @@ void usage_3dRSA(int detail)
 "   per-ROI models; the neural side is the behavioral target.)\n"
 "\n"
 "     3dRSA -mask brain+tlrc  -mode IS-RSA  -dataTableFile fuse.txt \\\n"
-"           -model_label EEG  -model_dset EEGrdmFile                \\\n"
-"           -model_label fMRI -model_dset fMRIrdmFile               \\\n"
+"           -model_dset EEG  EEGrdmFile                            \\\n"
+"           -model_dset fMRI fMRIrdmFile                           \\\n"
 "           -model_commonality EEG,fMRI  -model_contrast EEG-fMRI   \\\n"
 "           -nperm 5000  -prefix rsa_fuse\n"
 "\n"
@@ -2849,7 +2849,7 @@ void usage_3dRSA(int detail)
 "   same timeline?  Shift every complete ROI-mean series by at least 10 TRs:\n"
 "\n"
 "     3dRSA -mask atlas+tlrc  -mode IS-RSA  -featuretype mean       \\\n"
-"           -dataTableFile story.txt  -model engagement:nn          \\\n"
+"           -dataTableFile story.txt  -model engagement engagement:nn \\\n"
 "           -null timeshift  -min_shift 10  -nperm 5000             \\\n"
 "           -seed 314159  -prefix rsa_story_shift\n"
 "\n"
@@ -4158,7 +4158,7 @@ static char *rsa_options[] = {
    "-runwiseTable" , "-noise_norm" ,
    "-center_conditions" ,
    "-model" , "-model_mat" , "-model_series" , "-model_dset" , "-model_joint" , "-ortvec" ,
-   "-model_label" , "-model_fit" , "-fit_ridge" , "-fit_condfold" ,
+   "-model_fit" , "-fit_ridge" , "-fit_condfold" ,
    "-model_contrast" , "-contrast_hypothesis" , "-model_commonality" , "-group_test" , "-classic_null" ,
    "-noise_ceiling" , "-nc_split" , "-loo" , "-block" ,
    "-neural_metric" , "-condition_metric" , "-metric" , "-nperm" , "-null" , "-min_shift" ,
@@ -4237,9 +4237,8 @@ int main( int argc , char *argv[] )
    char **dsespec=NULL ; int ndsespec=0 ;
    char **ortspec=NULL ; int nortspec=0 ;    /* -ortvec nuisance columns */
    THD_simmat **ort=NULL ; int nort=0 ;       /* 2 nuisance matrices per ortvec */
-   /* per-spec display labels (-model_label sets the name of the NEXT model);
-      NULL entries fall back to the auto-generated name */
-   char **modlabel=NULL , **matlabel=NULL , **dselabel=NULL , *pending_label=NULL ;
+   /* per-spec display labels supplied as the first argument to each model option */
+   char **modlabel=NULL , **matlabel=NULL , **dselabel=NULL ;
    char **constrspec=NULL ; int nconstrspec=0 ;   /* -model_contrast "A-B" specs */
    char **comspec=NULL ; int ncomspec=0 ;      /* -model_commonality "A,B[,C]" specs */
    char **fitspec=NULL ; int nfitspec=0 ;         /* -model_fit "NAME=A,B" specs */
@@ -4489,26 +4488,21 @@ int main( int argc , char *argv[] )
         nopt++ ; continue ;
       }
 
-      if( strcasecmp(argv[nopt],"-model_label") == 0 ){
-        if( ++nopt >= argc ) ERROR_exit("3dRSA: need a name after -model_label") ;
-        if( pending_label != NULL )
-          ERROR_exit("3dRSA: two -model_label in a row; each names ONE following\n"
-                     "       -model / -model_mat / -model_dset") ;
-        pending_label = argv[nopt] ; nopt++ ; continue ;
-      }
       if( strcasecmp(argv[nopt],"-model") == 0 ){
-        if( ++nopt >= argc ) ERROR_exit("3dRSA: need an argument after -model") ;
+        if( nopt+2 >= argc )
+          ERROR_exit("3dRSA: need LABEL and COLUMN:RULE after -model") ;
         modspec  = (char **)realloc(modspec ,sizeof(char *)*(nmodspec+1)) ;
         modlabel = (char **)realloc(modlabel,sizeof(char *)*(nmodspec+1)) ;
-        modlabel[nmodspec] = pending_label ; pending_label = NULL ;
-        modspec[nmodspec++] = argv[nopt] ; nopt++ ; continue ;
+        modlabel[nmodspec] = argv[nopt+1] ;
+        modspec[nmodspec++] = argv[nopt+2] ; nopt += 3 ; continue ;
       }
       if( strcasecmp(argv[nopt],"-model_mat") == 0 ){
-        if( ++nopt >= argc ) ERROR_exit("3dRSA: need an argument after -model_mat") ;
+        if( nopt+2 >= argc )
+          ERROR_exit("3dRSA: need LABEL and matrix file after -model_mat") ;
         matspec  = (char **)realloc(matspec ,sizeof(char *)*(nmatspec+1)) ;
         matlabel = (char **)realloc(matlabel,sizeof(char *)*(nmatspec+1)) ;
-        matlabel[nmatspec] = pending_label ; pending_label = NULL ;
-        matspec[nmatspec++] = argv[nopt] ; nopt++ ; continue ;
+        matlabel[nmatspec] = argv[nopt+1] ;
+        matspec[nmatspec++] = argv[nopt+2] ; nopt += 3 ; continue ;
       }
       if( strcasecmp(argv[nopt],"-model_series") == 0 ){
         if( ++nopt >= argc ) ERROR_exit("3dRSA: need a list file after -model_series") ;
@@ -4516,11 +4510,12 @@ int main( int argc , char *argv[] )
         series_file=argv[nopt] ; nopt++ ; continue ;
       }
       if( strcasecmp(argv[nopt],"-model_dset") == 0 ){
-        if( ++nopt >= argc ) ERROR_exit("3dRSA: need an argument after -model_dset") ;
+        if( nopt+2 >= argc )
+          ERROR_exit("3dRSA: need LABEL and data-table column after -model_dset") ;
         dsespec  = (char **)realloc(dsespec ,sizeof(char *)*(ndsespec+1)) ;
         dselabel = (char **)realloc(dselabel,sizeof(char *)*(ndsespec+1)) ;
-        dselabel[ndsespec] = pending_label ; pending_label = NULL ;
-        dsespec[ndsespec++] = argv[nopt] ; nopt++ ; continue ;
+        dselabel[ndsespec] = argv[nopt+1] ;
+        dsespec[ndsespec++] = argv[nopt+2] ; nopt += 3 ; continue ;
       }
       if( strcasecmp(argv[nopt],"-model_contrast") == 0 ){
         if( ++nopt >= argc ) ERROR_exit("3dRSA: need 'A-B' after -model_contrast") ;
@@ -4679,10 +4674,10 @@ int main( int argc , char *argv[] )
    if( seed_roi_sel != NULL && seed_mask == NULL )
      ERROR_exit("3dRSA: -seed_roi selects a value from -seed_mask; give both options") ;
    if( seed_mask != NULL ){
-     if( series_file != NULL || nmodspec+nmatspec+ndsespec+nrunmodspec>0 || pending_label!=NULL )
+     if( series_file != NULL || nmodspec+nmatspec+ndsespec+nrunmodspec>0 )
        ERROR_exit("3dRSA: -seed_mask defines the one representational-connectivity\n"
                   "       model. Do not combine it with -model, -model_mat,\n"
-                  "       -model_series, -model_dset, or -model_label.") ;
+                  "       -model_series, or -model_dset.") ;
      if( joint || nortspec>0 || nconstrspec>0 || ncomspec>0 || nfitspec>0 || do_loo )
        ERROR_exit("3dRSA: seed connectivity is one seed-to-target effect.\n"
                   "       -model_joint, -ortvec, -model_contrast, -model_commonality,\n"
@@ -4700,10 +4695,9 @@ int main( int argc , char *argv[] )
    }
 
    if( series_file != NULL ){
-     if( nmodspec+nmatspec+ndsespec+nrunmodspec > 0 || pending_label != NULL )
+     if( nmodspec+nmatspec+ndsespec+nrunmodspec > 0 )
        ERROR_exit("3dRSA: -model_series defines the complete ordered model set;\n"
-                  "       do not combine it with -model, -model_mat, -model_dset,\n"
-                  "       or -model_label") ;
+                  "       do not combine it with -model, -model_mat, or -model_dset") ;
      if( joint || nortspec>0 || nconstrspec>0 || ncomspec>0 || nfitspec>0 || do_loo )
        ERROR_exit("3dRSA: -model_series currently tests each time point separately\n"
                   "       with joint time x space FDR/FWE.  -model_joint, -ortvec,\n"
@@ -5028,7 +5022,7 @@ int main( int argc , char *argv[] )
                   "       are subjects.") ;
    } else {
      if( nmodspec + nmatspec + ndsespec + nrunmod == 0 && seed_mask == NULL )
-       ERROR_exit("3dRSA: no models given.  Use -model COLUMN:RULE, -model_mat\n"
+       ERROR_exit("3dRSA: no models given.  Use -model LABEL COLUMN:RULE, -model_mat\n"
                   "       for an explicit matrix, -model_series for a time-indexed\n"
                   "       matrix stack, -model_dset for another modality, -run_model\n"
                   "       for a run-varying behavioral column, or\n"
@@ -5496,7 +5490,7 @@ int main( int argc , char *argv[] )
      colon = strrchr(spec,':') ;
      if( colon == NULL )
        ERROR_exit("3dRSA: -model '%s' has no rule.  Write it as COLUMN:RULE,\n"
-                  "       e.g. -model %s:annak",spec,spec) ;
+                  "       e.g. -model my_model %s:annak",spec,spec) ;
      *colon = '\0' ;
 
      if( strchr(spec,',') != NULL ){          /* multivariate profile model */
@@ -5697,23 +5691,23 @@ int main( int argc , char *argv[] )
    }
    if( mm != nmod ) ERROR_exit("3dRSA internal error: built %d of %d models",mm,nmod) ;
 
-   /*-- apply any -model_label overrides.  Models are built COLUMN, then MATRIX,
-        then DSET, so the global index of each spec is a fixed offset. --*/
+   /*-- apply user labels.  Models are built COLUMN, then MATRIX, then DSET,
+        so the global index of each spec is a fixed offset. --*/
    { int gi ;
      for( ii=0 ; ii < nmodspec ; ii++ )
-       if( modlabel != NULL && modlabel[ii] != NULL ){
+       if( modlabel != NULL ){
          gi = ii ;
          strncpy(mod[gi].name,modlabel[ii],sizeof(mod[gi].name)-1) ;
          mod[gi].name[sizeof(mod[gi].name)-1] = '\0' ;
        }
      for( ii=0 ; ii < nmatspec ; ii++ )
-       if( matlabel != NULL && matlabel[ii] != NULL ){
+       if( matlabel != NULL ){
          gi = nmodspec + nrunmod + ii ;
          strncpy(mod[gi].name,matlabel[ii],sizeof(mod[gi].name)-1) ;
          mod[gi].name[sizeof(mod[gi].name)-1] = '\0' ;
        }
      for( ii=0 ; ii < ndsespec ; ii++ )
-       if( dselabel != NULL && dselabel[ii] != NULL ){
+       if( dselabel != NULL ){
          gi = nmodspec + nrunmod + nmatspec + ii ;
          strncpy(mod[gi].name,dselabel[ii],sizeof(mod[gi].name)-1) ;
          mod[gi].name[sizeof(mod[gi].name)-1] = '\0' ;
@@ -5800,8 +5794,6 @@ int main( int argc , char *argv[] )
         rejected because an in-sample association and held-out accuracy are not
         comparable estimands. --*/
    if( nconstrspec > 0 ){
-     if( pending_label != NULL )
-       ERROR_exit("3dRSA: -model_label '%s' was not followed by a model",pending_label) ;
      con = (RSA_contrast *)calloc(nconstrspec,sizeof(RSA_contrast)) ;
      fcon = (RSA_fitcontrast *)calloc(nconstrspec,sizeof(RSA_fitcontrast)) ;
      for( ii=0 ; ii < nconstrspec ; ii++ ){
@@ -5840,8 +5832,7 @@ int main( int argc , char *argv[] )
            strncat(avail,fit[a2].name,sizeof(avail)-strlen(avail)-1) ;
          }
          ERROR_exit("3dRSA: -model_contrast '%s' must be 'A-B' where A and B are\n"
-                    "       two fixed models or two fitted models.  Known models: %s\n"
-                    "       (name a model with -model_label to make this readable)",
+                    "       two fixed models or two fitted models.  Known models: %s",
                     spec , avail) ;
        }
        if( ta != tb )
@@ -5879,8 +5870,6 @@ int main( int argc , char *argv[] )
 
    /*-- Resolve pairwise A,B or F8 three-predictor A,B,C commonality. --*/
    if( ncomspec > 0 ){
-     if( pending_label != NULL )
-       ERROR_exit("3dRSA: -model_label '%s' was not followed by a model",pending_label) ;
      if( cmp_metric != CMP_PEARSON && cmp_metric != CMP_SPEARMAN )
        ERROR_exit("3dRSA: -model_commonality requires -metric pearson or spearman;\n"
                   "       its R2 decomposition is a regression statistic") ;
@@ -5906,8 +5895,7 @@ int main( int argc , char *argv[] )
            if( a2 < nmod-1 ) strncat(avail,", ",sizeof(avail)-strlen(avail)-1) ;
          }
          ERROR_exit("3dRSA: -model_commonality '%s' must name two or three DISTINCT models\n"
-                    "       as 'A,B' or 'A,B,C'.  Known models: %s\n"
-                    "       (name a model with -model_label to make this readable)",
+                    "       as 'A,B' or 'A,B,C'.  Known models: %s",
                     comspec[ii] , avail) ;
        }
        com[ii].nmodel=nn ; com[ii].nq=(nn==2)?RSA_NCOMMON:RSA_NCOMMON3 ;
