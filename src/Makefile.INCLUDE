@@ -162,6 +162,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dNwarpXYZ 3dTRfix 3dToyProg 3dRankizer nifti1_tool gifti_tool     \
            cifti_tool images_equal uniq_images tokens 3dLocalACF 3dXClustSim  \
            3dtoXdataset 3dMultiThresh 3dLFCD 3dDegreeCentrality 3dECM 3dMSE   \
+           3dRSA 1dTrdm                                                        \
            3dsvm_linpredict 3dTfilter 3dTsplit4D 3dSharpen  3dDepthMap        \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
@@ -1788,6 +1789,30 @@ sparse_array.o:sparse_array.c sparse_array.h
 3dMSE:3dMSE.o
 	$(RM) $@
 	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
+
+RSA_OBJS = 3dRSA.o thd_datatable.o thd_mapinfer.o thd_patterns.o thd_permute.o \
+           thd_simmatrix.o thd_phasefft.o
+RSA_HDRS = thd_datatable.h thd_mapinfer.h thd_patterns.h thd_permute.h \
+           thd_simmatrix.h thd_phasefft.h niml.h AFNI_version.h
+
+$(RSA_OBJS): $(RSA_HDRS)
+	$(RM) $@
+	$(CCOMP) -c $(@:.o=.c) $(INFLAGS)
+
+3dRSA:$(RSA_OBJS) $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CCOMP) -o 3dRSA $(RSA_OBJS) $(LFLAGS) $(LLIBS)
+
+TRDM_OBJS = 1dTrdm.o thd_datatable.o thd_mapinfer.o thd_permute.o thd_simmatrix.o
+
+1dTrdm.o: 1dTrdm.c thd_datatable.h thd_mapinfer.h thd_permute.h \
+           thd_simmatrix.h AFNI_version.h
+	$(RM) $@
+	$(CCOMP) -c 1dTrdm.c $(INFLAGS)
+
+1dTrdm:$(TRDM_OBJS) $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CCOMP) -o 1dTrdm $(TRDM_OBJS) $(LFLAGS) $(LLIBS)
 
 # This one doesn't need OpenMP, but goes with other RCC progs
 3dsvm_linpredict:3dsvm_linpredict.o
