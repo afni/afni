@@ -234,6 +234,7 @@ def test_3dDWUncert(data, ptaylor_env):
         data,
         cmd,
         kwargs_log={"append_to_ignored": [" min", "Nvox progress proxy count"]},
+        kwargs_scans={"data_kwargs": {"rtol": 0.001}},
     )
 
     differ.run(timeout=60)
@@ -421,7 +422,8 @@ def test_3dClusterize(data, ptaylor_env):
     # > {opref}_REP.txt
     cmd = " ".join(cmd.split())
     differ = tools.OutputDiffer(data, cmd)
-    differ.run(skip_output_diff=True)
+    #differ.run(skip_output_diff=True)
+    differ.run()
 
 
 def test_3dClusterize_new(data, ptaylor_env):
@@ -441,10 +443,12 @@ def test_3dClusterize_new(data, ptaylor_env):
     """
     # > {opref}_REP.txt
     cmd = " ".join(cmd.split())
-    differ = tools.OutputDiffer(
-        data, cmd, kwargs_log={"append_to_ignored": "Mean and SEM based"}
-    )
-    differ.run(skip_output_diff=True)
+    #differ = tools.OutputDiffer(
+    #    data, cmd, kwargs_log={"append_to_ignored": "Mean and SEM based"}
+    #)
+    #differ.run(skip_output_diff=True)
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()
 
 
 # -------------------------------------------------------------------------
