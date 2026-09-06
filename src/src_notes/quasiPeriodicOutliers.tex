@@ -258,7 +258,7 @@ where $v_i^{\prime}$ is the raw value at index $i$.  A problem combining this ap
 
 where $v_i^{\prime}$ is the raw value of peak $i$ and $v_{i-1}^{\prime}$ and $v_{i+1}^{\prime}$ are the raw values of the troughs on either side of peak $i$.
 
-I would like to make a new set of peaks each of which is the difference between each peak value and the mean of the values of the troughs on either side.  There should be only one peak between two troughs and only one trough between two peaks.  If there are two troughs between two peaks, I would like the mean of the values of those troughs to be used as the value of one of the troughs used to determine the output peak height.  I would also like the range, between the two peaks to be recorded in out output list where each nested member gives the range between the two peaks.  If there are two peaks between two troughs, I would like the output peak to be the mean of the height and locations of both peaks and the indices, between the two troughs nested in the outliers list.
+For respiratory data, one should make a new set of peaks each of which is the difference between each peak value and the mean of the values of the troughs on either side.  There should be only one peak between two troughs and only one trough between two peaks.  If the peaks and troughs are not properly interdigitated, this problem should be addressed before the peak to trough calculation is made.  The range, between the two peaks is recorded in an output list where each nested member gives the range between the two peaks.  
 
 $vdist$ and $tdist$ values are normalized so they are in the same range.  Otherwise, one may have a disproportionate effect.
 
@@ -301,7 +301,7 @@ The default procedure is as follows.
 	\item Make an $N \times N$ matrix where $N$ is the number of cardiac peaks.
 	\item Fill the matrix with the weights, $w_{uv}$ determined using equation \ref{weightUV}.
 	\item Make a vector of weight sums and get a vector of their ranks starting with the highest weight sum.
-	\item Identify outliers on low end of the cumulative weights
+	\item Identify outliers on low end of the cumulative weights using a variation of the Tukey method \cite{Tukey1977}.
 	\begin{enumerate}
 		\item Calculate Q1 and Q3 (first and third quartiles)
 		\item Calculate inter-quartile range (IQR)
@@ -338,6 +338,7 @@ The default procedure is as follows.
 		\item Get weight sum vectors and rank indices
 		\item Identify outliers on low end of the cumulative weights
 		\item Identify peak-trough mismatches (multiple peaks/troughs between pairs of troughs/peaks).
+		\item Normalize time differences to be in the same range as the vs/troughs between pairs of troughs/peaks).
 	\end{enumerate}	
 \end{enumerate}
 
@@ -361,6 +362,8 @@ Time series are corrected as follows.  For the ECG time series:
 		\item Let $\ell_b$ be the width from the last peak before the bad region to the first peak after the bad region.  If there is no peak before the bad region, $\ell_b$ is the distance to the first peak after the bad region.  If there is no peak after the bad region, $\ell_b$ is the distance from the last peak before the bad region to the end of the time series.
 		\item Divide $\ell_b$ by $T_p$, and round it off to the nearest integer, to estimate the new number of peaks, $N_p$.
 		\item Divide the width of the region by $N_p$ to get the local inter-peak width, $t_p$.
+		\item Divide $\ell_b$ by $T_p$, and round it off to	the nearest integer, to estimate the new number of peaks, $N_p$.
+		\item Divide the width of the region by $N_p$ to get the local inter-peak width, $t_p$.
 		\item Starting at the last peak before the bad region, add peaks at intervals of $t_p$ with each index rounded to the nearest integer.  If there is no peak before the bad region, start at the first peak after the bad region and work back.
 		\item The value, at each peak, is the mean of the peak values on either side of the bad region.  (Taking the local maximum is less desirable since it may be affected by noise.) 
 	\end{enumerate}
@@ -378,7 +381,7 @@ An example of the results is shown in figure \ref{fig:cardiacPhaseInterpolation}
 
 \begin{figure}[htb]
 	\begin{center}
-		\includegraphics[height=4.0in,width=3in,angle=0]{/home/peterlauren/quasiPeriodicOutliers/cardiacPhaseInterpolation.pdf}
+		\includegraphics[height=4.0in,width=3in,angle=0]{cardiacPhaseInterpolation.pdf}
 		\caption{Effect of correcting cardiac peak locations using phase interpolation.  The blue spots are the original peaks in the good regions.  The red spots are the phase interpolated peaks in the bad regions.}
 		\label{fig:cardiacPhaseInterpolation}
 	\end{center}
@@ -386,8 +389,10 @@ An example of the results is shown in figure \ref{fig:cardiacPhaseInterpolation}
 
 With the respiratory time series, there are troughs as well as peaks and peaks and troughs may not be  always bijective.  The following procedure is followed for the respiratory time series.
 \begin{enumerate}
-	\item First deal with cases where there is more than one peak/trough between a pair of troughs/peaks.
+	\item Determine the mean period among peaks, $T_p$.
+	\item Determine the mean portion $P_{ip}$ of the interpeak distance from a peak to its following trough.
 	\begin{enumerate}
+		\item First deal with cases where there is more than one peak/trough between a pair of troughs/peaks.
 		\item If at least two consecutive peaks
 		\begin{enumerate}
 			\item Remove all of the existing peaks in bad region.
@@ -407,6 +412,29 @@ With the respiratory time series, there are troughs as well as peaks and peaks a
 \end{enumerate}
 
 This places the peaks (and troughs) on a type of invisible clothesline which is preferable to trying to match the erroneous peaks (and troughs) of the input signal.  An optional modification would be to move each of the peaks (and troughs) to the local maximum (minimum), redetermine the bad segments and then recorrect with the standard clothesline method.
+
+\subsection{Visualization}
+
+Ideally, users would prefer to see the bad regions, and their corrections, against the original time series.  However, slow drift in the time series profile may be much greater than the amplitude of the quasi-periodic respiratory and cardiac activity.  This is particularly the case for the respiratory profile.  Hence, while viewing the results against the original time series is the default, there is the option to flatten the drift using ALS (asymmetric least squares) baseline correction\cite{Eilers2005}.  This estimates the ALS baseline of the time series (using the pybaselines:Baseline function alsBaseline) and subtracts it from the original time series. 
+
+
+\begin{figure}
+	\begin{subfigure}{.5\textwidth}
+		\centering
+		\includegraphics[width=.8\linewidth]{beforeALSBaselineCorrection.pdf}
+		\caption{Before baseline correction}
+		\label{fig:sfig1}
+	\end{subfigure}%
+	\\
+	\begin{subfigure}{.5\textwidth}
+		\centering
+		\includegraphics[width=.8\linewidth]{AlsBaselineCorrected.pdf}
+		\caption{After baseline correction}
+		\label{fig:sfig2}
+	\end{subfigure}
+	\caption{Corrected respiratory profiles (Dan Handwerker, sub 1, run 1) before (\ref{fig:sfig1}) and after  (\ref{fig:sfig2}) ALS baseline correction.  Note how removing the secular drift expands the visualized amplitude, making the results of correction easier to visualize.}
+	\label{BaslineCorrection}
+\end{figure}
 
 %----------------------------------------------------------------------------------------
 %	REFERENCE LIST
@@ -436,12 +464,15 @@ This places the peaks (and troughs) on a type of invisible clothesline which is 
 	
 	\bibitem{Erkus2021} Erku\c{s} EC \& Purut\c{c}uo\u{g}lu, V, 2021, ``Outlier detection and quasi-periodicity optimization algorithm: Frequency domain based outlier detection (FOD)'', {\em European Journal of Operational Research} 291(2):560-574
 	
+	\bibitem{Tukey1977} Tukey, J. W. (1977). {\em Exploratory Data Analysis}. Addison-Wesley. 
+	
 	\bibitem{Liu2022} Liu, F, Zhou, X, Cao, J, Wang , Z, Wang, T, Wang, H \& Zhang, Y, 2022 ``Anomaly Detection in Quasi-Periodic Time Series Based on Automatic Data Segmentation and Attentional LSTM-CNN'', {\em IEEE Trans. Knowledge and Data Engineering} 34(6):2626-2640
 	
 	\bibitem{Huang2014} Huang, F {\em et al}. ``Online mining abnormal period patterns from multiple medical sensor data streams'', 2014, {\em World Wide Web}, 17(4):569-587
 	
-	\bibitem{Reynolds2024} Reynolds RC, Glen DR, Chen G, Saad ZS, Cox RW, Taylor PA (2024). Processing, evaluating and
-	understanding FMRI data with afni\_proc.py. {\em Imaging Neuroscience} 2:1-52
+	\bibitem{Reynolds2024} Reynolds RC, Glen DR, Chen G, Saad ZS, Cox RW, Taylor PA (2024). Processing, evaluating and understanding FMRI data with afni\_proc.py. {\em Imaging Neuroscience} 2:1-52
+	
+	\bibitem{Eilers2005} Eilers, Paul H. C., \& Boelens, Hans F.M., ``Baseline Correction with Asymmetric Least Squares Smoothing''. Leiden University Medical Centre, 2005
 	
 	
 \end{thebibliography}
