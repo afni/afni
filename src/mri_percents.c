@@ -737,8 +737,10 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
 
          per[0] = far[0] ;
          for( pp=1 ; pp < nper ; pp++ ){
-            fi = frac *pp ; ii = fi ; fi = fi - ii ;
-            per[pp] = (1.0-fi) * far[ii] + fi * far[ii+1] ;
+            fi = frac *pp ; ii = fi ;
+            if( ii >= nvox-1 ) per[pp] = far[nvox-1] ;  /* no upper neighbor */
+            else { fi = fi - ii ;
+                   per[pp] = (1.0-fi) * far[ii] + fi * far[ii+1] ; }
          }
          per[nper] = far[nvox-1] ;
          mri_free( inim ) ;
@@ -759,8 +761,10 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
 
          per[0] = sar[0] ;
          for( pp=1 ; pp < nper ; pp++ ){
-            fi = frac *pp ; ii = fi ; fi = fi - ii ;
-            per[pp] = (1.0-fi) * sar[ii] + fi * sar[ii+1] ;
+            fi = frac *pp ; ii = fi ;
+            if( ii >= nvox-1 ) per[pp] = sar[nvox-1] ;  /* no upper neighbor */
+            else { fi = fi - ii ;
+                   per[pp] = (1.0-fi) * sar[ii] + fi * sar[ii+1] ; }
          }
          per[nper] = sar[nvox-1] ;
          mri_free( inim ) ;
@@ -966,9 +970,10 @@ ENTRY("mri_quantile") ;
          qsort_float( nvox , far ) ;
 
          fi   = alpha * nvox ;
-         ii   = (int) fi ; if( ii >= nvox ) ii = nvox-1 ;
-         fi   = fi - ii ;
-         quan = (1.0-fi) * far[ii] + fi * far[ii+1] ;
+         ii   = (int) fi ;
+         if( ii >= nvox-1 ){ quan = far[nvox-1] ; }  /* no upper neighbor */
+         else { fi   = fi - ii ;
+                quan = (1.0-fi) * far[ii] + fi * far[ii+1] ; }
          mri_free( inim ) ;
       }
       break ;
@@ -986,9 +991,10 @@ ENTRY("mri_quantile") ;
          qsort_short( nvox , sar ) ;
 
          fi   = alpha * nvox ;
-         ii   = (int) fi ; if( ii >= nvox ) ii = nvox-1 ;
-         fi   = fi - ii ;
-         quan = (1.0-fi) * sar[ii] + fi * sar[ii+1] ;
+         ii   = (int) fi ;
+         if( ii >= nvox-1 ){ quan = sar[nvox-1] ; }  /* no upper neighbor */
+         else { fi   = fi - ii ;
+                quan = (1.0-fi) * sar[ii] + fi * sar[ii+1] ; }
          mri_free( inim ) ;
       }
       break ;
@@ -1044,15 +1050,17 @@ ENTRY("mri_twoquantiles") ;
 
          if( alpha > 0.0f && alpha < 1.0f ){
            fi    = alpha * nvox ;
-           ii    = (int) fi ; if( ii >= nvox ) ii = nvox-1 ;
-           fi    = fi - ii ;
-           qalph = (1.0-fi) * far[ii] + fi * far[ii+1] ;
+           ii    = (int) fi ;
+           if( ii >= nvox-1 ){ qalph = far[nvox-1] ; }  /* no upper neighbor */
+           else { fi    = fi - ii ;
+                  qalph = (1.0-fi) * far[ii] + fi * far[ii+1] ; }
          }
          if( beta > 0.0f && beta < 1.0f ){
            fi    = beta * nvox ;
-           ii    = (int) fi ; if( ii >= nvox ) ii = nvox-1 ;
-           fi    = fi - ii ;
-           qbeta = (1.0-fi) * far[ii] + fi * far[ii+1] ;
+           ii    = (int) fi ;
+           if( ii >= nvox-1 ){ qbeta = far[nvox-1] ; }  /* no upper neighbor */
+           else { fi    = fi - ii ;
+                  qbeta = (1.0-fi) * far[ii] + fi * far[ii+1] ; }
          }
          mri_free( inim ) ;
       }
@@ -1072,15 +1080,17 @@ ENTRY("mri_twoquantiles") ;
 
          if( alpha > 0.0f && alpha < 1.0f ){
            fi    = alpha * nvox ;
-           ii    = (int) fi ; if( ii >= nvox ) ii = nvox-1 ;
-           fi    = fi - ii ;
-           qalph = (1.0-fi) * sar[ii] + fi * sar[ii+1] ;
+           ii    = (int) fi ;
+           if( ii >= nvox-1 ){ qalph = sar[nvox-1] ; }  /* no upper neighbor */
+           else { fi    = fi - ii ;
+                  qalph = (1.0-fi) * sar[ii] + fi * sar[ii+1] ; }
          }
          if( beta > 0.0f && beta < 1.0f ){
            fi    = beta * nvox ;
-           ii    = (int) fi ; if( ii >= nvox ) ii = nvox-1 ;
-           fi    = fi - ii ;
-           qbeta = (1.0-fi) * sar[ii] + fi * sar[ii+1] ;
+           ii    = (int) fi ;
+           if( ii >= nvox-1 ){ qbeta = sar[nvox-1] ; }  /* no upper neighbor */
+           else { fi    = fi - ii ;
+                  qbeta = (1.0-fi) * sar[ii] + fi * sar[ii+1] ; }
          }
          mri_free( inim ) ;
       }
