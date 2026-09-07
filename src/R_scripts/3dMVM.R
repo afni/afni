@@ -1250,7 +1250,10 @@ runAOV <- function(inData, dataframe, ModelForm) {
 	       #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- sign(glt[1,'Value']) * sqrt(glt[1,4])  # convert F to t
                #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,4]<0.5, qt(glt[1,4], glt$Df[2],
                #   lower.tail = FALSE)*sign(glt[1,'Value']), -qt(glt[1,4], glt$Df[2], lower.tail = FALSE)*sign(glt[1,'Value'])),
- 	       out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,'Pr(>Chisq)']<0.5, qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value']), -qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value'])),
+ 	       # Pr(>Chisq) from the 1-df chi-square test is two-sided, so the matching Z is
+ 	       # qnorm(p/2) with the sign of the estimate (as in the non-robust and 3dLMEr paths);
+ 	       # the old qnorm(p) form understated |Z| (e.g. 1.645 instead of 1.96 at p=0.05)
+ 	       out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, sign(glt[1,'Value'])*qnorm(glt[1,'Pr(>Chisq)']/2, lower.tail = FALSE),
                   sign(glt[1,'Value']) * sqrt(glt[1, intersect(c('F', 'approx F'), names(glt))]))
             } #if(!is.null(glt))
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])

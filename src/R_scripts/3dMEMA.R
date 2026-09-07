@@ -2513,8 +2513,8 @@ tolU <- 1e8  # upper tolerance for those variances of 0
       for(ii in 1:lop$myDim[1]) 
          for(jj in 1:lop$myDim[2]) 
             for(kk in 1:lop$myDim[3])
-      grpDFList[[1]][ii,jj,kk,] <- sum(lop$nSubj) - 
-         -grpDFList[[1]][ii,jj,kk,]-grpDFList[[2]][ii,jj,kk,] - lop$nGrp - lop$nCov
+      grpDFList[[1]][ii,jj,kk,] <- sum(lop$nSubj) -
+         grpDFList[[1]][ii,jj,kk,]-grpDFList[[2]][ii,jj,kk,] - lop$nGrp - lop$nCov
    }
    if(lop$anaType==3) {
       for(ii in 1:lop$myDim[1]) 
@@ -2544,7 +2544,7 @@ tolU <- 1e8  # upper tolerance for those variances of 0
       for(i in 1:lop$myDim[1]) for(j in 1:lop$myDim[2]) for(k in 1:lop$myDim[3]) {
       for(m in 1:2) # two individual group t
          #outArr[,,,2*ii] <- tConvert(outArr[,,,2*ii], grpDFList[[ii]][,,,1], lop$nSubj[ii] - 1)
-         outArr[i,j,k,2*m] <- tConvert(outArr[i,j,k,2*m], grpDFList[[1]][i,j,k,1], lop$nSubj[m] - 1)
+         outArr[i,j,k,2*m] <- tConvert(outArr[i,j,k,2*m], grpDFList[[m]][i,j,k,1], lop$nSubj[m] - 1)
       # group diff t has a different situation about DFs
       #outArr[,,,6] <- tConvert(outArr[,,,6], sum(grpDFList[[1]], grpDFList[[2]])[,,,1]+1, nDF)
       outArr[i,j,k,6] <- tConvert(outArr[i,j,k,6], sum(grpDFList[[1]][i,j,k,1], grpDFList[[2]][i,j,k,1])+1, nDF)
