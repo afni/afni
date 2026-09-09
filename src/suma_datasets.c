@@ -3398,7 +3398,7 @@ SUMA_DSET * SUMA_MaskedByOrderedNodeIndexCopyofDset(
                (see keep_node_index for exception).
                If rowmask == NULL then all rows are copied
    \param colmask (byte *) [nel->vec_num x 1] 
-               vector specifying which volumns to operate on.
+               vector specifying which volumes to operate on.
                If colmask[icol] is 1 then values in this column 
                are copied. 
                If colmask == NULL then all columns are copied

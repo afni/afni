@@ -244,6 +244,7 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
    "         Default is no masking.\n"
                      ) ),
 
+      '-jobs' = apl(n = 1, d = 1, h = paste(
    "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
    "         up the program significantly. However, increasing the number of CPUs", 
    "         processes does not necessarily improve performance. Because each",

@@ -1,8 +1,9 @@
 #include "mrilib.h"
-#include "zgaussian.c"
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+// ADD INIT FOR ZGAUSS
 
 #undef  MTYPE
 #define MTYPE double
@@ -125,11 +126,18 @@ MRI_IMAGE * mri_genARMA11( int nlen, int nvec, float ap, float lm, float sg )
    MRI_IMAGE *outim ;
    float     *outar , *vv ;
    float zfac=0.0f , tfac=0.0f , zhat , denom ;
+
+   /* def seed: use wall clock (always changes); user can set from cmd line */
+   uint32_t rseed = 0;
+
 #if 0
    long seed=0 ;
    seed = (long)time(NULL)+(long)getpid() ;
    srand48(seed) ;
 #endif
+
+   /* apply the seed to initialize for Gaussian calcs */
+   zgaussian2_init( rseed );
 
 ENTRY("mri_genARMA11") ;
 
@@ -163,7 +171,7 @@ ENTRY("mri_genARMA11") ;
    rvec  = (double *)malloc(sizeof(double)*nlen) ;
 
    for( kk=0 ; kk < nvec ; kk++ ){
-     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian() ;
+     for( ii=0 ; ii < nlen ; ii++ ) rvec[ii] = zgaussian2() ;
      if( tdof > 0.0f ){
        for( ii=0 ; ii < nlen ; ii++ ){
          zhat = rvec[ii]*zfac ;

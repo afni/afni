@@ -174,6 +174,7 @@ track_tools, suma
 3dSpaceTimeCorr, suma
 3dSpatNorm, corebinaries
 3dStatClust, corebinaries
+3dShuffle, corebinaries
 3dSynthesize, corebinaries
 3dTORTOISEtoHere, suma
 3dTRfix, corebinaries
@@ -689,6 +690,7 @@ to3d, gui
 3dSeg, suma
 3dSkullStrip, suma
 3dSurf2Vol, suma
+SurfClustSim, suma
 3dSurfMask, suma
 3dVol2Surf, suma
 3dinfill, suma

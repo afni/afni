@@ -734,7 +734,7 @@ SUMA_Boolean SUMA_SureFit_Read_Coord ( char * f_name, SUMA_SureFit_struct *SF)
       }
    }
    /* Now read the Number of Nodes */
-   fscanf(sf_file, "%d", &SF->N_Node);
+   (void)fscanf(sf_file, "%d", &SF->N_Node);
    if (LocalHead) fprintf (stdout,"Expecting %d nodes.\n", SF->N_Node);
    if (SF->N_Node <= 3) {
       SUMA_S_Err("Too few nodes!");
@@ -2394,7 +2394,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                break;
             }
             ct = SUMA_CreateFS_ColorTable(nbins, len, NULL);
-            fread(ct->fname, sizeof(char), len, fl) ;
+            (void)fread(ct->fname, sizeof(char), len, fl) ;
             SUMA_LHv("coltable fname: %s\n", ct->fname);
             for (i = 0 ; i < nbins ; i++)
             {
@@ -2404,7 +2404,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name,
                         SUMA_SL_Err("Too long a name");
                         SUMA_RETURN(NOPE);
                    }
-                   fread(cte->name, sizeof(char), len, fl) ;
+                   (void)fread(cte->name, sizeof(char), len, fl) ;
                    SUMA_READ_INT (&(cte->r), bs, fl, ex);
                    SUMA_READ_INT (&(cte->g), bs, fl, ex);
                    SUMA_READ_INT (&(cte->b), bs, fl, ex);
@@ -4062,8 +4062,18 @@ SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO)
       /* copy face elements to SO structure */
       SO->FaceSetDim = flist[0]->nverts;
       SO->N_FaceSet = num_elems;
-      SO->FaceSetList = (int *) SUMA_calloc (SO->FaceSetDim * num_elems,
-                                             sizeof(int));
+      if (SO->FaceSetDim <= 0 || num_elems <= 0) {
+          SUMA_SL_Err("SUMA_Ply_Read: invalid dimensions");
+          SUMA_RETURN(NOPE);
+      }
+
+      if ((size_t)SO->FaceSetDim > SIZE_MAX / (size_t)num_elems) {
+          SUMA_SL_Err("SUMA_Ply_Read: allocation overflow");
+          SUMA_RETURN(NOPE);
+      }
+
+      SO->FaceSetList = (int *)SUMA_calloc(SO->FaceSetDim * num_elems,
+                                           sizeof(int));
       if (!SO->FaceSetList) {
          SUMA_S_Err("Failed to allocate for SO->NodeList.\n");
          if (SO->NodeList) SUMA_free(SO->NodeList);
@@ -4343,7 +4353,7 @@ SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO)
    }
 
    /* Is this a binary or ascii file? Read 80 characters and check for 'solid'*/
-   fread(head, sizeof(char), 80, fout);
+   (void)fread(head, sizeof(char), 80, fout);
    head[80] = '\0'; /* replace FreeBSD-specific strnstr() 11 Feb 2015 [rickr] */
    if ((bb=strstr(head, "solid"))) {
       if (bb - head > 3) {
@@ -4366,7 +4376,7 @@ SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO)
 
          SUMA_LH("Reading BINARY STL");
          /* We should be right at the number of triangles */
-         fread(&ui, sizeof(unsigned int), 1, fout);
+         (void)fread(&ui, sizeof(unsigned int), 1, fout);
          SUMA_LH("%d facesets", ui);
          SO->N_FaceSet = ui;
          SO->FaceSetDim = 3;
@@ -4424,7 +4434,7 @@ SUMA_Boolean SUMA_STL_Read (char * f_name, SUMA_SurfaceObject *SO)
             SO->NodeNormList[j3[0]+2] =
                SO->NodeNormList[j3[1]+2] =
                   SO->NodeNormList[j3[2]+2] = SO->FaceNormList[i3+2];
-            fread(&ss, sizeof(short), 1, fout);
+            (void)fread(&ss, sizeof(short), 1, fout);
             #if 0
                SUMA_LH( "Facet %d %d %d %d\n"
                         "%f %f %f\n"
@@ -4652,7 +4662,7 @@ SUMA_Boolean SUMA_STL_Write (char * f_name_in, SUMA_SurfaceObject *SO)
             char dummy[80], dhead[81];
             snprintf(dummy,60,"SO Label: %s, Written by SUMA",
                      CHECK_NULL_STR(SO->Label));
-            snprintf(dhead,80,"%-80s",dummy);
+            snprintf(dhead,80,"%-79s",dummy);
             fwrite(dhead, sizeof(char), 80, fout);
             for (i=0; i<SO->N_FaceSet; ++i) {
                i3 = 3*i;
@@ -5575,7 +5585,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
    ncol = N_Nodes;
 
    if (!ind || !N_Nodes) {
-      SUMA_S_Err("NULL index, or no nodes");
+      SUMA_S_Err("NULL index (%p), or no nodes (%d)", ind, N_Nodes);
       SUMA_RETURN(NULL);
    }
    if ( (ind_type != SUMA_float && ind_type != SUMA_int) ) {
@@ -5613,6 +5623,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
             SUMA_SL_Err("Failed to allocate");
             SUMA_RETURN(NULL);
          }
+         /* copy list of ROI node indices */
          if (ind_type == SUMA_float) {
             fv = (float *)ind;
             for (i=0; i < ncol; ++i) iNode[i] = (int)fv[i];
@@ -5863,7 +5874,7 @@ SUMA_DRAWN_ROI **SUMA_MultiColumnsToDrawnROI(
          break;
    }
 
-
+   /* allocate memory for contours */
    ROIv = (SUMA_DRAWN_ROI **)SUMA_calloc(N_Labels,sizeof(SUMA_DRAWN_ROI*));
 
    for (i=0; i < N_Labels; ++i) {

@@ -518,7 +518,7 @@ THD_3dim_dataset * form_clusters ()
   matrix s;                   /* square root of covariance matrix */
   matrix sinv;                /* inverse of square root of covariance matrix */
 
-  char message[80];           /* error message */
+  char message[THD_MAX_NAME+80];   /* error message */
 
 
   /*----- Initialize vectors and matrices -----*/

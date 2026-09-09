@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <time.h>
 
-#include "zgaussian.c"   /** fast function for generating Gaussian deviates **/
 
 /*============================================================================*/
 /* The function below is no longer used,
@@ -222,11 +221,16 @@ ENTRY("mri_alphasim") ;
 
    nxyz = nx*ny*nz ;
 
+   /* set seeds for RNGs (NB: srand48() appears to not actually be
+      called? just leaving for now, still) */
    if( seed != 0 ){
      srand48(seed) ;
-   } else if( sseed == 0 ){
-     sseed = (long)time(NULL) + (long)getpid() ;
+     zgaussian2_init( (uint32_t)seed ) ;
+   } else {
+     if( sseed == 0 )
+        sseed = (long)time(NULL) + (long)getpid() ;
      srand48(sseed) ;
+     zgaussian2_init( (uint32_t)sseed ) ;
    }
 
    thr = (float *)malloc(sizeof(float)*num_pval) ;
@@ -251,7 +255,7 @@ ENTRY("mri_alphasim") ;
 
      /*-- create uncorrelated random field --*/
 
-     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = zgaussian() ;
+     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = zgaussian2() ;
      memcpy( qar , bar , sizeof(float)*nxyz ) ;  /* qar = unsmoothed */
 
      fx = fz = 0.0f ;  /* set current smoothness level of bar */

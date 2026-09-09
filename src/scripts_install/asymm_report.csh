@@ -7,9 +7,13 @@
 
 set progname = asymm_report
 
-set version   = "0.91";   set rev_dat   = "Jun 12, 2025"
+#set version   = "0.91";   set rev_dat   = "Jun 12, 2025"
 #     + [DRG] adding in right_list, left_list options
-
+# set version = "1.00"; set rev_dat   = "Jul 30, 2026"
+#     + [DRG] check for no labels and checks for zero values
+ set version = "1.01"; set rev_dat   = "Aug 11, 2026"
+#     + [DRG] allow for more decimal places for small volumes and areas
+#     as in the case with marmosets
 
 # start with cerebellum regions from HCA_lr_v0.9.nii.gz
 
@@ -42,8 +46,12 @@ set patchsurf = "fullpatchsurf.gii"
 set patchprefix = "roi_proj"
 set patchsmooth = "2"
 
+set dec = "1"
+
 # default method for computing asymmetry is right to left ratio
 set asymm_method = "RL"
+# allow for no file matches in wildcard expansion
+set nonomatch
 
 if ("$#" <  "1") then
    goto HELP
@@ -199,6 +207,15 @@ while ($ac <= $#argv)
         endif
         set asymm_method = $argv[$ac]
 
+    else if ("$argv[$ac]" == "-dec_places") then
+        set this_opt = "$argv[$ac]"
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '${this_opt}'"
+            exit 1
+        endif
+        set dec = $argv[$ac]
+
    
    # ---------- fin ------------------
 
@@ -339,8 +356,8 @@ foreach roi (`count -digits 2 1 $#right_range`)
    else
       set asymm = `ccalc "$rightv/$leftv"`
    endif
-   set rightv = `ccalc -form "%.1f" $rightv`
-   set leftv = `ccalc -form "%.1f" $leftv`
+   set rightv = `ccalc -form "%.${dec}f" $rightv`
+   set leftv = `ccalc -form "%.${dec}f" $leftv`
    set asymm = `ccalc -form "%.3f" -expr "min(100,$asymm)"`
 
    set resultline = "$resultline $rightv $leftv $asymm"
@@ -348,21 +365,41 @@ foreach roi (`count -digits 2 1 $#right_range`)
    if ( $isosurfs ) then
       set righti_1d = `ccalc -int $righti`
       set lefti_1d = `ccalc -int $lefti`
-      SurfaceMetrics -area -prefix temp.1D -overwrite \
-        -i ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii > /dev/null
+      if -e ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii then
+        SurfaceMetrics -area -prefix temp.1D -overwrite \
+          -i ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii
+# > /dev/null
       set righta = `3dTstat -sum  -prefix stdout temp.1D.area'[1]'\' `
-      SurfaceMetrics -area -prefix temp.1D -overwrite \
-        -i ${isosurf_dir}/${isosurf_base}*.k${lefti_1d}.gii > /dev/null
-      set lefta = `3dTstat -sum  -prefix stdout temp.1D.area'[1]'\' `
-      # compute asymmetry as ratio of right to left volumes or Laterality Index
-      if ($asymm_method == "LI") then
-         set surf_asymm = `ccalc "($lefta-$righta)/($lefta+$righta)"`
       else
-         set surf_asymm = `ccalc "$righta/$lefta"`
+          set righta = 0
+      endif 
+
+      if -e ${isosurf_dir}/${isosurf_base}*.k${righti_1d}.gii then
+         SurfaceMetrics -area -prefix temp.1D -overwrite \
+           -i ${isosurf_dir}/${isosurf_base}*.k${lefti_1d}.gii 
+# > /dev/null
+         set lefta = `3dTstat -sum  -prefix stdout temp.1D.area'[1]'\' `
+      else
+         set lefta = 0
       endif
 
-      set righta = `ccalc -form "%.1f" $righta`
-      set lefta = `ccalc -form "%.1f" $lefta`
+      # compute asymmetry as ratio of right to left volumes or Laterality Index
+      if ($asymm_method == "LI") then
+         if(($lefta == 0) && ($righta==0)) then
+            set surf_asymm = 0
+         else
+            set surf_asymm = `ccalc "($lefta-$righta)/($lefta+$righta)"`
+         endif
+      else
+         if ($lefta == 0) then
+            set surf_asymm = 0
+         else
+            set surf_asymm = `ccalc "$righta/$lefta"`
+         endif
+      endif
+
+      set righta = `ccalc -form "%.${dec}f" $righta`
+      set lefta = `ccalc -form "%.${dec}f" $lefta`
       set surf_asymm = `ccalc -form "%.3f" -expr "min(100,$surf_asymm)"`
       set resultline = "$resultline     $righta $lefta $surf_asymm"
    endif
@@ -393,8 +430,8 @@ foreach roi (`count -digits 2 1 $#right_range`)
       else
          set parea_asymm = `ccalc "$rightparea/$leftparea"`
       endif
-      set rightparea = `ccalc -form "%.1f" $rightparea`
-      set leftparea = `ccalc -form "%.1f" $leftparea`
+      set rightparea = `ccalc -form "%.${dec}f" $rightparea`
+      set leftparea = `ccalc -form "%.${dec}f" $leftparea`
       set parea_asymm = `ccalc -form "%.3f" -expr "min(100,$parea_asymm)"`
 
       set resultline = "$resultline     $rightparea $leftparea $parea_asymm"

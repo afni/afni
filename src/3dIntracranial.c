@@ -343,7 +343,7 @@ void check_one_output_file
 )
 
 {
-  char message[MAX_STRING_LENGTH];    /* error message */
+  char message[MAX_STRING_LENGTH*2];  /* error message */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 

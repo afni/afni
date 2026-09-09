@@ -192,7 +192,7 @@ void compute_data( MCB mc , int obj_type)
   }
   
   if (WriteVol) {
-   char vname[200],vnamepref[200];
+   char vname[205],vnamepref[200];
    sprintf(vnamepref,"mc_shape_%d_vol%d", obj_type, mc.size_x);
    sprintf(vname,"%s.1D", vnamepref);
    printf(  "Creating object %d and writing its volume to %s.\n"

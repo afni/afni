@@ -792,7 +792,7 @@ int main( int argc , char *argv[] )
           if (numMultBriks == -1) numMultBriks = DSET_NVALS(old_dset);
 
           for (ii = 1; ii <= numMultBriks; ii++) {
-            char tmpstr[25];
+            char tmpstr[42];
             if (meth[methIndex] == METH_AUTOREGP) {
               sprintf(tmpstr,"%s[%d](%d)",meth_names[meth[methIndex]],
                       numMultBriks,ii);

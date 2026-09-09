@@ -84,7 +84,7 @@ void WorkErrLog_s(void)
       else if (!strcmp(el->macroname,"SLP_Note")){SUMA_SLP_Note("%s", el->msg); }
       else if (!strcmp(el->macroname,"L_Crit")) { SUMA_L_Crit("%s", el->msg); }
       else if (!strcmp(el->macroname,"SL_Crit")) { SUMA_SL_Crit("%s", el->msg); }
-      else if (!strcmp(el->macroname,"SLP_Crit")){SUMA_SLP_Crit("%s", el->msg); }
+      else if (!strcmp(el->macroname,"SLP_Crit")){SUMA_SLP_Crit("%s", el->msg); } 
       else {
          snprintf(mmm, 255*sizeof(char), "Bad macroname %s", el->macroname); 
          sprintf(FuncName, "%s", "WorkErrLog_ns"); SUMA_S_Err("%s",mmm);

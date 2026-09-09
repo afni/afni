@@ -78,6 +78,8 @@ Boolean XcgLiteClueDispatchEvent(Widget w, XEvent  *event);
 #if 0
 extern void RWC_fixup_fontset(Widget cw,Widget www) ; /* 09 Jan 2021 */
 #endif
+/* Historical name retained for ABI/source compatibility.  The function now
+   reports whether LiteClue has either an XFontSet or a core XFontStruct. */
 extern int RWC_liteclue_has_fontset( Widget cw ) ; /* 10 Jan 2021 */
 
 #if defined(__cplusplus) || defined(c_plusplus)

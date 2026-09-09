@@ -54,8 +54,8 @@ double anderson_darling_normal( int npt , double *xxx )
 
 /*----------------------------------------------------------------------------*/
 
-#include "zgaussian.c"
-
+/*  [pt: 2026-08-13] going to use new zgaussian2() function in updated
+    library; so, before calling this function need to setup RNG, below  */
 float * anderson_darling_simulate( int npt , int ntrial )
 {
    float *ad ; double *xxx ; int ii , jj ;
@@ -66,7 +66,7 @@ float * anderson_darling_simulate( int npt , int ntrial )
    xxx = (double *)malloc(sizeof(double)*npt) ;
    for( jj=0 ; jj < ntrial ; jj++ ){
      for( ii=0 ; ii < npt ; ii++ )
-       xxx[ii] = (double)(zgaussian()+zgaussian()+zgaussian()+1.0f) ;
+       xxx[ii] = (double)(zgaussian2()+zgaussian2()+zgaussian2()+1.0f) ;
      ad[jj] = - (float)anderson_darling_normal( npt , xxx ) ;
    }
    qsort_float( ntrial , ad ) ;
@@ -130,6 +130,11 @@ int main( int argc , char *argv[] )
    char *prefix="NormTest" ;
    float *avar , *dval , *atr ; double *eval ;
 
+   /* def seed: use wall clock (always changes); user can set from cmd line */
+   uint32_t rseed = 0;
+
+   mainENTRY("3dNormalityTest") ; machdep() ;
+
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
        "Program: 3dNormalityTest\n"
@@ -161,6 +166,12 @@ int main( int argc , char *argv[] )
        "                distributed value -- just leave the raw A-D score in\n"
        "                the output dataset.\n"
        " -pval        = Output the results as a pure (estimated) p-value.\n"
+       "\n"
+       " -seed SSS    = provide an integer seed value (>=0) for controlling\n"
+       "                the random number generation step. Probably only useful\n"
+       "                for testing purposes. Entering a seed of value 0\n"
+       "                leads to random selection, which is the default\n"
+       "                behavior.\n"
        "\n"
        "EXAMPLES:\n"
        "---------\n"
@@ -218,6 +229,13 @@ int main( int argc , char *argv[] )
        prefix = strdup(argv[nopt]) ;
        if( !THD_filename_ok(prefix) )
          ERROR_exit("-prefix '%s' has illegal characters :-(",prefix) ;
+       nopt++ ; continue ;
+     }
+
+     /*--- control seed for random num gen ---*/
+     if( strcasecmp(argv[nopt],"-seed") == 0 ){
+       if( ++nopt >= argc ) ERROR_exit("Need argument after '-seed'") ;
+       rseed = (uint32_t)strtod(argv[nopt],NULL) ;
        nopt++ ; continue ;
      }
 
@@ -291,9 +309,13 @@ int main( int argc , char *argv[] )
 
      INFO_message("Simulating A-D null distribution: %d trials",ntr) ;
 
+     /* [pt: 2026-08-13] apply the seed to initialize for Gaussian calcs */
+     zgaussian2_init( rseed );
+
      atr = anderson_darling_simulate( nvals , ntr ) ;
      if( atr == NULL ) ERROR_exit("Simulation failed!?") ;
-     /** ININFO_message("range %g .. %g",atr[0],atr[ntr-1]) ; **/
+     //INFO_message("atr range : %g .. %g",atr[0],atr[ntr-1]) ; 
+     //INFO_message("atr median: %g", atr[ntr/2]) ; 
 
      if( dopval )
        INFO_message("Converting A-D statistics to p-values") ;

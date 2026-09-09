@@ -45,4 +45,10 @@ def test_3dttest_pp_AD6_gr_s5_paired(data):
     # not using global vars here, just locals
     cmd = " ".join(cmd.format(**locals()).split())
 
-    rc = tools.OutputDiffer(data, cmd, merge_error_with_output=True)
+    differ = tools.OutputDiffer(data, cmd, merge_error_with_output=True)
+    # Without this call the differ is only constructed, never executed, so
+    # 3dttest++ was not run at all and the test passed unconditionally.
+    # skip_output_diff is used because no sample output has been stored for
+    # this test in afni_ci_test_data/sample_test_output; drop it once that
+    # output is generated (--create-sample-output/--save-sample-output).
+    differ.run(skip_output_diff=True)

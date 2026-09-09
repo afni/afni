@@ -1059,7 +1059,7 @@ void check_one_output_file
  )
 
 {
-   char message[THD_MAX_NAME];      /* error message */
+   char message[THD_MAX_NAME+80];      /* error message */
    THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
    int ierror;                         /* number of errors in editing data */
 

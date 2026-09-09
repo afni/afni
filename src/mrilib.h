@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "Aint.h"        /* 17 Nov 2021 */
 
@@ -1700,6 +1701,8 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 
 #include "thd_depth_map_edt.h"   /* 10 Dec 2021 [ptaylor] */
 #include "thd_edge_dog.h"        /* 10 Dec 2021 [ptaylor] */
+
+#include "zgaussian/zgaussian.h" /* 13 Aug 2026 [ptaylor] */
 
 THD_string_array * mri_read_1D_headerline( char *fname ) ; /* 18 May 2010 */
 

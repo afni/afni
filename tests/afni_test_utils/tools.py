@@ -370,6 +370,11 @@ async def __execute_cmd_args_asynchronous(
         stdoutdir = "/".join([stdout_log.parent.name, stderr_log.name])
         raise TimeoutError(f"stdout: {stdoutdir} in {stdout_log.parent.parent}")
 
+    # Both output streams have hit EOF, so the process is on its way out. Reap
+    # it and return the exit status: without this the coroutine returns None,
+    # and the non-zero exit code check at the end of run_cmd can never fire.
+    return await p.wait()
+
 
 def __execute_cmd_args(
     cmd_args,
