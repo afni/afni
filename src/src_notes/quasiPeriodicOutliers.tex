@@ -329,6 +329,28 @@ The default procedure is as follows.
 	\item Load respiratory time series
 	\item Median shrink respiratory time series to match respiratory peaks and troughs
 	\item Load respiratory peaks and respiratory troughs
+	\item Ensure peaks and troughs are {\em bijective}.  That is, every pair of peaks is separated by exactly one trough and vice versa.
+	\begin{enumerate}
+		\item Identify peak-trough mismatches (cases where a pair of peaks is not separated by exactly one trough).
+		\item Merge the peak and trough arrays into a single chronologically sorted list of events, each tagged as either a peak (`P`) or a trough (`T`).
+		\item Convert \texttt{respiratoryPeaks} and \texttt{respiratoryTroughs} to NumPy arrays for vectorized operations.
+		\item For each consecutive pair of peaks $(p_1, p_2)$, find all troughs strictly between them; if exactly one such trough $t$ exists, record $(p_1, t, p_2)$ as a valid respiratory cycle.
+		\item For each valid cycle, compute the peak-to-trough duration ($t - p_1$) and the trough-to-peak duration ($p_2 - t$).
+		\item Compute the median fractional phase position of the trough within a cycle:
+		\[
+		\text{frac} = \operatorname{median}\left(\frac{t - p_1}{(t - p_1) + (p_2 - t)}\right)
+		\]
+		If no valid cycles were found, default to $\text{frac} = 0.5$ (trough assumed halfway between peaks).
+		\item Re-sort all peaks and troughs together into a single chronological event list (recomputed, since the arrays haven't changed at this point).
+		\item Scan the sorted events for consecutive pairs sharing the same type (two peaks in a row, or two troughs in a row) and collect these as \texttt{bad\_events}, indicating a bijectivity violation.
+		\item For each such same-type adjacent pair $(x_1, x_2)$:
+		\begin{enumerate}
+			\item If both are peaks (`PP`), insert a missing trough at $x_1 + \text{frac} \cdot (x_2 - x_1)$, rounded to the nearest integer.
+			\item If both are troughs (`TT`), insert a missing peak at $x_1 - \text{frac} \cdot (x_1 - x_2)$, rounded to the nearest integer.
+		\end{enumerate}
+		\item Append the newly inferred peaks to \texttt{respiratoryPeaks} and the newly inferred troughs to \texttt{respiratoryTroughs}, then sort each resulting array.
+		\item Return the corrected peaks array, the corrected troughs array, and the lists of added peaks and added troughs.
+	\end{enumerate}
 	\item Consider each peak and each trough as a vertex while recording whether each is a peak into a Boolean list If there are more than one peak between two troughs then the region, between the troughs is marked as anomalous. If there are more than one trough between two peaks then the region between the peaks is marked as anomalous. Assign the vertex values according to equation \ref{respiratoryV2}. Build an array of $vec$s, one for each peak, according to equation \ref{vdisttdist}.
 	\begin{enumerate}
 		\item Get modified peaks (original peaks minus the mean of the adjacent peaks)
@@ -337,8 +359,8 @@ The default procedure is as follows.
 		\item Make an $N \times N$ matrix where $N$ is the number of segments and fill the matrix with the weights
 		\item Get weight sum vectors and rank indices
 		\item Identify outliers on low end of the cumulative weights
+		\item Normalize time differences to be in the same range as the cumulative weights.
 		\item Identify peak-trough mismatches (multiple peaks/troughs between pairs of troughs/peaks).
-		\item Normalize time differences to be in the same range as the vs/troughs between pairs of troughs/peaks).
 	\end{enumerate}	
 \end{enumerate}
 
@@ -350,7 +372,7 @@ Regions, automatically flagged as bad, can be automatically corrected and afni\_
 \begin{enumerate}
 	\item Get corrected versions of respiratory and cardiac time series.
 	\item The physio\_calc.py program is used to determine RVT, RVTRRF, HRCRF and retroicor regressors from the corrected and uncorrected time series.
-	\item Single-echo FMRI data is used to test the value of the automatic correction. RVT, RVTRRF and HRCRF are typically applied as a set of 5 time-shifted regressors. To avoid boundary effects, the mean RVT/HRCRF value was subtracted from the RVT/HRCRF vector (mean centering) before convolution with RRFHR to obtain RVTRRF/HRCRF. For comparison, three types of physio regressor files were created: one containing the 5, shifted RVT regressors, one containing the 5 shifted RVTRRF regressors and one containing the 5, shifted HRCRF regressors. These were separately applied to FMRI processing using AFNI's afni\_proc.py \cite{Reynolds2024} pipeline tool. The effect of each set of regressors is directly compared in terms of variance reduction (i.e., filtering physiological features out). In the comparison, the uncorrected time series variance reduction is subtracted from that of using the corrected time series, so that positive values reflect where using the automatic correction explains more variance than using the uncorrected time series. 
+	\item Single-echo FMRI data is used to test the value of the automatic correction. RVT, RVTRRF and HRCRF are typically applied as a set of 5 time-shifted regressors. To avoid boundary effects, the mean RVT/HRCRF value was subtracted from the RVT/HRCRF vector (mean centering) before convolution with RRFHR to obtain RVTRRF/HRCRF. For comparison, three types of physio regressor files were created: one containing the 5 shifted RVT regressors, one containing the 5 shifted RVTRRF regressors and one containing the 5 shifted HRCRF regressors. These were separately applied to FMRI processing using AFNI's afni\_proc.py \cite{Reynolds2024} pipeline tool. The effect of each set of regressors is directly compared in terms of variance reduction (i.e., filtering physiological features out). In the comparison, the uncorrected time series variance reduction is subtracted from that of using the corrected time series, so that positive values reflect where using the automatic correction explains more variance than using the uncorrected time series. 
 \end{enumerate}
 
 Time series are corrected as follows.  For the ECG time series:
@@ -415,20 +437,20 @@ This places the peaks (and troughs) on a type of invisible clothesline which is 
 
 \subsection{Visualization}
 
-Ideally, users would prefer to see the bad regions, and their corrections, against the original time series.  However, slow drift in the time series profile may be much greater than the amplitude of the quasi-periodic respiratory and cardiac activity.  This is particularly the case for the respiratory profile.  Hence, while viewing the results against the original time series is the default, there is the option to flatten the drift using ALS (asymmetric least squares) baseline correction\cite{Eilers2005}.  This estimates the ALS baseline of the time series (using the pybaselines:Baseline function alsBaseline) and subtracts it from the original time series. 
+Ideally, users would prefer to see the bad regions, and their corrections, against the original time series.  However, slow drift in the time series profile may be much greater than the amplitude of the quasi-periodic respiratory and cardiac activity.  This is particularly the case for the respiratory profile.  Hence, while viewing the results against the original time series is the default, there is the option to flatten the drift using ALS (asymmetric least squares) baseline correction\cite{Eilers2005}.  This estimates the ALS baseline of the time series (using the pybaselines:Baseline function alsBaseline) and subtracts it from the original time series.  An example of the results is shown in figure \ref{BaslineCorrection}.
 
 
 \begin{figure}
 	\begin{subfigure}{.5\textwidth}
 		\centering
-		\includegraphics[width=.8\linewidth]{beforeALSBaselineCorrection.pdf}
+		\includegraphics[width=.6\linewidth]{beforeALSBaselineCorrection.pdf}
 		\caption{Before baseline correction}
 		\label{fig:sfig1}
 	\end{subfigure}%
 	\\
 	\begin{subfigure}{.5\textwidth}
 		\centering
-		\includegraphics[width=.8\linewidth]{AlsBaselineCorrected.pdf}
+		\includegraphics[width=.6\linewidth]{AlsBaselineCorrected.pdf}
 		\caption{After baseline correction}
 		\label{fig:sfig2}
 	\end{subfigure}
