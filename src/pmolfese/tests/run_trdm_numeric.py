@@ -30,6 +30,18 @@ def read_long(path):
     return rows
 
 
+def read_rsa_series(path):
+    header = None
+    rows = []
+    with open(path) as f:
+        for line in f:
+            if line.startswith("#ROI"):
+                header = line[1:].split()
+            elif line.strip() and not line.startswith("#") and header is not None:
+                rows.append(dict(zip(header, line.split())))
+    return rows
+
+
 def write_axes(root, nt, nf):
     time = os.path.join(root, "time.txt")
     feat = os.path.join(root, "features.txt")
@@ -282,13 +294,13 @@ def read_neighborhood_cross_time(path, fx, nwin):
 
 def trdm_cmd(binary, fx, prefix, metric, width=1, step=1, reduce="mean",
              center="none", obs=None, jobs=1, series=False):
-    cmd = [binary, "-obs_table", obs or fx["obs"], "-time_axis", fx["time"],
+    cmd = [binary, "-dataTable", obs or fx["obs"], "-time_axis", fx["time"],
            "-feature_axis", fx["feat"], "-metric", metric, "-prefix", prefix,
            "-window_width", str(width), "-window_step", str(step),
            "-window_reduce", reduce, "-center_conditions", center,
            "-jobs", str(jobs), "-quiet"]
     if series:
-        cmd += ["-model_series_out", "independent"]
+        cmd += ["-model_series_out", "independent" if series is True else series]
     return cmd
 
 
@@ -413,8 +425,13 @@ def main():
         help_contract = ["especially useful for EEG and MEG analyses",
                          "Output file                              | Written when",
                          "EXAMPLE: EEG/MEG RDM MOVIE -> fMRI RSA",
-                         "3dRSA -mode RSA", "++ Compile date ="]
-        check("expanded scientific help, output table, bridge example, and compile date",
+                         "EXAMPLE: PAIRED EEG/MEG -> fMRI RSA",
+                         "EXAMPLE: LEAVE-ONE-SUBJECT-OUT EEG/MEG -> fMRI RSA",
+                         "-model_series_subjects paired",
+                         "-model_series_subjects loo",
+                         "3dRSA -mode RSA", "-dataTable FILE", "-prefix OUT",
+                         "++ Compile date ="]
+        check("expanded scientific help, canonical input/output options, bridge example, and compile date",
               rch == rcn == 0 and all(x in helptext for x in help_contract) and
               "++ Compile date =" in noargtext)
         cases = [("corr", 1, 1, "mean", "none"),
@@ -464,7 +481,7 @@ def main():
         xcounts = read_long(os.path.join(work, "case_crossnobis.trdm.counts.1D"))
         wins = read_long(os.path.join(work, "case_euclid.trdm.time.1D"))
         check("labeled axes and provenance sidecars", all(os.path.isfile(x) for x in expected) and
-              "version 4" in open(base + ".trdm.meta").read() and
+              "version 5" in open(base + ".trdm.meta").read() and
               len(read_long(base + ".trdm.1D")) == fx["ns"] * fx["nt"] * 15 and
               len(counts) == fx["ns"] * fx["nc"] and
               all(x["Partition"] == "all" and x["Observations"] == "6" for x in counts) and
@@ -614,6 +631,26 @@ def main():
         check("independent-sample model-series group mean",
               rcb == 0 and np.allclose(gm, bm.mean(axis=0), atol=2e-7), ob[-300:])
 
+        paired = os.path.join(work, "paired_bridge")
+        loopre = os.path.join(work, "loo_bridge")
+        rcpair, opair = run(trdm_cmd(args.bin, fx, paired, "corr", series="paired"))
+        rcloo, oloo = run(trdm_cmd(args.bin, fx, loopre, "corr", series="loo"))
+        pm = matrices(work, paired, fx, fx["nt"]) if rcpair == 0 else np.asarray([])
+        lm = np.asarray([[np.loadtxt("%s_loo_s%04d_s%02d_t%04d.1D" %
+                                    (loopre, s, s, t)) for t in range(fx["nt"])]
+                         for s in range(fx["ns"])]) if rcloo == 0 else np.asarray([])
+        prows = read_long(paired + ".paired_model_series.1D") if rcpair == 0 else []
+        lrows = read_long(loopre + ".loo_model_series.1D") if rcloo == 0 else []
+        lref = np.asarray([(pm.sum(axis=0) - pm[s]) / (fx["ns"] - 1)
+                           for s in range(fx["ns"])]) if rcpair == 0 else np.asarray([])
+        check("paired subject-indexed model-series manifest",
+              rcpair == 0 and len(prows) == fx["ns"] * fx["nt"] and
+              [x["Subj"] for x in prows[::fx["nt"]]] ==
+              ["s%02d" % s for s in range(fx["ns"])], opair[-300:])
+        check("leave-one-subject-out temporal templates",
+              rcloo == 0 and len(lrows) == fx["ns"] * fx["nt"] and
+              np.allclose(lm, lref, atol=1e-5, rtol=1e-5), oloo[-300:])
+
         # Release gate 2: exhaustive subject and condition temporal inference.
         # Use the already independently validated exported float RDMs here so
         # the exhaustive null reference tests inference in isolation; exact
@@ -708,6 +745,116 @@ def main():
             text = open(rpre + ".rsa.1D").read() if rc == 0 else ""
             check("exact 1dTrdm -> 3dRSA model-series round trip",
                   rc == 0 and all("t%03d" % t in text for t in range(fx["nt"])), out[-500:])
+
+            # Dependent fusion: the same subject labels select either each
+            # participant's own EEG RDM or a template averaged over all other
+            # EEG participants. Independently reproduce the time-wise effects.
+            stab = os.path.join(work, "rsa_subject_table.txt")
+            fpats = []
+            with open(stab, "w") as f:
+                f.write("Subj InputFile\n")
+                for s in range(fx["ns"]):
+                    pat = rng.normal(size=(fx["nc"], np.prod(shape))).astype(np.float32)
+                    fpats.append(pat)
+                    fn = os.path.join(work, "rsa_match_s%02d.nii.gz" % s)
+                    nib.save(nib.Nifti1Image(pat.T.reshape(shape + (fx["nc"],)), np.eye(4)), fn)
+                    f.write("s%02d %s\n" % (s, fn))
+            iu = np.triu_indices(fx["nc"], 1)
+            neural = np.asarray([1.0 - np.corrcoef(x) for x in fpats])
+
+            def spearman(a, b):
+                from scipy.stats import rankdata
+                return np.corrcoef(rankdata(a), rankdata(b))[0, 1]
+
+            def fusion_reference(models):
+                vals = []
+                for t in range(fx["nt"]):
+                    z = [np.arctanh(np.clip(spearman(neural[s][iu], models[s, t][iu]),
+                                                   -0.999329, 0.999329))
+                         for s in range(fx["ns"])]
+                    vals.append(np.tanh(np.mean(z)))
+                return np.asarray(vals)
+
+            def run_subject_series(label, mode, manifest, jobs=1, nperm=0,
+                                   extra=None):
+                pre = os.path.join(work, label)
+                env = os.environ.copy(); env["OMP_NUM_THREADS"] = str(jobs)
+                cmd = [args.rsa_bin, "-dataTableFile", stab, "-mask", mask,
+                       "-mode", "RSA", "-model_series_subjects", mode, manifest,
+                       "-metric", "spearman", "-nperm", str(nperm), "-no_dset",
+                       "-prefix", pre, "-quiet"]
+                if extra:
+                    cmd.extend(extra)
+                rc0, out0 = run(cmd, env=env)
+                rows = read_rsa_series(pre + ".rsa.1D") if rc0 == 0 else []
+                return rc0, out0, rows, pre
+
+            prc, pout, prs, ppre = run_subject_series(
+                "paired_fusion", "paired", paired + ".paired_model_series.1D")
+            lrc, lout, lrs, lpre = run_subject_series(
+                "loo_fusion", "loo", loopre + ".loo_model_series.1D",
+                max(2, args.threads), 720)
+            peff = np.asarray([float(x["effect"]) for x in prs])
+            leff = np.asarray([float(x["effect"]) for x in lrs])
+            check("paired subject-specific EEG-fMRI fusion reference",
+                  prc == 0 and len(prs) == fx["nt"] and
+                  np.allclose(peff, fusion_reference(pm), atol=4e-6) and
+                  "mode=paired" in open(ppre + ".rsa.1D").read(), pout[-500:])
+            check("LOO EEG-template to held-fMRI-subject fusion reference",
+                  lrc == 0 and len(lrs) == fx["nt"] and
+                  np.allclose(leff, fusion_reference(lm), atol=4e-6) and
+                  "mode=loo" in open(lpre + ".rsa.1D").read() and
+                  "condition labels (fixed observed subjects)" in
+                  open(lpre + ".rsa.1D").read(), lout[-500:])
+
+            lsrc, lsout, _, _ = run_subject_series(
+                "bad_loo_subject_null", "loo",
+                loopre + ".loo_model_series.1D", nperm=16,
+                extra=["-classic_null", "subjects"])
+            check("LOO rejects an invalid independent-subject null",
+                  lsrc != 0 and "overlap across participants" in lsout,
+                  lsout[-500:])
+
+            # Exercise the synchronized condition-label null on the full
+            # subject x time grid. Its max statistic must cover all times, and
+            # its point effect must be the same paired estimand as above.
+            crc, cout, crs, cpre = run_subject_series(
+                "paired_condition_null", "paired",
+                paired + ".paired_model_series.1D", max(2, args.threads), 720,
+                ["-classic_null", "conditions"])
+            cp = np.asarray([float(x["p"]) for x in crs])
+            cpfwe = np.asarray([float(x["pfwe"]) for x in crs])
+            ceff = np.asarray([float(x["effect"]) for x in crs])
+            ctext = open(cpre + ".rsa.1D").read() if crc == 0 else ""
+            check("paired fusion synchronized-condition null and time-family FWE",
+                  crc == 0 and len(crs) == fx["nt"] and
+                  np.allclose(ceff, fusion_reference(pm), atol=4e-6) and
+                  np.all((cp >= 0) & (cp <= 1)) and
+                  np.all((cpfwe >= cp) & (cpfwe <= 1)) and
+                  "condition labels (fixed observed subjects)" in ctext,
+                  cout[-500:])
+
+            # The manifest is a strict, exact-label contract: neither an
+            # incomplete temporal grid nor an unmatched participant can be
+            # silently dropped from a paired analysis.
+            bad_manifest = os.path.join(work, "bad_subject_series.1D")
+            with open(paired + ".paired_model_series.1D") as src, \
+                    open(bad_manifest, "w") as dst:
+                lines = src.readlines()
+                dst.writelines(lines[:-1])
+            brc, bout, _, _ = run_subject_series(
+                "bad_subject_fusion", "paired", bad_manifest)
+            bad_label_manifest = os.path.join(work, "bad_subject_label_series.1D")
+            with open(paired + ".paired_model_series.1D") as src, \
+                    open(bad_label_manifest, "w") as dst:
+                for line in src:
+                    dst.write(("ghost" + line[3:]) if line.startswith("s00 ") else line)
+            lbrc, lbout, _, _ = run_subject_series(
+                "bad_subject_label_fusion", "paired", bad_label_manifest)
+            check("rejects incomplete or unmatched subject-indexed temporal grids",
+                  brc != 0 and "incomplete" in bout and lbrc != 0 and
+                  ("missing imaging subject" in lbout or
+                   "unexpected subject" in lbout), (bout + lbout)[-500:])
 
         # Focused negative-contract cases.
         rc, out = run(trdm_cmd(args.bin, fx, os.path.join(work, "bad_assert"), "corr") +

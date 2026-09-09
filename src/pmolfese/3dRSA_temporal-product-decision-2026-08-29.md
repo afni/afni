@@ -194,22 +194,28 @@ they were a continuous recording.
 
 ## Interchange with 3dRSA
 
-`1dTrdm` writes the ordered list and per-time `.1D` matrices already
-accepted by `3dRSA -model_series`, plus a sidecar containing the versioned time,
-condition, estimator, and aggregation provenance. This is a one-way fixed-model
-bridge, not a promise that all temporal inputs become native `3dRSA` inputs.
+`1dTrdm` writes the ordered list and per-time `.1D` matrices accepted by
+`3dRSA -model_series`, plus a sidecar containing the versioned time, condition,
+estimator, and aggregation provenance. That fixed-model path remains the
+independent-sample bridge.
 
 The primary companion output remains subject-level. Aggregating it into one
 fixed model series is valid when the temporal RDM is an external/fixed model or
 comes from an independent sample. If it is estimated from the same subjects
 whose fMRI RDMs are tested, a group mean can create self-inclusion and does not
-inherit `3dRSA`'s ordinary fixed-model population interpretation. Same-subject
-fusion therefore requires either leave-one-subject model movies or a future
-subject-indexed series contract; the existing `-model_series` must not imply
-that this dependence vanished.
+inherit `3dRSA`'s ordinary fixed-model population interpretation. The delivered
+dependent bridge therefore has two explicit contracts:
+`1dTrdm -model_series_out paired` writes each participant's own temporal RDM manifest,
+and `-model_series_out loo` writes a temporal mean excluding the participant
+being tested. `3dRSA -model_series_subjects paired|loo` matches subjects by
+exact label and compares the corresponding condition RDMs. Paired mode uses
+population subject-sign inference. Because LOO templates overlap across folds,
+LOO uses a synchronized condition-label null for alignment in the fixed
+observed participant sample and rejects independent-subject sign flips or
+bootstrap. Both nulls cover the complete time×space family.
 
 `3dRSA` should continue to reject time-series joint regression, commonality,
-contrasts, fitted mixtures, nuisance adjustment, and LOO until each has a
+contrasts, fitted mixtures, nuisance adjustment, and predictive LOO until each has a
 declared statistic and joint temporal multiplicity family. The companion does
 not make those estimands automatic.
 
@@ -296,13 +302,18 @@ tested. The single-time movie is the necessary first release gate.
 4. **Feature neighborhoods — complete 2026-08-29:** explicit graph validation,
    brute-force neighborhood references, and joint time×neighborhood max-FWE;
    time×time×neighborhood products remain descriptive.
+5. **Dependent EEG/MEG–fMRI fusion — complete 2026-09-08:** exact-label paired
+   and leave-one-subject-out subject×time manifests; automatic alignment of
+   dissimilarity/similarity sense; population subject-sign or fixed-condition
+   inference; and joint time×space BH/max-FWE.
 
-All four gates are implemented as `1dTrdm`, with correlation, cosine, Euclidean,
+All five gates are implemented across `1dTrdm` and `3dRSA`, with correlation, cosine, Euclidean,
 and balanced crossnobis estimators; mean or concatenated windows; explicit
 time/condition/feature/count/provenance outputs; deterministic row alignment and
-OpenMP execution; and the guarded independent-sample bridge. Its registered
-CTest passes 36/36 focused assertions. These include the live `3dRSA` round
-trip plus exhaustive subject-sign and synchronized-condition inference,
+OpenMP execution; the guarded independent-sample bridge; and explicit paired
+and leave-one-subject-out dependent bridges. Its registered CTest passes 43/43
+focused assertions. These include live fixed and dependent `3dRSA` round trips
+plus exhaustive subject-sign and synchronized-condition inference,
 BH/max-FWE references, sampled seed/thread/output-layout identity, independent
 Pearson/Spearman RDM-dynamics references, the ordered partition-pair cross-time
 formula, symmetry, exact diagonal reduction, unique-triangle size, and a planted

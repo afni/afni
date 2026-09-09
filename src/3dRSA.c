@@ -382,6 +382,7 @@ static void rsa_runresolved_mantel(
 typedef struct RSA_model {
    int kind ; char *spec ; int rule,icol,ncol,*icols ;
    THD_simmat *mat,**run_mat ; THD_3dim_dataset **dset ;
+   THD_simmat **sub_mat ; float *sub_tri ;
    float **cmean ; int mvals ; char name[128] ;
 } RSA_model ;
 
@@ -564,6 +565,11 @@ static void rsa_progress_advance( RSA_progress *p )
 #define MODK_DSET   3   /* a neural matrix from a second set of datasets */
 #define MODK_SEED   4   /* fixed seed ROI from the main input datasets */
 #define MODK_RUNCOLUMN 5 /* run-varying dataTable column, one matrix per run */
+#define MODK_SUBMATRIX 6 /* one condition RDM per subject (paired/LOO fusion) */
+
+#define SUBSERIES_NONE   0
+#define SUBSERIES_PAIRED 1
+#define SUBSERIES_LOO    2
 
 #undef  MYatanh
 #define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
@@ -1162,6 +1168,9 @@ static void rsa_searchlight_memory_preflight(
        nfixed++ ;
        if( mod[mm].kind==MODK_RUNCOLUMN && mod[mm].run_mat!=NULL )
          me.shared += (double)(series_runs->nrun-1)*nitem*nitem*FS ;
+       if( mod[mm].kind==MODK_SUBMATRIX )
+         me.shared += (double)(nsub-1)*nitem*nitem*FS
+                    + (double)nsub*ntri*FS ;
      }
    }
 
@@ -1930,6 +1939,38 @@ void usage_3dRSA(int detail)
 "the complete model set, so do not combine it with '-model', '-model_mat',\n"
 "'-model_dset'.  Fitted/joint/nuisance models, contrasts, commonality,\n"
 "and LOO need distinct time-series statistics and are rejected for now.\n"
+"\n"
+"-------------------------------------------------------------------\n"
+"  -model_series_subjects paired|loo LLL -- dependent fusion   ~2~\n"
+"-------------------------------------------------------------------\n"
+"Reads a complete subject-indexed temporal model grid. Each non-comment row\n"
+"of LLL is:\n"
+"\n"
+"    Subj   Time     ModelFile\n"
+"    s01    -100ms   eeg_s01_m100.1D\n"
+"    s01       0ms   eeg_s01_000.1D\n"
+"\n"
+"Rows may be reordered, but every subject x time cell must occur exactly once.\n"
+"Subjects must match the imaging table exactly by label; matrix paths resolve\n"
+"relative to LLL. The paired assertion means each matrix is that subject's own\n"
+"EEG/MEG RDM. The loo assertion means each matrix is a group RDM constructed\n"
+"without the named subject. 1dTrdm -model_series_out paired|loo writes these\n"
+"manifests and their matrices. ModelFile entries are dissimilarity matrices;\n"
+"3dRSA automatically reverses their sense when the neural estimator produces\n"
+"similarities, so matching representational geometry always has positive sign.\n"
+"\n"
+"This is classic '-mode RSA' only. Each subject's fMRI condition RDM is compared\n"
+"with that subject's selected temporal model. Paired mode defaults to the\n"
+"population-subject sign-flip test. LOO templates overlap across subjects, so\n"
+"LOO defaults to '-classic_null conditions' and tests representational alignment\n"
+"in the fixed observed participant sample; subject sign flips and subject\n"
+"bootstrap would incorrectly treat the overlapping effects as independent and\n"
+"are rejected. One condition relabeling is shared over subjects, time, and space.\n"
+"BH FDR and max-FWE cover the complete time x ROI/searchlight family.\n"
+"Ordinary/runwise neural RDMs and one-axis condition bootstrap are supported;\n"
+"paired mode also supports subject bootstrap. Joint, nuisance, contrast,\n"
+"commonality, fitted/predictive LOO, dual-bootstrap, and corr_cov/cosine_cov\n"
+"extensions remain separate estimands and are rejected.\n"
 "\n"
 "-------------------------------------------------------------------\n"
 "  -model_dset LABEL CCC -- use another modality as the model   ~2~\n"
@@ -2961,6 +3002,106 @@ static void rsa_read_model_series( char *fname , char ***files_out ,
      ERROR_exit("3dRSA: -model_series '%s' has %d time point%s; need at least 2",
                 fname,n,(n==1)?"":"s") ;
    *files_out=files ; *names_out=names ; *times_out=times ; *n_out=n ;
+}
+
+typedef struct {
+   char *source ; int mode,nsub,ntime ;
+   char **subj,**time,**file ;              /* file[subj*ntime+time] */
+} RSA_subject_series ;
+
+/*! Read a complete subject x time grid of model RDMs.  Subject rows may be in
+    any order; the first occurrence of each time label establishes the temporal
+    order, matching the ordered-series contract.  Relative matrix paths resolve
+    beside the manifest. */
+static RSA_subject_series *rsa_read_subject_model_series( char *fname , int mode )
+{
+   FILE *fp ; char line[8192],slab[512],tlab[512],ent[4096],extra[2] ;
+   char **rsub=NULL,**rtime=NULL,**rfile=NULL,**subs=NULL,**times=NULL ;
+   char dir[THD_MAX_NAME],*slash ; int nr=0,ns=0,nt=0,lno=0,rr,ss,tt ;
+   RSA_subject_series *out ;
+
+   fp=fopen(fname,"r") ;
+   if( fp==NULL ) ERROR_exit("3dRSA: can't open -model_series_subjects file '%s'",fname) ;
+   strncpy(dir,fname,sizeof(dir)-1) ; dir[sizeof(dir)-1]='\0' ;
+   slash=strrchr(dir,'/') ; if( slash!=NULL ) *slash='\0' ; else strcpy(dir,".") ;
+   while( fgets(line,sizeof(line),fp)!=NULL ){
+     char *s=line,*hash,*path ; int got ; size_t need ;
+     lno++ ;
+     if( strchr(line,'\n')==NULL && !feof(fp) )
+       ERROR_exit("3dRSA: -model_series_subjects '%s' line %d is too long",fname,lno) ;
+     while( isspace((unsigned char)*s) ) s++ ;
+     if( *s=='\0' || *s=='#' ) continue ;
+     hash=strchr(s,'#') ; if( hash!=NULL ) *hash='\0' ;
+     got=sscanf(s,"%511s %511s %4095s %1s",slab,tlab,ent,extra) ;
+     if( got<3 )
+       ERROR_exit("3dRSA: -model_series_subjects '%s' line %d needs Subj, Time, and ModelFile",fname,lno) ;
+     if( got>3 )
+       ERROR_exit("3dRSA: -model_series_subjects '%s' line %d has extra text; fields must be one token",fname,lno) ;
+     if( nr==0 && strcasecmp(slab,"Subj")==0 && strcasecmp(tlab,"Time")==0 &&
+         (strcasecmp(ent,"ModelFile")==0 || strcasecmp(ent,"MatrixFile")==0) ) continue ;
+     for( rr=0 ; rr<nr ; rr++ )
+       if( strcmp(rsub[rr],slab)==0 && strcmp(rtime[rr],tlab)==0 )
+         ERROR_exit("3dRSA: -model_series_subjects '%s' repeats Subj %s, Time %s",fname,slab,tlab) ;
+     if( rsa_string_index(subs,ns,slab)<0 ){
+       subs=(char **)realloc(subs,sizeof(char *)*(ns+1)); subs[ns++]=strdup(slab) ;
+     }
+     if( rsa_string_index(times,nt,tlab)<0 ){
+       times=(char **)realloc(times,sizeof(char *)*(nt+1)); times[nt++]=strdup(tlab) ;
+     }
+     if( ent[0]=='/' ) path=strdup(ent) ;
+     else {
+       need=strlen(dir)+strlen(ent)+2 ;
+       if( need>=THD_MAX_NAME )
+         ERROR_exit("3dRSA: subject model-series matrix path is too long at line %d",lno) ;
+       path=(char *)malloc(need); snprintf(path,need,"%s/%s",dir,ent) ;
+     }
+     rsub=(char **)realloc(rsub,sizeof(char *)*(nr+1)) ;
+     rtime=(char **)realloc(rtime,sizeof(char *)*(nr+1)) ;
+     rfile=(char **)realloc(rfile,sizeof(char *)*(nr+1)) ;
+     rsub[nr]=strdup(slab); rtime[nr]=strdup(tlab); rfile[nr]=path; nr++ ;
+   }
+   fclose(fp) ;
+   if( ns<2 ) ERROR_exit("3dRSA: -model_series_subjects '%s' has %d subject%s; need at least 2",fname,ns,(ns==1)?"":"s") ;
+   if( nt<2 ) ERROR_exit("3dRSA: -model_series_subjects '%s' has %d time point%s; need at least 2",fname,nt,(nt==1)?"":"s") ;
+   if( nr!=ns*nt )
+     ERROR_exit("3dRSA: -model_series_subjects '%s' is incomplete: %d rows for %d subjects x %d times",fname,nr,ns,nt) ;
+   out=(RSA_subject_series *)calloc(1,sizeof(*out)) ;
+   out->source=strdup(fname); out->mode=mode; out->nsub=ns; out->ntime=nt;
+   out->subj=subs; out->time=times;
+   out->file=(char **)calloc((size_t)ns*nt,sizeof(char *)) ;
+   for( rr=0 ; rr<nr ; rr++ ){
+     ss=rsa_string_index(subs,ns,rsub[rr]); tt=rsa_string_index(times,nt,rtime[rr]) ;
+     out->file[(size_t)ss*nt+tt]=rfile[rr] ;
+     free(rsub[rr]); free(rtime[rr]) ;
+   }
+   for( ss=0 ; ss<ns ; ss++ ) for( tt=0 ; tt<nt ; tt++ )
+     if( out->file[(size_t)ss*nt+tt]==NULL )
+       ERROR_exit("3dRSA: -model_series_subjects '%s' is missing Subj %s, Time %s",fname,subs[ss],times[tt]) ;
+   free(rsub); free(rtime); free(rfile) ; return out ;
+}
+
+static void rsa_subject_series_require_subjects( RSA_subject_series *x,
+                                                  char **subj,int nsub )
+{
+   int ss ;
+   if( x==NULL ) return ;
+   if( x->nsub!=nsub )
+     ERROR_exit("3dRSA: -model_series_subjects has %d subjects but the imaging input has %d",x->nsub,nsub) ;
+   for( ss=0 ; ss<nsub ; ss++ ) if( rsa_string_index(x->subj,x->nsub,subj[ss])<0 )
+     ERROR_exit("3dRSA: -model_series_subjects is missing imaging subject '%s'",subj[ss]) ;
+   for( ss=0 ; ss<x->nsub ; ss++ ) if( rsa_string_index(subj,nsub,x->subj[ss])<0 )
+     ERROR_exit("3dRSA: -model_series_subjects contains unexpected subject '%s'",x->subj[ss]) ;
+}
+
+static void rsa_subject_series_free( RSA_subject_series *x )
+{
+   int ss,tt ;
+   if( x==NULL ) return ;
+   for( ss=0 ; ss<x->nsub ; ss++ ) free(x->subj[ss]) ;
+   for( tt=0 ; tt<x->ntime ; tt++ ) free(x->time[tt]) ;
+   for( ss=0 ; ss<x->nsub ; ss++ ) for( tt=0 ; tt<x->ntime ; tt++ )
+     free(x->file[(size_t)ss*x->ntime+tt]) ;
+   free(x->source); free(x->subj); free(x->time); free(x->file); free(x) ;
 }
 
 /*============================================================================*/
@@ -4157,7 +4298,7 @@ static char *rsa_options[] = {
    "-run_model" , "-run_center" , "-run_factor" , "-run_contrast" ,
    "-runwiseTable" , "-noise_norm" ,
    "-center_conditions" ,
-   "-model" , "-model_mat" , "-model_series" , "-model_dset" , "-model_joint" , "-ortvec" ,
+   "-model" , "-model_mat" , "-model_series" , "-model_series_subjects" , "-model_dset" , "-model_joint" , "-ortvec" ,
    "-model_fit" , "-fit_ridge" , "-fit_condfold" ,
    "-model_contrast" , "-contrast_hypothesis" , "-model_commonality" , "-group_test" , "-classic_null" ,
    "-noise_ceiling" , "-nc_split" , "-loo" , "-block" ,
@@ -4233,7 +4374,9 @@ int main( int argc , char *argv[] )
    RSA_fitcontrast *fcon=NULL ; int nfitcon=0 ;
    char **modspec=NULL ; int nmodspec=0 ;
    char **matspec=NULL ; int nmatspec=0 ;
-   char *series_file=NULL , **series_time=NULL ; int nseries=0 ;
+   char *series_file=NULL , *subject_series_file=NULL , **series_time=NULL ;
+   int nseries=0,nsubjectseries=0,subject_series_mode=SUBSERIES_NONE,series_active=0 ;
+   RSA_subject_series *subject_series=NULL ;
    char **dsespec=NULL ; int ndsespec=0 ;
    char **ortspec=NULL ; int nortspec=0 ;    /* -ortvec nuisance columns */
    THD_simmat **ort=NULL ; int nort=0 ;       /* 2 nuisance matrices per ortvec */
@@ -4509,6 +4652,16 @@ int main( int argc , char *argv[] )
         if( series_file != NULL ) ERROR_exit("3dRSA: -model_series was given twice") ;
         series_file=argv[nopt] ; nopt++ ; continue ;
       }
+      if( strcasecmp(argv[nopt],"-model_series_subjects") == 0 ){
+        if( nopt+2 >= argc )
+          ERROR_exit("3dRSA: need paired|loo and a list file after -model_series_subjects") ;
+        if( subject_series_file != NULL )
+          ERROR_exit("3dRSA: -model_series_subjects was given twice") ;
+             if( strcasecmp(argv[nopt+1],"paired")==0 ) subject_series_mode=SUBSERIES_PAIRED ;
+        else if( strcasecmp(argv[nopt+1],"loo")   ==0 ) subject_series_mode=SUBSERIES_LOO ;
+        else ERROR_exit("3dRSA: -model_series_subjects mode must be paired or loo") ;
+        subject_series_file=argv[nopt+2] ; nopt+=3 ; continue ;
+      }
       if( strcasecmp(argv[nopt],"-model_dset") == 0 ){
         if( nopt+2 >= argc )
           ERROR_exit("3dRSA: need LABEL and data-table column after -model_dset") ;
@@ -4674,7 +4827,8 @@ int main( int argc , char *argv[] )
    if( seed_roi_sel != NULL && seed_mask == NULL )
      ERROR_exit("3dRSA: -seed_roi selects a value from -seed_mask; give both options") ;
    if( seed_mask != NULL ){
-     if( series_file != NULL || nmodspec+nmatspec+ndsespec+nrunmodspec>0 )
+     if( series_file != NULL || subject_series_file != NULL ||
+         nmodspec+nmatspec+ndsespec+nrunmodspec>0 )
        ERROR_exit("3dRSA: -seed_mask defines the one representational-connectivity\n"
                   "       model. Do not combine it with -model, -model_mat,\n"
                   "       -model_series, or -model_dset.") ;
@@ -4695,6 +4849,8 @@ int main( int argc , char *argv[] )
    }
 
    if( series_file != NULL ){
+     if( subject_series_file != NULL )
+       ERROR_exit("3dRSA: use either -model_series or -model_series_subjects, not both") ;
      if( nmodspec+nmatspec+ndsespec+nrunmodspec > 0 )
        ERROR_exit("3dRSA: -model_series defines the complete ordered model set;\n"
                   "       do not combine it with -model, -model_mat, or -model_dset") ;
@@ -4704,7 +4860,33 @@ int main( int argc , char *argv[] )
                   "       -model_fit, -model_contrast, -model_commonality, and -loo require a\n"
                   "       separately defined time-series statistic and are rejected.") ;
      rsa_read_model_series(series_file,&matspec,&matlabel,&series_time,&nseries) ;
-     nmatspec=nseries ;
+     nmatspec=nseries ; series_active=1 ;
+   }
+   if( subject_series_file != NULL ){
+     if( nmodspec+nmatspec+ndsespec+nrunmodspec > 0 )
+       ERROR_exit("3dRSA: -model_series_subjects defines the complete ordered model set;\n"
+                  "       do not combine it with other model inputs") ;
+     if( joint || nortspec>0 || nconstrspec>0 || ncomspec>0 || nfitspec>0 || do_loo )
+       ERROR_exit("3dRSA: -model_series_subjects tests each time point separately\n"
+                  "       with joint time x space FDR/FWE; joint/nuisance/fitted/\n"
+                  "       contrast/commonality and predictive -loo options are separate estimands") ;
+     subject_series=rsa_read_subject_model_series(subject_series_file,subject_series_mode) ;
+     nseries=nsubjectseries=subject_series->ntime ; series_time=subject_series->time ;
+     series_active=1 ;
+     if( subject_series_mode==SUBSERIES_LOO ){
+       if( classic_null_given && classic_null==CLASSIC_NULL_SUBJECTS )
+         ERROR_exit("3dRSA: LOO subject-series templates overlap across participants,\n"
+                    "       so '-classic_null subjects' would treat dependent effects\n"
+                    "       as independent. Use '-classic_null conditions'.") ;
+       classic_null=CLASSIC_NULL_CONDITIONS ;
+       if( nboot>0 )
+         ERROR_exit("3dRSA: subject bootstrap is not valid for overlapping LOO\n"
+                    "       templates without rebuilding every held-out group model.\n"
+                    "       Use paired mode or condition bootstrap instead.") ;
+     }
+     if( save_rdm!=NULL )
+       ERROR_exit("3dRSA: -save_rdm is not used with -model_series_subjects; the\n"
+                  "       manifest already names every subject/time model RDM") ;
    }
 
    /* -mask is required, with one exception: a surface searchlight may omit it
@@ -4896,6 +5078,9 @@ int main( int argc , char *argv[] )
      tab=shorttab ;
    }
    nsub = (runset != NULL) ? runset->nsub : tab->nrow ;
+   if( subject_series != NULL )
+     rsa_subject_series_require_subjects(subject_series,
+                                         (runset!=NULL)?runset->subj:tab->subj,nsub) ;
 
    /* derive the feature type: RSA always uses voxel patterns; IS-RSA uses the
       ROI-mean time course unless -featuretype pattern asks otherwise */
@@ -4908,6 +5093,9 @@ int main( int argc , char *argv[] )
    } else {
      mode = (feat_override >= 0) ? feat_override : MODE_CONT ;
    }
+   if( subject_series != NULL && rdm_over != RDM_BRICK )
+     ERROR_exit("3dRSA: -model_series_subjects is a paired condition-RDM model\n"
+                "       and requires classic '-mode RSA'") ;
 
    if( series_runs!=NULL ){
      if( rdm_over!=RDM_SUBJ || mode!=MODE_CONT )
@@ -4931,7 +5119,7 @@ int main( int argc , char *argv[] )
          ERROR_exit("3dRSA: -run_analysis %s needs at least two labeled runs",
                     run_analysis==RUN_ANALYSIS_MEAN?"mean":"separate") ;
        if( nortspec>0 || nconstrspec>0 || ncomspec>0 || nfitspec>0 ||
-           do_loo || nboot>0 || ncboot>0 || series_file!=NULL || save_rdm!=NULL )
+           do_loo || nboot>0 || ncboot>0 || series_active || save_rdm!=NULL )
          ERROR_exit("3dRSA: run-resolved separate/mean supports fixed models,\n"
                     "       -run_model effects, planned -run_contrast effects, and\n"
                     "       Stage-5 conditional coefficients via -model_joint.\n"
@@ -5006,8 +5194,9 @@ int main( int argc , char *argv[] )
    }
 
    if( rdm_over == RDM_BRICK ){
-     if( nmatspec == 0 && seed_mask == NULL )
-       ERROR_exit("3dRSA: -mode RSA needs -model_mat, -model_series, or -seed_mask.\n"
+     if( nmatspec+nsubjectseries == 0 && seed_mask == NULL )
+       ERROR_exit("3dRSA: -mode RSA needs -model_mat, -model_series,\n"
+                  "       -model_series_subjects, or -seed_mask.\n"
                   "       The rows are conditions, so a behavioral model cannot\n"
                   "       come from a -dataTable column.") ;
      if( nmodspec > 0 )
@@ -5021,7 +5210,7 @@ int main( int argc , char *argv[] )
                   "       applies to IS-RSA (-mode IS-RSA), where the matrix rows\n"
                   "       are subjects.") ;
    } else {
-     if( nmodspec + nmatspec + ndsespec + nrunmod == 0 && seed_mask == NULL )
+     if( nmodspec + nmatspec + nsubjectseries + ndsespec + nrunmod == 0 && seed_mask == NULL )
        ERROR_exit("3dRSA: no models given.  Use -model LABEL COLUMN:RULE, -model_mat\n"
                   "       for an explicit matrix, -model_series for a time-indexed\n"
                   "       matrix stack, -model_dset for another modality, -run_model\n"
@@ -5029,7 +5218,7 @@ int main( int argc , char *argv[] )
                   "       -seed_mask for representational connectivity.") ;
    }
 
-   nmod = nmodspec + nrunmod + nmatspec + ndsespec + ((seed_mask!=NULL)?1:0) ;
+   nmod = nmodspec + nrunmod + nmatspec + nsubjectseries + ndsespec + ((seed_mask!=NULL)?1:0) ;
    if( fit_ridge_given && nfitspec==0 )
      ERROR_exit("3dRSA: -fit_ridge was given without a -model_fit request") ;
    if( fit_condfold_file!=NULL && nfitspec==0 )
@@ -5099,7 +5288,7 @@ int main( int argc , char *argv[] )
    if( cond_group_file != NULL && ncboot == 0 )
      ERROR_exit("3dRSA: -cond_group describes -cond_bootstrap samples; also give\n"
                 "       -cond_bootstrap N") ;
-   if( dualboot && (ncomspec>0 || nfitspec>0 || series_file!=NULL || do_nc) )
+   if( dualboot && (ncomspec>0 || nfitspec>0 || series_active || do_nc) )
      ERROR_exit("3dRSA: the first dual-bootstrap contract covers fixed primary\n"
                 "       models, joint regression, and paired fixed-model contrasts.\n"
                 "       Commonality, fitted models, -model_series, and noise-ceiling\n"
@@ -5438,6 +5627,10 @@ int main( int argc , char *argv[] )
       be precise-looking but wrong.  Keep regression and condition-resampling
       extensions closed until their covariance-weighted estimands are defined. */
    if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV ){
+     if( subject_series != NULL )
+       ERROR_exit("3dRSA: -metric %s does not yet support subject-indexed model\n"
+                  "       series; use pearson/spearman/ktaub/ktaua/rhoa.",
+                  THD_simmat_cmp_label(cmp_metric)) ;
      if( rdm_over!=RDM_BRICK || runset==NULL )
        ERROR_exit("3dRSA: -metric %s currently requires classic '-mode RSA' with\n"
                   "       balanced -runwiseTable crossnobis input.  An ordinary RDM or\n"
@@ -5645,6 +5838,37 @@ int main( int argc , char *argv[] )
      dot = strrchr(mod[mm].name,'.') ; if( dot != NULL ) *dot = '\0' ;
    }
 
+   for( ii=0 ; ii<nsubjectseries ; ii++,mm++ ){
+     char **asub=(runset!=NULL)?runset->subj:tab->subj ; int ss ;
+     mod[mm].kind=MODK_SUBMATRIX ; mod[mm].spec=subject_series_file ; mod[mm].icol=-1 ;
+     mod[mm].sub_mat=(THD_simmat **)calloc(nsub,sizeof(THD_simmat *)) ;
+     mod[mm].sub_tri=(float *)malloc(sizeof(float)*(size_t)nsub*ntri) ;
+     snprintf(mod[mm].name,sizeof(mod[mm].name),"t%04d",ii) ;
+     for( ss=0 ; ss<nsub ; ss++ ){
+       int sx=rsa_string_index(subject_series->subj,subject_series->nsub,asub[ss]) ;
+       char *fn=subject_series->file[(size_t)sx*nsubjectseries+ii] ;
+       int rr,cc,neural_is_dist=(runset!=NULL || neu_metric==SIM_EUCLID) ;
+       mod[mm].sub_mat[ss]=THD_simmat_read_1D(fn,nitem) ;
+       if( mod[mm].sub_mat[ss]==NULL )
+         ERROR_exit("3dRSA: cannot read subject model for Subj %s, Time %s from '%s'",
+                    asub[ss],series_time[ii],fn) ;
+       /* The subject-series contract is explicitly an RDM (dissimilarity)
+          contract.  Classic ordinary corr/scorr/cosine constructs neural
+          similarities, whereas euclid and runwise crossnobis construct
+          distances.  Put both triangles in one sense so a matching geometry
+          is positive for every supported neural estimator. */
+       if( neural_is_dist ) mod[mm].sub_mat[ss]->is_dist=1 ;
+       else {
+         for( rr=0 ; rr<nitem ; rr++ ) for( cc=0 ; cc<nitem ; cc++ )
+           mod[mm].sub_mat[ss]->mat[(size_t)rr*nitem+cc]
+             = (rr==cc) ? 1.0f
+                        : 1.0f-mod[mm].sub_mat[ss]->mat[(size_t)rr*nitem+cc] ;
+         mod[mm].sub_mat[ss]->is_dist=0 ;
+       }
+       THD_simmat_to_tri(mod[mm].sub_mat[ss],mod[mm].sub_tri+(size_t)ss*ntri) ;
+     }
+   }
+
    for( ii=0 ; ii < ndsespec ; ii++,mm++ ){
      int icol = THD_datatable_column( tab , dsespec[ii] ) ;
      if( icol < 0 )
@@ -5708,7 +5932,7 @@ int main( int argc , char *argv[] )
        }
      for( ii=0 ; ii < ndsespec ; ii++ )
        if( dselabel != NULL ){
-         gi = nmodspec + nrunmod + nmatspec + ii ;
+         gi = nmodspec + nrunmod + nmatspec + nsubjectseries + ii ;
          strncpy(mod[gi].name,dselabel[ii],sizeof(mod[gi].name)-1) ;
          mod[gi].name[sizeof(mod[gi].name)-1] = '\0' ;
        }
@@ -5969,6 +6193,12 @@ int main( int argc , char *argv[] )
    if( !quiet ){
      int neu_sim = (neu_metric != SIM_EUCLID) ;
      for( mm=0 ; mm < nmod ; mm++ ){
+       if( mod[mm].kind==MODK_SUBMATRIX ){
+         INFO_message("3dRSA: model '%s' is a subject-indexed dissimilarity RDM;\n"
+                      "       positive means matching representational geometry",
+                      mod[mm].name) ;
+         continue ;
+       }
        if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV ){
          INFO_message("3dRSA: model '%s' is interpreted as a dissimilarity RDM;\n"
                       "       positive means matching representational geometry",
@@ -6289,7 +6519,7 @@ int main( int argc , char *argv[] )
      free(cm); free(rmv); THD_rdm_ws_free(w0) ;
    }
 
-   if( !quiet && nmod > 1 && series_file == NULL && !run_resolved ){
+   if( !quiet && nmod > 1 && !series_active && !run_resolved ){
      int all_fixed=1 ;
      for( mm=0 ; mm < nmod ; mm++ ) if( mod[mm].mat == NULL ) all_fixed = 0 ;
      if( all_fixed ){
@@ -6846,10 +7076,12 @@ int main( int argc , char *argv[] )
          INFO_message("3dRSA: run-resolved joint model uses standardized coefficients\n"
                       "       (and partial r) conditional on every other model per run;\n"
                       "       model-specific Freedman-Lane nulls are synchronized across runs/space") ;
-     } else if( series_file != NULL )
+     } else if( series_active )
        INFO_message("3dRSA: %d x %d matrices, %d time points, %d permutation%s;\n"
-                    "       primary effects with joint time x space FDR/FWE",
-                    nitem,nitem,nseries,nperm,(nperm==1)?"":"s") ;
+                    "       %s primary effects with joint time x space FDR/FWE",
+                    nitem,nitem,nseries,nperm,(nperm==1)?"":"s",
+                    subject_series_mode==SUBSERIES_PAIRED?"paired subject-specific":
+                    subject_series_mode==SUBSERIES_LOO?"leave-one-subject-out template":"fixed-model") ;
      else
        INFO_message("3dRSA: %d x %d matrices, %d model%s, %d permutation%s, %s",
                     nitem,nitem,nmod,(nmod==1)?"":"s",nperm,(nperm==1)?"":"s",
@@ -7786,6 +8018,8 @@ int main( int argc , char *argv[] )
 
            for( jj_=0 ; jj_ < nsub ; jj_++ ){
              float *st = srdm + (size_t)jj_*ntri ;
+             THD_simmat *sm = (mod[mm_].sub_mat!=NULL)
+                                ? mod[mm_].sub_mat[jj_] : mv[mm_] ;
              if( seed_mask!=NULL ){
                float *ss=seed_srdm+(size_t)jj_*ntri ;
                rsub[jj_]=MYatanh(THD_tri_corr(ntri,st,ss,cmp_metric,
@@ -7794,12 +8028,13 @@ int main( int argc , char *argv[] )
                rsub[jj_]=MYatanh(THD_rdm_cov_cosine(
                                   nitem,srdmcov+(size_t)jj_*nitem*nitem,mcov[mm_])) ;
              else {
-               THD_simmat_to_tri( mv[mm_] , ws->yperm ) ;
+               THD_simmat_to_tri( sm , ws->yperm ) ;
                rsub[jj_] = MYatanh( THD_tri_corr( ntri , st , ws->yperm ,
                                                   cmp_metric , ws->sc1 , ws->sc2 ) ) ;
              }
              if( ncboot > 0 ){
                int bb_ ;
+               mv[mm_]=sm ;
                for( bb_=0 ; bb_ < ncboot ; bb_++ ) if( crset->valid[bb_] ){
                  int mt_=rsa_cond_boot_tri(st,1,mv+mm_,crset,bb_,cb_y,cbx) ;
                  float rv_=THD_tri_corr(mt_,cb_y,cbx[0],cmp_metric,cws->sc1,cws->sc2) ;
@@ -7815,6 +8050,10 @@ int main( int argc , char *argv[] )
              if( classic_null==CLASSIC_NULL_CONDITIONS )
                ps=(seed_mask!=NULL)
                     ? rsa_classic_seed_condition_test(nsub,nitem,srdm,seed_srdm,
+                                                       cmp_metric,cpset,ws,pn)
+                    : (mod[mm_].sub_tri!=NULL)
+                    ? rsa_classic_seed_condition_test(nsub,nitem,srdm,
+                                                       mod[mm_].sub_tri,
                                                        cmp_metric,cpset,ws,pn)
                     : rsa_classic_condition_test(nsub,nitem,srdm,srdmcov,
                                                   mv[mm_],NULL,cmp_metric,cpset,
@@ -8096,7 +8335,7 @@ int main( int argc , char *argv[] )
       per-time max-null above already spans space; collapse those synchronized
       nulls across time before lookup.  Retaining the per-time arrays during the
       parallel sweep keeps the existing estimator/cache paths unchanged. */
-   if( series_file != NULL && do_fwe ){
+   if( series_active && do_fwe ){
      int pk ;
      for( pk=0 ; pk < npfwe ; pk++ ){
        float mx=-FLT_MAX ;
@@ -8109,7 +8348,7 @@ int main( int argc , char *argv[] )
    /*----- FDR across ROIs, or jointly across time x space for F20 -----*/
 
    if( nperm > 0 || rdm_over == RDM_BRICK ){
-     if( series_file != NULL ) bh_fdr_series(nmod,nroi,pp,qq) ;
+     if( series_active ) bh_fdr_series(nmod,nroi,pp,qq) ;
      else for( mm=0 ; mm < nmod ; mm++ ) THD_bh_fdr( nroi , pp[mm] , qq[mm] ) ;
    } else {
      for( mm=0 ; mm < nmod ; mm++ )
@@ -8182,7 +8421,7 @@ int main( int argc , char *argv[] )
    if( do_fwe ){
      int pk ;
      for( mm=0 ; mm < nmod ; mm++ ){
-       float *mn = (series_file != NULL) ? mxflat
+       float *mn = series_active ? mxflat
                                          : mxflat + (size_t)mm*npfwe ;
        /* an untouched slot means every element was masked/degenerate here */
        for( pk=0 ; pk < npfwe ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
@@ -8523,8 +8762,11 @@ int main( int argc , char *argv[] )
         fprintf(fp,"# noise ceiling: Nili subject LOO lower / inclusive upper on %s RDMs\n",
                 (runset != NULL) ? "run-independent crossnobis" :
                                    "same-data condition-pattern") ;
-      if( series_file != NULL ){
-        fprintf(fp,"# model_series: %s\n",series_file) ;
+      if( series_active ){
+        if( subject_series_file != NULL )
+          fprintf(fp,"# model_series_subjects: %s; mode=%s\n",subject_series_file,
+                  subject_series_mode==SUBSERIES_PAIRED?"paired":"loo") ;
+        else fprintf(fp,"# model_series: %s\n",series_file) ;
         fprintf(fp,"# timepoints: %d (input order preserved; t#### maps to time_label)\n",
                 nseries) ;
         fprintf(fp,"# multiplicity: BH FDR and max-statistic FWE use one joint "
@@ -8616,7 +8858,7 @@ int main( int argc , char *argv[] )
             fprintf(fp,"\n") ;
           }
         }
-      } else if( series_file != NULL ){
+      } else if( series_active ){
         fprintf(fp,"#%-6s %-28s %7s %10s %-20s %14s %14s %14s %14s",
                 "ROI","label","nvox","time_index","time_label","effect","stat","p","q") ;
         if( do_fwe ) fprintf(fp," %14s","pfwe") ;
@@ -9212,7 +9454,7 @@ int main( int argc , char *argv[] )
 
    /*================== suggest 1dplot.py commands ==================*/
 
-   if( !quiet && series_file == NULL && !run_resolved ){
+   if( !quiet && !series_active && !run_resolved ){
       int gsize = (regout ? 4 : 3) + (do_fwe ? 1 : 0)
                                       + ((nboot > 0) ? 2 : 0)
                                       + ((ncboot > 0 && !dualboot) ? 2 : 0) ; /* cols/model */
@@ -9330,6 +9572,11 @@ int main( int argc , char *argv[] )
      free(rcon_rr); free(rcon_ee); free(rcon_pp); free(rcon_qq); free(rcon_zz); free(rcon_pf); free(rcon_zf) ;
    }
    free(run_mxflat) ;
+   if( mod!=NULL ) for( mm=0 ; mm<nmod ; mm++ )
+     if( mod[mm].sub_mat!=NULL ){
+       for( ii=0 ; ii<nsub ; ii++ ) THD_simmat_free(mod[mm].sub_mat[ii]) ;
+       free(mod[mm].sub_mat); free(mod[mm].sub_tri) ;
+     }
    if( mod!=NULL && series_runs!=NULL ) for( mm=0 ; mm<nmod ; mm++ )
      if( mod[mm].run_mat!=NULL ){
        for( ii=0 ; ii<series_runs->nrun ; ii++ ) THD_simmat_free(mod[mm].run_mat[ii]) ;
@@ -9343,6 +9590,7 @@ int main( int argc , char *argv[] )
    }
    free(runcon); free(runfactor); free(rcon_weight) ;
    rsa_series_runs_free(series_runs) ;
+   rsa_subject_series_free(subject_series) ;
    THD_free_datatable_index(condition_index) ;
    for( ii=0 ; ii<ncondition_level ; ii++ ) free(condition_level[ii]) ;
    free(condition_level) ;
