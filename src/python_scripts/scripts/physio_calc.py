@@ -42,6 +42,7 @@ import sys, os
 import copy
 
 # part of AFNI imports (more below, if going beyond help viewing)
+from afnipy import afni_base          as ab
 from afnipy import lib_physio_opts    as lpo
 
 # ===========================================================================
@@ -86,9 +87,9 @@ if __name__ == "__main__":
 
     ### !!! do more about checking for preexisting/overwrite
     if os.path.isdir(pcobj.out_dir) :
-        print("+* WARN: output directory exists already---just reusing here.")
+        ab.WP("output directory exists already---just reusing here.")
     else:
-        print("++ Making output directory:", pcobj.out_dir)
+        ab.IP("Making output directory:\n{}".format(pcobj.out_dir))
         os.makedirs(pcobj.out_dir)
 
     # ... and make the supplementary subdirs for text and images
@@ -204,4 +205,4 @@ if __name__ == "__main__":
         if pcobj.data[label] :
             lpl.make_ts_obj_review_log( pcobj, label=label, verb=verb )
 
-    print("++ DONE.  Goodbye.")
+    ab.IP("DONE.  Goodbye.")
