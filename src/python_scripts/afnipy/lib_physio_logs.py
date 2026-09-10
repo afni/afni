@@ -335,7 +335,7 @@ def save_cmd_orig(pcobj, verb=1):
     fff.close()
     
     if verb :
-        print("++ Saved copy of input cmd to file: {}".format(fname))
+        print("++ Saved copy of input cmd to file:\n   {}".format(fname))
 
     return 0
 
@@ -398,7 +398,7 @@ is_bad : int
         fff.close()
     
         if verb :
-            print("++ Saved integer {} trough indices to file: {}"
+            print("++ Saved integer {} trough indices to file:\n   {}"
                   "".format(label, fname))
 
     # save troughs, if they exist
@@ -425,7 +425,7 @@ is_bad : int
         fff.close()
     
         if verb :
-            print("++ Saved integer {} trough indices to file: {}"
+            print("++ Saved integer {} trough indices to file:\n   {}"
                   "".format(label, fname))
 
     return 0

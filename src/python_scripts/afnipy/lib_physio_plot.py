@@ -1304,7 +1304,8 @@ def plot_regressors_rvt(pcobj, label, ext='svg'):
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based RVT regressors: {}".format(label, fname))
+    print("++ Made plot of {}-based RVT regressors:\n   "
+          "{}".format(label, fname))
 
 
     return 0
@@ -1393,7 +1394,8 @@ def plot_regressors_rvtrrf(pcobj, label, ext='svg'):
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based RVTRRF regressors: {}".format(label, fname))
+    print("++ Made plot of {}-based RVTRRF regressors:\n   "
+          "{}".format(label, fname))
 
 
     return 0
@@ -1482,7 +1484,8 @@ def plot_regressors_hrcrf(pcobj, label, ext='svg'):
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based HRCRF regressors: {}".format(label, fname))
+    print("++ Made plot of {}-based HRCRF regressors:\n   "
+          "{}".format(label, fname))
 
 
     return 0
@@ -1603,7 +1606,8 @@ def plot_regressors_retro(pcobj, ext='svg'):
     com    = BASE.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based retro regressors: {}".format(label, fname))
+    print("++ Made plot of {}-based retro regressors:\n   "
+          "{}".format(label, fname))
 
 
     return 0

@@ -89,13 +89,13 @@ if __name__ == "__main__":
         print("+* WARN: output directory exists already---just reusing here.")
     else:
         print("++ Making output directory:", pcobj.out_dir)
-        os.mkdir(pcobj.out_dir)
+        os.makedirs(pcobj.out_dir)
 
     # ... and make the supplementary subdirs for text and images
     if not(os.path.isdir(pcobj.extras_dir)) :
-        os.mkdir(pcobj.extras_dir)
+        os.makedirs(pcobj.extras_dir)
     if not(os.path.isdir(pcobj.images_dir)) :
-        os.mkdir(pcobj.images_dir)
+        os.makedirs(pcobj.images_dir)
 
     # save original command line opts (and the set of parsed opts) to
     # a log file in output dir

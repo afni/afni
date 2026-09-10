@@ -242,7 +242,8 @@ RVTRRF, or others.
     # le fin: close and finish
     fff.close()
 
-    print("++ Wrote slicewise regressor file  : {}".format(fname))
+    print("++ Wrote slicewise regressor file:\n   "
+          "{}".format(fname))
 
     return 0
 
@@ -318,7 +319,7 @@ slicewise regressors; basically, we just have nslice=1.
 
     # check if we have a regressor to output
     if nreg == 0 :
-        print("+* NO volumetric regressor to output: ", fname)
+        print("+* NO volumetric regressor to output:\n   {}".format(fname))
         return 0
 
     print("++ {} volbase regressors, each with {} timepoints"
