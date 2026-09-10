@@ -24,7 +24,7 @@ import argparse   as     argp
 from   datetime   import datetime
 from   platform   import python_version_tuple
 
-from   afnipy     import afni_base as BASE
+from   afnipy     import afni_base as ab
 from   afnipy     import afni_util as UTIL
 
 # ==========================================================================
@@ -311,8 +311,8 @@ vol_dict : dict
                 args_dict[key] = ' '.join(args_dict[key])
         else:
             if verb:
-                print("++ non-list option key -> value: ", 
-                      key, '->', args_dict[key])
+                ab.IP("non-list option key -> value: {} -> {}"
+                      "".format(key, args_dict[key]))
 
     args_dict['argv'] = copy.deepcopy(argv)
 
@@ -362,10 +362,10 @@ DIFF_KEYS : int
 
     if na != nb :
         DIFF_KEYS = 1
-        print("** ERROR: number of keys in {} '{}' and in {} '{}' "
-              "do not match.\n"
-              "          This is a programming/dev issue."
-              "".format(nameA, na, nameB, nb))
+        msg = "number of keys in {} '{}' ".format(nameA, na)
+        msg+= "and in {} '{}' do not match.\n".format(nameB, nb)
+        msg+= "This is a programming/dev issue."
+        ab.EP1(msg)
 
     # detailed check per opt class
     setA = set(A.keys())
@@ -378,15 +378,17 @@ DIFF_KEYS : int
         DIFF_KEYS = 1
         missA.sort()
         str_missA = ', '.join(missA)
-        print("** ERROR: keys in {} that are missing in {}:\n"
-              "          {}".format(nameB, nameA, str_missA))
+        msg = "keys in {} that are missing in {}:\n".format(nameB, nameA)
+        msg+= "{}".format(str_missA)
+        ab.EP1(msg)
 
     if len(missB) :
         DIFF_KEYS = 1
         missB.sort()
         str_missB = ', '.join(missB)
-        print("** ERROR: keys in {} that are missing in {}:\n"
-              "          {}".format(nameA, nameB, str_missB))
+        msg = "keys in {} that are missing in {}:\n".format(nameA, nameB)
+        msg+= "{}".format(str_missB)
+        ab.EP1(msg)
 
     return DIFF_KEYS
 
@@ -425,7 +427,7 @@ int : int
         so, se = check_info.communicate() 
 
         if se :
-            print("-- no hview--")
+            ab.WP("no hview?")
             # act like simple help disp
             parser.print_help()
 
@@ -433,7 +435,7 @@ int : int
 
     # display program version
     if args_dict['ver'] :
-        print(version)
+        print(version, flush=True)
         return 1
 
     # slice patterns, from list somewhere
@@ -470,8 +472,7 @@ SF : int
     """
 
     if type(D) != dict :
-        print("** ERROR: input D must be dict")
-        sys.exit(13)
+        ab.EP("input D must be dict")
     
     all_key = [pref+str(x) for x in get_keys_sorted(D)]
     print('{}'.format('\n'.join(all_key)))
@@ -494,8 +495,7 @@ L : list
 """
 
     if type(D) != dict :
-        print("** ERROR: input D must be dict")
-        sys.exit(13)
+        ab.EP("input D must be dict")
 
     L = list(D.keys())
     L.sort()
@@ -522,8 +522,7 @@ all_sli : list (of floats)
     BAD_RETURN = []
 
     if not(os.path.isfile(fname)) :
-        print("** ERROR: {} is not a file (to read for slice timing)"
-              "".format(fname))
+        ab.EP1("{} is not a file (to read for slice timing)".format(fname))
         return BAD_RETURN
 
     try:
@@ -531,8 +530,7 @@ all_sli : list (of floats)
         X   = fff.readlines()
         fff.close()
     except:
-        print("** ERROR opening {} (to read for slice timing)"
-              "".format(fname))
+        ab.EP1("opening {} (to read for slice timing)".format(fname))
         return BAD_RETURN
 
     # get list of floats, and length of each row when reading
@@ -549,25 +547,26 @@ all_sli : list (of floats)
                 all_sli.extend([float(rr) for rr in rlist])
                 all_len.append(len(rlist))
             except:
-                print("** ERROR: badness in float conversion within "
-                      "slice timing file {}".format(fname))
-                print("   Bad line {} is: '{}'".format(ii+1, row))
+                msg = "badness in float conversion within "
+                msg+= "slice timing file {}\n".format(fname)
+                msg+= "Bad line {} is: '{}'".format(ii+1, row)
+                ab.EP1(msg)
                 return BAD_RETURN
     
     if not(N) :
-        print("** ERROR: no data in slice timing file {}?".format(fname))
+        ab.EP1("no data in slice timing file {}?".format(fname))
         return BAD_RETURN
 
     M = max(all_len)  # (max) number of cols
 
     if verb :
-        print("++ Slice timing file {} has {} rows and {} columns"
+        ab.IP("Slice timing file {} has {} rows and {} columns"
               "".format(fname, N, M))
 
     if not(N==1 or M==1) :
-        print("** ERROR: dset_slice_pattern file {} is not Nx1 or 1xN.\n"
-              "   Its dims of data are: nrow={},  max_ncol={}"
-              .format(fname, N, M))
+        msg = "dset_slice_pattern file {} is not Nx1 or 1xN.\n"
+        msg+= "Its dims of data are: nrow={}, max_ncol={}".format(fname, N, M)
+        ab.EP1(msg)
         return BAD_RETURN
 
     # finally, after more work than we thought...
@@ -592,7 +591,7 @@ jdict : dict
     BAD_RETURN = {}
 
     if not(os.path.isfile(fname)) :
-        print("** ERROR: cannot read file: {}".format(fname))
+        ab.EP1("cannot read file: {}".format(fname))
         return BAD_RETURN
 
     with open(fname, 'rt') as fff:
@@ -619,7 +618,7 @@ epi_dict : dict
     BAD_RETURN = {}
 
     if not(os.path.isfile(fname)) :
-        print("** ERROR: cannot read file: {}".format(fname))
+        ab.EP1("cannot read file: {}".format(fname))
         return BAD_RETURN
 
     # initialize, and store dset name
@@ -628,7 +627,7 @@ epi_dict : dict
 
     # get simple dset info, which should/must exist
     cmd = '''3dinfo -n4 -tr {}'''.format(fname)
-    com = BASE.shell_com(cmd, capture=1, save_hist=0)
+    com = ab.shell_com(cmd, capture=1, save_hist=0)
     stat = com.run()
     lll = com.so[0].split()
     try:
@@ -640,21 +639,20 @@ epi_dict : dict
         epi_dict['dset_nt']      = int(lll[3])
         epi_dict['dset_tr']      = float(lll[4])
     except:
-        print("+* WARN: problem extracting info from dset_epi")
+        ab.WP("problem extracting info from dset_epi")
         return BAD_RETURN 
 
     # try getting timing info from this dset, which might not exist
-    cmd = '''3dinfo -slice_timing {}'''.format(fname)
-    com = BASE.shell_com(cmd, capture=1, save_hist=0)
+    cmd  = '''3dinfo -slice_timing {}'''.format(fname)
+    com  = ab.shell_com(cmd, capture=1, save_hist=0)
     stat = com.run()
-    lll = [float(x) for x in com.so[0].strip().split('|')]
+    lll  = [float(x) for x in com.so[0].strip().split('|')]
     
     nslice = len(lll)
     if nk != nslice :
-        print("** ERROR: number of dset_slice_times in header ({}) "
-              "does not match slice count in k-direction ({})"
-              "".format(nslice, nk))
-        sys.exit(10)
+        msg = "number of dset_slice_times in header ({}) ".format(nslice)
+        msg+= "does not match slice count in k-direction ({})".format(nk)
+        ab.EP(msg)
 
     epi_dict['dset_slice_times'] = copy.deepcopy(lll)
 
@@ -706,16 +704,18 @@ args_dict2 : dict
             val_args = args_dict2[aname]
             if val_args != None :
                 if abs(val_json - val_args) > eps_val :
-                    print("** ERROR: inconsistent JSON '{}' = {} and "
-                          " input arg '{}' = {}"
-                          "".format(jname, val_json, aname, val_args))
+                    msg = "inconsistent JSON '{}' ".format(jname)
+                    msg+= "= {} and ".format(val_json)
+                    msg+= "input arg '{}' = {}".format(aname, val_args)
+                    ab.EP1(msg)
                     return BAD_RETURN
                 else:
-                    print("++ Reconciled: input info provided in two ways, "
-                          "which is OK because they are consistent (at "
-                          "eps={}):\n"
-                          "   JSON '{}' = {} and input arg '{}' = {}"
-                          "".format(eps_val, jname, val_json, aname, val_args))
+                    msg = "Reconciled: input info provided in two ways, "
+                    msg+= "which is OK because they are consistent (at "
+                    msg+= "eps={}):\n".format(eps_val)
+                    msg+= "   JSON '{}' = {} and ".format(jname, val_json)
+                    msg+= "input arg '{}' = {}".format(aname, val_args)
+                    ab.IP(msg)
             else:
                 args_dict2[aname] = val_json
 
@@ -1681,8 +1681,7 @@ have_diff_keys = compare_keys_in_two_dicts( odict, DEF,
                                             nameB = 'DEF' )
 
 if have_diff_keys :
-    print("** ERROR: exiting because of opt name setup failure")
-    sys.exit(1)
+    ab.EP("exiting because of opt name setup failure")
 
 # =========================================================================
 # PART_04: process opts slightly, checking if all required ones are
@@ -1725,10 +1724,10 @@ args_dict2 : dict
 
     if not(args_dict2['card_file'] or args_dict2['resp_file']) and \
        not(args_dict2['phys_file'] and args_dict2['phys_json']) :
-        print("** ERROR: no physio inputs provided. Allowed physio inputs:\n"
-              "   A) '-card_file ..', '-resp_file ..' or both."
-              "   B) '-phys_file ..' and '-phys_json ..'.")
-        sys.exit(4)
+        msg = "no physio inputs provided. Allowed physio inputs:\n"
+        msg+= "A) '-card_file ..', '-resp_file ..' or both.\n"
+        msg+= "B) '-phys_file ..' and '-phys_json ..'."
+        ab.EP(msg)
 
     # for any filename that was provided, check if it actually exists
     # (dset_slice_pattern possible filename checked below)
@@ -1738,8 +1737,7 @@ args_dict2 : dict
     for fopt in all_fopt:
         if args_dict2[fopt] != None :
             if not(os.path.isfile(args_dict2[fopt])) :
-                print("** ERROR: no {} '{}'".format(fopt, args_dict2[fopt]))
-                sys.exit(5)
+                ab.EP("no {} '{}'".format(fopt, args_dict2[fopt]))
 
     # deal with json for a couple facets: getting args_dict2 info, and
     # making sure there are no inconsistencies (in case both JSON and opt
@@ -1747,45 +1745,36 @@ args_dict2 : dict
     if args_dict2['phys_json'] :
         jdict = read_json_to_dict(args_dict2['phys_json'])
         if not(jdict) :
-            print("** ERROR: JSON unreadable or empty")
-            sys.exit(5)
+            ab.EP("JSON unreadable or empty")
 
         # jdict info can get added to args_dict; also want to make sure it
         # does not conflict, if items were entered with other opts
         check_fail, args_dict2 = reconcile_phys_json_with_args(jdict, 
                                                                args_dict2)
         if check_fail :
-            print("** ERROR: issue using the JSON")
-            sys.exit(5)
+            ab.EP("issue using the JSON")
 
      # different ways to provide volumetric EPI info, and ONE must be used
     if not( args_dict2['dset_tr'] ) :
-        print("** ERROR: must provide '-dset_tr ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-dset_tr ..' information")
 
     if not(args_dict2['dset_nslice']) :
-        print("** ERROR: must provide '-dset_nslice ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-dset_nslice ..' information")
 
     if not(args_dict2['dset_nt']) :
-        print("** ERROR: must provide '-dset_nt ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-dset_nt ..' information")
 
     if not(args_dict2['freq']) :
-        print("** ERROR: must provide '-freq ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-freq ..' information")
 
     if not(args_dict2['prefix']) :
-        print("** ERROR: must provide '-prefix ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-prefix ..' information")
 
     if not(args_dict2['out_dir']) :
-        print("** ERROR: must provide '-out_dir ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-out_dir ..' information")
 
     if not(args_dict2['dset_slice_times']) :
-        print("** ERROR: must provide slice timing info in some way")
-        sys.exit(4)
+        ab.EP("must provide slice timing info in some way")
 
     return args_dict2
 
@@ -1823,8 +1812,7 @@ vol_dict2 : dict
     if 'dset_epi' in vol_dict and vol_dict['dset_epi'] :
         vol_dict2 = read_dset_epi_to_dict(vol_dict['dset_epi'], verb=verb)
         if not(vol_dict2) :
-            print("** ERROR: dset_epi unreadable or problematic")
-            sys.exit(5)
+            ab.EP("dset_epi unreadable or problematic")
     else:
         vol_dict2['dset_epi'] = None
 
@@ -1835,16 +1823,15 @@ vol_dict2 : dict
                                                  L=ALL_EPIM_MATCH, 
                                                  do_merge=True, verb=1)
     if ndiff :
-        print("** ERROR: inconsistent dset_epi and command line info")
-        sys.exit(5)
+        ab.EP("inconsistent dset_epi and command line info")
 
     # next/finally, check about slice timing specifically, which might
     # use existing scalar values (from dset or cmd line, which would
     # be in vol_dict2 now) 
     if vol_dict['dset_slice_times'] and vol_dict['dset_slice_pattern'] :
-        print("** ERROR: must use only one of either dset_slice_times or "
-              "dset_slice_pattern")
-        sys.exit(4)
+        msg = "must use only one of either dset_slice_times or "
+        msg+= "dset_slice_pattern"
+        ab.EP(msg)
 
     if vol_dict['dset_slice_times'] :
         # the input cmd line string has not been split yet; interpret
@@ -1858,8 +1845,8 @@ vol_dict2 : dict
             dset_slice_times = [float(ll) for ll in L]
             vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         except:
-            print("** ERROR interpreting dset_slice_times from cmd line")
-            sys.exit(1)
+            ab.EP("interpreting dset_slice_times from cmd line")
+
     elif vol_dict['dset_slice_pattern'] :
         # if pattern, check if it is allowed; elif it is a file, check
         # if it exists *and* use it to fill in
@@ -1869,28 +1856,25 @@ vol_dict2 : dict
 
         pat = vol_dict['dset_slice_pattern']
         if pat in UTIL.g_valid_slice_patterns :
-            print("++ Slice pattern from cmd line: '{}'".format(pat))
+            ab.IP("Slice pattern from cmd line: '{}'".format(pat))
             # check with vol info in vol_dict2 (not in vol_dict) bc
             # vol_dict2 should be the merged superset of info
             dset_slice_times = UTIL.slice_pattern_to_timing(pat, 
                                                        vol_dict2['dset_nslice'],
                                                        vol_dict2['dset_tr'])
             if not(dset_slice_times) :
-                print("** ERROR: could not convert slice pattern to timing")
-                sys.exit(8)
+                ab.EP("could not convert slice pattern to timing")
             vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         elif os.path.isfile(pat) :
-            print("++ Found dset_slice_pattern '{}' exists as a file"
-                  "".format(pat))
+            ab.IP("Found dset_slice_pattern '{}' exists as a file".format(pat))
             dset_slice_times = read_slice_pattern_file(pat, verb=verb)
             if not(dset_slice_times) :
-                print("** ERROR: translate slice pattern file to timing")
-                sys.exit(7)
+                ab.EP("translate slice pattern file to timing")
             vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         else:
-            print("** ERROR: could not match provided dset_slice_pattern "
-                  "'{}' as either a recognized pattern or file".format(pat))
-            sys.exit(3)
+            msg = "could not match provided dset_slice_pattern "
+            msg+= "'{}' as either a recognized pattern or file".format(pat)
+            ab.EP(msg)
 
     # ... and now that we might have explicit slice times in vol_dict,
     # reconcile any vol['dset_slice_times'] with vol_dict2['dset_slice_times']
@@ -1903,8 +1887,7 @@ vol_dict2 : dict
                                         vol_dict2['dset_slice_times'],
                                         eps=EPS_TH )
             if ndiff :
-                print("** ERROR: inconsistent slice times entered")
-                sys.exit(5)
+                ab.EP("inconsistent slice times entered")
         else:
             # nothing to reconcile, just copy over
             vol_dict2['dset_slice_times'] = \
@@ -1973,18 +1956,20 @@ nmerge : int
                 valB = B[ele]
                 if abs(A[ele] - B[ele]) > eps :
                     if verb :
-                        print("+* Difference in dictionary elements:")
-                        print('   eps = {}'.format(eps))
-                        print('   A[{}] = {}'.format(ele, A[ele]))
-                        print('   B[{}] = {}'.format(ele, B[ele]))
+                        msg = "Difference in dictionary elements:\n"
+                        msg+= "eps = {}\n".format(eps)
+                        msg+= "A[{}] = {}\n".format(ele, A[ele])
+                        msg+= "B[{}] = {}".format(ele, B[ele])
+                        ab.WP(msg)
                     ndiff+= 1
                     # ... and cannot merge
                 else:
                     if verb :
-                        print("++ Reconciled dictionary elements:")
-                        print('   eps = {}'.format(eps))
-                        print('   A[{}] = {}'.format(ele, A[ele]))
-                        print('   B[{}] = {}'.format(ele, B[ele]))
+                        msg = "Reconciled dictionary elements:\n"
+                        msg+= "eps = {}\n".format(eps)
+                        msg+= "A[{}] = {}\n".format(ele, A[ele])
+                        msg+= "B[{}] = {}".format(ele, B[ele])
+                        ab.IP(msg)
                     # ... and no need to merge
             else:
                 if do_merge :
@@ -2019,19 +2004,20 @@ ndiff : int
 
     N = len(A)
     if len(B) != N :
-        print("** ERROR: unequal length lists:")
-        print(    "len(A) =", N)
-        print(    "len(B) =", len(B))
-        sys.exit(3)
+        msg = "unequal length lists:\n"
+        msg+= "len(A) = {}\n".format(N)
+        msg+= "len(B) = {}".format(len(B))
+        ab.EP(msg)
 
     ndiff = 0
     for ii in range(N):
         if abs(A[ii] - B[ii]) > eps :
             ndiff+= 1
             if verb :
-                print("+* Difference in list elements:")
-                print(    "A[{}] = {}".format(ii, A[ii]))
-                print(    "B[{}] = {}".format(ii, B[ii]))
+                msg = "Difference in list elements:\n"
+                msg+= "A[{}] = {}\n".format(ii, A[ii])
+                msg+= "B[{}] = {}".format(ii, B[ii])
+                ab.WP(msg)
 
     return ndiff
 
@@ -2063,9 +2049,10 @@ is_bad : int
 
     # bad if more than one opt was used
     if count > 1 :
-        print("** ERROR: more than one '-rvt_shift_*' opt was used:\n"
-              "   {}\n"
-              "   ... but at most only one can be.".format(' '.join(lopt)))
+        msg = "more than one '-rvt_shift_*' opt was used:\n"
+        msg+= "{}\n".format(' '.join(lopt))
+        msg+= "... but at most only one can be."
+        ab.EP1(msg)
         is_bad = 1
 
     return is_bad
@@ -2103,7 +2090,7 @@ args_dict2 : dict
         args_dict2['out_dir'] = args_dict2['out_dir'].rstrip('/')
 
     if args_dict2['start_time'] == None :
-        print("++ No start time provided; will assume it is 0.0.")
+        ab.IP("No start time provided; will assume it is 0.0.")
         args_dict2['start_time'] = 0.0
 
     if args_dict2['extra_fix_list'] :
@@ -2116,7 +2103,7 @@ args_dict2 : dict
             efl = [float(ll) for ll in L]
             args_dict2['extra_fix_list'] = copy.deepcopy(efl)
         except:
-            print("** ERROR interpreting extra_fix_list")
+            ab.EP1("interpreting extra_fix_list")
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
@@ -2131,7 +2118,7 @@ args_dict2 : dict
             lll = [float(ll) for ll in L]
             args_dict2['remove_val_list'] = copy.deepcopy(lll)
         except:
-            print("** ERROR interpreting remove_val_list")
+            ab.EP1("interpreting remove_val_list")
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
@@ -2153,9 +2140,10 @@ args_dict2 : dict
 
         if 'NONE' in L :
             if len(L) > 1 :
-                print("** ERROR with '-regress_types_card ..' args: '{}'"
-                      "".format(args_dict2['regress_types_card']))
-                print("   Cannot mix 'NONE' with other types")
+                msg = "with '-regress_types_card ..' args:\n"
+                msg+= "'{}'\n".format(args_dict2['regress_types_card'])
+                msg+= "Cannot mix 'NONE' with other types"
+                ab.EP1(msg)
                 IS_BAD = 1
 
             #  NB: if here, no need to change def switch values above
@@ -2192,9 +2180,10 @@ args_dict2 : dict
 
         if 'NONE' in L :
             if len(L) > 1 :
-                print("** ERROR with '-regress_types_resp ..' args: '{}'"
-                      "".format(args_dict2['regress_types_resp']))
-                print("   Cannot mix 'NONE' with other types")
+                msg = "with '-regress_types_resp ..' args:\n"
+                msg+= "'{}'\n".format(args_dict2['regress_types_resp'])
+                msg+= "Cannot mix 'NONE' with other types"
+                ab.EP1(msg)
                 IS_BAD = 1
 
             #  NB: if here, no need to change def switch values above
@@ -2230,8 +2219,9 @@ args_dict2 : dict
         IS_BAD = 0
 
         if not(args_dict2['do_rvt_out']) :
-            print("** ERROR, RVT calcs were turned off in opt proc;")
-            print("   you cannot then use -rvt_shift_list")
+            msg = "RVT calcs were turned off in opt proc; "
+            msg+= "you cannot then use -rvt_shift_list"
+            ab.EP1(msg)
             IS_BAD = 1
 
         L = args_dict2['rvt_shift_list'].split()
@@ -2242,8 +2232,9 @@ args_dict2 : dict
             # and copy list of shifts
             args_dict2['rvt_shift_list'] = copy.deepcopy(shift_list) 
         except:
-            print("** ERROR interpreting '-rvt_shift_list ..' args: '{}'"
-                  "".format(args_dict2['rvt_shift_list']))
+            msg = "interpreting '-rvt_shift_list ..' args: "
+            msg+= "'{}'".format(args_dict2['rvt_shift_list'])
+            ab.EP1(msg)
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
@@ -2253,14 +2244,15 @@ args_dict2 : dict
         IS_BAD = 0
 
         if not(args_dict2['do_rvt_out']) :
-            print("** ERROR, RVT calcs were turned off in opt proc")
-            print("   you cannot then use -rvt_shift_linspace")
+            msg = "RVT calcs were turned off in opt proc; "
+            msg+= "you cannot then use -rvt_shift_linspace"
+            ab.EP1(msg)
             IS_BAD = 1
 
         # make sure -rvt_shift_list had 3 entries
         L = args_dict2['rvt_shift_linspace'].split()
         if len(L) != 3 :
-            print("** ERROR, '-rvt_shift_linspace ..' takes exactly 3 values.")
+            ab.EP1("'-rvt_shift_linspace ..' takes exactly 3 values.")
             IS_BAD = 1
 
         try:
@@ -2277,8 +2269,9 @@ args_dict2 : dict
             # and copy arr of shifts
             args_dict2['rvt_shift_list'] = copy.deepcopy(all_shift) 
         except:
-            print("** ERROR interpreting '-rvt_shift_linspace ..' args: '{}'"
-                  "".format(args_dict2['rvt_shift_linspace']))
+            msg = "interpreting '-rvt_shift_linspace ..' args: "
+            msg+= "'{}'".format(args_dict2['rvt_shift_linspace'])
+            ab.EP1(msg)
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
@@ -2296,15 +2289,15 @@ args_dict2 : dict
             aaa = [float(ll) for ll in L]
             args_dict2['img_figsize'] = copy.deepcopy(aaa)
         except:
-            print("** ERROR interpreting img_figsize")
+            ab.EP1("interpreting img_figsize")
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
 
     if '/' in args_dict2['prefix'] :
-        print("** ERROR: Cannot have path information in '-prefix ..'\n"
-              "   Use '-out_dir ..' for path info instead")
-        sys.exit(4)
+        msg = "Cannot have path information in '-prefix ..'\n"
+        msg+= "Use '-out_dir ..' for path info instead"
+        ab.EP(msg)
 
     if args_dict2['prefilt_mode'] :
         # there are only certain allowed values
@@ -2316,32 +2309,34 @@ args_dict2 : dict
     # when loading in previous resp peaks/troughs, must use *both*
     if int(bool(args_dict2['load_proc_peaks_resp'])) + \
        int(bool(args_dict2['load_proc_troughs_resp'])) == 1 :
-        print("** ERROR: If you load in previously processed resp peaks or\n"
-              "   troughs, you must load in *both* files via:\n"
-              "   -load_proc_peaks_resp ..\n"
-              "   -load_proc_troughs_resp ..")
-        sys.exit(4)
+        msg = "If you load in previously processed resp peaks or\n"
+        msg+= "troughs, you must load in *both* files via:\n"
+        msg+= "-load_proc_peaks_resp ..\n"
+        msg+= "-load_proc_troughs_resp .."
+        ab.EP(msg)
 
     # check many numerical inputs for being >=0 or >0; probably leave this
     # one as last in this function
     IS_BAD = 0
     for quant in all_quant_ge_zero:
         if args_dict2[quant] == None :
-            print("** ERROR: Must provide a value for '{}' via options.\n"
-                  "".format(quant, args_dict2[quant]))
+            msg = "Must provide a value for '{}' via options".format(quant)
+            ab.EP1(msg)
             IS_BAD+= 1
         elif args_dict2[quant] < 0 :
-            print("** ERROR: Provided '{}' value ({}) not allowed to be <0.\n"
-                  "".format(quant, args_dict2[quant]))
+            msg = "Provided '{}' value ".format(quant)
+            msg+= "({}) not allowed to be <0".format(args_dict2[quant])
+            ab.EP1(msg)
             IS_BAD+= 1
     for quant in all_quant_gt_zero:
         if args_dict2[quant] == None :
-            print("** ERROR: Must provide a value for '{}' via options.\n"
-                  "".format(quant, args_dict2[quant]))
+            msg = "Must provide a value for '{}' via options.".format(quant)
+            ab.EP1(msg)
             IS_BAD+= 1
         elif args_dict2[quant] <= 0 :
-            print("** ERROR: Provided '{}' value ({}) not allowed to be <=0.\n"
-                  "".format(quant, args_dict2[quant]))
+            msg = "Provided '{}' value ".format(quant)
+            msg+= "({}) not allowed to be <=0".format(args_dict2[quant])
+            ab.EP1(msg)
             IS_BAD+= 1
     if IS_BAD :
         sys.exit(4)
@@ -2450,6 +2445,6 @@ args_dict : dict
 if __name__ == "__main__":
 
     args_dict = main_option_processing(sys.argv)
-    print("++ DONE.  Goodbye.")
+    ab.IP("DONE.  Goodbye.")
 
     sys.exit(0)

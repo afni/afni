@@ -144,10 +144,10 @@ derived data.
 
         if indices_vol[0] < 0 :
             indices_vol[0] = 0
-            print("+* WARN: no time value >=0?")
+            ab.WP("no time value >=0?")
         if indices_vol[1] < 0 :
             indices_vol[1] = self.n_ts_orig  # bc half-open interval
-            print("+* WARN: MRI end time later than physio duration?")
+            ab.WP("MRI end time later than physio duration?")
 
         return indices_vol
         
@@ -219,8 +219,7 @@ derived data.
         if kind == 'troughs' :     kind_list = self.troughs
         elif kind == 'peaks' :     kind_list = self.peaks
         else:
-            print("** ERROR: must provide 'kind' (peaks, troughs, etc.)")
-            sys.exit(3)
+            ab.EP("must provide 'kind' (peaks, troughs, etc.)")
   
         if min_idx != None :
             tmp = np.array(kind_list)
@@ -244,7 +243,7 @@ derived data.
         try:
             delt = 1.0/self.samp_freq
         except:
-            print("+* WARNING: undefined sampling interval")
+            ab.WP("undefined sampling interval")
             delt = np.nan
         return delt
 
@@ -506,8 +505,8 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
             if self.data[label] :
                 check = self.check_end_time_phys_ge_final_slice(label)
                 if not(check) :
-                    print("** ERROR: {} physio data too short for MRI data"
-                          "".format(label))
+                    msg = "{} physio data too short for MRI data".format(label)
+                    ab.EP1(msg)
                     IS_BAD+=1 
         if IS_BAD :
             sys.exit(3)
@@ -546,16 +545,15 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         for key in all_data_keys :
             # make sure key is valid
             if key not in all_phys_keys :
-                print("** ERROR: key {} not in list of physio keys?"
-                      "".format(key))
-                sys.exit(5)
+                msg = "key {} not in list of physio keys?".format(key)
+                ab.EP(msg)
 
             # see if we have to remove an item; 
             # [PT: Jun 11, 2025] nowadays, if calc_phys is off for a
             # type of data, then that means we remove it from further
             # consideration.
             if not(self.do_calc_phys[key]) :
-                print("++ Removing {} data before processing".format(key))
+                ab.IP("Removing {} data before processing".format(key))
                 tmp = D.pop(key, None)
 
         return D
@@ -572,7 +570,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         if not(self.count_load_proc(label)) :
             # simple, nothing to be loaded in
             if self.verb > 1 :
-                print("++ No load_proc_* files for label: {}".format(label))
+                ab.IP("No load_proc_* files for label: {}".format(label))
             return 0
 
         # [0] item: peaks
@@ -628,12 +626,10 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
             is_bad_tot+= is_bad
 
         if is_bad_tot :
-            print("** ERROR: fatal problem reading in data.")
-            sys.exit(2)
+            ab.EP("fatal problem reading in data.")
 
         if len(data_dict) == 0 :
-            print("** ERROR: read in no data.")
-            sys.exit(3)
+            ab.EP("read in no data.")
         
         return data_dict
 
@@ -891,14 +887,14 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         # openneuro collection
         if 'respiratory' in D['Columns'] :
             if self.verb:
-                print("++ Reading resp data from:\n   {}".format(fname))
+                ab.IP("Reading resp data from:\n{}".format(fname))
 
             # read in data
             idx = D["Columns"].index('respiratory')
             data_dict['resp'] = self.extract_list_col(all_col, idx)
         elif 'respiration' in D['Columns'] :
             if self.verb:
-                print("++ Reading resp data from:\n   {}".format(fname))
+                ab.IP("Reading resp data from:\n{}".format(fname))
 
             # read in data
             idx = D["Columns"].index('respiration')
@@ -906,7 +902,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
 
         if 'cardiac' in D['Columns'] :
             if self.verb:
-                print("++ Reading card data from:\n   {}".format(fname))
+                ab.IP("Reading card data from:\n{}".format(fname))
 
             # read in data
             idx = D["Columns"].index('cardiac')
@@ -951,16 +947,13 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
             read_column_text_to_float_list(fname, verb=self.verb)
 
         if self.exit_on_null and len(bad_nulllist) :
-            print("** ERROR: exit due to null values present in {}"
-                  "".format(fname))
+            ab.EP1("exit due to null values present in {}".format(fname))
             HAVE_BADNESS+= 1
         if self.exit_on_nan and len(bad_nanlist) :
-            print("** ERROR: exit due to nan values present in {}"
-                  "".format(fname))
+            ab.EP1("exit due to nan values present in {}".format(fname))
             HAVE_BADNESS+= 1
         if self.exit_on_rag and len(dict_of_len)>1 :
-            print("** ERROR: exit due to raggedness present in {}"
-                  "".format(fname))
+            ab.EP1("exit due to raggedness present in {}".format(fname))
             HAVE_BADNESS+= 1
         if HAVE_BADNESS :
             sys.exit(3)
@@ -1007,7 +1000,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         print("   final MRI slice time : {:0.6f}".format(mri_end_time))
 
         if phys_end_time < mri_end_time :
-            print("** -- Final duration problem ({}) -- ".format(label))
+            ab.EP1(" -- Final duration problem ({}) -- ".format(label))
             return False
         else:
             return True
@@ -1016,8 +1009,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         """Do we appear to have a 'label' data obj?"""
 
         if label not in list(self.data.keys()):
-            print("+* WARN: label '{}' does not appear in data dict"
-                  "".format(label))
+            ab.WP("label '{}' does not appear in data dict".format(label))
             return False
         else: 
             return self.data[label] != None
@@ -1125,8 +1117,8 @@ arr_bad : np.ndarray (1D)
     arr_bad = np.isnan(x)
 
     if verb and len(bad_nums) :
-        print("++ List of bad 'extra fix' numbers: [{}]"
-              "".format(', '.join([str(x) for x in bad_nums])))
+        ttt = ', '.join([str(x) for x in bad_nums])
+        ab.IP("List of bad 'extra fix' numbers: [{}]".format(ttt))
 
     # ... and check for additional bad values, if listed
     nbadnum = 0
@@ -1138,7 +1130,7 @@ arr_bad : np.ndarray (1D)
 
     if verb:
         nbad = np.sum(arr_bad)
-        print("++ Number of bad 'extra fix' values found: {}".format(nbadnum))
+        ab.IP("Number of bad 'extra fix' values found: {}".format(nbadnum))
 
     return arr_bad
 
@@ -1242,7 +1234,7 @@ true_ind_strk_max : int
     Ntrue    = len(true_ind)
 
     if verb :
-        print("++ Total num of 'bad' values : {}".format(Ntrue))
+        ab.IP("Total num of 'bad' values : {}".format(Ntrue))
 
     # special cases: Ntrue <=1
     if not(Ntrue) :    
@@ -1329,8 +1321,7 @@ all_slen: list
     if verb:
         nstrk = len(all_strk)
         maxlen = max(all_slen)
-        print("++ Found {} streaks, with max length : {}"
-              "".format(nstrk, maxlen))
+        ab.IP("Found {} streaks, with max length : {}".format(nstrk, maxlen))
 
     return all_strk, all_slen
 
@@ -1377,8 +1368,9 @@ nrem : int
     x_fixed = np.array(y)
 
     if verb :
-        print("++ Removed this many bad values from the time series: {}"
-              "".format(nrem))
+        msg = "Removed this many bad values from the time series: "
+        msg+= "{}".format(nrem)
+        ab.IP(msg)
         if nrem :
             list_idx.reverse()
             str_idx = ', '.join([str(idx) for idx in list_idx])
@@ -1443,9 +1435,9 @@ nfix : int
     """
 
     if not(fix_method in ALL_fix_method) :
-        print("** ERROR: {} is not in allowed list of fix_methods:"
-              "   {}".format(fix_method, ','.join(ALL_fix_method)))
-        sys.exit(10)
+        msg = "{} is not in allowed list of fix_methods:\n".format(fix_method)
+        msg+= "{}".format(','.join(ALL_fix_method))
+        ab.EP(msg)
 
     # get the information on where badness occurs
     arr_bad, len_strk_bad, idx_strk_bad = \
@@ -1456,8 +1448,7 @@ nfix : int
 
     # automatic check: tooo much badness
     if tot_nbad >= len(x) :
-        print("** ERROR: all time points appeared to be bad :(")
-        sys.exit(4)
+        ab.EP("all time points appeared to be bad :(")
 
     # apply any thresholds, if doing so
     if thr_nbad != None :
@@ -1520,9 +1511,9 @@ x_fixed : np.ndarray
 
     N = len(x)
     if N != len(arr_bad) :
-        print("** ERROR: inconsistent array lengths: {} and {}"
-              "".format(N, len(arr_bad)))
-        sys.exit(3)
+        msg = "inconsistent array lengths: "
+        msg+= "{} and {}".format(N, len(arr_bad))
+        ab.EP(msg)
     
     nbad    = np.sum(arr_bad)
     x_fixed = copy.deepcopy(x)
@@ -1543,26 +1534,26 @@ x_fixed : np.ndarray
     if len(all_strk) > 0 and all_strk[0][0] == 0 :            # first streak, starting index
         if verb :
             nnn = len(all_strk[0])
-            print("+* WARN: replace badness at start with simple fill, N : {}"
-                  "".format(nnn))
+            msg = "replace badness at start with simple fill, N : "
+            msg+= "{}".format(nnn)
+            ab.WP(msg)
         good_ind = all_strk[0][-1]+1    # first index value after streak
         if good_ind >= N-1 :
-            print("** ERROR: can't interpolate if whole time series is bad")
-            sys.exit(5)
-        val      = x_fixed[good_ind]
+            ab.EP("can't interpolate if whole time series is bad")
+        val = x_fixed[good_ind]
         for ii in range(good_ind):
             x_fixed[ii] = val
         tmp = all_strk.pop(0)
     if len(all_strk) > 0 and all_strk[-1][-1] == N-1 :         # last streak, ending index
         if verb :
             nnn = len(all_strk[-1])
-            print("+* WARN: replace badness at end with simple fill, N : {}"
-                  "".format(nnn))
+            msg = "replace badness at end with simple fill, N : "
+            msg+= "{}".format(nnn)
+            ab.WP(msg)
         good_ind = all_strk[-1][0]-1    # first index value after streak
         if good_ind <= 0 :
-            print("** ERROR: can't interpolate if whole time series is bad")
-            sys.exit(5)
-        val      = x_fixed[good_ind]
+            ab.EP("can't interpolate if whole time series is bad")
+        val = x_fixed[good_ind]
         for ii in range(good_ind, N):
             x_fixed[ii] = val
         tmp = all_strk.pop(-1)
@@ -1641,7 +1632,7 @@ idx_strk_bad: int
     # outliers can become part of the bad list
     if outliers_bad : 
         nout = np.sum(arr_out)
-        print("++ Add any outliers to the bad list, N = {}".format(nout))
+        ab.IP("Add any outliers to the bad list, N = {}".format(nout))
         arr_bad += arr_out
 
     # find bad streaks: calc max number of consecutive bad (= True
@@ -1732,10 +1723,10 @@ dict_of_len : dict
     ndlen = len(dict_of_len)
 
     if verb and ndlen==1 :
-        print("   No apparent raggedness in the data columns")
+        ab.IP("No apparent raggedness in the data columns")
 
     if ndlen > 1 :
-        print("+* WARN: apparent raggedness in the file")
+        ab.WP("apparent raggedness in the file")
 
         # make parallel arrays of keys (each line length) and values
         # (number of lines for a given length), sorted in descending
@@ -1857,10 +1848,10 @@ dict_of_len : dict
     BAD_RETURN = {}
 
     if verb:
-        print("++ Start reporting this file:\n   {}".format(fname))
+        ab.IP("Start reporting this file:\n{}".format(fname))
 
     if not(os.path.isfile(fname)) :
-        print("** ERROR: cannot read file:\n   {}".format(fname))
+        ab.EP1("cannot read file:\n{}".format(fname))
         return BAD_RETURN
 
     # fname can be either zipped or unzipped
@@ -1950,7 +1941,7 @@ dict_of_len : dict
     tmp = report_on_bad_list(bad_nanlist, label='nan', verb=verb)
     tmp = report_on_bad_list(bad_nulllist, label='null', verb=verb)
 
-    if verb:    print("++ End reporting.")
+    if verb:    ab.IP("End reporting.")
 
     return tlist, bad_nanlist, bad_nulllist, dict_of_len
 
@@ -1965,10 +1956,10 @@ one-based line number."""
 
     # nothing to do
     if not(N): 
-        print("++ Good: No items found in bad {}list".format(label))
+        ab.IP("Good: No items found in bad {}list".format(label))
         return 0
 
-    print("+* WARN: Found items in bad {}list, N = {}".format(label, N))
+    ab.WP("Found items in bad {}list, N = {}".format(label, N))
     if verb:
         for x in L:
             idx = x[0] + 1
