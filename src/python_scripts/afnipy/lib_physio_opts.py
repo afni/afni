@@ -798,9 +798,10 @@ Overview ~1~
 
 This program creates slice-based regressors for regressing out
 components of estimated cardiac and respiratory signals, as well as
-the respiration volume per time (RVT).
+the respiration volume per time (RVT), RVTRRF and HRCRF.
 
-Much of the calculations are based on the following papers:
+Much of the calculations are based on the following papers about
+estimating physiological regressors to be applied in FMRI analysis:
 
   Glover GH, Li TQ, Ress D (2000). Image-based method for
   retrospective correction of physiological motion effects in fMRI:
@@ -811,20 +812,29 @@ Much of the calculations are based on the following papers:
   neuronal-activity-related fluctuations in fMRI. Neuroimage
   31(4):1536-48.
 
-This code has been informed by earlier programs that estimated
-RETROICOR and RVT regressors, namely the RetroTS.py code by J Zosky,
-which itself follows on from the original RetroTS.m code by ZS Saad.
-That being said, the current code's implementation was written
-separately, to understand the underlying processes and algorithms
-afresh, to modularize several pieces, to refactorize others, and to
-produce more QC outputs and logs of information.  Several steps in the
-eventual regressor estimation depend on processes like peak- (and
-trough-) finding and outlier rejection, which can be reasonably
-implemented in many ways.  We do not expect exact matching of outcomes
-between this and the previous versions.
+  Birn RM, Smith MA, Jones TB, Bandettini PA (2008). The respiration
+  response function: the temporal dynamics of fMRI signal fluctuations
+  related to changes in respiration. Neuroimage 40(2):644-654.
 
-Below, "resp" refers to respiratory input and results, and "card"
-refers to the same for cardiac data.
+  Chang C, Glover GH (2009). Relationship between respiration,
+  end-tidal CO2, and BOLD signals in resting-state fMRI. Neuroimage
+  47(4):1381-1393.
+
+This code has been informed by earlier programs that estimated
+RETROICOR and RVT regressors, namely 3dretroicor by Fred Tam,
+RetroTS.m by Ziad Saad and RetroTS.py by J Zosky.  That being said, the
+current code's implementation was written separately, to understand
+the underlying processes and algorithms afresh, to modularize several
+pieces, to refactorize others, and to produce more QC outputs and logs
+of information.  Several steps in the eventual regressor estimation
+depend on processes like peak- (and trough-) finding and outlier
+rejection, which can be reasonably implemented in many ways.  We do
+not expect exact matching of outcomes between this and the previous
+versions.
+
+Below, we use the following abbreviations a lot:
+* "resp" refers to respiratory (breathing) input and results
+* "card" refers to cardiac (heart rate) input and results
 
 {ddashline}
 
