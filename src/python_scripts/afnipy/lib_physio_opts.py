@@ -1011,7 +1011,7 @@ delete a point, you can add one back, or vice versa.
 
 {ddashline}
 
-Loading in peaks/troughs from earlier physio_calc.py run ~1~
+Reload peaks/troughs from earlier physio_calc.py run ~1~
 
 It is possible to save estimated peak and trough values to a text file
 with this program, using '-save_proc_peaks' and '-save_proc_troughs',
@@ -1059,7 +1059,7 @@ number of images created varies based on user-controlled options.  The
 *resp* files are only output if respiratory signal information were
 input, and similarly for *card* files with cardiac input.
 
-OUT_DIR outputs ~2~
+Outputs in: OUT_DIR/ ~2~
 
   The main output files are the following text files, which contain
   regressors that can be provided to afni_proc.py for FMRI processing:
@@ -1085,7 +1085,7 @@ OUT_DIR outputs ~2~
     PREFIX_physio_extras/     : subdir holding additional text files of
                                 interest (see below for details)
 
-OUT_DIR/PREFIX_physio_extras outputs ~2~
+Outputs in: OUT_DIR/PREFIX_physio_extras/ ~2~
 
   Supplementary text files that may be of user. These include recording
   input options, as well as QC summaries of peak/trough properties.
@@ -1109,7 +1109,7 @@ OUT_DIR/PREFIX_physio_extras outputs ~2~
     PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp data,
                                 corresponding to resp*final_peaks*svg image.
 
-OUT_DIR/PREFIX_physio_images outputs ~2~
+Outputs in: OUT_DIR/PREFIX_physio_images/ ~2~
 
   QC images related to finding peaks and troughs, phase estimation,
   and regressor creation.  The number of files here will vary based on
@@ -1129,8 +1129,8 @@ OUT_DIR/PREFIX_physio_images outputs ~2~
                               For more details, see 'How to interpret 
                               coloration...', below.
 
-  The following intermediate QC images are only output with '-img_verb
-  2' or higher:
+  The following intermediate QC images are only output with '-img_verb 2'
+  or higher:
 
     PREFIX_card_0*.svg
     PREFIX_resp_0*.svg      : QC images of intermediate peak estimation for
@@ -1256,10 +1256,22 @@ written by: Peter Lauren, Paul Taylor, Richard Reynolds and
 '''.format(**help_dict)
 
 # ========================================================================== 
-# ============================ the args/opts ===============================
+# setup arg parser
 
-# keep track of all opts over time, make sure it matches default list 
-odict = {}
+# take a built-in format, but then also ensure the width of the total
+# option+description content is 76 chars or less, and also add an
+# empty vertical space between opts.
+class SpacedRawDescriptionFormatter(argp.RawDescriptionHelpFormatter):
+    def __init__(self, prog, indent_increment=2, max_help_position=24, 
+                 width=76):
+        # Force the maximum allowed display width to 78 chars
+        width = min(width, 76) if width else 78
+        super().__init__(prog, indent_increment, max_help_position, width)
+
+    def _format_action(self, action):
+        # Insert exactly one blank line between listed option blocks
+        result = super()._format_action(action)
+        return result + '\n'
 
 # unused right now, but could be used to control spacing
 formatter = lambda prog: argp.HelpFormatter(prog, 
@@ -1267,16 +1279,22 @@ formatter = lambda prog: argp.HelpFormatter(prog,
                                             max_help_position=12,
                                             width=80)
 
-# get args
+# get args (now with vertically-spaced variant)
 parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
                               usage=argp.SUPPRESS, # don't show ugly usage
                               add_help=False,
                               allow_abbrev=False,
-                              formatter_class=argp.RawDescriptionHelpFormatter,
+                              formatter_class=SpacedRawDescriptionFormatter,
+                              #formatter_class=argp.RawDescriptionHelpFormatter,
                               #formatter_class=argp.RawTextHelpFormatter,
                               #formatter_class=formatter,
                               description=textwrap.dedent(help_str_top),
                               epilog=textwrap.dedent(help_str_epi) )
+
+# ============================ the args/opts ===============================
+
+# keep track of all opts over time, make sure it matches default list 
+odict = {}
 
 opt = '''resp_file'''
 hlp = '''Path to one respiration data file'''
