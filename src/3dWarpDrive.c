@@ -387,6 +387,11 @@ int main( int argc , char * argv[] )
    char *matrix_save_1D=NULL ;                    /* 25 Jul 2007 */
    FILE *msfp=NULL ;
    int null_output=0 ;
+   int aa=0;
+   
+   /* this int basically encodes what kind of behavior to use
+      in setting up align mask, below */
+   int setup_mask_code=0;                         /* 11 Sep 2026 */
 
    /*-- help? --*/
 
@@ -480,6 +485,23 @@ int main( int argc , char * argv[] )
             "  -coarserot    = Initialize shift+rotation parameters by a\n"
             "                   brute force coarse search, as in the similar\n"
             "                   3dvolreg option.\n"
+            "  -setup_mask SS = Option to control preliminary mask opts during\n"
+            "                   alignment setup. User can provide a keyword that\n"
+            "                   controls behavior within mri_warp3D_align's setup,\n"
+            "                   specifically for making a mask. Allowed keywords\n"
+            "                   are:\n"
+            "                      default          : use default behavior\n"
+            "                      erode_off        : no mask erosion+dilation\n"
+            "                      erode_2d_min_dim : do slicewise erosion+dilation;\n"
+            "                                         the chosen sliceplane is the\n"
+            "                                         one perpendicular to the axis\n"
+            "                                         that has the minimum matrix\n"
+            "                                         dimension\n"
+            "                   The default mask setup behavior is to: do mask\n"
+            "                   erosion+dilation in 3D when the input matrix\n"
+            "                   dimensions are each >1; and _no_ erosion+dilation\n"
+            "                   when any matrix dimension is 1 (since the mask would\n"
+            "                   disappear).\n"
             "\n"
             "  -1Dmatrix_save ff = Save base-to-input transformation matrices\n"
             "                      in file 'ff' (1 row per sub-brick in the input\n"
@@ -773,6 +795,24 @@ int main( int argc , char * argv[] )
        nopt++ ; continue ;
      }
 
+     /*-----*/
+
+     /* update the help description for this opt if more keywords are
+        ever allowed */
+     if( strcmp(argv[nopt],"-setup_mask") == 0 ){
+       if( ++nopt >= argc )
+         ERROR_exit("Need an argument after -setup_mask!\n");
+       /* ensure arg is known keyword; map to int */
+       if(strcmp(argv[nopt],"default") == 0 )
+          setup_mask_code = 0;
+       else if (strcmp(argv[nopt],"erode_off") == 0 )
+          setup_mask_code = 1;
+       else if (strcmp(argv[nopt],"erode_2d_min_dim") == 0 )
+          setup_mask_code = 2;
+       else
+         ERROR_exit("-setup_mask argument is invalid! (see help for usage)\n");
+       nopt++ ; continue ;
+     }
      /*-----*/
 
      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
@@ -1299,7 +1339,10 @@ int main( int argc , char * argv[] )
    for( kpar=0 ; kpar < abas.nparam ; kpar++ )
      parsave[kpar] = (float *)calloc( sizeof(float) , nvals ) ;
 
-   mri_warp3D_align_setup( &abas ) ;
+   /* [pt: 2026-09-11] now exit if this fails */
+   aa = mri_warp3D_align_setup( &abas, setup_mask_code ) ;
+   if ( aa )
+       ERROR_exit("warp3D align setup failed");
 
    /*-- open summ file, if desired --*/
 
