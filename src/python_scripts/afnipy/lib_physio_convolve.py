@@ -68,7 +68,7 @@ y : float or array of floats
                 u[i] = t[i]
         t = copy.deepcopy(u)
     else:
-        print("+* WARN: unexpected dtype for t:", dtype(t))
+        ab.WP("unexpected dtype for t: {}".formatdtype(t))
         return -1
 
     aa = 0.6 * (t**2.1) * np.exp(-t / 1.6)
@@ -115,7 +115,7 @@ y : float or array of floats
                 u[i] = t[i]
         t = copy.deepcopy(u)
     else:
-        print("+* WARN: unexpected dtype for t:", dtype(t))
+        ab.WP("unexpected dtype for t: {}".formatdtype(t))
         return -1
 
     # parameter
@@ -144,9 +144,9 @@ this list might grow over time), which can be seen with:
 """
 
     if kernel not in all_kernel_trange.keys() :
-        print("** ERROR: kernel '{}' not in list:".format(kernel))
-        print("   {}".format(', '.join(all_allowed_kernel)))
-        sys.exit(1)
+        msg = "kernel '{}' not in list:\n".format(kernel)
+        msg+= "{}".format(', '.join(all_allowed_kernel))
+        ab.EP(msg)
 
     if kernel == 'rrf_birn08' :
         title = 'RRF (Birn et al., 2008)'
@@ -221,9 +221,9 @@ z : array (of floats)
         ab.EP("Need to provide a delt value >0, not:", delt)
 
     if kernel not in all_kernel_trange.keys() :
-        print("** ERROR: kernel '{}' not in list:".format(kernel))
-        print("   {}".format(', '.join(all_allowed_kernel)))
-        sys.exit(1)
+        msg = "kernel '{}' not in list:\n".format(kernel)
+        msg+= "{}".format(', '.join(all_allowed_kernel))
+        ab.EP(msg)
 
     nx = len(x)
     meanx = np.mean(x)

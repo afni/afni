@@ -5,6 +5,7 @@ import copy
 import numpy  as np
 from   scipy  import signal             as sps
 
+from   afnipy import afni_base          as ab
 from   afnipy import lib_physio_opts    as lpo
 from   afnipy import lib_physio_peaks   as lpp
 from   afnipy import lib_physio_phases  as lpph
@@ -28,39 +29,39 @@ def check_label_all(label):
 valid."""
 
     if not(label) :
-        print("** ERROR: must provide label kwarg from allowed list:")
-        print("   {}".format(', '.join(PO_all_label)))
-        sys.exit(3)
+        msg = "must provide label kwarg from allowed list:\n"
+        msg+= "{}".format(', '.join(PO_all_label))
+        ab.EP(msg)
     elif not(label in PO_all_label) :
-        print("** ERROR: label '{}' is not in allowed list:".format(label))
-        print("   {}".format(', '.join(PO_all_label)))
-        sys.exit(3)
+        msg = "label '{}' is not in allowed list:\n".format(label)
+        msg+= "{}".format(', '.join(PO_all_label))
+        ab.EP(msg)
 
 def check_label_rvt(label):
     """Simple check for some main funcs, that label is both present and
 valid for RVT calcs (e.g., might only apply to 'resp' label)."""
 
     if not(label) :
-        print("** ERROR: must provide label kwarg from allowed RVT list:")
-        print("   {}".format(', '.join(PO_rvt_label)))
-        sys.exit(3)
+        msg = "must provide label kwarg from allowed RVT list:\n"
+        msg+= "{}".format(', '.join(PO_rvt_label))
+        ab.EP(msg)
     elif not(label in PO_rvt_label) :
-        print("** ERROR: label '{}' is not in allowed RVT list:".format(label))
-        print("   {}".format(', '.join(PO_rvt_label)))
-        sys.exit(3)
+        msg = "label '{}' is not in allowed RVT list:\n".format(label)
+        msg+= "{}".format(', '.join(PO_rvt_label))
+        ab.EP(msg)
 
 def check_label_hr(label):
     """Simple check for some main funcs, that label is both present and
 valid for HR calcs (e.g., might only apply to 'card' label)."""
 
     if not(label) :
-        print("** ERROR: must provide label kwarg from allowed HR list:")
-        print("   {}".format(', '.join(PO_hr_label)))
-        sys.exit(3)
+        msg = "must provide label kwarg from allowed HR list:\n"
+        msg+= "{}".format(', '.join(PO_hr_label))
+        ab.EP(msg)
     elif not(label in PO_hr_label) :
-        print("** ERROR: label '{}' is not in allowed HR list:".format(label))
-        print("   {}".format(', '.join(PO_hr_label)))
-        sys.exit(3)
+        msg = "label '{}' is not in allowed HR list:\n".format(label)
+        msg+= "{}".format(', '.join(PO_hr_label))
+        ab.EP(msg)
 
 def check_empty_list(x, count, lab_title, label):
     """Simple check whether a peak, trough or phase list x is empty or
@@ -70,8 +71,9 @@ return 0.
     """
 
     if len(x) == 0 :
-        print("** ERROR: Step [{}] '{}' creates empty list for {} data"
-              "".format(count, lab_title, label))
+        msg = "Step [{}] '{}' creates empty list ".format(count, lab_title)
+        msg+= "for {} data".format(label)
+        ab.EP1(msg)
         return 1
     return 0
 
@@ -106,7 +108,7 @@ is_ok : int
 
     """
 
-    if verb : print("++ Start phys arr timing calc for {} data".format(label))
+    if verb : ab.IP("Start phys arr timing calc for {} data".format(label))
 
     check_label_all(label)
 
@@ -176,7 +178,7 @@ is_ok : int
 
     """
 
-    if verb : print("++ Start volbase arr timing calc for {}".format(label))
+    if verb : ab.IP("Start volbase arr timing calc for {}".format(label))
 
     # this is for either card or resp data
     check_label_all(label)
@@ -352,7 +354,7 @@ is_ok : int
     BAD_RETURN = 1    # in case things go awry
 
     if verb : 
-        print("++ Start peak/trough calc for {} data".format(label))
+        ab.IP("Start peak/trough calc for {} data".format(label))
 
     check_label_all(label)
 
@@ -365,8 +367,9 @@ is_ok : int
     prefix = pcobj.prefix
 
     if verb > 1 :
-        print("++ In plots, step interval for lines: {}"
-              "".format(tsobj.img_arr_step))
+        msg = "In plots, step interval for lines: "
+        msg+= "{}".format(tsobj.img_arr_step)
+        ab.IP(msg)
 
     # -------- start of peak+trough estimation and refinement steps --------
 
@@ -380,7 +383,7 @@ is_ok : int
     count    = 0                                     # proc/filter steps
     lab_title = 'Bandpass and SciPy peak-finding'    # used in fig img
     lab_short = 'bp_scipy_peaks'                     # used in fig filename
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
 
     # calculate peak and/or trough list (here, plus some extra info)
     peaks, idx_freq_mode, xfilt = \
@@ -424,7 +427,7 @@ is_ok : int
     count+= 1
     lab_title = 'Local peak refinement'
     lab_short = 'local_refine_peaks'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
     peaks = lpp.refinePeakLocations(peaks, 
                                     tsobj.ts_orig,
                                     is_troughs = False,
@@ -445,7 +448,7 @@ is_ok : int
     if label == 'card' :
         lab_title = 'Local peak percentile filter'
         lab_short = 'perc_local_peaks'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         peaks = lpp.percentileFilter_local(peaks, 
                                            tsobj.ts_orig,
                                            is_troughs = False,
@@ -453,7 +456,7 @@ is_ok : int
     elif label == 'resp' :
         lab_title = 'Global peak percentile filter'
         lab_short = 'perc_global_peaks'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         peaks = lpp.percentileFilter_global(peaks, 
                                             tsobj.ts_orig,
                                             is_troughs = False,
@@ -473,7 +476,7 @@ is_ok : int
     count+= 1
     lab_title = 'Peak proximity filter'
     lab_short = 'proxim_filter_peaks'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
     # NB: Originally used
     # lpp.getTimeSeriesPeriod_as_indices(tsobj.ts_orig) to get the
     # period_idx kwarg for this func; then seemed to make sense to use
@@ -530,7 +533,7 @@ is_ok : int
         count+= 1
         lab_title = 'Bandpass and SciPy trough-finding'    # used in fig img
         lab_short = 'bp_scipy_troughs'                          
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         troughs, _ = sps.find_peaks(-xfilt,
                                     width=int(tsobj.samp_freq/8))
         if check_empty_list(troughs, count, lab_title, label) :  
@@ -563,7 +566,7 @@ is_ok : int
         count+= 1
         lab_title = 'Local trough refinement'
         lab_short = 'local_refine_troughs'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         troughs = lpp.refinePeakLocations(troughs, 
                                           tsobj.ts_orig,
                                           is_troughs = True,
@@ -585,7 +588,7 @@ is_ok : int
         count+= 1
         lab_title = 'Global trough percentile filter'
         lab_short = 'perc_global_troughs'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         troughs = lpp.percentileFilter_global(troughs, 
                                               tsobj.ts_orig,
                                               perc_filt = 90.0,
@@ -611,7 +614,7 @@ is_ok : int
         count+= 1
         lab_title = 'Trough proximity filter'
         lab_short = 'proxim_filt_troughs'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         # NB: for period_idx arg here, could use
         # lpp.getTimeSeriesPeriod_as_indices(tsobj.ts_orig), but
         # instead use previously calc'ed idx_freq_mod, which should
@@ -694,7 +697,7 @@ is_ok : int
     BAD_RETURN = 1    # in case things go awry
 
     if verb : 
-        print("++ Start interactive plot for {} data".format(label))
+        ab.IP("Start interactive plot for {} data".format(label))
 
     check_label_all(label)
 
@@ -716,8 +719,9 @@ is_ok : int
     # **** this func
 
     if verb > 1 :
-        print("++ In plots, step interval for lines: {}"
-              "".format(tsobj.img_arr_step))
+        msg = "In plots, step interval for lines: "
+        msg+= "{}".format(tsobj.img_arr_step)
+        ab.IP(msg)
 
     # ----- run INTERACTIVE plot
     count+=1
@@ -727,7 +731,7 @@ is_ok : int
     if len(troughs) :
         lab_title+= ' and troughs'
         lab_short+= '_troughs'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         if pcobj.img_verb > 0 :
             # [PT] *** should we output to imdir here?
             fname, title = make_str_ts_peak_trough(label, count, 
@@ -748,7 +752,7 @@ is_ok : int
             peaks   = copy.deepcopy(tsobj.peaks)
             troughs = copy.deepcopy(tsobj.troughs)
     else:
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         if pcobj.img_verb > 0 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short, 
@@ -797,7 +801,7 @@ is_ok : int
     BAD_RETURN = 1    # in case things go awry
 
     if verb : 
-        print("++ ({}) Make final peaks/troughs plot".format(label))
+        ab.IP("({}) Make final peaks/troughs plot".format(label))
 
     check_label_all(label)
 
@@ -827,7 +831,7 @@ is_ok : int
     if len(troughs) :
         lab_title+= ' and troughs'
         lab_short+= '_troughs'
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         if pcobj.img_verb > 0 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
@@ -840,7 +844,7 @@ is_ok : int
                                               pcobj=pcobj,
                                               verb=verb)
     else:
-        if verb :   print('++ ({}) {}'.format(label, lab_title))
+        if verb :   ab.IP('({}) {}'.format(label, lab_title))
         if pcobj.img_verb > 0 :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short, 
@@ -878,7 +882,7 @@ is_ok : int
 
     """
 
-    if verb : print("++ Start phase calc for {} data".format(label))
+    if verb : ab.IP("Start phase calc for {} data".format(label))
 
     check_label_all(label)
 
@@ -893,7 +897,7 @@ is_ok : int
     count     = 20                          # start with num >> peak/trough est
     lab_title = 'Estimating phase'
     lab_short = 'est_phase'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
 
     # ------- card phase estimation
     if label == 'card' :
@@ -949,7 +953,7 @@ intervals to estimate 'instantaneous period'.
 
     """
 
-    if verb : print("++ Start RVT calc for {} data".format(label))
+    if verb : ab.IP("Start RVT calc for {} data".format(label))
 
     check_label_all(label)
     check_label_rvt(label)      # a practical RVT reality, at present
@@ -966,7 +970,7 @@ intervals to estimate 'instantaneous period'.
     count     = 21 
     lab_title = 'RVT envelope estimation'
     lab_short = 'rvt_env'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
 
     # calculate the upper and lower envelope
     upper_env = lprvt.interp_extrema_LIN(tsobj, tsobj.peaks, verb=verb)
@@ -988,7 +992,7 @@ intervals to estimate 'instantaneous period'.
     count    += 1
     lab_title = 'RVT measure'
     lab_short = 'rvt_measure'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
     insta_per = lprvt.interp_intervals_LIN(tsobj, tsobj.peaks, verb=verb)
     rvt_ts    = (upper_env - lower_env) / insta_per
 
@@ -1024,7 +1028,7 @@ result is divided by 60, to have units of beats per minute.
 
     """
 
-    if verb : print("++ Start HR regressor calc for {} data".format(label))
+    if verb : ab.IP("Start HR regressor calc for {} data".format(label))
 
     check_label_all(label)
     check_label_hr(label)       # a practical HR reality, at present
@@ -1041,7 +1045,7 @@ result is divided by 60, to have units of beats per minute.
     count     = 22
     lab_title = 'HR average rate estimation'
     lab_short = 'hr_ave'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
 
     # time-related values
     tr   = pcobj.vol_tr         # EPI data sampling interval (s)
@@ -1127,14 +1131,15 @@ result is divided by 60, to have units of beats per minute.
             numer = float(peaks[min_p] - bot)
             denom = float(peaks[min_p] - peaks[min_p - 1])
             if denom <= 0 or numer <= 0:
-                print("** ERROR: neg val in left peak (numer, denom): ({}, {})"
-                      "".format(numer, denom))
-                sys.exit(3)
+                msg = " val in left peak (numer, denom): "
+                msg+= "({}, {})".format(numer, denom)
+                ab.EP(msg)
             frac = numer/denom
             if frac <= 0 :
-                print("** ERROR: bad left peak frac=numer/denom: {}; "
-                      "(numer, denom): ({}, {})".format(frac, numer, denom))
-                sys.exit(3)
+                msg = "bad left peak frac=numer/denom: "
+                msg+= "{}; ".format(frac)
+                msg+= "(numer, denom): ({}, {})".format(numer, denom))
+                ab.EP(msg)
             peak_count+= frac
             time_ival+= numer
 
@@ -1178,7 +1183,7 @@ result is divided by 60, to have units of beats per minute.
 
         if verb > 5 :
             if ii == 0 :
-                print("++ (card) ave HR per TR")
+                ab.IP("(card) ave HR per TR")
             print("   [{:4d}] peak_count = {:0.3f}, time_ival = {:0.3f} "
                   "hr = {:0.3f}".format(ii, peak_count, time_ival,
                                               hr))
@@ -1193,7 +1198,7 @@ result is divided by 60, to have units of beats per minute.
     count    += 1
     lab_title = 'HR average'
     lab_short = 'hr_ave'
-    if verb :   print('++ ({}) {}'.format(label, lab_title))
+    if verb :   ab.IP('({}) {}'.format(label, lab_title))
 
     if pcobj.img_verb > 1 :
         fname, title = make_str_ts_peak_trough(label, count, 
@@ -1225,7 +1230,7 @@ Eq. 1 of Glover et al., 2000.
 
     """
 
-    if verb : print("++ Start physio regressor calc for {} data".format(label))
+    if verb : ab.IP("Start physio regressor calc for {} data".format(label))
 
     check_label_all(label)
 
@@ -1267,7 +1272,7 @@ def calc_regress_rvt(pcobj, label=None, verb=0):
 
     """
 
-    if verb : print("++ Start RVT regressor calc for {} data".format(label))
+    if verb : ab.IP("Start RVT regressor calc for {} data".format(label))
 
     check_label_all(label)
     check_label_rvt(label)      # a practical RVT reality, at present
@@ -1284,7 +1289,7 @@ def calc_regress_rvt(pcobj, label=None, verb=0):
     regress_dict_rvt = {}
 
     if verb :
-        print("++ The {} RVT shift values are: {}".format(nshift, shift_list))
+        ab.IP("The {} RVT shift values are: {}".format(nshift, shift_list))
 
     # shifts here are made by shifting a copy of the underlying
     # tvalues array, and then selecting the same MRI-snapshot points.
@@ -1371,7 +1376,7 @@ calculated...
 
     """
 
-    if verb : print("++ Start RVTRRF regressor calc for {} data".format(label))
+    if verb : ab.IP("Start RVTRRF regressor calc for {} data".format(label))
 
     check_label_all(label)
     check_label_rvt(label)      # a practical RVT reality, at present
@@ -1424,7 +1429,7 @@ result is divided by 60, to have units of beats per minute.
 
     """
 
-    if verb : print("++ Start HR regressor calc for {} data".format(label))
+    if verb : ab.IP("Start HR regressor calc for {} data".format(label))
 
     check_label_all(label)
     check_label_hr(label)       # a practical HR reality, at present
