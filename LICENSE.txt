@@ -311,6 +311,10 @@ Location: src/SUMA/gts/
 Authors:  Stéphane Popinet, et al.
 License:  GNU Library General Public License (LGPLv2) [src/SUMA/gts/COPYING]
 
+Location: src/XmHTML/Makefile
+Authors:  Ripley Software Development
+License:  GNU Library General Public License (LGPLv2) [src/XmHTML/Makefile]
+
 Location: src/gifsicle/
 Authors:  Eddie Kohler (and Anne Dudfield, David Hedbor, Emil Mikulic,
           Hans Dinsen-Hansen)
@@ -351,10 +355,6 @@ License:  GNU GPL 3.0 [src/3DEdge/gpl-3.0.txt]
 Location: much of src/svm/
 Authors:  Stephen LaConte
 License:  GNU GPL 3.0 or later [src/svm/3dsvm.c]
-
-Location: src/XmHTML/Makefile
-Authors:  Ripley Software Development
-License:  GNU GPL 2.0 or later [src/XmHTML/Makefile]
 
 Location: src/SUMA/SUMA_{coarsen.c,gts.c,gts.h}
 Authors:  Jakub Otwinowski
