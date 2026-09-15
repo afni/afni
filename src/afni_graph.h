@@ -474,7 +474,7 @@ extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
 
 #define PLOTCODE_AUTOSCALE 1
 
-typedef struct MCW_grapher {
+struct MCW_grapher {      /* completion for the MCW_grapher typedef */
    int type , valid ;
 
    int gx_max , gy_max ;  /* window sizes */
@@ -638,7 +638,7 @@ typedef struct MCW_grapher {
 
    int force_redraw ;                               /* Dec 2025 */
 
-} MCW_grapher ;
+} ;
 
 #define GRA_MAX_DETREND      7     /* max order for detrending */
 
@@ -661,13 +661,13 @@ static int fd_y[8] = {100, 130, 160, 190, 220, 250, 280, 310};
 
 /*--- "callback" data stuff: info about events in grapher window ---*/
 
-typedef struct GRA_cbs {
+struct GRA_cbs {   /* completion for the GRA_cbs typedef */
       int          reason ;              /* graCR_??? defined below */
       XEvent *     event ;               /* may be NULL */
       int          xcen,ycen,zcen, mat ; /* new x , new y , new matrix */
       int          key ;                 /* keyvalue (if keypress type) */
       XtPointer    userdata ;            /* misc type of data */
-} GRA_cbs ;
+} ;
 
 /* These codes must be distinct from isqCR_* in imseq.h */
 

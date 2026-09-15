@@ -60,7 +60,7 @@ extern "C" {
    Other stuff is stuffed into here, such as the lists of
    image transformation function that AFNI provides for fun. */
 
-typedef struct MCW_imseq MCW_imseq;  /* incomplete definition, completed below: */
+typedef struct MCW_imseq MCW_imseq; /* incomplete definition, completed below */
 typedef struct ISQ_cbs ISQ_cbs;
 
 typedef struct {
@@ -293,7 +293,7 @@ typedef struct {
 
 /*--- "callback" data stuff: info about events in image window ---*/
 
-typedef struct ISQ_cbs {
+struct ISQ_cbs {   /* completion for the ISQ_cbs typedef */
       int          reason ;       /* isqCR_??? defined below */
       XEvent *     event ;        /* may be NULL */
       int          xim,yim ;      /* original image coords, */
@@ -305,7 +305,7 @@ typedef struct ISQ_cbs {
       XtPointer    userdata ;     /* misc stuff */
 
       XtPointer parent , aux ;
-} ISQ_cbs ;
+} ;
 
 /* Here is where the Callback Reasons (CRs) used to tell
    AFNI what kind of information is being sent and/or requested
@@ -443,7 +443,7 @@ extern void ISQ_set_anim_dup( int ) ;  /* 09 Feb 2009 */
 #define ISQ_NHELP   2047
 #define ISQ_NWIDGET 128
 
-typedef struct MCW_imseq {
+struct MCW_imseq {           /* completion for the MCW_imseq typedef */
 
      int valid ;             /* flag if this structure is valid:
                                   0 => no good at all
@@ -664,7 +664,7 @@ typedef struct MCW_imseq {
      int shft_ctrl_dragged ;                          /* 17 Mar 2010 */
 
      char *overlay_label ;                            /* 23 Dec 2011 */
-} MCW_imseq ;
+} ;
 
 /* codes for how the underlay and overlay images are to be combined */
 
