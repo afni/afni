@@ -4403,7 +4403,7 @@ ENTRY("PLUGIN_imseq_getim") ;
       MCW_imseq_status * stat = myXtNew( MCW_imseq_status ) ;
       stat->num_total  = 1 ;
       stat->num_series = 1 ;
-      stat->send_CB    = (gen_func *)PLUGIN_seq_send_CB ;
+      stat->send_CB    = PLUGIN_seq_send_CB ;
       stat->parent     = (XtPointer) imp  ;
       stat->aux        = NULL ;
 
@@ -4853,7 +4853,7 @@ XtPointer PLUTO_imseq_getim( int n , int type , XtPointer handle )
                                                                /* destroyed    */
       stat->num_total  = ntot ;
       stat->num_series = ntot ;
-      stat->send_CB    = (gen_func *)PLUTO_imseq_send_CB ;
+      stat->send_CB    = PLUTO_imseq_send_CB ;
       stat->parent     = NULL ;
       stat->aux        = NULL ;
 

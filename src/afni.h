@@ -1936,7 +1936,7 @@ extern XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br );
 
 extern THD_3dim_dataset * AFNI_read_images( int nf , char * fname[] );
 
-extern void AFNI_seq_send_CB(MCW_imseq   * seq    ,FD_brick * br,ISQ_cbs * cbs);
+extern void AFNI_seq_send_CB(MCW_imseq   * seq    ,XtPointer xptr, ISQ_cbs * cbs);
 extern void AFNI_gra_send_CB(MCW_grapher * grapher,FD_brick * br,GRA_cbs * cbs);
 
 extern void AFNI_read_inputs   ( int argc, char * argv[] );

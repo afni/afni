@@ -672,8 +672,7 @@ Copy_dset_to_float(THD_3dim_dataset * dset , char * new_prefix )
 }
 
 /*! open aiv / AFNIRT stream */
-static int Smooth_Open_Stream(port)
-     int port;
+static int Smooth_Open_Stream(int port)
 {
    int nn, Wait_tot;
    char streamname[256];
@@ -728,9 +727,7 @@ static int Show_dset_slice(THD_3dim_dataset *dset)
 
 
 /*! create or update image window with the new data */
-static int Smooth_Show_Image(far, nx, ny)
-    float *far;
-     int nx, ny;
+static int Smooth_Show_Image(float *far, int nx, int ny)
 {
   MRI_IMAGE *im;
   /*  char default_name[64] = "3danisosmooth image";*/
