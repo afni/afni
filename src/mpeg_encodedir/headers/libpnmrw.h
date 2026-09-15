@@ -19,9 +19,12 @@
 ** malloc.h at all.  A sad situation.  If you have compilation problems
 ** that point here, feel free to tweak or remove these declarations.
 */
-/** #include <malloc.h> **/
+#ifdef LINUX2
+#include <malloc.h>
+#else
 #if !defined(sco)  &&  !defined(sgi) && !defined(IRIX)
 extern void* malloc();
+#endif
 #endif
 /* End of configurable definitions. */
 

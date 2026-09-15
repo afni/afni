@@ -625,9 +625,7 @@ int main( int argc , char * argv[] )
 
 /*! Print the minimum and maximum values from the header */
 static void
-Print_Header_MinMax(Minflag, Maxflag, dset)
-   int Minflag, Maxflag;
-THD_3dim_dataset * dset;
+Print_Header_MinMax(int Minflag, int Maxflag, THD_3dim_dataset * dset)
 {
    int ival, nval_per;
    float tf=0.0; 
