@@ -1947,6 +1947,20 @@ vol_dict2 : dict
             msg+= "does not match dset_nslice ({})".format(nslice)
             ab.EP(msg)
 
+    # Slice timing values should all be in the half-open interval: [0, TR)
+    if vol_dict2['dset_slice_times'] is not None and \
+       vol_dict2['dset_tr'] is not None :
+
+        sli_times = vol_dict2['dset_slice_times']
+        tr        = vol_dict2['dset_tr']
+
+        for ii, stime in enumerate(sli_times) :
+            if stime < 0.0 or stime >= tr :
+                msg = "slice timing value [{}] = {} ".format(ii, stime)
+                msg+= "is outside the allowed range [0, TR), "
+                msg+= "where TR = {}".format(tr)
+                ab.EP(msg)
+
     # copy this over just for informational purposes
     if 'dset_slice_pattern' in vol_dict :
         vol_dict2['dset_slice_pattern'] = \
