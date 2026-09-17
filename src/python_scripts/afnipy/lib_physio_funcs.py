@@ -1098,7 +1098,7 @@ result is divided by 60, to have units of beats per minute.
         if bot < 0 : 
             bot = 0
         if top >= tsobj.n_ts_orig : 
-            top = tsobj.n_ts_orig - 1
+            top = tsobj.n_ts_orig
 
         # ----- find idx vals for min/max window range in peaks
 
