@@ -588,16 +588,18 @@ def plotCardiacImage(output_file_name, num_rows, points_per_row,
 
     windowTitle = 'Cardiac Plots ('+output_file_name+')'
     fig.canvas.manager.set_window_title(windowTitle)
-
+    
     for row in range(num_rows):
         local_start = row * points_per_row
         local_end = min((row + 1) * points_per_row, len(y))
-        # global-index equivalents, for band comparisons/plotting
+        
+        # Global sample indices tracking the actual boundaries of this specific row
         start = local_start + offset
         end = local_end + offset
-
+    
         ax = axes[row]
-
+    
+        # 1. Plot the local segment of the continuous signal line
         ax.plot(
             x_scaled[local_start:local_end],
             y[local_start:local_end],
@@ -606,14 +608,28 @@ def plotCardiacImage(output_file_name, num_rows, points_per_row,
             solid_joinstyle='miter',
             color="black"
         )
-
-        # Peaks
-        ax.plot(cardiacPeaks_scaled, peakVals, "bo")
-        # Main outlier peaks
-        ax.plot(cardiacPeaks_scaled[peak_outliers],
-                cardiacTimeSeries[cardiacPeaks[peak_outliers]],
-                "ro")
-
+    
+        # 2. Filter peaks so we ONLY plot dots that genuinely land in this row's window
+        local_peak_mask = (cardiacPeaks >= start) & (cardiacPeaks < end)
+        row_peaks_scaled = cardiacPeaks_scaled[local_peak_mask]
+        row_peak_vals = peakVals[local_peak_mask]
+        
+        # Plot local blue dots
+        ax.plot(row_peaks_scaled, row_peak_vals, "bo")
+    
+        # 3. Filter outlier peaks belonging uniquely to this row's slice
+        # peak_outliers contains indices corresponding to elements inside the cardiacPeaks array
+        if len(peak_outliers) > 0:
+            actual_outlier_sample_indices = cardiacPeaks[peak_outliers]
+            row_outlier_mask = (actual_outlier_sample_indices >= start) & (actual_outlier_sample_indices < end)
+            
+            row_outliers_scaled = actual_outlier_sample_indices[row_outlier_mask] / samp_freq
+            row_outliers_vals = cardiacTimeSeries[actual_outlier_sample_indices[row_outlier_mask]]
+            
+            # Plot local red dots
+            ax.plot(row_outliers_scaled, row_outliers_vals, "ro")
+    
+        # 4. Plot background pink anomaly bands
         for band_start, band_end in outlier_ts_ranges:
             if band_end <= start or band_start >= end:
                 continue
@@ -623,9 +639,48 @@ def plotCardiacImage(output_file_name, num_rows, points_per_row,
                 color='red',
                 alpha=0.15
             )
-
+    
         ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
         ax.set_ylabel("ECG Amplitude")
+
+
+    # for row in range(num_rows):
+    #     local_start = row * points_per_row
+    #     local_end = min((row + 1) * points_per_row, len(y))
+    #     # global-index equivalents, for band comparisons/plotting
+    #     start = local_start + offset
+    #     end = local_end + offset
+
+    #     ax = axes[row]
+
+    #     ax.plot(
+    #         x_scaled[local_start:local_end],
+    #         y[local_start:local_end],
+    #         linewidth=0.5,
+    #         solid_capstyle='butt',
+    #         solid_joinstyle='miter',
+    #         color="black"
+    #     )
+
+    #     # Peaks
+    #     ax.plot(cardiacPeaks_scaled, peakVals, "bo")
+    #     # Main outlier peaks
+    #     ax.plot(cardiacPeaks_scaled[peak_outliers],
+    #             cardiacTimeSeries[cardiacPeaks[peak_outliers]],
+    #             "ro")
+
+    #     for band_start, band_end in outlier_ts_ranges:
+    #         if band_end <= start or band_start >= end:
+    #             continue
+    #         ax.axvspan(
+    #             max(band_start, start) / samp_freq,
+    #             min(band_end, end) / samp_freq,
+    #             color='red',
+    #             alpha=0.15
+    #         )
+
+    #     ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
+    #     ax.set_ylabel("ECG Amplitude")
 
     print('Set axes and save plot to file')
     axes[-1].set_xlabel("Time (minutes)")
@@ -2925,31 +2980,99 @@ respiratoryTroughs = np.array(copy.deepcopy(originalRespiratoryTroughs))
 
 # 1. Extract the 4 metrics into a single multi-unit array
 feature_matrix = extract_cardiac_metrics(cardiacPeaks, cardiacTimeSeries, samp_freq)
-print(f"Feature Matrix Shape: {feature_matrix.shape}") # (4 peaks evaluated, 4 metrics each)
+print(f"Feature Matrix Shape: {feature_matrix.shape}") 
 
-# 2. Compute unit-free distances
-distances = calculate_robust_local_mahalanobis(feature_matrix)
-print("Mahalanobis Distances for each peak sequence:", distances)
+# 2. Compute robust local distances (Using the 4 features)
+distances = calculate_robust_local_mahalanobis(feature_matrix, window_size=60)
 
-# Display histogram of distances
-plt.hist(distances)
+# 3. Sort indices DESCENDING (highest Mahalanobis distance first)
+rankVector = np.argsort(distances)[::-1]
 
-# Identify cardiac outlier bands from distances
-cardiacOutlierBands = getCardiacOutlierBands(distances, cardiacPeaks, 
-                                             cardiacTimeSeries)
+# 4. Derive the dynamic statistical outlier threshold bound
+q1, q3 = np.percentile(distances, [25, 75])
+iqr = q3 - q1
+sorted_vals = np.sort(np.asarray(distances))
+real_gaps = np.diff(sorted_vals)
 
-# Convert  original peaks, troughs and sime series to numpy array
-# cardiacTimeSeries = np.array(cardiacTimeSeries)
-# cardiacPeaks = np.array(cardiacPeaks)
-# respiratoryTimeSeries = np.array(respiratoryTimeSeries)
-# respiratoryPeaks = np.array(respiratoryPeaks)
-# respiratoryTroughs = np.array(respiratoryTroughs) 
+# Cap the dynamic multiplier so massive artifacts don't drown out smaller ones
+k_opt = gap_based_multiplier(real_gaps)
+k_opt = min(k_opt, 2.2)  # Ensures 3.95 and 6.95 dropped beats stay flagged!
+upper_bound = q3 + k_opt * iqr
+
+# 5. Count and extract the true outliers from the high-distance side
+num_outliers = np.sum(distances > upper_bound)
+
+if num_outliers > 0:
+    peak_outliers = rankVector[:num_outliers]
+else:
+    peak_outliers = np.array([], dtype=int)
+
+# 6. Build precise time-series bounding ranges around the flagged cycles
+outlier_ts_ranges = []
+last_peak_idx = len(cardiacPeaks) - 1
+
+for k in peak_outliers:
+    # Account for the N-1 index shift from feature matrix back to peaks array
+    target_peak_idx = k + 1
+    
+    # Establish a local bounding frame of 1 peak back and 1 peak forward
+    start_idx = max(0, target_peak_idx - 1)
+    end_idx = min(last_peak_idx, target_peak_idx + 1)
+    
+    outlier_ts_ranges.append([cardiacPeaks[start_idx], cardiacPeaks[end_idx]])
+
+# 7. Sort chronologically by START index and merge any overlaps
+sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
+merged_ranges = []
+for current_range in sorted_ts_ranges:
+    if not merged_ranges:
+        merged_ranges.append(current_range)
+    else:
+        prev_start, prev_end = merged_ranges[-1]
+        curr_start, curr_end = current_range
+        if curr_start <= prev_end:
+            merged_ranges[-1] = [prev_start, max(prev_end, curr_end)]
+        else:
+            merged_ranges.append(current_range)
+
+# =========================================================================
+# FIXED FUNCTION CALL: Matching positional inputs cleanly to your definition
+# =========================================================================
+corrected_peaks = writeCardiacResultsToFiles(
+    OutDir, 
+    cardiacTimeSeries, 
+    cardiacPeaks, 
+    samp_freq,
+    peak_outliers,      # Maps exactly to parameter 5 (peak_outliers)
+    merged_ranges,      # Maps exactly to parameter 6 (outlier_ts_ranges)
+    moveToLocalPeaks,   # Position 7
+    als_baseline_display, # Position 8
+    "MD"                # Append flag positions cleanly
+)
+
+# # 2. Compute unit-free distances
+# distances = calculate_robust_local_mahalanobis(feature_matrix)
+# print("Mahalanobis Distances for each peak sequence:", distances)
+
+# # Display histogram of distances
+# plt.hist(distances)
+
+# # Identify cardiac outlier bands from distances
+# cardiacOutlierBands = getCardiacOutlierBands(distances, cardiacPeaks, 
+#                                              cardiacTimeSeries)
+
+# # Convert  original peaks, troughs and sime series to numpy array
+# # cardiacTimeSeries = np.array(cardiacTimeSeries)
+# # cardiacPeaks = np.array(cardiacPeaks)
+# # respiratoryTimeSeries = np.array(respiratoryTimeSeries)
+# # respiratoryPeaks = np.array(respiratoryPeaks)
+# # respiratoryTroughs = np.array(respiratoryTroughs) 
  
-# Display cardiac outlier bands from distances
-peak_outliers = []  # No peak outliers considered
-cardiacPeaks = writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, 
-                cardiacPeaks, samp_freq, peak_outliers, cardiacOutlierBands, 
-                moveToLocalPeaks, als_baseline_display, append = 'MD')
+# # Display cardiac outlier bands from distances
+# peak_outliers = []  # No peak outliers considered
+# cardiacPeaks = writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, 
+#                 cardiacPeaks, samp_freq, peak_outliers, cardiacOutlierBands, 
+#                 moveToLocalPeaks, als_baseline_display, append = 'MD')
                                     
 ####################################################
 # Mahalanobis Distance analysis for respiratory data
