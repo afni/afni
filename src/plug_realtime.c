@@ -36,6 +36,14 @@
   external "image source" software.  See README.realtime for info.
 ************************************************************************/
 
+/** 04 Nov 1997: initial revision (into CVS)
+               * plug_realtime.c: TCP or shared memory
+               * acquire 3D bricks over time, write at end
+               * compute function (stats) in realtime, RT_fim_recurse        **/
+/** 23 Mar 1998: write datasets with compression                             **/
+/** 17 Apr 1998 ... 27 Nov 1998: 3D registration with graphing               **/
+/** 12 Oct 2000: async work process, many control env vars, graphing         **/
+/** 02 Aug 2002: multiple channel inputs (no registration) (for UCSD folks)  **/
 /** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls                     **/
 /** 27 Jun 2003: added BYTEORDER command for automatic byte swapping [rickr] **/
 /** 30 Jun 2003: allow MRI_complex data type when using BYTEORDER    [rickr] **/
@@ -71,7 +79,10 @@
 /** 10 May 2005: added TPATTERN command to set timing pattern        [rickr] **/
 /** 13 Sep 2005: add empty markers to appropriate datasets           [rickr] **/
 /** 11 Nov 2006: pass ROI means via RT_mp_*, one per ROI per TR      [rickr] **/
+/**              - so pass motion params + ROI avers per TR                  **/
+/** xx Jul 2008: can send All_Data (ind, i,j,k,x,y,z val)            [rickr] **/
 /** 16 Oct 2008: added capability to write data to disk in real time [vinai] **/
+/** 20 May 2009: (for MCW, Andre J) limit max num controllers        [RWCox] **/
 /** 01 Jun 2009: added ability to have a callback called at each
                  time an update is sent to AFNI -- for further
                  processing of some hideous sort, I suppose          [RWCox] **/
@@ -79,12 +90,17 @@
 /** 02 Jun 2010: added ability to register merged data, and to align
                  channels via the same merge registration parameters [rickr] **/
 /** 15 Mar 2012: added AR_Mask_Dset, for per-run mask control        [rickr] **/
-/**  2 Jan 2020: added All_Data_light method                         [JGC]   **/
+/** 13 Mar 2015: RT T2* estimation                             [vinai,rickr] **/
+/** xx Oct 2016: control reg channel, merge subset of channels       [rickr] **/
+/** xx Nov 2016: compute OC from T2*, can merge post OC, ...                 **/
+/** xx Sep 2017: RT registration of multi-chan data            [vinai,rickr] **/
+/**  2 Jan 2020: added All_Data_light method (only mot + vals)       [JGC]   **/
 /** 13 Jan 2020: merged reorder of ROI average operation             [rickr] **/
 /** 14 Jan 2020: apply regtime to ext reg dset; fix pre-merge align  [rickr]
-               * dx,y,z were used for multiple things, corrupting the
+                 dx,y,z were used for multiple things, corrupting the
                  channel merge values                                        **/
 /** 23 Jan 2020: added ROIs_and_data mask method for JGC             [rickr]
+               - 6 motion + non-1 ROI means + all 1 vals
                  This was given a new mask method (and in rr.py), sending 2
                  lengths to the receiver, one for #(non-1)ROIs, one for the
                  number of mask==1 voxels.                                   **/

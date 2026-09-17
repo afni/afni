@@ -179,6 +179,29 @@ foreach(program ${PROGRAMS})
   )
 endforeach(program)
 
+# Native surface cluster simulation.  Keep the computational core in a
+# companion source so it can be tested and evolved without changing the
+# existing SurfClust or SurfSmooth implementations.
+add_afni_executable(
+  SurfClustSim
+  SUMA_SurfClustSim.c
+  SUMA_SurfClustSim_core.c
+)
+target_link_libraries(
+  SurfClustSim
+  PRIVATE SUMA
+          AFNI::mrix
+          AFNI::track_tools
+          AFNI::segtools
+          NIFTI::nifti2
+          NIFTI::nifticdf
+          $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C>
+)
+target_compile_definitions(
+  SurfClustSim
+  PRIVATE "$<IF:$<TARGET_EXISTS:OpenMP::OpenMP_C>,USE_OMP,>"
+)
+
 add_afni_executable(volume_render SUMA_volume_render.c)
 target_link_libraries(
   volume_render

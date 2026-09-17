@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.1.0, July 28, 2026
+Version 1.2.0, Sept 17, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -960,9 +960,9 @@ for(ii in 1:(nS-1))
 #         (allFiles$Subj2 == G1Subj[ii] | allFiles$Subj2 == G1Subj[jj]), 'InputFile'], forcedset = TRUE)$brk
 }
 
-# combine the levels between the two region lists: NO! It seems to mess up the modeling wih brm
-levels(lop$dataStr$Subj1) <- union(S1, S2)
-levels(lop$dataStr$Subj2) <- union(S1, S2)
+# corrected labeling
+lop$dataStr$Subj1 <- factor(as.character(lop$dataStr$Subj1), levels = Sa)
+lop$dataStr$Subj2 <- factor(as.character(lop$dataStr$Subj2), levels = Sa)
 
 if(dim(lop$dataStr)[2] > 3) for(ii in 3:(dim(lop$dataStr)[2]-1)) if(class(lop$dataStr[,ii]) == 'factor')
    cat(nlevels(lop$dataStr[,ii]), 'levels for factor', names(lop$dataStr)[ii], ':', 
