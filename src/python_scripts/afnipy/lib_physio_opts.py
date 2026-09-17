@@ -564,8 +564,8 @@ all_sli : list (of floats)
               "".format(fname, N, M))
 
     if not(N==1 or M==1) :
-        msg = "dset_slice_pattern file {} is not Nx1 or 1xN.\n"
-        msg+= "Its dims of data are: nrow={}, max_ncol={}".format(fname, N, M)
+        msg = "dset_slice_pattern file {} is not Nx1 or 1xN.\n".format(fname)
+        msg+= "Its dims of data are: nrow={}, max_ncol={}".format(N, M)
         ab.EP1(msg)
         return BAD_RETURN
 
@@ -2246,7 +2246,7 @@ args_dict2 : dict
 
         IS_BAD = 0
 
-        if not(args_dict2['do_rvt_out']) :
+        if not(args_dict2['do_out_rvt']) :
             msg = "RVT calcs were turned off in opt proc; "
             msg+= "you cannot then use -rvt_shift_list"
             ab.EP1(msg)
@@ -2271,7 +2271,7 @@ args_dict2 : dict
 
         IS_BAD = 0
 
-        if not(args_dict2['do_rvt_out']) :
+        if not(args_dict2['do_out_rvt']) :
             msg = "RVT calcs were turned off in opt proc; "
             msg+= "you cannot then use -rvt_shift_linspace"
             ab.EP1(msg)
