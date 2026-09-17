@@ -54,7 +54,7 @@ new_layer : np.ndarray
     for ii in range(all_ext[0]):
         new_layer[ii] = tsobj.ts_orig[all_ext[0]]
     for ii in range(all_ext[-1], Nts):
-        new_layer[ii] = tsobj.ts_orig[all_ext[-1]-1]
+        new_layer[ii] = tsobj.ts_orig[all_ext[-1]]
 
     return new_layer
 
