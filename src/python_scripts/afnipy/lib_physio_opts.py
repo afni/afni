@@ -1330,8 +1330,8 @@ parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
 
 opt = '''phys_json'''
-hlp = '''BIDS-formatted physio metadata JSON file. If not specified, the
-JSON corresponding to the '-phys_file ..'  will be loaded'''
+hlp = '''BIDS-formatted physio metadata JSON file. This is required
+whenever -phys_file is used'''
 odict[opt] = hlp
 parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
                     nargs=1, type=str)
@@ -1934,6 +1934,19 @@ vol_dict2 : dict
             # error exit in a downstream check
             vol_dict2['dset_slice_times'] = None
 
+    # If both quantities are available, the number of explicit slice
+    # times must match the number of slices.
+    if vol_dict2['dset_slice_times'] is not None and \
+       vol_dict2['dset_nslice'] is not None :
+
+        ntimes = len(vol_dict2['dset_slice_times'])
+        nslice = vol_dict2['dset_nslice']
+
+        if ntimes != nslice :
+            msg = "number of slice timing values ({}) ".format(ntimes)
+            msg+= "does not match dset_nslice ({})".format(nslice)
+            ab.EP(msg)
+
     # copy this over just for informational purposes
     if 'dset_slice_pattern' in vol_dict :
         vol_dict2['dset_slice_pattern'] = \
@@ -2124,6 +2137,10 @@ args_dict2 : dict
     if args_dict2['start_time'] == None :
         ab.IP("No start time provided; will assume it is 0.0.")
         args_dict2['start_time'] = 0.0
+    elif args_dict2['start_time'] > 0.0 :
+        msg = "start_time must be <= 0.0, "
+        msg+= "not: {}".format(args_dict2['start_time'])
+        ab.EP(msg)
 
     if args_dict2['extra_fix_list'] :
         # Interpret string to be list of ints or floats. NB: written
@@ -2170,6 +2187,15 @@ args_dict2 : dict
 
         L = args_dict2['regress_types_card'].split()
 
+        # check for non-allowed item
+        for val in L :
+            if val not in list_volbase_card :
+                msg = "unrecognized type in '-regress_types_card ..' args:\n"
+                msg+= "{}\n".format(val)
+                msg+= "Valid types: {}".format(all_volbase_card)
+                ab.EP1(msg)
+                IS_BAD = 1
+
         if 'NONE' in L :
             if len(L) > 1 :
                 msg = "with '-regress_types_card ..' args:\n"
@@ -2209,6 +2235,16 @@ args_dict2 : dict
         args_dict2['do_out_rvtrrf']      = False
 
         L = args_dict2['regress_types_resp'].split()
+
+        # check for non-allowed item
+        for val in L :
+            if val not in list_volbase_resp :
+                msg = "unrecognized type in '-regress_types_resp ..' args:\n"
+                msg+= "{}\n".format(val)
+                msg+= "Valid types: {}".format(all_volbase_resp)
+
+                ab.EP1(msg)
+                IS_BAD = 1
 
         if 'NONE' in L :
             if len(L) > 1 :
