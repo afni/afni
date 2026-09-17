@@ -5814,6 +5814,124 @@ def run_checks(BIN, work, threads, verbose):
     check("Z1 -zcensor rejects every intentionally unsupported missing-data contract",
           all(zbadok), "noise/timeshift/phase/model_dset/run=%s" % zbadok)
 
+    # Z2 File-format and randomized algebraic hardening.  Z1 above already
+    # reads compressed .nii.gz files.  Repeat its independently computed atlas
+    # result with uncompressed NIfTI and native AFNI HEAD/BRIK datasets, then
+    # use several random, strictly nonzero fixtures to assert the defining
+    # compatibility property: -zcensor is an exact no-op when every local
+    # pattern has at least one nonzero voxel.
+    zfmt = os.path.join(zdir, "formats"); os.makedirs(zfmt, exist_ok=True)
+    zunatlas = os.path.join(zfmt, "atlas.nii")
+    nib.save(nib.Nifti1Image(zatlasv, zaff), zunatlas)
+    zunfiles = []
+    with open(os.path.join(zfmt, "uncompressed_table.txt"), "w") as ff:
+        ff.write("Subj InputFile\n")
+        for sj in range(ZSUB):
+            fn = os.path.join(zfmt, "z%02d.nii" % sj)
+            nib.save(nib.Nifti1Image(zraw[sj].reshape(ZSHAPE + (ZT,)), zaff), fn)
+            zunfiles.append(fn); ff.write("s%02d %s\n" % (sj, fn))
+    zuntab = os.path.join(zfmt, "uncompressed_table.txt")
+    zunbase = zbase.copy(); zunbase[zunbase.index(ztab)] = zuntab
+    zunbase[zunbase.index(zatlas)] = zunatlas
+    zunrc, zuno = rsa(zunbase + ["-save_rdm", os.path.join(zfmt, "uncompressed_saved"),
+                                 "-prefix", os.path.join(zfmt, "uncompressed")], env=env1)
+    zunrows = (read_table(os.path.join(zfmt, "uncompressed.rsa.1D"), "oracle")[1]
+               if zunrc == 0 else [])
+    zunok = (zunrc == 0 and len(zunrows) == 2 and
+             all(abs(row["oracle_r"] - zref[ii]) < 3e-6 for ii, row in enumerate(zunrows)) and
+             all(np.allclose(np.loadtxt(os.path.join(zfmt, "uncompressed_saved_roi%04d.1D" %
+                                                     (ii + 1))), zneu[ii], atol=3e-6)
+                 for ii in range(2)))
+    check("Z2 uncompressed NIfTI -zcensor matches compressed-NIfTI reference",
+          zunok, "rc=%d rows=%s %s" % (zunrc, zunrows, zuno.strip()[-140:]))
+
+    copybin = os.path.join(os.path.dirname(os.path.abspath(BIN)), "3dcopy")
+    zafniok, zafniwhy = os.path.isfile(copybin) and os.access(copybin, os.X_OK), ""
+    zafnifiles = []
+    if zafniok:
+        # A 6x1x1 volume is legitimately represented by AFNI as a 1D dataset.
+        # Widen only this format fixture, leaving the second row outside the
+        # mask, so 3dcopy must emit a native HEAD/BRIK pair without changing
+        # any analyzed voxel or reference value.
+        zafshape = (6, 2, 1)
+        zafatlasv = np.zeros(zafshape, np.int16)
+        zafatlasv[:, 0, 0] = zatlasv[:, 0, 0]
+        zafatlasnii = os.path.join(zfmt, "atlas_afni_source.nii.gz")
+        nib.save(nib.Nifti1Image(zafatlasv, zaff), zafatlasnii)
+        afatlas = os.path.join(zfmt, "atlas_afni")
+        cp = subprocess.run([copybin, zafatlasnii, afatlas], stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, universal_newlines=True)
+        zafniok = cp.returncode == 0
+        zafniwhy = cp.stdout.strip()[-140:]
+        with open(os.path.join(zfmt, "afni_table.txt"), "w") as ff:
+            ff.write("Subj InputFile\n")
+            for sj in range(ZSUB):
+                pre = os.path.join(zfmt, "z%02d_afni" % sj)
+                src = os.path.join(zfmt, "z%02d_afni_source.nii.gz" % sj)
+                zafvol = np.zeros(zafshape + (ZT,), np.float32)
+                zafvol[:, 0, 0, :] = zraw[sj].reshape(6, ZT)
+                nib.save(nib.Nifti1Image(zafvol, zaff), src)
+                cp = subprocess.run([copybin, src, pre], stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, universal_newlines=True)
+                zafniok = zafniok and cp.returncode == 0
+                zafniwhy = cp.stdout.strip()[-140:] if cp.returncode else zafniwhy
+                zafnifiles.append(pre + "+orig.HEAD")
+                ff.write("s%02d %s\n" % (sj, zafnifiles[-1]))
+    if zafniok:
+        zaftab = os.path.join(zfmt, "afni_table.txt")
+        zafbase = zbase.copy(); zafbase[zafbase.index(ztab)] = zaftab
+        zafbase[zafbase.index(zatlas)] = afatlas + "+orig.HEAD"
+        zafrc, zafo = rsa(zafbase + ["-save_rdm", os.path.join(zfmt, "afni_saved"),
+                                     "-prefix", os.path.join(zfmt, "afni")], env=env1)
+        zafrows = read_table(os.path.join(zfmt, "afni.rsa.1D"), "oracle")[1] if zafrc == 0 else []
+        zafniok = (zafrc == 0 and len(zafrows) == 2 and
+                   all(abs(row["oracle_r"] - zref[ii]) < 3e-6
+                       for ii, row in enumerate(zafrows)) and
+                   all(np.allclose(np.loadtxt(os.path.join(zfmt, "afni_saved_roi%04d.1D" %
+                                                           (ii + 1))), zneu[ii], atol=3e-6)
+                       for ii in range(2)))
+        zafniwhy = "rc=%d rows=%s %s" % (zafrc, zafrows, zafo.strip()[-140:])
+    elif not zafniwhy:
+        zafniwhy = "missing executable %s" % copybin
+    check("Z2 AFNI HEAD/BRIK -zcensor matches NIfTI reference", zafniok, zafniwhy)
+
+    zrng = np.random.default_rng(20260917)
+    zpropok, zpropwhy = True, []
+    for trial in range(4):
+        tdir = os.path.join(zfmt, "property_%02d" % trial); os.makedirs(tdir, exist_ok=True)
+        tdata = zrng.normal(size=(ZSUB, 6, ZT)).astype(np.float32)
+        # Avoid an accidental all-zero pattern even after float storage.
+        tdata += np.float32(0.125 + 0.031 * trial)
+        tatlas = os.path.join(tdir, "atlas.nii.gz")
+        nib.save(nib.Nifti1Image(zatlasv, zaff), tatlas)
+        ttab = os.path.join(tdir, "table.txt")
+        with open(ttab, "w") as ff:
+            ff.write("Subj InputFile\n")
+            for sj in range(ZSUB):
+                fn = os.path.join(tdir, "s%02d.nii.gz" % sj)
+                nib.save(nib.Nifti1Image(tdata[sj].reshape(ZSHAPE + (ZT,)), zaff), fn)
+                ff.write("s%02d %s\n" % (sj, fn))
+        tplain = ["-dataTableFile", ttab, "-mask", tatlas, "-mode", "IS-RSA",
+                  "-featuretype", "mean", "-model_mat", "oracle", zmodfn,
+                  "-neural_metric", "corr", "-metric", "pearson", "-nperm", "0", "-no_dset"]
+        tr0, to0 = rsa(tplain + ["-save_rdm", os.path.join(tdir, "plain_saved"),
+                                  "-prefix", os.path.join(tdir, "plain")], env=env1)
+        tr1, to1 = rsa(tplain + ["-zcensor", "-save_rdm", os.path.join(tdir, "zc_saved"),
+                                  "-prefix", os.path.join(tdir, "zc")], env=env1)
+        same = (tr0 == tr1 == 0 and
+                read_table(os.path.join(tdir, "plain.rsa.1D"), "oracle")[1] ==
+                read_table(os.path.join(tdir, "zc.rsa.1D"), "oracle")[1] and
+                all(np.array_equal(np.loadtxt(os.path.join(tdir, "plain_saved_roi%04d.1D" %
+                                                           (ii + 1))),
+                                   np.loadtxt(os.path.join(tdir, "zc_saved_roi%04d.1D" %
+                                                           (ii + 1)))) for ii in range(2)))
+        zpropok = zpropok and same
+        if not same:
+            zpropwhy.append("trial %d rc=%d/%d %s %s" %
+                            (trial, tr0, tr1, to0.strip()[-80:], to1.strip()[-80:]))
+    check("Z2 randomized no-zero inputs make -zcensor an exact no-op (4 trials)",
+          zpropok, "; ".join(zpropwhy))
+
     # =====================================================================
     # Mask-optional surface searchlight.  Only meaningful in a -DUSE_SUMA
     # build; probe for that first and SKIP (not fail) this block otherwise --
