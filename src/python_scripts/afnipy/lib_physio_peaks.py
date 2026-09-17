@@ -231,6 +231,12 @@ idx_freq_peak : int
     else:
         idx_max = min(round(max_bps/delta_f), idx_ny)
 
+    if idx_min >= idx_max :
+        msg = "invalid frequency search interval: "
+        msg+= "idx_min = {}, idx_max = {}".format(idx_min, idx_max)
+        ab.EP1(msg)
+        return BAD_RETURN
+
     # actual peak location, as both index and phys value
     idx_freq_peak = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
@@ -794,7 +800,7 @@ opeaks : list
     halfWindowWidth = round(period_idx * nbhd_idx / 2.0)
     for idx in peaks:
         min_idx = max(0, idx - halfWindowWidth)
-        max_idx = min(N-1, idx + halfWindowWidth)
+        max_idx = min(N, idx + halfWindowWidth) # first arg, bc half-open ival
         all_thr.append(np.percentile(x[min_idx:max_idx], perc_filt))
     all_thr = np.array(all_thr)
 
