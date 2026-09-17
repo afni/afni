@@ -4,6 +4,8 @@ import os, sys
 import copy
 import numpy  as np
 from   scipy  import signal as sps
+
+from   afnipy import afni_base       as ab
 from   afnipy import lib_physio_plot as lpplt
 from   afnipy import lib_physio_util as lpu
 
@@ -202,10 +204,12 @@ idx_freq_peak : int
 
     """
 
+    BAD_RETURN = (np.array([]), 0)
+
     if (np.sum(np.isnan(x))) :
         print('** ERROR in apply_bandpass_smooth(): ' 
               'nan values in data')
-        return []
+        return BAD_RETURN
 
     # ------ Prep freq quants
 
@@ -486,7 +490,7 @@ xfilt : np.ndarray
 
     """
 
-    BAD_RETURN = ([], 0, np.ndarray([]))
+    BAD_RETURN = ([], 0, np.array([]))
 
     # Bandpass filter raw data, and also get idx of peak freq mode
     # within range filtered
@@ -573,23 +577,33 @@ opeaks : list
         print("** No peaks to start with for refinement!")
         return []
 
+    # ... and another special case, where no further calc are needed
+    if len(peaks) == 1 and window_size is None :
+        if verb :
+            ab.WP("Only one peak provided and no window_size; " + \
+                  "cannot estimate an interpeak interval for refinement.")
+        return list(peaks)
+
+
     N      = len(x)
     Npeaks = len(peaks)
     opeaks = []                # init output
 
-    # Determine half window width from distribution of intervals
+    # Determine half window width from distribution of intervals (has
+    # to be at least 1)
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
     if window_size :
-        halfWindowWidth = round(window_size * window_scale)
+        halfWindowWidth = max(1, round(window_size * window_scale))
     else:
-        halfWindowWidth = round(np.median(intervals)*window_scale)
+        halfWindowWidth = max(1, round(np.median(intervals)*window_scale))
 
     # adjust each peak by location of local max in original ts
     for ii in range(Npeaks):
-        # determine mini-window, and local extremum within the win
+        # determine mini-window, which is defined using a half-open
+        # interval [start,finish), and local extremum within the win
         idx     = peaks[ii]
         start   = max(0, idx - halfWindowWidth)
-        finish  = min(idx + halfWindowWidth, N-1)
+        finish  = min(idx + halfWindowWidth, N)
         if is_troughs:
             opeaks.append(start + np.argmin(x[start:finish]))
         else:
