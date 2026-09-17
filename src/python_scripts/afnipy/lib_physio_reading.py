@@ -1047,11 +1047,11 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
     @property
     def step_downsamp(self):
         """Downsampling factor from original sampling freq to what user has
-        set as limit; return 0 or 1 means no downsampling, via
+        set as limit; return 1 means no downsampling most consistently, via
         different mechanisms."""
         if self.prefilt_max_freq <= 0 :
-            # nothing to do
-            return 0
+            # nothing to do (and factor of 1 is used to denote no change)
+            return 1
         elif self.init_samp_freq < self.prefilt_max_freq :
             # nothing to do, and let user know
             print("++ No downsampling needed: "
