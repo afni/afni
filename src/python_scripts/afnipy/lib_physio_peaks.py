@@ -486,6 +486,8 @@ xfilt : np.ndarray
 
     """
 
+    BAD_RETURN = ([], 0, np.ndarray([]))
+
     # Bandpass filter raw data, and also get idx of peak freq mode
     # within range filtered
     xfilt, idx_freq_mode \
@@ -498,7 +500,7 @@ xfilt : np.ndarray
                                 verb=0)
     if len(xfilt) == 0:
        print("** ERROR: Failed to band-pass filter '{}' data".format(label))
-       return []
+       return BAD_RETURN
 
     # --- Get initial peaks of bandpassed time series
 

@@ -354,7 +354,7 @@ DIFF_KEYS : int
     DIFF_KEYS = 0
 
     if not(nameA) :    nameA = 'A'
-    if not(nameB) :    nameA = 'B'
+    if not(nameB) :    nameB = 'B'
 
     # simple count
     na = len(A)
