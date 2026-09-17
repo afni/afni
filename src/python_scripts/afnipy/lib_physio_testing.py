@@ -83,7 +83,7 @@ set dir_dat = .
 echo "++ run Ex. {exnum}"
 
 set odir = odir_{exnnn}
-\mkdir -p ${{odir}}
+\\mkdir -p ${{odir}}
 
 physio_calc.py                                                               \\
     -phys_file           {ftsv} \\
@@ -162,7 +162,7 @@ physio_calc.py                                                               \\
 echo "++ run Ex. {exnum}"
 
 set odir = odir_{exnnn}
-\mkdir -p ${{odir}}
+\\mkdir -p ${{odir}}
 
 physio_calc.py                                                               \\
     -phys_file           {ftsv} \\
@@ -248,7 +248,7 @@ physio_calc.py                                                               \\
 echo "++ run Ex. {exnum}"
 
 set odir = odir_{exnnn}
-\mkdir -p ${{odir}}
+\\mkdir -p ${{odir}}
 
 physio_calc.py                                                               \\
     -phys_file           {ftsv} \\
