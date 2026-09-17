@@ -188,9 +188,9 @@ phases : np.ndarray (1D)
         denom = finish - start  # Total length of segment
         
         # Histogram values in segment
-        sample = [x - ts_orig[troughs[troughIndex]] \
-                  for x in ts_orig[start:finish]] 
-        sample = sample - min(sample)
+        sample = np.array([x - ts_orig[troughs[troughIndex]] \
+                  for x in ts_orig[start:finish]], dtype=float)
+        sample-= np.min(sample)
         counts, bins = np.histogram([x 
                     for x in sample if np.isnan(x) == False], 
                                     bins=nbin) 
