@@ -85,18 +85,20 @@ Returns
 -------
 is_fail : int
     0 for success, nonzero for failure
-minval : float
-    minimum value in A
-maxval : float
-    maximum value in A
-meanval : float
-    mean (average) value of collection A
-stdval : float
-    standard deviation value of collection A
+all_stat : tuple of 4 floats, which are as follows...
+    minval : float
+        minimum value in A
+    maxval : float
+        maximum value in A
+    meanval : float
+        mean (average) value of collection A
+    stdval : float
+        standard deviation value of collection A
 
     """
 
-    BAD_RETURN = (-1, 0.0, 0.0, 0.0, 0.0)
+    BADL = (0.0, 0.0, 0.0, 0.0)
+    BAD_RETURN = (-1, BADL)
 
     # make sure A has at least 2 values
     N     = len(A)
@@ -120,7 +122,7 @@ stdval : float
         meanval*= samp_delt
         stdval *= samp_delt
 
-    return 0, minval, maxval, meanval, stdval
+    return 0, (minval, maxval, meanval, stdval)
 
 # ----------------------------------------------------------------------------
 
