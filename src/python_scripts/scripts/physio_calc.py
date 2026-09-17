@@ -123,38 +123,57 @@ if __name__ == "__main__":
             # check if the peaks/troughs were loaded in already
             if not(pcobj.count_load_proc(label)) :
                 # do all peak/trough processing steps
-                tmp3 = lpf.calc_time_series_peaks( pcobj, label=label, 
-                                                   verb=verb )
+                is_fail = lpf.calc_time_series_peaks( pcobj, label=label, 
+                                                      verb=verb )
+                if is_fail :
+                    ab.EP("peak/trough finding failure: {}".format(label))
+
             # see if interactive mode refinement is on
             if pcobj.data[label].do_interact :
-                tmp4 = lpf.run_interactive_peaks( pcobj, label=label, 
-                                                  verb=verb )
+                is_fail = lpf.run_interactive_peaks( pcobj, label=label, 
+                                                     verb=verb )
+                if is_fail :
+                    ab.EP("peak/trough interactive failure: {}".format(label))
+
             # make final peak/trough images
-            tmp5 = lpf.make_final_image_peaks( pcobj, label=label, 
-                                               verb=verb )
+            is_fail = lpf.make_final_image_peaks( pcobj, label=label, 
+                                                  verb=verb )
+            if is_fail :
+                ab.WP("peak/trough final images failure: {}".format(label))
 
 
     # save/write out peaks/troughs, if user asks
     for label in lpf.PO_all_label:
         if pcobj.data[label] and pcobj.do_calc_phys[label] :
-            lpl.save_peaks_troughs_file_1D( pcobj, label=label, verb=verb )
+            is_fail = lpl.save_peaks_troughs_file_1D( pcobj, label=label, 
+                                                      verb=verb )
+            if is_fail :
+                ab.EP("Saving peaks/troughs failure: {}".format(label))
 
 
     # Phase estimation, which uses very diff methods for card and resp
     # processing.
     for label in lpf.PO_all_label:
         if pcobj.data[label] and pcobj.do_calc_phys[label] :
-            lpf.calc_time_series_phases( pcobj, label=label, verb=verb )
+            is_fail = lpf.calc_time_series_phases( pcobj, label=label, 
+                                                   verb=verb )
+            if is_fail :
+                ab.EP("Phase estimation failure: {}".format(label))
+
 
     # RVT time series estimation (just for resp)
     label = 'resp'
     if pcobj.data[label] and pcobj.do_calc_rvt :
-        lpf.calc_time_series_rvt( pcobj, label=label, verb=verb )
+        is_fail = lpf.calc_time_series_rvt( pcobj, label=label, verb=verb )
+        if is_fail :
+            ab.EP("RVT estimation failure: {}".format(label))
 
     # HR time series estimation (just for card; and on EPI ts grid)
     label = 'card'
     if pcobj.data[label] and pcobj.do_calc_hr :
-        lpf.calc_time_series_hr( pcobj, label=label, verb=verb )
+        is_fail = lpf.calc_time_series_hr( pcobj, label=label, verb=verb )
+        if is_fail :
+            ab.EP("HR estimation failure: {}".format(label))
 
     # ------------- Calculate regressors ------------------
 
@@ -178,16 +197,22 @@ if __name__ == "__main__":
     if pcobj.data[label] :
         # make RVT regressor 
         if pcobj.do_calc_rvt :
-            lpf.calc_regress_rvt( pcobj, label=label, verb=verb )
+            is_fail = lpf.calc_regress_rvt( pcobj, label=label, verb=verb )
+            if is_fail :
+                ab.EP("RVT regressor estimation failure: {}".format(label))
 
         # make RVTRRF regressor (can only be done after RVT one is made)
         if pcobj.do_calc_rvtrrf :
-            lpf.calc_regress_rvtrrf( pcobj, label=label, verb=verb )
+            is_fail = lpf.calc_regress_rvtrrf( pcobj, label=label, verb=verb )
+            if is_fail :
+                ab.EP("RVTRRF estimation failure: {}".format(label))
 
     # Card-derived volbase regressors
     label = 'card'
     if pcobj.data[label] and pcobj.do_calc_hr :
-        lpf.calc_regress_hr( pcobj, label=label, verb=verb )
+        is_fail = lpf.calc_regress_hr( pcobj, label=label, verb=verb )
+        if is_fail :
+            ab.EP("HR regressor estimation failure: {}".format(label))
 
     # ------------- Write out regressors ------------------
 
@@ -196,13 +221,21 @@ if __name__ == "__main__":
         lpreg.write_regressor_file_OLD(pcobj)
 
     # modern output format, separate slice-based and volume-wise regressors
-    lpreg.write_regressor_file_sli(pcobj)
-    lpreg.write_regressor_file_vol(pcobj)
+    is_fail = lpreg.write_regressor_file_sli(pcobj)
+    if is_fail :
+        ab.EP("Write slice regressor estimation failure: {}".format(label))
+    is_fail = lpreg.write_regressor_file_vol(pcobj)
+    if is_fail :
+        ab.EP("Write volume regressor estimation failure: {}".format(label))
 
     # -------------------- log some of the results --------------------------
 
     for label in lpf.PO_all_label:
         if pcobj.data[label] :
-            lpl.make_ts_obj_review_log( pcobj, label=label, verb=verb )
+            is_fail = lpl.make_ts_obj_review_log( pcobj, label=label, 
+                                                  verb=verb )
+            if is_fail :
+                ab.EP("Log failure: {}".format(label))
 
     ab.IP("DONE.  Goodbye.")
+
