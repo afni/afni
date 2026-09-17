@@ -1860,6 +1860,14 @@ vol_dict2 : dict
     else:
         vol_dict2['dset_epi'] = None
 
+    # Make sure all expected volume-info keys exist, even if they were
+    # not supplied via -dset_epi or other command line options.
+    # This allows downstream reconciliation/checking to handle missing
+    # values explicitly rather than producing a KeyError.
+    for key in vol_key_list :
+        if key not in vol_dict2 :
+            vol_dict2[key] = None
+
     # then check scalar values about volume properties from simple
     # command line opts; try to reconcile or add each (and add to
     # output dict)
@@ -2363,8 +2371,9 @@ args_dict2 : dict
 
             # These 3 values get interpreted as (start, stop, N);
             # verify that this is a legit expression
-            IS_BAD, all_shift = \
+            is_fail, all_shift = \
                 interpret_rvt_shift_linspace_opts(lll[0], lll[1], lll[2])
+            IS_BAD+= is_fail
 
             # copy original params in place
             args_dict2['rvt_shift_linspace'] = copy.deepcopy(lll) 

@@ -118,7 +118,7 @@ plotting.
         if std :
             rat = 0.5 + 0.1*(all_ivals - med)/std   # ~Zscore, scaled for cmap
         else:
-            rat = 0.5
+            rat = np.full(len(all_ivals), 0.5, dtype=float)
 
         # NB: through some Python cmap() quirk, max must be <1,
         # apparently, otherwise it appears to loop around (?!?). So we
