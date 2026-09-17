@@ -168,9 +168,11 @@ derived data.
                                           min_idx=min_idx, 
                                           max_idx=max_idx)
 
-        all_stat = \
+        is_fail, all_stat = \
             lpu.calc_interval_stats_perc(kind_list, samp_delt=self.samp_delt,
                                          all_perc=all_perc)
+        if is_fail :
+            sys.exit(-3)
         return all_stat
 
     def stats_ival_mmms(self, kind=None,
@@ -187,8 +189,10 @@ derived data.
                                           min_idx=min_idx, 
                                           max_idx=max_idx)
 
-        all_stat = \
+        is_fail, all_stat = \
             lpu.calc_interval_stats_mmms(kind_list, samp_delt=self.samp_delt)
+        if is_fail :
+            sys.exit(-1)
         return all_stat
 
     def stats_count_pt(self, kind=None,

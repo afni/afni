@@ -4,6 +4,8 @@ import os, sys
 import copy
 import numpy as np
 
+from   afnipy import afni_base as ab
+
 
 # ===========================================================================
 
@@ -15,6 +17,8 @@ A (which is assumed to be sorted already).  A sampling interval can be
 input to provide output units; if none is entered, then units are
 those of A (which are typically unitless when A represents peaks or
 troughs).
+
+A must have at least 2 values.
 
 Parameters
 ----------
@@ -29,17 +33,25 @@ all_perc : set/np.ndarray
 
 Returns
 -------
+is_fail : int
+    0 for success, nonzero for failure
 stats_arr : np.ndarray
     an array of stats about the intervals of A, calculated from
     percentile values in all_perc
 
     """
 
-    # make sure A and all_perc have values
+    BAD_RETURN = (-1, np.array([]))
+
+    # make sure A has at least 2 values, and all_perc has some values
     N     = len(A)
     Nperc = len(all_perc)
-    if not(N) or not(Nperc) :
-        return ()
+    if N<2 :
+        ab.EP1("Too few indices for interval calcs: {}".format(N))
+        return BAD_RETURN
+    if not(Nperc) :
+        ab.EP1("no percentile values given for interval calcs")
+        return BAD_RETURN
 
     # make interval set
     intervals = [j-i for i, j in zip(A[:-1], A[1:])]
@@ -51,7 +63,7 @@ stats_arr : np.ndarray
     if samp_delt :
         stats_arr*= samp_delt
 
-    return stats_arr
+    return 0, stats_arr
 
 def calc_interval_stats_mmms(A, samp_delt=None, 
                              verb=0 ):
@@ -71,6 +83,8 @@ samp_delt : float
 
 Returns
 -------
+is_fail : int
+    0 for success, nonzero for failure
 minval : float
     minimum value in A
 maxval : float
@@ -82,10 +96,13 @@ stdval : float
 
     """
 
-    # make sure A and all_perc have values
+    BAD_RETURN = (-1, 0.0, 0.0, 0.0, 0.0)
+
+    # make sure A has at least 2 values
     N     = len(A)
-    if not(N) :
-        return ()
+    if N<2 :
+        ab.EP1("Too few indices for interval stats: {}".format(N))
+        return BAD_RETURN
 
     # make interval set
     intervals = [j-i for i, j in zip(A[:-1], A[1:])]
@@ -103,7 +120,7 @@ stdval : float
         meanval*= samp_delt
         stdval *= samp_delt
 
-    return minval, maxval, meanval, stdval
+    return 0, minval, maxval, meanval, stdval
 
 # ----------------------------------------------------------------------------
 
