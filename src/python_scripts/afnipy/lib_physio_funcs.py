@@ -715,7 +715,7 @@ is_ok : int
     prefix = pcobj.prefix
 
     # set up local quantities
-    count = tsobj.proc_count
+    count = tsobj.proc_count   # NB: initialized to existing count
     peaks = tsobj.peaks
     troughs = tsobj.troughs    # might be empty list, which is fine
     p_ival = np.median([j-i for i, j in zip(peaks[:-1], peaks[1:])])
@@ -778,7 +778,11 @@ is_ok : int
     # NB: the peaks/troughts get updated in tsobj when the interactive
     # mode is on in pplt.makefig_tsobj_peaks_troughs(), which it is by
     # definition here
-    tsobj.proc_count+= count
+    # NB2: we do not have "+= count" here, bc count was initialized as
+    # the existing tsobj.proc_count; therefore here we _update_ fully, 
+    # not increment; in other functions here, count was initialized 
+    # differently
+    tsobj.proc_count = count
 
     return 0
 
