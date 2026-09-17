@@ -1255,7 +1255,7 @@ true_ind_strk_max : int
         if all_slen[ii] > max_len :
             max_len = all_slen[ii]
             max_ind = ii
-    true_ind_strk_max = all_strk[ii][0]
+    true_ind_strk_max = all_strk[max_ind][0]
 
     if verb :
         print("++ Max streak of 'bad' values : {}".format(max_len))
