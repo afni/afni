@@ -529,10 +529,13 @@ There will always be at least one vertex left (which is, in fact, a
         rind, xval, yval, xdataval, ydataval \
                 = self.get_ind_under_point_REFLINE(event, eps_fac=2.0)
 
-        # constrained motion
-        if rind != None :
-            x, y = xdataval, ydataval
-            self.poly[self.act_lab].xy[self.act_ind] = x, y
+        # invalid reference point (point remains at last valid position)
+        if rind is None :
+            return
+
+        # constrained motion (occurs when: rind != None)
+        x, y = xdataval, ydataval
+        self.poly[self.act_lab].xy[self.act_ind] = x, y
 
         if self.act_ind == 0:
             self.poly[self.act_lab].xy[-1] = x, y
