@@ -1050,7 +1050,11 @@ Returns
         diff_rvt   = maxrvt - minrvt
         mints      = np.min(ts)
         diff_ts    = np.max(ts) - mints
-        scl        = diff_ts / diff_rvt
+        if diff_rvt :
+            scl    = diff_ts / diff_rvt
+        else:
+            # picking a scale to avoid div by 0
+            scl    = diff_ts / 0.5
         scale_rvt  = (rvt - minrvt)*scl + mints
         ret_plobj6 = PcalcPlobj(tsobj.tvalues[::istep], scale_rvt[::istep], 
                                 label='RVT (scaled: {:0.2e}; offset)'.format(scl),
@@ -1068,7 +1072,11 @@ Returns
         diff_hr    = maxhr - minhr
         mints      = np.min(ts)
         diff_ts    = np.max(ts) - mints
-        scl        = diff_ts / diff_hr
+        if diff_hr :
+            scl    = diff_ts / diff_hr
+        else:
+            # picking a scale to avoid div by 0
+            scl    = diff_ts / 0.5
         scale_hr   = (hr - minhr)*scl + mints
         ret_plobj7 = PcalcPlobj(tsobj.tvalues[all_idx], scale_hr, 
                                 label='ave HR (scaled: {:0.2e}; offset)'.format(scl),
