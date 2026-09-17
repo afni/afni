@@ -375,7 +375,7 @@ idx_freq_peak : int
     freq_peak = idx_freq_peak * delta_f
 
     msg = '( {} ) Bandpass filter frequency peak: '.format(label)
-    msg+= '{:.6f} Hz'.format(freq_peak))
+    msg+= '{:.6f} Hz'.format(freq_peak)
     ab.IP(msg)
 
     # Find bounds based on -3 dB limits (half peak)
