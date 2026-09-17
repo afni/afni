@@ -248,6 +248,7 @@ all_ind : list
     jj       = 0                    # init: first volume in MRI
     while jj < vol_nv :
         sli_time = slice_time0 + jj*vol_tr
+        FOUND = False  # use to avoid potential for infinite loop in jj
         for kk in range(start, ntval):
             if sli_time < tvals[kk] or abs(sli_time - tvals[kk])<=EPS:
                 # decision making about closest kk value
@@ -259,7 +260,10 @@ all_ind : list
                 all_ind.append(idx_store)
                 start = idx_store+1
                 jj+= 1
+                FOUND = True
                 break
+        if not(FOUND) :
+            break
 
     if len(all_ind) != vol_nv:
         print("** ERROR in slice {}'s timing:\n"

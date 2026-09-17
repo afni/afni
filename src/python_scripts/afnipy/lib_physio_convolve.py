@@ -70,7 +70,7 @@ y : float or array of floats
                 u[i] = t[i]
         t = copy.deepcopy(u)
     else:
-        ab.WP("unexpected dtype for t: {}".format(type(t))
+        ab.WP("unexpected dtype for t: {}".format(type(t)))
         return -1
 
     aa = 0.6 * (t**2.1) * np.exp(-t / 1.6)
@@ -117,7 +117,7 @@ y : float or array of floats
                 u[i] = t[i]
         t = copy.deepcopy(u)
     else:
-        ab.WP("unexpected dtype for t: {}".format(type(t))
+        ab.WP("unexpected dtype for t: {}".format(type(t)))
         return -1
 
     # parameter
