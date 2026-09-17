@@ -1761,6 +1761,18 @@ args_dict2 : dict
         msg+= "B) '-phys_file ..' and '-phys_json ..'."
         ab.EP(msg)
 
+    # Do not allow the two physio input styles to be mixed.  Individual
+    # card/resp files are one input mode; phys_file + phys_json is another.
+    have_solo_phys = bool(args_dict2['card_file'] or
+                          args_dict2['resp_file'])
+    have_bids_phys = bool(args_dict2['phys_file'] or
+                          args_dict2['phys_json'])
+    if have_solo_phys and have_bids_phys :
+        msg = "cannot mix physio input modes:\n"
+        msg+= "A) '-card_file ..' and/or '-resp_file ..'\n"
+        msg+= "B) '-phys_file ..' with '-phys_json ..'"
+        ab.EP(msg)
+
     # for any filename that was provided, check if it actually exists
     # (dset_slice_pattern possible filename checked below)
     all_fopt = [ 'card_file', 'resp_file', 'phys_file', 'phys_json',
