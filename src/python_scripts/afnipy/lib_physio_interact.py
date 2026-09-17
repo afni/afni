@@ -419,9 +419,15 @@ There will always be at least one vertex left (which is, in fact, a
             # delete either 'p' or 't' element
             lab, ind = self.get_ind_under_point(event)
             if ind is not None:
-                self.poly[lab].xy = np.delete(self.poly[lab].xy, ind, axis=0)
-                self.line[lab].set_data(zip(*self.poly[lab].xy))
-                all_lab.append(lab)
+                # we do not allow indices [0] and [-1] to be deleted;
+                # they are special polygon closure vertices
+
+                nvert = len(self.poly[lab].xy)
+                if ind != 0 and ind != nvert-1 :
+                    self.poly[lab].xy = np.delete(self.poly[lab].xy, 
+                                                  ind, axis=0)
+                    self.line[lab].set_data(zip(*self.poly[lab].xy))
+                    all_lab.append(lab)
 
         elif event.key == '3' :
             # add vertex to 'p'
