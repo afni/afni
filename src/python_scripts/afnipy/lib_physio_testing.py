@@ -121,7 +121,7 @@ physio_calc.py                                                               \\
 
     # sampling info
     samp_freq = 25.0                  # Hz
-    samp_dlet = 1./samp_freq          # s
+    samp_delt = 1./samp_freq          # s
     start     = 0.0                   # s
     T         = 200.0                 # s
     N         = int(T * samp_freq)
