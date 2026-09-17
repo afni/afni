@@ -376,7 +376,7 @@ derived data.
         """The physical values of the Nyquist frequency (in Hz) of ts_orig in
         the Fourier domain; that is, the max indep freq in the FT
         decomp."""
-        return self.samp_freq * self.ft_nyquist_idx
+        return self.samp_freq / 2.0
 
     @property
     def ft_freq_mode_phys(self):
@@ -928,8 +928,9 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
 
         ncol = len(all_col[0])
         if idx >= ncol :
-            print("** ERROR: index {} cannot be used, since ncol = {}"
-                  "".format(idx, ncol))
+            msg = "index {} cannot be used, ".format(idx)
+            msg+= "since ncol = {}".format(ncol)
+            ab.EP(msg)
 
         N   = len(all_col)
         arr = np.zeros(N, dtype=dtype)
