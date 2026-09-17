@@ -758,40 +758,72 @@ def getCardiacOutlierBands(distances, cardiacPeaks, cardiacTimeSeries):
                                                 cardiacPeaks)   
                                                 
     return merged_ranges
+
+def findAnomalousCardiacBandsFromDistances(distances, rankVector, cardiacPeaks):                                            
+    print('Identify outliers on high end of the Mahalanobis distances')
     
-def findAnomalousCardiacBandsFromDistances(distances, rankVector, 
-                                            cardiacPeaks):                                            
-    # Identify outliers on high end of the cumulative weights
-    print('Identify outliers on high end of the Mahalonobis distances')
-    outlier_ts_ranges = distances_high_end_outlier_ranges(distances, 
-                                                    rankVector, cardiacPeaks)
+    # 1. Get tight window ranges per outlier
+    outlier_ts_ranges = distances_high_end_outlier_ranges(distances, rankVector, cardiacPeaks)
     
-    # Sort anomalous bands in  order of location
+    if len(outlier_ts_ranges) == 0:
+        return [], []
+        
+    # 2. Sort anomalous bands chronologically based on their START timestamp
     sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
     
-    # Merge overlapping ranges
-    num_ranges = len(sorted_ts_ranges)
-    i = 0
+    # 3. Merge overlapping ranges sequentially
     merged_ranges = []
-    
-    while i < num_ranges:
-        start, end = sorted_ts_ranges[i]
-    
-        j = i + 1
-        while j < num_ranges and sorted_ts_ranges[j][0] <= end:
-            end = max(end, sorted_ts_ranges[j][1])
-            j += 1
-    
-        merged_ranges.append([start, end])
-        i = j
-        
-    # Reverse the orders of the merged ranges
-    merged_ranges = merged_ranges[::-1]
+    for current_range in sorted_ts_ranges:
+        if not merged_ranges:
+            merged_ranges.append(current_range)
+        else:
+            prev_start, prev_end = merged_ranges[-1]
+            curr_start, curr_end = current_range
+            
+            # If the current interval overlaps or touches the previous one, merge them
+            if curr_start <= prev_end:
+                merged_ranges[-1][1] = max(prev_end, curr_end)
+            else:
+                merged_ranges.append(current_range)
+                
+    # STRIKE THIS LINE: merged_ranges = merged_ranges[::-1] 
+    # Reversing scrambles chronological placement on the plot.
 
-    return (
-        outlier_ts_ranges,
-        merged_ranges,
-    )
+    return outlier_ts_ranges, merged_ranges
+    
+# def findAnomalousCardiacBandsFromDistances(distances, rankVector, 
+#                                             cardiacPeaks):                                            
+#     # Identify outliers on high end of the cumulative weights
+#     print('Identify outliers on high end of the Mahalonobis distances')
+#     outlier_ts_ranges = distances_high_end_outlier_ranges(distances, 
+#                                                     rankVector, cardiacPeaks)
+    
+#     # Sort anomalous bands in  order of location
+#     sorted_ts_ranges = sorted(outlier_ts_ranges, key=lambda item: item[0])
+    
+#     # Merge overlapping ranges
+#     num_ranges = len(sorted_ts_ranges)
+#     i = 0
+#     merged_ranges = []
+    
+#     while i < num_ranges:
+#         start, end = sorted_ts_ranges[i]
+    
+#         j = i + 1
+#         while j < num_ranges and sorted_ts_ranges[j][0] <= end:
+#             end = max(end, sorted_ts_ranges[j][1])
+#             j += 1
+    
+#         merged_ranges.append([start, end])
+#         i = j
+        
+#     # Reverse the orders of the merged ranges
+#     merged_ranges = merged_ranges[::-1]
+
+#     return (
+#         outlier_ts_ranges,
+#         merged_ranges,
+#     )
     
 
 def buildRespiratoryPeakVectors(resp_peak_values, resp_peak_indices):
@@ -2174,39 +2206,148 @@ def extract_cardiac_metrics(peaks, signal, fs):
         # 1. Peak Interval (in seconds)
         interval = (idx_curr - idx_prev) / fs
         
-        # 2. Peak Height
-        height = signal[idx_curr]
+        # --- NEW LOCAL TROUGH APPROXIMATION ---
+        # Search the raw signal slice between the previous peak and current peak
+        between_peaks_segment = signal[idx_prev:idx_curr]
         
-        # Isolate the individual waveform cycle for morphological analysis
-        # (Windowing from previous peak to current peak to calculate width metrics)
-        cycle = signal[idx_prev:idx_curr+1]
+        # Find the index of the absolute lowest point in this specific window
+        local_trough_relative_idx = np.argmin(between_peaks_segment)
+        preceding_trough_idx = idx_prev + local_trough_relative_idx
+        
+        # 2. DETRENDED Relative Peak Height 
+        # Subtracting the actual local minimum removes the slow baseline drift completely
+        height = signal[idx_curr] - signal[preceding_trough_idx]
+        
+        # 3. Peak Width (FWHM) calculated using the new relative baseline
+        cycle = signal[preceding_trough_idx:idx_curr+1]
         if len(cycle) < 3:
             continue
             
         peak_val = signal[idx_curr]
-        baseline = np.min(cycle)
-        half_max = baseline + (peak_val - baseline) / 2.0
+        baseline_val = signal[preceding_trough_idx]
+        half_max = baseline_val + (peak_val - baseline_val) / 2.0
         
-        # Find where the signal crosses the half-maximum line
         above_half_max = np.where(cycle >= half_max)[0]
         
         if len(above_half_max) > 0:
-            # 3. Peak Width (FWHM in seconds)
-            fwhm_samples = above_half_max[-1] - above_half_max[0]
-            width = fwhm_samples / fs
+            width = (above_half_max[-1] - above_half_max[0]) / fs
             
-            # 4. Symmetry Index (ratio of time spent ascending vs descending)
-            peak_loc_in_cycle = len(cycle) - 1  # current peak is at the end of this window
-            ascending_samples = above_half_max[-1] - above_half_max[0] # simplification for window
-            # Metric approach: Index of peak relative to half-max crossing boundaries
+            # 4. Symmetry Index
+            peak_loc_in_cycle = len(cycle) - 1
             symmetry = (peak_loc_in_cycle - above_half_max[0]) / max(1, above_half_max[-1] - peak_loc_in_cycle)
         else:
             width = 0.0
-            symmetry = 1.0  # fallback perfectly symmetric default
+            symmetry = 1.0
             
         features.append([interval, height, width, symmetry])
         
     return np.array(features)
+
+    
+# def extract_cardiac_metrics(peaks, signal, fs):
+#     """
+#     Extracts 4 unit-free metrics from cardiac peak data.
+    
+#     Parameters:
+#     - peaks: list/array of indices where R-peaks occur in the signal
+#     - signal: 1D array of the raw physiological time-series data
+#     - fs: sampling frequency of the signal (Hz)
+    
+#     Returns:
+#     - X: numpy array of shape (N-1, 4) containing the 4 feature metrics
+#     """
+#     N = len(peaks)
+#     features = []
+    
+#     for i in range(1, N):
+#         idx_prev = peaks[i-1]
+#         idx_curr = peaks[i]
+        
+#         # 1. Peak Interval (in seconds)
+#         interval = (idx_curr - idx_prev) / fs
+        
+#         # 2. Peak Height
+#         height = signal[idx_curr] - signal[preceding_trough_idx]
+        
+#         # Isolate the individual waveform cycle for morphological analysis
+#         # (Windowing from previous peak to current peak to calculate width metrics)
+#         cycle = signal[idx_prev:idx_curr+1]
+#         if len(cycle) < 3:
+#             continue
+            
+#         peak_val = signal[idx_curr]
+#         baseline = np.min(cycle)
+#         half_max = baseline + (peak_val - baseline) / 2.0
+        
+#         # Find where the signal crosses the half-maximum line
+#         above_half_max = np.where(cycle >= half_max)[0]
+        
+#         if len(above_half_max) > 0:
+#             # 3. Peak Width (FWHM in seconds)
+#             fwhm_samples = above_half_max[-1] - above_half_max[0]
+#             width = fwhm_samples / fs
+            
+#             # 4. Symmetry Index (ratio of time spent ascending vs descending)
+#             peak_loc_in_cycle = len(cycle) - 1  # current peak is at the end of this window
+#             ascending_samples = above_half_max[-1] - above_half_max[0] # simplification for window
+#             # Metric approach: Index of peak relative to half-max crossing boundaries
+#             symmetry = (peak_loc_in_cycle - above_half_max[0]) / max(1, above_half_max[-1] - peak_loc_in_cycle)
+#         else:
+#             width = 0.0
+#             symmetry = 1.0  # fallback perfectly symmetric default
+            
+#         features.append([interval, height, width, symmetry])
+        
+#     return np.array(features)
+
+def calculate_robust_local_mahalanobis(X, window_size=60):
+    N = len(X)
+    distances = np.zeros(N)
+    
+    for i in range(N):
+        start = max(0, i - window_size // 2)
+        end = min(N, i + window_size // 2)
+        local_window = X[start:end]
+        
+        # Robust Mean using Median
+        local_mean = np.median(local_window, axis=0)
+        
+        # Filter out extreme differences to build a clean baseline covariance
+        diffs = local_window - local_mean
+        euclidean_norms = np.linalg.norm(diffs, axis=1)
+        # Only use the closest 85% of points in the window to define 'normal' variance
+        clean_indices = euclidean_norms < np.percentile(euclidean_norms, 85)
+        clean_window = local_window[clean_indices]
+        
+        # Fallback if window becomes too small
+        if len(clean_window) < 5:
+            clean_window = local_window
+            
+        local_cov = np.cov(clean_window, rowvar=False)
+        local_inv_cov = np.linalg.pinv(local_cov)
+        
+        # Calculate distance for the target point against the clean distribution
+        diff = X[i] - local_mean
+        distances[i] = np.sqrt(diff @ local_inv_cov @ diff)
+        
+    return distances
+
+def calculate_local_mahalanobis(X, window_size=60):
+    N = len(X)
+    distances = np.zeros(N)
+    for i in range(N):
+        # Center the window around the current peak index i
+        start = max(0, i - window_size // 2)
+        end = min(N, i + window_size // 2)
+        
+        local_window = X[start:end]
+        local_mean = np.mean(local_window, axis=0)
+        local_cov = np.cov(local_window, rowvar=False)
+        local_inv_cov = np.linalg.pinv(local_cov)
+        
+        diff = X[i] - local_mean
+        distances[i] = np.sqrt(diff @ local_inv_cov @ diff)
+    return distances
 
 def calculate_mahalanobis_distance(X):
     """
@@ -2298,44 +2439,127 @@ def extract_respiratory_metrics(peaks, troughs, signal, fs):
     return np.array(features)
 
 def distances_high_end_outlier_ranges(distances, rankVector, cardiacPeaks):
-
-    # Calculate Q1 and Q3
     q1, q3 = np.percentile(distances, [25, 75])
-    
-    # Calculate IQR
     iqr = q3 - q1
     
-    # k_opt = best_upper_multiplier(distances)
     sorted_vals = np.sort(np.asarray(distances))
-    real_gaps = np.diff(sorted_vals)    # actual gaps between consecutive points
+    real_gaps = np.diff(sorted_vals)
     k_opt = gap_based_multiplier(real_gaps)
     
-    # Define upper bound
     upper_bound = q3 + k_opt * iqr
     
-    # Identify low-end outliers
-    high_end_outliers = distances[distances > upper_bound]
+    # Count exact anomalies exceeding threshold
+    num_outliers = np.sum(distances > upper_bound)
+    if num_outliers == 0:
+        return []
+        
+    # rankVector is ordered DESCENDING: [extreme_outlier_idx, ..., normal_idx]
+    # Extract the top 'num_outliers' indices from the feature grid
+    outlier_feature_indices = rankVector[:num_outliers]
     
-    # Get outlier peak indices
-    if len(high_end_outliers)>0:
-        outlier_peak_indices = rankVector[-len(high_end_outliers):]
-        outlier_peak_indices.sort()
-    else: outlier_peak_indices = []
-    
-    # Get outlier time series indices
     outlier_ts_indices = []
-    if 0 in outlier_peak_indices: 
-        outlier_ts_indices += [[cardiacPeaks[0], cardiacPeaks[2]]]
-        outlier_peak_indices = outlier_peak_indices[outlier_peak_indices != 0]
-    last = len(cardiacPeaks) - 1
-    lastM2 = last - 2
-    if any(item > lastM2 for item in outlier_peak_indices):
-        outlier_ts_indices += [[cardiacPeaks[last-1], cardiacPeaks[last]]]
-        outlier_peak_indices = outlier_peak_indices[outlier_peak_indices <= last-2]
-    outlier_ts_indices += [[cardiacPeaks[i-2], cardiacPeaks[i+2]]  
-        for i in outlier_peak_indices]
+    last_peak_idx = len(cardiacPeaks) - 1
     
+    for k in outlier_feature_indices:
+        # Distance feature metric index 'k' belongs to the interval ending at peak k+1
+        target_peak_idx = k + 1
+        
+        # Build an explicit local bounding frame around the anomalous cycle
+        # Looking 1 peak back and 1 peak forward captures the anomaly cycle precisely
+        start_idx = max(0, target_peak_idx - 1)
+        end_idx = min(last_peak_idx, target_peak_idx + 1)
+        
+        start_ts = cardiacPeaks[start_idx]
+        end_ts = cardiacPeaks[end_idx]
+        
+        outlier_ts_indices.append([start_ts, end_ts])
+        
     return outlier_ts_indices
+
+
+# def distances_high_end_outlier_ranges(distances, rankVector, cardiacPeaks):
+#     # Calculate Q1 and Q3
+#     q1, q3 = np.percentile(distances, [25, 75])
+#     iqr = q3 - q1
+    
+#     # Gap-based adaptive multiplier evaluation
+#     sorted_vals = np.sort(np.asarray(distances))
+#     real_gaps = np.diff(sorted_vals)
+#     k_opt = gap_based_multiplier(real_gaps)
+    
+#     # Define statistical upper bound outlier threshold
+#     upper_bound = q3 + k_opt * iqr
+    
+#     # Count how many data points exceed our upper threshold
+#     num_outliers = np.sum(distances > upper_bound)
+    
+#     if num_outliers == 0:
+#         return []
+    
+#     # FIX 1: rankVector is sorted DESCENDING [largest_dist, ..., smallest_dist]
+#     # We must grab the first 'num_outliers' indices from the vector
+#     outlier_feature_indices = rankVector[:num_outliers]
+    
+#     outlier_ts_indices = []
+#     last_peak_idx = len(cardiacPeaks) - 1
+    
+#     for k in outlier_feature_indices:
+#         # FIX 2: Correct the N-1 index offset. 
+#         # Feature matrix index 'k' maps to the cycle concluding at cardiacPeaks[k + 1]
+#         target_peak_idx = k + 1
+        
+#         # Ensure we stay within physical boundaries of our peak array
+#         start_idx = max(0, target_peak_idx - 1)
+#         end_idx = min(last_peak_idx, target_peak_idx + 1)
+        
+#         # Extract the precise starting and ending time-series indices for this outlier cycle
+#         start_ts = cardiacPeaks[start_idx]
+#         end_ts = cardiacPeaks[end_idx]
+        
+#         outlier_ts_indices.append([start_ts, end_ts])
+        
+#     return outlier_ts_indices
+
+
+# def distances_high_end_outlier_ranges(distances, rankVector, cardiacPeaks):
+
+#     # Calculate Q1 and Q3
+#     q1, q3 = np.percentile(distances, [25, 75])
+    
+#     # Calculate IQR
+#     iqr = q3 - q1
+    
+#     # k_opt = best_upper_multiplier(distances)
+#     sorted_vals = np.sort(np.asarray(distances))
+#     real_gaps = np.diff(sorted_vals)    # actual gaps between consecutive points
+#     k_opt = gap_based_multiplier(real_gaps)
+    
+#     # Define upper bound
+#     upper_bound = q3 + k_opt * iqr
+    
+#     # Identify low-end outliers
+#     high_end_outliers = distances[distances > upper_bound]
+    
+#     # Get outlier peak indices
+#     if len(high_end_outliers)>0:
+#         outlier_peak_indices = rankVector[-len(high_end_outliers):]
+#         outlier_peak_indices.sort()
+#     else: outlier_peak_indices = []
+    
+#     # Get outlier time series indices
+#     outlier_ts_indices = []
+#     if 0 in outlier_peak_indices: 
+#         outlier_ts_indices += [[cardiacPeaks[0], cardiacPeaks[2]]]
+#         outlier_peak_indices = outlier_peak_indices[outlier_peak_indices != 0]
+#     last = len(cardiacPeaks) - 1
+#     lastM2 = last - 2
+#     if any(item > lastM2 for item in outlier_peak_indices):
+#         outlier_ts_indices += [[cardiacPeaks[last-1], cardiacPeaks[last]]]
+#         outlier_peak_indices = outlier_peak_indices[outlier_peak_indices <= last-2]
+#     outlier_ts_indices += [[cardiacPeaks[i-2], cardiacPeaks[i+2]]  
+#         for i in outlier_peak_indices]
+    
+#     return outlier_ts_indices
 
     
 #################### MAIN  ##########################################
@@ -2600,7 +2824,9 @@ if moveToLocalPeaks:
                     cardiacPeaks, samp_freq, peak_outliers, outlier_ts_ranges, 
                     useClustering, False, als_baseline_display)
         
-# Process respiratory data
+####################################
+# Process respiratory data with LECW
+####################################
 
 # Identify peak-trough mismatches (only applies to respiratory data)
 print('Identify peak-trough mismatches')
@@ -2682,24 +2908,27 @@ else:
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
             outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
             moveToLocalPeaks, als_baseline_display)
+
+#################################################
+# Restore original peaks, troughs and sime series
+#################################################
+
+cardiacTimeSeries = np.array(copy.deepcopy(originalCardiacTimeSeries))
+cardiacPeaks = np.array(copy.deepcopy(originalCardiacPeaks))
+respiratoryTimeSeries = np.array(copy.deepcopy(originalRespiratoryTimeSeries))
+respiratoryPeaks = np.array(copy.deepcopy(originalRespiratoryPeaks))
+respiratoryTroughs = np.array(copy.deepcopy(originalRespiratoryTroughs))
                                     
 ##################################################
 # Mahalanobis Distance analysis for cardiac data
 ##################################################
-
-# Restore original peaks, troughs and sime series
-cardiacTimeSeries = copy.deepcopy(originalCardiacTimeSeries)
-cardiacPeaks = copy.deepcopy(originalCardiacPeaks)
-respiratoryTimeSeries = copy.deepcopy(originalRespiratoryTimeSeries)
-respiratoryPeaks = copy.deepcopy(originalRespiratoryPeaks)
-respiratoryTroughs = copy.deepcopy(originalRespiratoryTroughs)
 
 # 1. Extract the 4 metrics into a single multi-unit array
 feature_matrix = extract_cardiac_metrics(cardiacPeaks, cardiacTimeSeries, samp_freq)
 print(f"Feature Matrix Shape: {feature_matrix.shape}") # (4 peaks evaluated, 4 metrics each)
 
 # 2. Compute unit-free distances
-distances = calculate_mahalanobis_distance(feature_matrix)
+distances = calculate_robust_local_mahalanobis(feature_matrix)
 print("Mahalanobis Distances for each peak sequence:", distances)
 
 # Display histogram of distances
@@ -2710,18 +2939,67 @@ cardiacOutlierBands = getCardiacOutlierBands(distances, cardiacPeaks,
                                              cardiacTimeSeries)
 
 # Convert  original peaks, troughs and sime series to numpy array
-cardiacTimeSeries = np.array(cardiacTimeSeries)
-cardiacPeaks = np.array(cardiacPeaks)
-respiratoryTimeSeries = np.array(respiratoryTimeSeries)
-respiratoryPeaks = np.array(respiratoryPeaks)
-respiratoryTroughs = np.array(respiratoryTroughs)
- 
+# cardiacTimeSeries = np.array(cardiacTimeSeries)
+# cardiacPeaks = np.array(cardiacPeaks)
+# respiratoryTimeSeries = np.array(respiratoryTimeSeries)
+# respiratoryPeaks = np.array(respiratoryPeaks)
+# respiratoryTroughs = np.array(respiratoryTroughs) 
  
 # Display cardiac outlier bands from distances
 peak_outliers = []  # No peak outliers considered
 cardiacPeaks = writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, 
                 cardiacPeaks, samp_freq, peak_outliers, cardiacOutlierBands, 
                 moveToLocalPeaks, als_baseline_display, append = 'MD')
+                                    
+####################################################
+# Mahalanobis Distance analysis for respiratory data
+####################################################
+
+# Identify peak-trough mismatches (only applies to respiratory data)
+print('Identify peak-trough mismatches')
+respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
+respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
+left = np.searchsorted(respiratoryTroughs, respiratoryPeaks[:-1], 
+                       side='right')
+right = np.searchsorted(respiratoryTroughs, respiratoryPeaks[1:], 
+                        side='left')
+troughsBetweenPeaks = right - left
+mask = troughsBetweenPeaks != 1
+respiratoryPeaks = np.array(respiratoryPeaks)
+troughPeakMismatchRanges = list(zip(respiratoryPeaks[:-1][mask], 
+                  respiratoryPeaks[1:][mask]))
+
+# Fix peak-trough mismatches
+(
+    respiratoryPeaks,
+    respiratoryTroughs,
+    added_peaks,
+    added_troughs
+    ) = correctRespiratoryBijectivity(respiratoryPeaks, respiratoryTroughs)
+
+# Display bijectivity correction
+if als_baseline_display:
+    baseline = alsBaseline(respiratoryTimeSeries, lam=1e6, p=0.01)
+    displayTimeSeries = respiratoryTimeSeries - baseline
+else:
+    displayTimeSeries = respiratoryTimeSeries
+    
+dsplayBijectivityCcorrection(OutDir, displayTimeSeries, respiratoryPeaks, 
+                             respiratoryTroughs, added_peaks, added_troughs,
+                             samp_freq)
+
+# 1. Extract the metrics incorporating your baseline subtraction rule
+respiratory_features = extract_respiratory_metrics(respiratoryPeaks, 
+                        respiratoryTroughs, respiratoryTimeSeries, samp_freq)
+print(f"Respiratory Feature Matrix Shape: {respiratory_features.shape}")
+
+# 2. Compute distances
+distances = calculate_mahalanobis_distance(respiratory_features)
+print("Respiratory Mahalanobis Distances:\n", distances)
+
+# Display histogram of distances
+plt.hist(distances)
+
 
 
 
