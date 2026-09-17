@@ -115,7 +115,10 @@ plotting.
         all_ivals = np.array([j-i for i, j in zip(self.x[:-1], self.x[1:])])
         med = np.median(all_ivals)
         std = np.std(all_ivals)
-        rat = 0.5 + 0.1*(all_ivals - med)/(std)   # ~Zscore, scaled for cmap
+        if std :
+            rat = 0.5 + 0.1*(all_ivals - med)/std   # ~Zscore, scaled for cmap
+        else:
+            rat = 0.5
 
         # NB: through some Python cmap() quirk, max must be <1,
         # apparently, otherwise it appears to loop around (?!?). So we
