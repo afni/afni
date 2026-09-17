@@ -1548,8 +1548,8 @@ x_fixed : np.ndarray
             msg+= "{}".format(nnn)
             ab.WP(msg)
         good_ind = all_strk[0][-1]+1    # first index value after streak
-        if good_ind >= N-1 :
-            ab.EP("can't interpolate if whole time series is bad")
+        if good_ind > N-1 :
+            ab.EP("can't interpolate if whole time series is bad (upper)")
         val = x_fixed[good_ind]
         for ii in range(good_ind):
             x_fixed[ii] = val
@@ -1561,8 +1561,8 @@ x_fixed : np.ndarray
             msg+= "{}".format(nnn)
             ab.WP(msg)
         good_ind = all_strk[-1][0]-1    # first index value after streak
-        if good_ind <= 0 :
-            ab.EP("can't interpolate if whole time series is bad")
+        if good_ind < 0 :
+            ab.EP("can't interpolate if whole time series is bad (lower)")
         val = x_fixed[good_ind]
         for ii in range(good_ind, N):
             x_fixed[ii] = val

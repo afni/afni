@@ -3,7 +3,7 @@
 import sys, os
 import copy
 import numpy                   as np
-from   afnipy import afni_base as BASE
+from   afnipy import afni_base as ab
 
 
 # ===========================================================================
@@ -98,7 +98,15 @@ y : np.ndarray
     all_midext = [(j+i)//2 for i, j in zip(all_ext[:-1], all_ext[1:])]
 
     # same length of intervals and midpeaks
-    Nival = len(intervals)   
+    Nival = len(intervals)
+
+    if Nival == 0 :
+        ab.EP1("Too few extrema (0 or 1) found")
+        return np.array([])
+    elif Nival == 1 :
+        # keep same units, as below
+        y[:] = intervals[0] * tsobj.samp_delt
+        return y
     
     # go through all time points between midpeaks start and end
     for ii in range(Nival-1):
