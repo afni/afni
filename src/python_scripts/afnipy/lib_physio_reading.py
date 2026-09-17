@@ -1184,6 +1184,12 @@ arr_out : np.ndarray (1D)
     else:
         arr_good = np.ones(N, dtype=bool)
 
+    # If there are no good values, there is no population from which
+    # to estimate outliers.  Return no additional outliers; the caller
+    # can separately handle the fact that all values are already bad.
+    if not(np.any(arr_good)) :
+        return np.zeros(N, dtype=bool)
+
     median      = np.percentile(x[arr_good], 50)
     ran_bot, ran_top = np.percentile(x[arr_good], out_perc)
     ran_magn    = ran_top - ran_bot
