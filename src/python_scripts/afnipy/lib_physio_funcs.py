@@ -265,7 +265,8 @@ all_ind : list
         print("** ERROR in slice {}'s timing:\n"
               "   found {} times (not nv={} of them) in the interval\n"
               "   {}..{} s, samp_delt = {}s"
-              "".format(slice_idx, len(all_ind), nslice, 
+              "".format(slice_idx,
+                        len(all_ind), vol_nv, 
                         tvals[0], tvals[-1], samp_delt))
         sys.exit(5)
 
@@ -1092,7 +1093,7 @@ result is divided by 60, to have units of beats per minute.
             top = tsobj.n_ts_orig - 1
 
         # find idx vals for min/max window range in peaks
-        while peaks[min_p] < bot and min_p < npeaks :
+        while min_p < npeaks and peaks[min_p] < bot :
             min_p+= 1
         max_p = min_p
         while peaks[max_p] < top and max_p < npeaks-1 :
@@ -1138,7 +1139,7 @@ result is divided by 60, to have units of beats per minute.
             if frac <= 0 :
                 msg = "bad left peak frac=numer/denom: "
                 msg+= "{}; ".format(frac)
-                msg+= "(numer, denom): ({}, {})".format(numer, denom))
+                msg+= "(numer, denom): ({}, {})".format(numer, denom)
                 ab.EP(msg)
             peak_count+= frac
             time_ival+= numer
@@ -1188,8 +1189,8 @@ result is divided by 60, to have units of beats per minute.
                   "hr = {:0.3f}".format(ii, peak_count, time_ival,
                                               hr))
 
-        # append this average, and divide by 60 to be beats per min
-        hr_ave.append( hr/60. )
+        # append this average, and multiply by 60 to be beats per min
+        hr_ave.append( hr*60. )
 
     # after going through EPI time series, convert to array
     hr_ave = np.array(hr_ave, dtype=float)
