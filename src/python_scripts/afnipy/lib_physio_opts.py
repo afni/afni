@@ -779,15 +779,19 @@ L : list
 
 """
 
-    denom = C - 1
     if not(C > 0) :
-        raise ValueError("(C-1) is not positive")
+        raise ValueError("C must be positive")
+    if C == 1 :
+        return [A]
+
+    # at this point, we know C>1 ...
+
+    denom = C - 1
     delta = (B - A)/denom
 
     L = [A+delta*ii for ii in range(C)]
 
     return L
-
 
 
 # ========================================================================== 
@@ -2286,7 +2290,15 @@ args_dict2 : dict
         try:
             # first 2 numbers can be int or float, but last must be int
             lll     = [float(ll) for ll in L]
+            # ... and check about lossyness in converting last val to int
+            if int(lll[-1]) != lll[-1] :
+                msg = "the 3rd number via '-rvt_shift_linspace ..' "
+                msg+= "must be an int: {}".format(L)
+                ab.EP1(msg)
+                IS_BAD = 1
+
             lll[-1] = int(lll[-1])
+
             # These 3 values get interpreted as (start, stop, N);
             # verify that this is a legit expression
             IS_BAD, all_shift = \
