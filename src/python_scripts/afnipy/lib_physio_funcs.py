@@ -1033,7 +1033,7 @@ This is a fairly straightforward calc that doesn't require pre-calc on
 the card time series level.  It just uses the time series and card
 inter-peak intervals to estimate 'heart rate'.  We calculate the mean
 interpeak interval in a win of time (units: s) around a given TR. The
-result is divided by 60, to have units of beats per minute.
+result is mutiplied by 60, to have units of beats per minute.
 
     """
 
