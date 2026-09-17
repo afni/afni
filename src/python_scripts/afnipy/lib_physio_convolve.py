@@ -13,6 +13,8 @@ all_kernel_trange = {
     'rrf_birn08'  : [0.0, 50.0],
     'crf_chang09' : [0.0, 25.0],
     }
+LIST_all_kernel_names = list(all_kernel_trange.keys())
+STR_all_kernel_names  = ', '.join(LIST_all_kernel_names)
 
 # ==========================================================================
 # simple test time series for convolution and plotting
@@ -68,7 +70,7 @@ y : float or array of floats
                 u[i] = t[i]
         t = copy.deepcopy(u)
     else:
-        ab.WP("unexpected dtype for t: {}".formatdtype(t))
+        ab.WP("unexpected dtype for t: {}".format(type(t))
         return -1
 
     aa = 0.6 * (t**2.1) * np.exp(-t / 1.6)
@@ -115,7 +117,7 @@ y : float or array of floats
                 u[i] = t[i]
         t = copy.deepcopy(u)
     else:
-        ab.WP("unexpected dtype for t: {}".formatdtype(t))
+        ab.WP("unexpected dtype for t: {}".format(type(t))
         return -1
 
     # parameter
@@ -143,9 +145,9 @@ this list might grow over time), which can be seen with:
     
 """
 
-    if kernel not in all_kernel_trange.keys() :
+    if kernel not in LIST_all_kernel_names :
         msg = "kernel '{}' not in list:\n".format(kernel)
-        msg+= "{}".format(', '.join(all_allowed_kernel))
+        msg+= "{}".format(STR_all_kernel_names)
         ab.EP(msg)
 
     if kernel == 'rrf_birn08' :
@@ -220,9 +222,9 @@ z : array (of floats)
     elif delt <= 0 :
         ab.EP("Need to provide a delt value >0, not:", delt)
 
-    if kernel not in all_kernel_trange.keys() :
+    if kernel not in LIST_all_kernel_names :
         msg = "kernel '{}' not in list:\n".format(kernel)
-        msg+= "{}".format(', '.join(all_allowed_kernel))
+        msg+= "{}".format(STR_all_kernel_names)
         ab.EP(msg)
 
     nx = len(x)
