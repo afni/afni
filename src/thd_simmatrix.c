@@ -81,7 +81,8 @@ int THD_simmat_fill_from_features( THD_simmat *sm, int nfeat, float *F,
    sm->is_dist = (metric == SIM_EUCLID) ;
 
    if( metric == SIM_SPEARMAN && (sc1 == NULL || sc2 == NULL) ){
-     /* THD_spearman_corr is destructive. */
+     /* Rank into separate scratch arrays: RSA uses fractional average ranks
+        for tied values, matching its documented/model-matrix semantics. */
      sc1 = (float *)malloc(sizeof(float)*nfeat) ;
      sc2 = (float *)malloc(sizeof(float)*nfeat) ;
      ownsc=1 ;
@@ -102,9 +103,9 @@ int THD_simmat_fill_from_features( THD_simmat *sm, int nfeat, float *F,
          break ;
 
          case SIM_SPEARMAN:
-           memcpy( sc1 , a , sizeof(float)*nfeat ) ;
-           memcpy( sc2 , b , sizeof(float)*nfeat ) ;
-           val = THD_spearman_corr( nfeat , sc1 , sc2 ) ;
+           THD_rank_avg( nfeat , a , sc1 ) ;
+           THD_rank_avg( nfeat , b , sc2 ) ;
+           val = THD_pearson_corr( nfeat , sc1 , sc2 ) ;
          break ;
 
          case SIM_COSINE:
@@ -142,6 +143,49 @@ THD_simmat * THD_simmat_from_features( int nit , int nfeat , float *F , int metr
      THD_simmat_free(sm) ; return NULL ;
    }
    return sm ;
+}
+
+THD_simmat * THD_simmat_from_features_zcensor( int nit, int nfeat, float *F,
+                                                unsigned char *keep, int metric,
+                                                int *min_keep )
+{
+   THD_simmat *sm ; float *sc1=NULL,*sc2=NULL ; int ii,jj,kk,nuse,minuse=nfeat ;
+
+   if( min_keep != NULL ) *min_keep=0 ;
+   if( nit<2 || nfeat<3 || F==NULL || keep==NULL ||
+       (metric!=SIM_PEARSON && metric!=SIM_SPEARMAN) ) return NULL ;
+   sm=THD_simmat_new(nit) ;
+   if( sm==NULL ) return NULL ;
+   sc1=(float *)malloc(sizeof(float)*nfeat) ;
+   sc2=(float *)malloc(sizeof(float)*nfeat) ;
+   if( sc1==NULL || sc2==NULL ) goto bad ;
+
+   sm->is_dist=0 ;
+   for( ii=0 ; ii<nit ; ii++ ){
+     sm->mat[ii*nit+ii]=1.0f ;
+     for( jj=ii+1 ; jj<nit ; jj++ ){
+       float *a=F+(size_t)ii*nfeat, *b=F+(size_t)jj*nfeat ;
+       unsigned char *ka=keep+(size_t)ii*nfeat, *kb=keep+(size_t)jj*nfeat ;
+       float val ; nuse=0 ;
+       for( kk=0 ; kk<nfeat ; kk++ ) if( ka[kk] && kb[kk] ){
+         if( !isfinite(a[kk]) || !isfinite(b[kk]) ) goto bad ;
+         sc1[nuse]=a[kk] ; sc2[nuse]=b[kk] ; nuse++ ;
+       }
+       if( nuse<3 ) goto bad ;
+       if( nuse<minuse ) minuse=nuse ;
+       if( metric==SIM_SPEARMAN ){
+         THD_rank_avg(nuse,sc1,sc1) ; THD_rank_avg(nuse,sc2,sc2) ;
+       }
+       val=THD_pearson_corr(nuse,sc1,sc2) ;
+       if( !isfinite(val) ) goto bad ;
+       sm->mat[ii*nit+jj]=sm->mat[jj*nit+ii]=val ;
+     }
+   }
+   if( min_keep != NULL ) *min_keep=minuse ;
+   free(sc1); free(sc2); return sm ;
+
+bad:
+   free(sc1); free(sc2); THD_simmat_free(sm); return NULL ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -837,8 +881,8 @@ float THD_tri_corr( int m , float *a , float *b , int cmp ,
        (sc1==NULL || sc2==NULL) ) return NAN ;
    switch( cmp ){
      case CMP_SPEARMAN:
-       memcpy(sc1,a,sizeof(float)*m) ; memcpy(sc2,b,sizeof(float)*m) ;
-       return THD_spearman_corr( m , sc1 , sc2 ) ;
+       THD_rank_avg(m,a,sc1) ; THD_rank_avg(m,b,sc2) ;
+       return THD_pearson_corr( m , sc1 , sc2 ) ;
 
      case CMP_PEARSON:
        return THD_pearson_corr( m , a , b ) ;

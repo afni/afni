@@ -369,12 +369,15 @@ int THD_roilist_maxvox( THD_roilist *rl )
 
 /*----------------------------------------------------------------------------*/
 
-void THD_roi_mean_ts( THD_3dim_dataset *dset , intvec *vox ,
-                      int polort , float *out )
+static void THD_roi_mean_ts_internal( THD_3dim_dataset *dset , intvec *vox ,
+                                      int polort , float *out ,
+                                      unsigned char *keep )
 {
    int nvals = DSET_NVALS(dset) , ii , tt ;
 
-   for( tt=0 ; tt < nvals ; tt++ ) out[tt] = 0.0f ;
+   for( tt=0 ; tt < nvals ; tt++ ){
+     out[tt] = 0.0f ; if( keep != NULL ) keep[tt] = 0 ;
+   }
    if( vox->nar <= 0 ) return ;
 
    /* Dispatch once per brick and sum its typed array directly.  The previous
@@ -386,10 +389,13 @@ void THD_roi_mean_ts( THD_3dim_dataset *dset , intvec *vox ,
      if( fac<=0.0f ) fac=1.0f ;
 #define ACCUM_ROI_MEAN(type,expr)                                                \
      do { type *src=(type *)ar ;                                                \
-          if( fac==1.0f ) for( ii=0 ; ii<vox->nar ; ii++ )                     \
-            out[tt]+=(float)(expr) ;                                            \
-          else for( ii=0 ; ii<vox->nar ; ii++ )                               \
-            out[tt]+=(float)(expr)*fac ;                                        \
+          if( fac==1.0f ) for( ii=0 ; ii<vox->nar ; ii++ ){                    \
+            float vv=(float)(expr) ; out[tt]+=vv ;                              \
+            if( keep != NULL && vv != 0.0f ) keep[tt]=1 ;                       \
+          } else for( ii=0 ; ii<vox->nar ; ii++ ){                             \
+            float vv=(float)(expr)*fac ; out[tt]+=vv ;                          \
+            if( keep != NULL && vv != 0.0f ) keep[tt]=1 ;                       \
+          }                                                                      \
      } while(0)
      switch( DSET_BRICK_TYPE(dset,tt) ){
        case MRI_byte:    ACCUM_ROI_MEAN(byte,   src[vox->ar[ii]]) ; break ;
@@ -407,6 +413,18 @@ void THD_roi_mean_ts( THD_3dim_dataset *dset , intvec *vox ,
    /* detrending the mean is the same as averaging detrended voxels */
    if( polort >= 0 )
      (void)THD_generic_detrend_LSQ( nvals , out , polort , 0 , NULL , NULL ) ;
+}
+
+void THD_roi_mean_ts( THD_3dim_dataset *dset , intvec *vox ,
+                      int polort , float *out )
+{
+   THD_roi_mean_ts_internal(dset,vox,polort,out,NULL) ;
+}
+
+void THD_roi_mean_ts_zmask( THD_3dim_dataset *dset , intvec *vox ,
+                            int polort , float *out , unsigned char *keep )
+{
+   THD_roi_mean_ts_internal(dset,vox,polort,out,keep) ;
 }
 
 void THD_roi_pattern( THD_3dim_dataset *dset , intvec *vox , float *out )

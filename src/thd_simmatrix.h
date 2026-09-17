@@ -63,6 +63,16 @@ extern void         THD_simmat_free( THD_simmat *sm ) ;
 extern THD_simmat * THD_simmat_from_features( int nit, int nfeat, float *F,
                                                int metric ) ;
 
+/*! Pairwise zero-censored Pearson/Spearman feature matrix.  keep is [item][feature]
+    and marks original valid samples.  Each item pair is correlated over the
+    intersection of its valid samples; at least 3 are required.  On success,
+    min_keep (when non-NULL) receives the smallest pairwise retained count. */
+extern THD_simmat * THD_simmat_from_features_zcensor( int nit, int nfeat,
+                                                       float *F,
+                                                       unsigned char *keep,
+                                                       int metric,
+                                                       int *min_keep ) ;
+
 /*! Refill an existing matrix from feature rows without reallocating it.
     For SIM_SPEARMAN, sc1/sc2 are optional nfeat-element scratch vectors; when
     omitted, temporary vectors are allocated internally.  Returns 0 on

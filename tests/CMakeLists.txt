@@ -28,6 +28,15 @@ set_tests_properties(do.examples PROPERTIES LABELS GLX)
 
 if(TARGET 3dRSA)
   add_test(
+    NAME 3dRSA:1d-oracle
+    COMMAND
+      ${Python_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/run_1d_oracle.py
+      --bin $<TARGET_FILE:3dRSA>
+  )
+  set_tests_properties(3dRSA:1d-oracle PROPERTIES LABELS "3dRSA;numeric;unit")
+
+  add_test(
     NAME 3dRSA:numeric
     COMMAND
       ${Python_EXECUTABLE}

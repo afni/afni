@@ -75,6 +75,14 @@ extern int THD_roilist_maxvox( THD_roilist *rl ) ;
 extern void THD_roi_mean_ts( THD_3dim_dataset *dset , intvec *vox ,
                              int polort , float *out ) ;
 
+/*! As THD_roi_mean_ts, also records whether each original ROI pattern has at
+    least one nonzero voxel.  keep[t]=0 means every selected voxel was exactly
+    zero at t; this is determined before optional detrending, so it preserves
+    zero-filled-volume censoring semantics. */
+extern void THD_roi_mean_ts_zmask( THD_3dim_dataset *dset , intvec *vox ,
+                                   int polort , float *out ,
+                                   unsigned char *keep ) ;
+
 /*! The ROI's voxel patterns for every sub-brick: out[nvals*nvox], laid out
     as [sub-brick][voxel].  That single layout serves both readings --
 

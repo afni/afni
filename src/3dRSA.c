@@ -1579,6 +1579,23 @@ void usage_3dRSA(int detail)
 "                 m = -1..9.  Default -1, meaning NO detrending, assuming\n"
 "                 your data are preprocessed.  Only for IS-RSA mean features.\n"
 "\n"
+"  -zcensor     = For continuous IS-RSA mean features, omit a TR from each\n"
+"                 SUBJECT PAIR's neural correlation when either subject's\n"
+"                 whole ROI/searchlight pattern is zero at that TR.  This is\n"
+"                 pairwise local censoring: a zero-filled frame never enters\n"
+"                 either the numerator or denominator for that pair.\n"
+"                 ++ Uses the original voxel pattern, not an ROI mean, so\n"
+"                    nonzero voxels that happen to average to zero are kept.\n"
+"                 ++ Only valid with '-mode IS-RSA -featuretype mean' and\n"
+"                    '-neural_metric corr' or 'scorr'.  At least 3 jointly\n"
+"                    retained TRs are required for every subject pair.\n"
+"                 ++ Sets '-polort -1'.  A later '-polort' is allowed but\n"
+"                    warned about: detrending zero-filled frames is generally\n"
+"                    not a useful censoring estimand.\n"
+"                 ++ Not yet combined with -run_column, -model_dset, temporal\n"
+"                    nulls, or -noise_ceiling, whose distinct missing-data\n"
+"                    contracts must be defined explicitly.\n"
+"\n"
 "-----------------\n"
 "Specifying data:   ~1~\n"
 "-----------------\n"
@@ -3306,13 +3323,14 @@ static THD_simmat * rsa_second_order_rdm(
 
 static THD_simmat * rsa_build_seed_model(
    THD_roilist *seedrl, int rdm_over, int mode, int nsub, int nvals,
-   int neu_metric, int cond_metric, int polort, int center_conditions,
+   int neu_metric, int cond_metric, int polort, int center_conditions, int zcensor,
    THD_3dim_dataset **dset, THD_runset *runset,
    THD_datatable_index *condition_index, int noise_norm,
    float **classic_tri )
 {
    THD_simmat *out=NULL,*sm=NULL ; RSA_whiten wh ;
    float *F=NULL,*pat=NULL,*triF=NULL,**rpat=NULL,*runraw=NULL,*avgtri=NULL ;
+   unsigned char *keep=NULL ;
    int svx,jj,rr,maxrun=0,maxnt=0,maxntot=0,ntri=THD_NTRI(nvals) ;
 
    if( classic_tri != NULL ) *classic_tri=NULL ;
@@ -3352,9 +3370,13 @@ static THD_simmat * rsa_build_seed_model(
    if( rdm_over==RDM_SUBJ ){
      if( mode==MODE_CONT ){
        F=(float *)malloc(sizeof(float)*(size_t)nsub*nvals) ;
+       if( zcensor ) keep=(unsigned char *)malloc((size_t)nsub*nvals) ;
        for( jj=0 ; jj<nsub ; jj++ )
-         THD_roi_mean_ts(dset[jj],seedrl->vox,polort,F+(size_t)jj*nvals) ;
-       out=THD_simmat_from_features(nsub,nvals,F,neu_metric) ;
+         if( zcensor ) THD_roi_mean_ts_zmask(dset[jj],seedrl->vox,polort,
+                                              F+(size_t)jj*nvals,keep+(size_t)jj*nvals) ;
+         else THD_roi_mean_ts(dset[jj],seedrl->vox,polort,F+(size_t)jj*nvals) ;
+       out=zcensor ? THD_simmat_from_features_zcensor(nsub,nvals,F,keep,neu_metric,NULL)
+                   : THD_simmat_from_features(nsub,nvals,F,neu_metric) ;
      } else if( mode==MODE_RDM ){
        int nctri=THD_NTRI(nvals) ;
        triF=(float *)malloc(sizeof(float)*(size_t)nsub*nctri) ;
@@ -3390,7 +3412,7 @@ static THD_simmat * rsa_build_seed_model(
    }
 
 done:
-   free(F) ; free(pat) ; free(triF) ; free(runraw) ; free(avgtri) ;
+   free(F) ; free(keep) ; free(pat) ; free(triF) ; free(runraw) ; free(avgtri) ;
    if( rpat!=NULL ){ for( rr=0 ; rr<maxrun ; rr++ ) free(rpat[rr]) ; free(rpat) ; }
    free(wh.residbuf) ; free(wh.Rmat) ; free(wh.Whalf) ; free(wh.wdiag) ; free(wh.wtmp) ;
    return out ;
@@ -4303,6 +4325,7 @@ static char *rsa_options[] = {
    "-model_contrast" , "-contrast_hypothesis" , "-model_commonality" , "-group_test" , "-classic_null" ,
    "-noise_ceiling" , "-nc_split" , "-loo" , "-block" ,
    "-neural_metric" , "-condition_metric" , "-metric" , "-nperm" , "-null" , "-min_shift" ,
+   "-zcensor" ,
    "-bootstrap" , "-cond_bootstrap" ,
    "-cond_group" , "-boot_ci" , "-seed" ,
    "-prefix" , "-no_dset" , "-save_rdm" , "-quiet" , "-progress" ,
@@ -4335,6 +4358,7 @@ int main( int argc , char *argv[] )
    int neu_metric=SIM_PEARSON , cond_metric=SIM_PEARSON , cond_metric_given=0 ;
    int cmp_metric=CMP_SPEARMAN ;
    int nperm=5000 , nboot=0 , ncboot=0 , dualboot=0 , boot_ci_given=0 , polort=-1 ;
+   int zcensor=0 ;                                  /* pairwise local zero censor */
    int null_mode=NULL_LABELS , min_shift=1 , min_shift_given=0 ;
    int do_dset=1 , quiet=0 , progress_mode=RSA_PROGRESS_AUTO , joint=0 , regout=0 ;
    float boot_ci=95.0f ;
@@ -4394,7 +4418,7 @@ int main( int argc , char *argv[] )
    int contrast_hypothesis_given=0 ;
 
    int nvox , nvals=0 , nsub , nroi=0 , nitem , ntri ;
-   float **cmean=NULL ;
+   float **cmean=NULL ; unsigned char **zkeep=NULL ; int *zcmin=NULL ;
    float **rr=NULL , **ee=NULL , **pp=NULL , **qq=NULL , **zz=NULL ;
    float **run_rr=NULL,**run_ee=NULL,**run_pp=NULL,**run_qq=NULL,**run_zz=NULL ;
    float **run_pf=NULL,**run_zf=NULL,*run_mxflat=NULL ;
@@ -4593,6 +4617,9 @@ int main( int argc , char *argv[] )
         if( ++nopt >= argc ) ERROR_exit("3dRSA: need an argument after -polort") ;
         polort = (int)rsa_parse_long("-polort",argv[nopt],-1,9) ;
         nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-zcensor") == 0 ){
+        zcensor=1 ; polort=-1 ; nopt++ ; continue ;
       }
       if( strcasecmp(argv[nopt],"-prefix") == 0 ){
         if( ++nopt >= argc ) ERROR_exit("3dRSA: need an argument after -prefix") ;
@@ -5092,6 +5119,30 @@ int main( int argc , char *argv[] )
      mode = MODE_BETA ;
    } else {
      mode = (feat_override >= 0) ? feat_override : MODE_CONT ;
+   }
+   if( zcensor ){
+     if( rdm_over!=RDM_SUBJ || mode!=MODE_CONT )
+       ERROR_exit("3dRSA: -zcensor requires continuous IS-RSA:\n"
+                  "       use '-mode IS-RSA -featuretype mean'") ;
+     if( neu_metric!=SIM_PEARSON && neu_metric!=SIM_SPEARMAN )
+       ERROR_exit("3dRSA: -zcensor currently supports only '-neural_metric corr'\n"
+                  "       or 'scorr'; pairwise missing frames have no validated\n"
+                  "       Euclidean/cosine distance contract") ;
+     if( series_runs!=NULL )
+       ERROR_exit("3dRSA: -zcensor with -run_column needs a separately normalized,\n"
+                  "       within-run missing-frame contract and is not yet supported") ;
+     if( ndsespec>0 )
+       ERROR_exit("3dRSA: -zcensor with -model_dset needs a separate model-modality\n"
+                  "       zero-frame contract and is not yet supported") ;
+     if( do_nc )
+       ERROR_exit("3dRSA: -zcensor with -noise_ceiling needs a censor-aware\n"
+                  "       split-half reliability contract and is not yet supported") ;
+     if( null_mode==NULL_TIMESHIFT || null_mode==NULL_PHASE )
+       ERROR_exit("3dRSA: -zcensor cannot be combined with -null timeshift or phase;\n"
+                  "       their generators require a complete, regularly sampled series") ;
+     if( polort>=0 && !quiet )
+       WARNING_message("3dRSA: -polort after -zcensor detrends zero-filled frames.\n"
+                       "       This is usually not useful; use '-polort -1'.") ;
    }
    if( subject_series != NULL && rdm_over != RDM_BRICK )
      ERROR_exit("3dRSA: -model_series_subjects is a paired condition-RDM model\n"
@@ -6345,7 +6396,7 @@ int main( int argc , char *argv[] )
        }
      }
      mod[0].mat=rsa_build_seed_model(seedrl,rdm_over,mode,nsub,nvals,
-                     neu_metric,cond_metric,polort,center_conditions,
+                     neu_metric,cond_metric,polort,center_conditions,zcensor,
                      dset,runset,condition_index,noise_norm,&seed_srdm) ;
      if( mod[0].mat==NULL || (rdm_over==RDM_BRICK && seed_srdm==NULL) )
        ERROR_exit("3dRSA: could not construct the seed representational geometry") ;
@@ -6367,6 +6418,8 @@ int main( int argc , char *argv[] )
    }
 
    /*================== reduce continuous data to ROI means ==================*/
+
+   if( zcensor ) zcmin=(int *)calloc(nroi,sizeof(int)) ;
 
    /* Searchlight streams: there are far too many spheres to precompute a mean
       time course for each, so keep the datasets loaded and reduce each sphere
@@ -6423,8 +6476,11 @@ int main( int argc , char *argv[] )
      rsa_progress_init(&progress,progress_mode,quiet,3,"Atlas ROI reduction",
                        nreduce,"datasets") ;
      cmean = (float **)malloc(sizeof(float *)*nroi) ;
+     if( zcensor ) zkeep = (unsigned char **)malloc(sizeof(unsigned char *)*nroi) ;
      for( kk=0 ; kk < nroi ; kk++ )
        cmean[kk] = (float *)calloc((size_t)nsub*nvals,sizeof(float)) ;
+     if( zcensor ) for( kk=0 ; kk < nroi ; kk++ )
+       zkeep[kk] = (unsigned char *)calloc((size_t)nsub*nvals,sizeof(unsigned char)) ;
 
      for( jj=0 ; jj < nmain ; jj++ ){
        int sj=series_runs?series_runs->row_sub[jj]:jj ;
@@ -6437,8 +6493,11 @@ int main( int argc , char *argv[] )
 #pragma omp parallel for if((long long)nroi*nv >= 10000LL) schedule(dynamic,1)
 #endif
        for( kk=0 ; kk < nroi ; kk++ ){
-         THD_roi_mean_ts( dset[jj] , rl->vox+kk , polort ,
-                          cmean[kk] + (size_t)sj*nvals + off ) ;
+         if( zcensor ) THD_roi_mean_ts_zmask(dset[jj],rl->vox+kk,polort,
+                             cmean[kk]+(size_t)sj*nvals+off,
+                             zkeep[kk]+(size_t)sj*nvals+off) ;
+         else THD_roi_mean_ts(dset[jj],rl->vox+kk,polort,
+                               cmean[kk]+(size_t)sj*nvals+off) ;
          if( series_runs ) rsa_run_normalize(cmean[kk]+(size_t)sj*nvals+off,
                                               nv,run_normalize) ;
        }
@@ -7128,6 +7187,7 @@ int main( int argc , char *argv[] )
    THD_simmat *neural=NULL , *tsneural=NULL , **mv ;
    THD_simmat **rneural=NULL ;
    float *F , *tsmain=NULL , *tslag=NULL , *tsprep=NULL , *tsnorm=NULL ;
+   unsigned char *Z=NULL ;                 /* local [subject][TR] zero mask */
    float *rF=NULL,*rtri=NULL,*rstat=NULL,*rprstat=NULL,*rpval=NULL,*rzscr=NULL,*rnull=NULL,*mnull=NULL,*jmz=NULL ;
    float *rcstat=NULL,*rcpr=NULL,*rcpval=NULL,*rczscr=NULL,*rcnull=NULL,*rcsum=NULL ;
    int *rnge=NULL,*rcnge=NULL ;
@@ -7289,6 +7349,7 @@ int main( int argc , char *argv[] )
    }
 
    F = (float *)malloc(sizeof(float)*(size_t)nitem*nfeat_max) ;
+   if( zcensor ) Z=(unsigned char *)malloc((size_t)nitem*nfeat_max) ;
    if( run_resolved ){
      int ru,maxrv=0,nre=joint?nmod*series_runs->nrun:series_runs->nrun ;
      for( ru=0 ; ru<series_runs->nrun ; ru++ )
@@ -7422,6 +7483,7 @@ int main( int argc , char *argv[] )
        int nfeat ;
 
        if( mode == MODE_CONT ){
+         int minkeep=0 ;
          nfeat = nvals ;
          if( streaming ){             /* reduce this sphere's mean on the fly */
            if( series_runs!=NULL ){
@@ -7433,14 +7495,27 @@ int main( int argc , char *argv[] )
                                F+(size_t)sj_*nvals+off_) ;
                rsa_run_normalize(F+(size_t)sj_*nvals+off_,nv_,run_normalize) ;
              }
-           } else for( jj_=0 ; jj_ < nsub ; jj_++ )
-               THD_roi_mean_ts( dset[jj_] , rl->vox+kk_ , polort ,
-                                F + (size_t)jj_*nvals ) ;
+           } else for( jj_=0 ; jj_ < nsub ; jj_++ ){
+             if( zcensor ) THD_roi_mean_ts_zmask(dset[jj_],rl->vox+kk_,polort,
+                                F+(size_t)jj_*nvals,Z+(size_t)jj_*nvals) ;
+             else THD_roi_mean_ts(dset[jj_],rl->vox+kk_,polort,
+                                  F+(size_t)jj_*nvals) ;
+           }
          }
-         else
+         else{
            memcpy( F , cmean[kk_] , sizeof(float)*(size_t)nsub*nvals ) ;
+           if( zcensor ) memcpy(Z,zkeep[kk_],(size_t)nsub*nvals) ;
+         }
          if( !run_resolved )
-           neural = THD_simmat_from_features( nitem , nfeat , F , neu_metric ) ;
+           neural = zcensor ? THD_simmat_from_features_zcensor(nitem,nfeat,F,Z,
+                                                                neu_metric,&minkeep)
+                            : THD_simmat_from_features(nitem,nfeat,F,neu_metric) ;
+         if( zcensor ){
+           zcmin[kk_]=minkeep ;
+           if( neural==NULL ) ERROR_exit("3dRSA: -zcensor retained fewer than 3 jointly\n"
+                                         "       valid TRs for a subject pair in ROI/searchlight %d",
+                                         rl->val[kk_]) ;
+         }
        } else if( mode == MODE_RDM ){
          nfeat = THD_NTRI(nvals) ;
          neural = rsa_second_order_rdm(rl,kk_,nsub,nvals,nvx,
@@ -8261,7 +8336,7 @@ int main( int argc , char *argv[] )
 #pragma omp critical
    { THD_max_accum(nfitcon*nfitperm,fcmx,fc_mx) ; }
 
-   free(F) ; free(ipat) ; free(tsmain) ; free(tslag) ; free(tsprep) ; free(tsnorm) ;
+   free(F) ; free(Z) ; free(ipat) ; free(tsmain) ; free(tslag) ; free(tsprep) ; free(tsnorm) ;
    free(rneural) ; free(rF) ; free(rtri) ; free(rstat) ; free(rprstat) ;
    free(rpval) ; free(rzscr) ; free(jmz) ;
    free(rnull) ; free(mnull) ; free(rnge) ; free(run_my_mx) ;
@@ -8327,6 +8402,18 @@ int main( int argc , char *argv[] )
    THD_rdm_ws_free(ws) ;
  }
  AFNI_OMP_END ;
+
+   if( zcensor ){
+     if( !quiet ) for( kk=0 ; kk<nroi ; kk++ )
+       INFO_message("3dRSA: -zcensor ROI/searchlight %d retained at least %d of %d TRs\n"
+                    "       for every subject pair",
+                    rl->val[kk],zcmin[kk],nvals) ;
+     if( zkeep!=NULL ){
+       for( kk=0 ; kk<nroi ; kk++ ) free(zkeep[kk]) ;
+       free(zkeep) ; zkeep=NULL ;
+     }
+     free(zcmin) ; zcmin=NULL ;
+   }
 
    if( !quiet && progress_mode!=RSA_PROGRESS_OFF )
      INFO_message("3dRSA [5/5] Reducing FWE/FDR results and writing outputs...") ;
