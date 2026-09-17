@@ -398,7 +398,7 @@ is_bad : int
         fff.close()
     
         if verb :
-            print("++ Saved integer {} trough indices to file:\n   {}"
+            print("++ Saved integer {} peak indices to file:\n   {}"
                   "".format(label, fname))
 
     # save troughs, if they exist
