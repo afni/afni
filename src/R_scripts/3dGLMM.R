@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.1, Sept 14, 2026
+Version 0.1.1, Sept 17, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -136,11 +136,8 @@ Introduction
  This method saves output in `diary.txt`, allowing you to review
  progress and troubleshoot if needed.\n'                                                                                                                           
    ex1 <-
-"Here’s a revised version with improved clarity, grammar, and formatting:
-
----
-
-### Example 1: one within-individual factor and a quantitiave predictor
+"
+ ### Example 1: one within-individual factor and a quantitiave predictor
 
 -------------------------------------------------------------------------
   3dGLMM -prefix glmm.student -jobs 12                              \\
@@ -1147,7 +1144,7 @@ if(any(!is.na(lop$vQV))) {
 }
 
 while(is.null(fm)) {
-  if(mean(na.omit(inData[ii, jj, kk,1:nrow(lop$dataStr)]) != 0) >= 0.75) {
+  if(mean(na.omit(inData[ii, jj, kk,1:nrow(lop$dataStr)]) != 0) >= 0.5) {
    lop$dataStr$yy <- inData[ii, jj, kk,1:nrow(lop$dataStr)]
    options(warn=-1)
    if(is.null(lop$family)) try(fm <- glmmTMB(lop$model, data=lop$dataStr), silent=TRUE) else 
