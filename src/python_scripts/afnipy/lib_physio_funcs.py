@@ -1096,31 +1096,24 @@ result is divided by 60, to have units of beats per minute.
         if top >= tsobj.n_ts_orig : 
             top = tsobj.n_ts_orig - 1
 
-        # find idx vals for min/max window range in peaks
+        # ----- find idx vals for min/max window range in peaks
+
+        # find first peak in the [bot, top) window.
         while min_p < npeaks and peaks[min_p] < bot :
             min_p+= 1
-        max_p = min_p
-        while peaks[max_p] < top and max_p < npeaks-1 :
-            max_p+= 1
-        max_p-= 1  # bc this went one too high
-        # verify no obvious badness has occurred; bc of boundaries,
-        # min_p cd be equal to all_tr[ii], etc.
-        ## + it is OK to have "min_p == max_p", which just means there
-        ##   was only 1 peak in the window (should still be fractions
-        ##   around); for default peak of 6s, in card data this would only
-        ##   likely happen for test data
-        ## + it is actually OK for min_p to be above the TR index,
-        ##   because the first peak might be after like TR=0
-        ## + similarly, the last peak could be at an index below the 
-        ##   max TR value
-        if min_p >= npeaks or max_p >= npeaks or min_p > max_p :
-            print("** ERROR: bad min_p or max_p calc: ({}, {})"
-                  "".format(min_p, max_p))
-            print("   (bot, top) = ({}, {}); peaks[min], peaks[max] = ({}, {})"
-                  "".format(bot, top, peaks[min_p], peaks[max_p]))
+
+        # ... and verify that at least one peak exists in the current window.
+        if min_p >= npeaks or peaks[min_p] >= top :
+            print("** ERROR: could not find a peak in HR window")
+            print("   (bot, top) = ({}, {})".format(bot, top))
             print("   npeaks: {}, [{}]th TR, all_tr[ii]: {}"
                   "".format(npeaks, ii, all_tr[ii]))
             sys.exit(3)
+
+        # Find last peak in the [bot, top) window.
+        max_p = min_p
+        while max_p < npeaks-1 and peaks[max_p + 1] < top :
+            max_p+= 1
 
         # Part 1 of average: count num of peaks in this interval, and
         # their first peak-to-last peak time duration; time_ival will
@@ -1152,7 +1145,7 @@ result is divided by 60, to have units of beats per minute.
         # interval on right side of window; this means stepping
         # forward one index in peaks, and calculating relative
         # fraction of peak-to-peak interval within the current window
-        if max_p < npeaks and peaks[max_p] < top :
+        if max_p < npeaks-1 and peaks[max_p] < top :
             numer = float(top - peaks[max_p])
             denom = float(peaks[max_p + 1] - peaks[max_p])
             if denom <= 0 or numer <= 0:
