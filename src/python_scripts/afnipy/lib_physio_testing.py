@@ -103,8 +103,8 @@ physio_calc.py                                                               \\
     -img_figsize         8.5 10                                              \\
     -img_line_time       60                                                  \\
     -img_fig_line        10                                                  \\
-    -volbase_types_resp  rvt rvtrrf                                          \\
-    -volbase_types_card  hrcrf                                               \\
+    -regress_types_resp  rvt rvtrrf                                          \\
+    -regress_types_card  hrcrf                                               \\
     |& tee log_{exnum}.txt
 
 """.format(exnum=exnum, ftsv=ftsv, fjson=fjson, 
@@ -182,8 +182,8 @@ physio_calc.py                                                               \\
     -img_figsize         8.5 10                                              \\
     -img_line_time       60                                                  \\
     -img_fig_line        10                                                  \\
-    -volbase_types_resp  rvt rvtrrf                                          \\
-    -volbase_types_card  hrcrf                                               \\
+    -regress_types_resp  rvt rvtrrf                                          \\
+    -regress_types_card  hrcrf                                               \\
     |& tee log_{exnum}.txt
 
 """.format(exnum=exnum, ftsv=ftsv, fjson=fjson, 
@@ -268,8 +268,8 @@ physio_calc.py                                                               \\
     -img_figsize         8.5 10                                              \\
     -img_line_time       60                                                  \\
     -img_fig_line        10                                                  \\
-    -volbase_types_resp  rvt rvtrrf                                          \\
-    -volbase_types_card  hrcrf                                               \\
+    -regress_types_resp  rvt rvtrrf                                          \\
+    -regress_types_card  hrcrf                                               \\
     |& tee log_{exnum}.txt
 
 """.format(exnum=exnum, ftsv=ftsv, fjson=fjson, 
