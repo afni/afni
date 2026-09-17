@@ -45,8 +45,7 @@ y : np.ndarray
     # NB: no 1.0/np.sqrt(2*np.pi*sigma**2) term here, and sigma is
     # divisive in the exponent
     if delta==None :
-        print("** ERROR: user must provide delta value.")
-        sys.exit(3)
+        ab.EP("user must provide delta value.")
 
     y      = np.zeros(N, dtype=float)
     kmax   = int(np.floor(N/2))
@@ -102,8 +101,7 @@ y : np.ndarray
     """
 
     if delta==None :
-        print("** ERROR: user must provide delta value.")
-        sys.exit(3)
+        ab.EP("user must provide delta value.")
 
     y      = np.zeros(N, dtype=float)
     kmax   = int(np.floor(N/2))
@@ -207,8 +205,7 @@ idx_freq_peak : int
     BAD_RETURN = (np.array([]), 0)
 
     if (np.sum(np.isnan(x))) :
-        print('** ERROR in apply_bandpass_smooth(): ' 
-              'nan values in data')
+        ab.EP1('in apply_bandpass_smooth(): nan values in data')
         return BAD_RETURN
 
     # ------ Prep freq quants
@@ -245,8 +242,9 @@ idx_freq_peak : int
     else:
         highpass_freq = None
 
-    print('++ (' + label + ') Bandpass filter frequency peak: '
-          '{:.6f} Hz'.format(freq_peak))
+    msg = '( {} ) Bandpass filter frequency peak: '.format(label)
+    msg+= '{:.6f} Hz'.format(freq_peak)
+    ab.IP(msg)
 
     # magnitude at peak (and its half)
     val_peak    = Xabs[idx_freq_peak]
@@ -268,9 +266,7 @@ idx_freq_peak : int
         filt  = func_flatgauss(N, delta=delta_f, sigma=sigma,
                                hp_freq = highpass_freq)
     else:
-        print("** ERROR: '{}' is not an allowed win_shape"
-              "".format(win_shape))
-        sys.exit(5)
+        ab.EP("'{}' is not an allowed win_shape".format(win_shape))
 
     if verb :
         print("++ Report on Fourier peak filtering")
@@ -350,8 +346,7 @@ idx_freq_peak : int
     """
 
     if (np.sum(np.isnan(x))) :
-        print('** ERROR in apply_bandpass_window(): ' 
-              'nan values in data')
+        ab.EP1('in apply_bandpass_window(): nan values in data')
         return []
 
     N = len(x)
@@ -379,8 +374,9 @@ idx_freq_peak : int
     idx_freq_peak  = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
 
-    print('++ (' + label + ') Bandpass filter frequency peak: '
-          '{:.6f} Hz'.format(freq_peak))
+    msg = '( {} ) Bandpass filter frequency peak: '.format(label)
+    msg+= '{:.6f} Hz'.format(freq_peak))
+    ab.IP(msg)
 
     # Find bounds based on -3 dB limits (half peak)
     val_peak    = Xabs[idx_freq_peak]
@@ -503,7 +499,7 @@ xfilt : np.ndarray
                                 bp_sig_fac=bp_sig_fac,
                                 verb=0)
     if len(xfilt) == 0:
-       print("** ERROR: Failed to band-pass filter '{}' data".format(label))
+       ab.EP1("Failed to band-pass filter '{}' data".format(label))
        return BAD_RETURN
 
     # --- Get initial peaks of bandpassed time series
@@ -574,7 +570,7 @@ opeaks : list
 
     # check for min number of peaks
     if len(peaks) < 1 :
-        print("** No peaks to start with for refinement!")
+        ab.EP1("No peaks to start with for refinement!")
         return []
 
     # ... and another special case, where no further calc are needed
