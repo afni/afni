@@ -49,8 +49,9 @@ satisfy.  Among its targeted regressions for audit and follow-on fixes are:
  40. seed representational connectivity       (IS/classic/null/overlap/map/OMP)
  41. trial-beta descriptors                    (nesting/aggregation/xnobis/map/OMP)
  42. completed subject-bootstrap extensions    (strata/fixed-OOF LOO/map/OMP)
- 43. staged progress reporting                  (line/bar/off/quiet contracts)
- 44. repeated-run conditional regression       (beta/partial/contrast/null/OMP)
+  43. staged progress reporting                  (line/bar/off/quiet contracts)
+  44. repeated-run conditional regression       (beta/partial/contrast/null/OMP)
+  45. real-volume pairwise zero censoring     (atlas/searchlight/seed/contracts)
 
 Usage:
     python run_numeric.py [--bin PATH] [--threads N] [--work DIR]
@@ -5638,6 +5639,180 @@ def run_checks(BIN, work, threads, verbose):
           "Group_match_HappyMinusSad_bDiff" in jlabs and
           "Happiness_run_nn_mov1_b" in jlabs,
           "labels=%s" % jlabs)
+
+    # =====================================================================
+    # Z1 real-volume pairwise local zero censoring.  Two separated, two-voxel
+    # neighborhoods make the streaming searchlight's local all-zero decision
+    # independently checkable.  Each subject/cluster has one whole-pattern
+    # zero frame and a different nonzero [1,-1] frame whose ROI mean is zero.
+    # Thus the reference catches both pairwise-denominator mistakes and the
+    # tempting but wrong "mean equals zero" censor rule.
+    # =====================================================================
+    zdir = os.path.join(work, "zcensor_volume"); os.makedirs(zdir, exist_ok=True)
+    ZSHAPE, ZSUB, ZT = (6, 1, 1), 6, 9
+    zpos = ((0, 1), (4, 5))
+    zmaskv = np.zeros(ZSHAPE, np.int16)
+    for pp in zpos:
+        zmaskv[pp[0], 0, 0] = zmaskv[pp[1], 0, 0] = 1
+    zatlasv = np.zeros(ZSHAPE, np.int16)
+    zatlasv[0:2, 0, 0] = 1; zatlasv[4:6, 0, 0] = 2
+    zseedv = np.zeros(ZSHAPE, np.int16); zseedv[0:2, 0, 0] = 7
+    ztargetv = np.zeros(ZSHAPE, np.int16); ztargetv[4:6, 0, 0] = 9
+    zaff = np.eye(4)
+    zmask = os.path.join(zdir, "mask.nii.gz")
+    zatlas = os.path.join(zdir, "atlas.nii.gz")
+    zseed = os.path.join(zdir, "seed.nii.gz")
+    ztarget = os.path.join(zdir, "target.nii.gz")
+    for arr, fn in ((zmaskv, zmask), (zatlasv, zatlas), (zseedv, zseed),
+                    (ztargetv, ztarget)):
+        nib.save(nib.Nifti1Image(arr, zaff), fn)
+    zmodel = np.zeros((ZSUB, ZSUB), float)
+    for ii in range(ZSUB):
+        for jj in range(ii + 1, ZSUB):
+            zmodel[ii, jj] = zmodel[jj, ii] = (abs(ii - jj) +
+                                                0.13 * ((ii + 2 * jj) % 3))
+    zmodfn = os.path.join(zdir, "model.1D"); np.savetxt(zmodfn, zmodel, fmt="%.9g")
+    zraw = np.empty((ZSUB, 6, ZT), np.float32)
+    zclean = np.empty_like(zraw)
+    zfiles, nzfiles = [], []
+    with open(os.path.join(zdir, "table.txt"), "w") as ztab, \
+         open(os.path.join(zdir, "nozero_table.txt"), "w") as nztab:
+        ztab.write("Subj InputFile\n"); nztab.write("Subj InputFile\n")
+        for sj in range(ZSUB):
+            vol = np.zeros((6, ZT), np.float32)
+            for cc, pp in enumerate(zpos):
+                for vv, xx in enumerate(pp):
+                    vol[xx] = ((sj + 1) * (np.arange(ZT) + 1) + 0.17 * cc *
+                               ((np.arange(ZT) + sj) % 3) + (-0.25 if vv == 0 else 0.25))
+                zt = (sj + 2 * cc) % ZT
+                vol[pp[0], zt] = vol[pp[1], zt] = 0.0
+                ct = (zt + 1) % ZT
+                vol[pp[0], ct], vol[pp[1], ct] = 1.0, -1.0
+            zraw[sj] = vol
+            # Reconstruct the same nonzero baseline but retain the deliberate
+            # mean-zero [1,-1] frame; only the all-zero sentinel is repaired.
+            clean = vol.copy()
+            for cc, pp in enumerate(zpos):
+                zt = (sj + 2 * cc) % ZT
+                for vv, xx in enumerate(pp):
+                    clean[xx, zt] = ((sj + 1) * (zt + 1) + 0.17 * cc *
+                                      ((zt + sj) % 3) + (-0.25 if vv == 0 else 0.25))
+            zclean[sj] = clean
+            fn = os.path.join(zdir, "z%02d.nii.gz" % sj)
+            nfn = os.path.join(zdir, "nz%02d.nii.gz" % sj)
+            nib.save(nib.Nifti1Image(vol.reshape(ZSHAPE + (ZT,)), zaff), fn)
+            nib.save(nib.Nifti1Image(clean.reshape(ZSHAPE + (ZT,)), zaff), nfn)
+            zfiles.append(fn); nzfiles.append(nfn)
+            ztab.write("s%02d %s\n" % (sj, fn)); nztab.write("s%02d %s\n" % (sj, nfn))
+    ztab = os.path.join(zdir, "table.txt")
+    nztab = os.path.join(zdir, "nozero_table.txt")
+
+    def zcorr(a, b):
+        a, b = np.asarray(a, float), np.asarray(b, float)
+        a = a - a.mean(); b = b - b.mean()
+        den = np.sqrt(np.dot(a, a) * np.dot(b, b))
+        return float(np.dot(a, b) / den) if den else 0.0
+
+    def zneural(source, cc, censor):
+        pp = zpos[cc]
+        feat = source[:, pp, :].mean(axis=1)
+        keep = np.any(source[:, pp, :] != 0.0, axis=1)
+        mat = np.eye(ZSUB)
+        for ii in range(ZSUB):
+            for jj in range(ii + 1, ZSUB):
+                use = keep[ii] & keep[jj] if censor else np.ones(ZT, bool)
+                mat[ii, jj] = mat[jj, ii] = zcorr(feat[ii, use], feat[jj, use])
+        return mat
+
+    zneu = [zneural(zraw, cc, True) for cc in range(2)]
+    zref = [zcorr(matrix[np.triu_indices(ZSUB, 1)], zmodel[np.triu_indices(ZSUB, 1)])
+            for matrix in zneu]
+    zbase = ["-dataTableFile", ztab, "-mask", zatlas, "-mode", "IS-RSA",
+             "-featuretype", "mean", "-model_mat", "oracle", zmodfn,
+             "-neural_metric", "corr", "-metric", "pearson", "-zcensor",
+             "-nperm", "0", "-no_dset"]
+    zsave = os.path.join(zdir, "atlas_saved")
+    zra, zoa = rsa(zbase + ["-save_rdm", zsave, "-prefix", os.path.join(zdir, "atlas")], env=env1)
+    zrows = read_table(os.path.join(zdir, "atlas.rsa.1D"), "oracle")[1] if zra == 0 else []
+    zmatok = (zra == 0 and len(zrows) == 2 and
+              all(abs(row["oracle_r"] - zref[ii]) < 3e-6 for ii, row in enumerate(zrows)) and
+              all(np.allclose(np.loadtxt(zsave + "_roi%04d.1D" % (ii + 1)), zneu[ii], atol=3e-6)
+                  for ii in range(2)))
+    check("Z1 real-volume atlas -zcensor matches independent pairwise reference",
+          zmatok, "rc=%d rows=%s ref=%s %s" % (zra, zrows, zref, zoa.strip()[-160:]))
+
+    def zsearch(pre, env):
+        args = zbase.copy(); args[args.index(zatlas)] = zmask
+        rr, oo = rsa(args + ["-searchlight", "SPHERE(1.1)",
+                              "-prefix", os.path.join(zdir, pre)], env=env)
+        rows = read_table(os.path.join(zdir, pre + ".rsa.1D"), "oracle")[1] if rr == 0 else []
+        return rr, oo, rows
+
+    zrs, zos, zsrows = zsearch("search", env1)
+    zrn, zon, znrows = zsearch("search_threadN", envN)
+    zslref = [zref[0], zref[0], zref[1], zref[1]]
+    check("Z1 real-volume local searchlight -zcensor matches each two-voxel reference",
+          zrs == 0 and len(zsrows) == 4 and
+          all(row["nvox"] == 2 and abs(row["oracle_r"] - ref) < 3e-6
+              for row, ref in zip(zsrows, zslref)),
+          "rc=%d rows=%s ref=%s %s" % (zrs, zsrows, zslref, zos.strip()[-160:]))
+    check("Z1 zero-censored searchlight is thread-reproducible (1 vs %d)" % threads,
+          zrs == zrn == 0 and zsrows == znrows, "rc=%d/%d %s" % (zrs, zrn, zon.strip()[-120:]))
+
+    nzbase = ["-dataTableFile", nztab, "-mask", zatlas, "-mode", "IS-RSA",
+              "-featuretype", "mean", "-model_mat", "oracle", zmodfn,
+              "-neural_metric", "corr", "-metric", "pearson", "-nperm", "0", "-no_dset"]
+    n0, no0 = rsa(nzbase + ["-save_rdm", os.path.join(zdir, "nozc"),
+                             "-prefix", os.path.join(zdir, "nozc")], env=env1)
+    n1, no1 = rsa(nzbase + ["-zcensor", "-save_rdm", os.path.join(zdir, "withzc"),
+                             "-prefix", os.path.join(zdir, "withzc")], env=env1)
+    check("Z1 -zcensor is exactly equivalent when no local frame is zero",
+          n0 == n1 == 0 and
+          read_table(os.path.join(zdir, "nozc.rsa.1D"), "oracle")[1] ==
+          read_table(os.path.join(zdir, "withzc.rsa.1D"), "oracle")[1] and
+          all(np.array_equal(np.loadtxt(os.path.join(zdir, "nozc_roi%04d.1D" % (ii + 1))),
+                             np.loadtxt(os.path.join(zdir, "withzc_roi%04d.1D" % (ii + 1))))
+              for ii in range(2)), "rc=%d/%d %s %s" % (n0, n1, no0.strip()[-100:], no1.strip()[-100:]))
+
+    zseedargs = ["-dataTableFile", ztab, "-mask", ztarget, "-seed_mask", zseed,
+                 "-mode", "IS-RSA", "-featuretype", "mean", "-neural_metric", "corr",
+                 "-metric", "pearson", "-zcensor", "-nperm", "0", "-no_dset",
+                 "-prefix", os.path.join(zdir, "seed")]
+    zrc, zso = rsa(zseedargs, env=env1)
+    zsh, zsr = read_table(os.path.join(zdir, "seed.rsa.1D"), "seedROI7") if zrc == 0 else ([], [])
+    zseedref = zcorr(zneu[0][np.triu_indices(ZSUB, 1)], zneu[1][np.triu_indices(ZSUB, 1)])
+    check("Z1 real-volume seed-to-target -zcensor matches independent reference",
+          zrc == 0 and len(zsr) == 1 and abs(zsr[0]["seedROI7_r"] - zseedref) < 3e-6,
+          "rc=%d rows=%s ref=%.7g %s" % (zrc, zsr, zseedref, zso.strip()[-160:]))
+
+    zbad = [
+        ("noise ceiling", zbase + ["-noise_ceiling"], "noise_ceiling"),
+        ("timeshift null", zbase + ["-null", "timeshift", "-nperm", "20"], "cannot be combined"),
+        ("phase null", zbase + ["-null", "phase", "-nperm", "20"], "cannot be combined"),
+    ]
+    zbadok = []
+    for tag, args, needle in zbad:
+        rr, oo = rsa(args + ["-prefix", os.path.join(zdir, "bad_" + tag.replace(" ", "_"))])
+        zbadok.append(rr != 0 and needle in oo)
+    with open(os.path.join(zdir, "model_table.txt"), "w") as f:
+        f.write("Subj InputFile ModelFile\n")
+        for sj, fn in enumerate(zfiles): f.write("s%02d %s %s\n" % (sj, fn, fn))
+    rmd, omd = rsa(["-dataTableFile", os.path.join(zdir, "model_table.txt"), "-mask", zatlas,
+                    "-mode", "IS-RSA", "-featuretype", "mean", "-model_dset", "M", "ModelFile",
+                    "-neural_metric", "corr", "-zcensor", "-nperm", "0", "-no_dset",
+                    "-prefix", os.path.join(zdir, "bad_modeldset")])
+    zbadok.append(rmd != 0 and "model_dset" in omd and "not yet supported" in omd)
+    with open(os.path.join(zdir, "run_table.txt"), "w") as f:
+        f.write("Subj Run InputFile\n")
+        for sj, fn in enumerate(zfiles):
+            f.write("s%02d r1 %s\n" % (sj, fn)); f.write("s%02d r2 %s\n" % (sj, fn))
+    rrun, orun = rsa(["-dataTableFile", os.path.join(zdir, "run_table.txt"), "-mask", zatlas,
+                      "-mode", "IS-RSA", "-featuretype", "mean", "-run_column", "Run",
+                      "-model_mat", "oracle", zmodfn, "-neural_metric", "corr", "-zcensor",
+                      "-nperm", "0", "-no_dset", "-prefix", os.path.join(zdir, "bad_run")])
+    zbadok.append(rrun != 0 and "run_column" in orun and "not yet supported" in orun)
+    check("Z1 -zcensor rejects every intentionally unsupported missing-data contract",
+          all(zbadok), "noise/timeshift/phase/model_dset/run=%s" % zbadok)
 
     # =====================================================================
     # Mask-optional surface searchlight.  Only meaningful in a -DUSE_SUMA
