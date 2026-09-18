@@ -4,42 +4,54 @@ import os, sys
 import copy
 import numpy as np
 
+from   afnipy import afni_base as ab
+
 
 # ===========================================================================
 
-def calc_interval_stats_perc(A, samp_rate=None, 
+def calc_interval_stats_perc(A, samp_delt=None, 
                              all_perc = (10, 25, 40, 50, 60, 75, 90),
                              verb=0 ):
     """Calculate percentile-based statistics of the intervals of 1D array
-A (which is assumed to be sorted already).  A sampling rate can be
+A (which is assumed to be sorted already).  A sampling interval can be
 input to provide output units; if none is entered, then units are
 those of A (which are typically unitless when A represents peaks or
 troughs).
+
+A must have at least 2 values.
 
 Parameters
 ----------
 A : list
     1D list (likely of int values if representing peaks or 
     troughs); assumed to be sorted already
-samp_rate : float
-    physical value of sampling rate associated with A
+samp_delt : float
+    physical value of sampling interval associated with A (units: s)
 all_perc : set/np.ndarray
     1D Python array of percentile values in range [0, 100], for which 
     values of the distribution of intervals within A will be calculated
 
 Returns
 -------
+is_fail : int
+    0 for success, nonzero for failure
 stats_arr : np.ndarray
     an array of stats about the intervals of A, calculated from
     percentile values in all_perc
 
     """
 
-    # make sure A and all_perc have values
+    BAD_RETURN = (-1, np.array([]))
+
+    # make sure A has at least 2 values, and all_perc has some values
     N     = len(A)
     Nperc = len(all_perc)
-    if not(N) or not(Nperc) :
-        return ()
+    if N<2 :
+        ab.EP1("Too few indices for interval calcs: {}".format(N))
+        return BAD_RETURN
+    if not(Nperc) :
+        ab.EP1("no percentile values given for interval calcs")
+        return BAD_RETURN
 
     # make interval set
     intervals = [j-i for i, j in zip(A[:-1], A[1:])]
@@ -48,15 +60,15 @@ stats_arr : np.ndarray
     stats_arr = np.percentile(intervals, q=all_perc)
 
     # scale values, if applicable
-    if samp_rate :
-        stats_arr*= samp_rate
+    if samp_delt :
+        stats_arr*= samp_delt
 
-    return stats_arr
+    return 0, stats_arr
 
-def calc_interval_stats_mmms(A, samp_rate=None, 
+def calc_interval_stats_mmms(A, samp_delt=None, 
                              verb=0 ):
     """Calculate statistics (min, max, mean and stdev) of the intervals of
-1D array A (which is assumed to be sorted already).  A sampling rate
+1D array A (which is assumed to be sorted already).  A sampling interval
 can be input to provide output units; if none is entered, then units
 are those of A (which are typically unitless when A represents peaks
 or troughs).
@@ -66,26 +78,33 @@ Parameters
 A : list
     1D list (likely of int values if representing peaks or 
     troughs); assumed to be sorted already
-samp_rate : float
-    physical value of sampling rate associated with A
+samp_delt : float
+    physical value of sampling interval associated with A (units: s)
 
 Returns
 -------
-minval : float
-    minimum value in A
-maxval : float
-    maximum value in A
-meanval : float
-    mean (average) value of collection A
-stdval : float
-    standard deviation value of collection A
+is_fail : int
+    0 for success, nonzero for failure
+all_stat : tuple of 4 floats, which are as follows...
+    minval : float
+        minimum value in A
+    maxval : float
+        maximum value in A
+    meanval : float
+        mean (average) value of collection A
+    stdval : float
+        standard deviation value of collection A
 
     """
 
-    # make sure A and all_perc have values
+    BADL = (0.0, 0.0, 0.0, 0.0)
+    BAD_RETURN = (-1, BADL)
+
+    # make sure A has at least 2 values
     N     = len(A)
-    if not(N) :
-        return ()
+    if N<2 :
+        ab.EP1("Too few indices for interval stats: {}".format(N))
+        return BAD_RETURN
 
     # make interval set
     intervals = [j-i for i, j in zip(A[:-1], A[1:])]
@@ -97,13 +116,13 @@ stdval : float
     stdval  = np.std(intervals)
 
     # scale values, if applicable
-    if samp_rate :
-        minval *= samp_rate
-        maxval *= samp_rate
-        meanval*= samp_rate
-        stdval *= samp_rate
+    if samp_delt :
+        minval *= samp_delt
+        maxval *= samp_delt
+        meanval*= samp_delt
+        stdval *= samp_delt
 
-    return minval, maxval, meanval, stdval
+    return 0, (minval, maxval, meanval, stdval)
 
 # ----------------------------------------------------------------------------
 

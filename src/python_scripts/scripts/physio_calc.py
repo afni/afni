@@ -10,13 +10,9 @@
             variance in linear model. Ratio of variance with/without regressors)
             - Does it explain more of the variance in the data (which would be 
               a good thing) - (Permanent item)
-        - Convolve RVT with some function using physiological regressors (Catie 
-          Chang)
         - Get percentage of variance accounted for by cardio
         - Histogram of model
         - Remove large outliers in cardio
-        - Duplicate current code over all slices
-        - Per slice with cardio to deal with temporal offsets across slices
         - Try weird examples from physio dB
         - Options that might change do not have default
             
@@ -46,6 +42,7 @@ import sys, os
 import copy
 
 # part of AFNI imports (more below, if going beyond help viewing)
+from afnipy import afni_base          as ab
 from afnipy import lib_physio_opts    as lpo
 
 # ===========================================================================
@@ -53,17 +50,6 @@ from afnipy import lib_physio_opts    as lpo
 def main():
 
     return 0
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -94,101 +80,162 @@ if __name__ == "__main__":
     # build the foundation objects: make main 'retro' object from
     # processing input options, checking to see if all necessary info
     # is present, and combining it as necessary
-    retobj  = lpr.retro_obj( args_dict, args_orig=args_orig )
-    verb    = retobj.verb
+    pcobj = lpr.pcalc_obj( args_dict, args_orig=args_orig )
+    verb  = pcobj.verb
 
     # --------------------- make output directory ----------------------------
 
     ### !!! do more about checking for preexisting/overwrite
-    if os.path.isdir(retobj.out_dir) :
-        print("+* WARN: output directory exists already---just reusing here.")
+    if os.path.isdir(pcobj.out_dir) :
+        ab.WP("output directory exists already---just reusing here.")
     else:
-        print("++ Making output directory:", retobj.out_dir)
-        os.mkdir(retobj.out_dir)
+        ab.IP("Making output directory:\n{}".format(pcobj.out_dir))
+        os.makedirs(pcobj.out_dir)
+
+    # ... and make the supplementary subdirs for text and images
+    if not(os.path.isdir(pcobj.extras_dir)) :
+        os.makedirs(pcobj.extras_dir)
+    if not(os.path.isdir(pcobj.images_dir)) :
+        os.makedirs(pcobj.images_dir)
 
     # save original command line opts (and the set of parsed opts) to
     # a log file in output dir
-    tmp1 = lpl.save_cmd_orig(retobj)
-    tmp2 = lpl.save_cmd_opts_parsed(retobj)
+    tmp1 = lpl.save_cmd_orig(pcobj)
+    tmp2 = lpl.save_cmd_opts_parsed(pcobj)
 
     # ---------------------- physio-MRI timing selection ---------------------
 
     # Set up timing selection matrices, for slicewise regressors
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_timing_selection_phys( pcobj, label=label, verb=verb )
 
-    # Set up timing for RVT time series
-    label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
+    # Set up timing for volume-based time series (RVT, HR, etc.)
+    for label in ['card', 'resp']:
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_timing_selection_volbase( pcobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
 
     # Peak and trough estimation: now can also be loaded in from a previous run
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
             # check if the peaks/troughs were loaded in already
-            if not(retobj.count_load_proc(label)) :
+            if not(pcobj.count_load_proc(label)) :
                 # do all peak/trough processing steps
-                tmp3 = lpf.calc_time_series_peaks( retobj, label=label, 
-                                                   verb=verb )
+                is_fail = lpf.calc_time_series_peaks( pcobj, label=label, 
+                                                      verb=verb )
+                if is_fail :
+                    ab.EP("peak/trough finding failure: {}".format(label))
+
             # see if interactive mode refinement is on
-            if retobj.data[label].do_interact :
-                tmp4 = lpf.run_interactive_peaks( retobj, label=label, 
-                                                  verb=verb )
+            if pcobj.data[label].do_interact :
+                is_fail = lpf.run_interactive_peaks( pcobj, label=label, 
+                                                     verb=verb )
+                if is_fail :
+                    ab.EP("peak/trough interactive failure: {}".format(label))
+
             # make final peak/trough images
-            tmp5 = lpf.make_final_image_peaks( retobj, label=label, 
-                                               verb=verb )
+            is_fail = lpf.make_final_image_peaks( pcobj, label=label, 
+                                                  verb=verb )
+            if is_fail :
+                ab.WP("peak/trough final images failure: {}".format(label))
 
 
     # save/write out peaks/troughs, if user asks
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpl.save_peaks_troughs_file_1D( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            is_fail = lpl.save_peaks_troughs_file_1D( pcobj, label=label, 
+                                                      verb=verb )
+            if is_fail :
+                ab.EP("Saving peaks/troughs failure: {}".format(label))
 
 
     # Phase estimation, which uses very diff methods for card and resp
     # processing.
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpf.calc_time_series_phases( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            is_fail = lpf.calc_time_series_phases( pcobj, label=label, 
+                                                   verb=verb )
+            if is_fail :
+                ab.EP("Phase estimation failure: {}".format(label))
 
-    # RVT time series estimation (prob just for resp)
+
+    # RVT time series estimation (just for resp)
     label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
+    if pcobj.data[label] and pcobj.do_calc_rvt :
+        is_fail = lpf.calc_time_series_rvt( pcobj, label=label, verb=verb )
+        if is_fail :
+            ab.EP("RVT estimation failure: {}".format(label))
+
+    # HR time series estimation (just for card; and on EPI ts grid)
+    label = 'card'
+    if pcobj.data[label] and pcobj.do_calc_hr :
+        is_fail = lpf.calc_time_series_hr( pcobj, label=label, verb=verb )
+        if is_fail :
+            ab.EP("HR estimation failure: {}".format(label))
 
     # ------------- Calculate regressors ------------------
 
     # Regressors, for all physio inputs
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpf.calc_regress_phys( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_regress_retroicor( pcobj, label=label, verb=verb )
 
     ### Comment: after this step, here is an example of the physio
     ### regressors being stored:
-    # retobj.data["resp"].regress_dict_phys["c2"][4][1]
+    # pcobj.data["resp"].regress_dict_regress["c2"][4][1]
     # -> for the 'resp' physio time series, "c2" means cos() with m=2, 
     #    and 4 means the [4]th slice, and [1] means the actual regression
     #    time series (the [0] in the last bracket would point to a label)
 
-    # make a plot of the physio regressors
-    lpplt.plot_regressors_phys(retobj)
+    # make a plot of the retroicor regressors
+    tmp = lpplt.plot_regressors_retro(pcobj)
 
-    # Regressors, for RVT time series (plot is made within this func)
+    # Resp-derived volbase regressors (plot is made within this func)
     label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+    if pcobj.data[label] :
+        # make RVT regressor 
+        if pcobj.do_calc_rvt :
+            is_fail = lpf.calc_regress_rvt( pcobj, label=label, verb=verb )
+            if is_fail :
+                ab.EP("RVT regressor estimation failure: {}".format(label))
+
+        # make RVTRRF regressor (can only be done after RVT one is made)
+        if pcobj.do_calc_rvtrrf :
+            is_fail = lpf.calc_regress_rvtrrf( pcobj, label=label, verb=verb )
+            if is_fail :
+                ab.EP("RVTRRF estimation failure: {}".format(label))
+
+    # Card-derived volbase regressors
+    label = 'card'
+    if pcobj.data[label] and pcobj.do_calc_hr :
+        is_fail = lpf.calc_regress_hr( pcobj, label=label, verb=verb )
+        if is_fail :
+            ab.EP("HR regressor estimation failure: {}".format(label))
 
     # ------------- Write out regressors ------------------
 
-    lpreg.write_regressor_file(retobj)
+    # optional (not recommended; testing only): older RetroTS.py format
+    if pcobj.do_slibase_out :
+        lpreg.write_regressor_file_OLD(pcobj)
+
+    # modern output format, separate slice-based and volume-wise regressors
+    is_fail = lpreg.write_regressor_file_sli(pcobj)
+    if is_fail :
+        ab.EP("Write slice regressor estimation failure: {}".format(label))
+    is_fail = lpreg.write_regressor_file_vol(pcobj)
+    if is_fail :
+        ab.EP("Write volume regressor estimation failure: {}".format(label))
 
     # -------------------- log some of the results --------------------------
 
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpl.make_ts_obj_review_log( retobj, label=label, verb=verb )
+        if pcobj.data[label] :
+            is_fail = lpl.make_ts_obj_review_log( pcobj, label=label, 
+                                                  verb=verb )
+            if is_fail :
+                ab.EP("Log failure: {}".format(label))
 
-    print("++ DONE.  Goodbye.")
+    ab.IP("DONE.  Goodbye.")
+
