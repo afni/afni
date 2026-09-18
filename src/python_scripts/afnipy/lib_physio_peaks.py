@@ -967,6 +967,10 @@ opeaks : list
 
     """
 
+    # guard against veeery rare case
+    if len(peaks) < 2 :
+        return list(peaks)
+
     # interpeak intervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
 
