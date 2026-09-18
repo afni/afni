@@ -908,15 +908,11 @@ is_ok : int
     # Validate the final extrema collections here.  At this point they
     # might have come from automatic estimation, loaded files, or
     # interactive editing.
-    if check_extrema(tsobj.peaks,
-                     tsobj.n_ts_orig,
-                     name='peaks') :
+    if check_extrema(tsobj.peaks, tsobj.n_ts_orig, name='peaks') :
         return 1
 
     if label == 'resp' :
-        if check_extrema_for_phase(tsobj.troughs,
-                                   tsobj.n_ts_orig,
-                                   name='troughs') :
+        if check_extrema(tsobj.troughs, tsobj.n_ts_orig, name='troughs') :
             return 1
 
     count     = 20                          # start with num >> peak/trough est
