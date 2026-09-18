@@ -5,6 +5,7 @@ import numpy             as np
 import matplotlib.pyplot as plt
 
 from afnipy import afni_base as ab
+from afnipy import afni_util as au
 
 # ==========================================================================
 
@@ -59,7 +60,7 @@ y : float or array of floats
     """
 
     # any negative t has a 0 value output
-    if isinstance(t, float) :
+    if isinstance(t, (float, int)) :
         if t <= 0 :
             return 0.0
     elif isinstance(t, (np.ndarray, list)) :
@@ -70,7 +71,7 @@ y : float or array of floats
                 u[i] = t[i]
         t = copy.deepcopy(u)
     else:
-        ab.WP("unexpected dtype for t: {}".format(type(t)))
+        ab.WP("unexpected dtype for t: {}".format(au.simple_type(t)))
         return -1
 
     aa = 0.6 * (t**2.1) * np.exp(-t / 1.6)
@@ -93,6 +94,12 @@ is scaled vertically by a factor of 0.5.  Eq. 5 of Chang et al. (2009)
 appears to need this to have a plus/minus range of 1, in line with
 that figure (and with other similar response functions).
 
+NB2: this functional form actually has a slightly nonzero value at
+t=0, namely f(0) = -0.00035688. However, we enforce that f(0) = 0,
+which seems to make more sense. In all likelihood, this is merely an
+aesthetic change for consistency (no nonzero output at the instant of
+onset), without any practical outcome.
+
 Parameters
 ----------
 t : float or array of floats
@@ -105,24 +112,26 @@ y : float or array of floats
 
     """
 
+    T_IS_ARR = False
+
     # any negative t has a 0 value output
-    if isinstance(t, float) :
+    if isinstance(t, (float, int)) :
         if t <= 0 :
             return 0.0
     elif isinstance(t, (np.ndarray, list)) :
-        N = len(t)
-        u = np.zeros(N, dtype=float)
-        for i in range(N):
-            if t[i]>0.0 :
-                u[i] = t[i]
-        t = copy.deepcopy(u)
+        T_IS_ARR = True
+
+        # make sure t is an array of floats...
+        t = np.array(t, dtype=float)
+        # and replace neg times with zero before evaluating the function
+        t[t<0] = 0.0
     else:
-        ab.WP("unexpected dtype for t: {}".format(type(t)))
+        ab.WP("unexpected dtype for t: {}".format(au.simple_type(t)))
         return -1
 
     # parameter
     sig = 3.0
-    
+   
     aa = 0.6 * (t**2.7) * np.exp(-t / 1.6)
     bb = (16.0 / np.sqrt(2*np.pi*sig**2)) * np.exp(-0.5*((t-12.0)/sig)**2)
     y  = aa - bb
@@ -131,6 +140,10 @@ y : float or array of floats
     # necessary for vertical scaling to be correct and match with
     # Fig. 6D there.
     y/= 2.0
+
+    # ensure no nonzero output for t<=0
+    if T_IS_ARR :
+        y[t<=0] = 0.0
 
     return y
 
