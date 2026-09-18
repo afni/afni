@@ -903,6 +903,22 @@ is_ok : int
     imdir  = pcobj.images_dir
     prefix = pcobj.prefix
 
+    # ----- preliminary check
+
+    # Validate the final extrema collections here.  At this point they
+    # might have come from automatic estimation, loaded files, or
+    # interactive editing.
+    if check_extrema(tsobj.peaks,
+                     tsobj.n_ts_orig,
+                     name='peaks') :
+        return 1
+
+    if label == 'resp' :
+        if check_extrema_for_phase(tsobj.troughs,
+                                   tsobj.n_ts_orig,
+                                   name='troughs') :
+            return 1
+
     count     = 20                          # start with num >> peak/trough est
     lab_title = 'Estimating phase'
     lab_short = 'est_phase'
@@ -943,6 +959,63 @@ is_ok : int
 
     # ----- DONE with phase estimation: add to obj -----
     tsobj.phases = phases
+
+    return 0
+
+# --------
+
+def check_extrema(extrema, nts, name='peaks'):
+    """A helper function.
+
+Check a list of extrema indices before further calculation
+(esp. phase).  The extrema should contain at least two values, all
+indices should fall within the time series, and the values should be
+strictly increasing and unique.
+
+This check is useful after all peak/trough processing has finished,
+because the extrema might have come from automatic estimation,
+previously saved files, or interactive editing.
+
+Parameters
+----------
+extrema : list
+    1D list of integer indices representing extrema locations,
+    such as peaks or troughs
+nts : int
+    number of time points in the associated time series; valid
+    extrema indices must be in the half-open interval [0, nts)
+name : str
+    optional label describing the extrema collection, such as
+    'peaks' or 'troughs'; this is used in error messages
+
+Returns
+-------
+is_fail : int
+    0 if the extrema collection passes all checks, nonzero otherwise
+
+    """
+
+    N = len(extrema)
+
+    if N < 2 :
+        ab.EP1("too few {} for phase calculation: {}".format(name, N))
+        return 1
+
+    arr = np.array(extrema, dtype=int)
+
+    if np.any(arr < 0) or np.any(arr >= nts) :
+        msg = "{} indices must be in [0, {}), but found:\n".format(
+            name, nts)
+        msg+= "{}".format(list(arr))
+        ab.EP1(msg)
+        return 1
+
+    if np.any(np.diff(arr) <= 0) :
+        msg = "{} indices must be strictly increasing and unique:\n".format(
+            name)
+        msg+= "{}".format(list(arr))
+        ab.EP1(msg)
+        return 1
 
     return 0
 
