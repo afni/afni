@@ -12,9 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main(argc, argv)
-     int argc;
-     char **argv;
+int main(int argc, char **argv)
 {
    int narg ;
    int num_on=0 , num_off=0 , num_len=0 , num_cycles=0 , num_init=0 ,

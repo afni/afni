@@ -178,10 +178,8 @@ int main( int argc , char * argv[] )
 /*! save separate datasets for each kind of output */
 /* copied from 3dDWItoDT.c */
 static void
-Save_Sep_eigdata(whole_dset, prefix, output_datum)
-THD_3dim_dataset *whole_dset; /* whole dataset */
-char *prefix;
-int output_datum;
+Save_Sep_eigdata(THD_3dim_dataset *whole_dset, /* whole dataset */
+                 char *prefix, int output_datum)
 {
 /* takes base prefix and appends to it for eigvalues, eigvectors, FA, MD */
    char nprefix[THD_MAX_PREFIX], tprefix[THD_MAX_PREFIX];
@@ -222,11 +220,8 @@ int output_datum;
 /*! create new dataset from part of existing dataset in memory */
 /* copied from 3dDWItoDT.c */
 static void
-Copy_dset_array(whole_dset,startbrick,nbriks,prefix,output_datum)
-THD_3dim_dataset *whole_dset;
-int startbrick, nbriks;
-char *prefix;
-int output_datum;
+Copy_dset_array(THD_3dim_dataset *whole_dset, int startbrick, int nbriks,
+                char *prefix, int output_datum)
 {
    THD_3dim_dataset *out_dset;
 
