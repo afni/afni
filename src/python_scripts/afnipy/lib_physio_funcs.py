@@ -1389,12 +1389,17 @@ def calc_regress_rvt(pcobj, label=None, verb=0):
 
     return 0
 
+# ----------
 
-def get_shifted_rvt(x, samp_freq, all_ind, shift):
-    """Take input time series x and shift it by delta_t=shift to the left
-or right.  'Gaps' left by shifting are filled in with the first or
-last value present from the original time series in the direction of
-that shift.
+LIST_all_pad_mode = ['mean', 'median']
+STR_all_pad_mode = ', '.join(LIST_all_pad_mode)
+
+def get_shifted_rvt(x, samp_freq, all_ind, shift, pad_mode='mean'):
+    """Take input time series x and shift it by delta_t=shift to the
+left or right. 'Gaps' left by shifting are filled in by calculating a
+(hopefully) reasonable intermediate value. That is controlled/selected
+by the pad_mode kwarg, which specifies a function for padding the time
+series. Allowed values are: mean (default), median.
 
 Parameters
 ----------
@@ -1407,6 +1412,8 @@ samp_freq : float
 shift: float
     amount of time shift to shift the time series left ('earlier') or
     right ('later')
+pad_mode : str
+    method used to calculate the padding value; see allowed list above
 
 Returns
 -------
@@ -1415,6 +1422,12 @@ y : np.ndarray
 
     """
 
+    if pad_mode not in LIST_all_pad_mode :
+        msg = "The pad_mode '{}' is not ".format(pad_mode)
+        msg+= "in recognized list:\n{}".format(STR_all_pad_mode)
+        ab.EP1(msg)
+        return np.array([])
+
     Nx   = len(x)                      # len of RVT time series
     Nind = len(all_ind)                # num of sampling points
 
@@ -1422,19 +1435,28 @@ y : np.ndarray
     y = np.zeros(Nind, dtype=x.dtype)
 
     # shift along RVT grid, in terms of indices
-    delta_ind = int(shift * samp_freq)
+    delta_ind = int(round(shift * samp_freq))
 
     # collection of shifted indices
     new_ind = np.array(all_ind) - delta_ind
 
     # which indices are valid for selecting within x
-    arr_use = new_ind <  Nx
-    arr_use*= new_ind >= 0
+    arr_use = (new_ind >= 0) & (new_ind < Nx)
 
-    # get mean value of valid signal points (for mean-padding, below)
-    pad_val = np.mean(x[new_ind[arr_use]])
+    # Use valid shifted values to estimate padding.  If the shift moves
+    # every sampled point outside x, use the full input time series.
+    x_vals_to_use = x[new_ind[arr_use]]
+    if not(len(x_vals_to_use)) :
+        x_vals_to_use = x
 
-    # get the shifted data, with mean padding
+    # calc the padding value (pad_val) of valid signal points (applied
+    # below)
+    if pad_mode == 'mean' :
+        pad_val = np.mean(x_vals_to_use)
+    elif pad_mode == 'median' :
+        pad_val = np.median(x_vals_to_use)
+
+    # get the shifted data, with selected padding
     for ii in range(Nind):
         if arr_use[ii] :    y[ii] = x[new_ind[ii]]
         else:               y[ii] = pad_val
