@@ -1950,6 +1950,12 @@ dict_of_len : dict
     tlist       = copy.deepcopy(tlist[:last_nonempty_row+1])
     all_lenlist = copy.deepcopy(all_lenlist[:last_nonempty_row+1])
 
+    # guard against empty list
+    if not(all_lenlist) :
+        msg = "no nonempty data rows found in file:\n"
+        msg+= "{}".format(fname)
+        ab.EP(msg)
+
     # flag any raggedness, ignoring bad_nullist items
     dict_of_len = check_raggedness_of_lines(all_lenlist, verb=verb)
 
