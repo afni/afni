@@ -2172,7 +2172,8 @@ args_dict2 : dict
     if args_dict2['start_time'] == None :
         ab.IP("No start time provided; will assume it is 0.0.")
         args_dict2['start_time'] = 0.0
-    elif args_dict2['start_time'] > 0.0 :
+    elif not(math.isfinite(args_dict2['start_time'])) or \
+         args_dict2['start_time'] > 0.0 :
         msg = "start_time must be <= 0.0, "
         msg+= "not: {}".format(args_dict2['start_time'])
         ab.EP(msg)
@@ -2435,7 +2436,7 @@ args_dict2 : dict
             msg = "Must provide a value for '{}' via options".format(quant)
             ab.EP1(msg)
             IS_BAD+= 1
-        elif args_dict2[quant] < 0 :
+        elif not(math.isfinite(args_dict2[quant])) or args_dict2[quant] < 0 :
             msg = "Provided '{}' value ".format(quant)
             msg+= "({}) not allowed to be <0".format(args_dict2[quant])
             ab.EP1(msg)
@@ -2445,7 +2446,7 @@ args_dict2 : dict
             msg = "Must provide a value for '{}' via options.".format(quant)
             ab.EP1(msg)
             IS_BAD+= 1
-        elif args_dict2[quant] <= 0 :
+        elif not(math.isfinite(args_dict2[quant])) or args_dict2[quant] <= 0 :
             msg = "Provided '{}' value ".format(quant)
             msg+= "({}) not allowed to be <=0".format(args_dict2[quant])
             ab.EP1(msg)

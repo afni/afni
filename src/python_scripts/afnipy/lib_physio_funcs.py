@@ -1364,7 +1364,6 @@ def calc_regress_rvt(pcobj, label=None, verb=0):
 
     # shifts here are made by shifting a copy of the underlying
     # tvalues array, and then selecting the same MRI-snapshot points.
-    # We use the time series median to pad values
 
     # the primary, unshifted RVT regressor
     ###rvt_regr = tsobj.rvt_ts[tsobj.list_slice_sel_volbase]
@@ -1518,7 +1517,7 @@ This is a fairly straightforward calc that doesn't require pre-calc on
 the card time series level.  It just uses the time series and card
 inter-peak intervals to estimate 'heart rate'.  We calculate the mean
 interpeak interval in a win of time (units: s) around a given TR. The
-result is divided by 60, to have units of beats per minute.
+result is multiplied by 60, to have units of beats per minute.
 
     """
 
