@@ -18,6 +18,7 @@ import sys
 import os
 import copy
 import json
+import math
 import textwrap
 import subprocess as     SP
 import argparse   as     argp
@@ -1975,7 +1976,7 @@ vol_dict2 : dict
         tr        = vol_dict2['dset_tr']
 
         for ii, stime in enumerate(sli_times) :
-            if stime < 0.0 or stime >= tr :
+            if not(math.isfinite(stime)) or stime < 0.0 or stime >= tr :
                 msg = "slice timing value [{}] = {} ".format(ii, stime)
                 msg+= "is outside the allowed range [0, TR), "
                 msg+= "where TR = {}".format(tr)
