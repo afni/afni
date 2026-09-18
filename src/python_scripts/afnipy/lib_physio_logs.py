@@ -6,7 +6,7 @@ import json
 from   afnipy  import lib_physio_opts    as lpo
 from   afnipy  import lib_physio_util    as lpu
 from   afnipy  import lib_format_cmd_str as lfcs
-from   afnipy  import afni_base          as BASE
+from   afnipy  import afni_base          as ab
 
 # ===========================================================================
 
@@ -224,6 +224,12 @@ here."""
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
+    # extra check: having <2 peaks is _very_ unexpected, but would cause crash
+    # (warning added, but I don't feel like adding extra, ugly if conditions)
+    npeak = tsobj.stats_count_pt("peaks", min_idx=idxA, max_idx=idxB)
+    if npeak < 2 :
+        ab.WP("Less than 2 peaks, extreme case and may cause crashes.")
+
     # info over subset of MRI dset duration
     D['peak num over dset'] = str(tsobj.stats_count_pt("peaks", 
                                                        min_idx=idxA,
@@ -259,6 +265,12 @@ here."""
                                                  q75))
 
         D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+        # extra check, as above for <2 peaks, here for <2 troughs
+        ntroughs = tsobj.stats_count_pt("troughs", min_idx=idxA, max_idx=idxB)
+        if ntroughs < 2 :
+            ab.WP("Less than 2 troughs, extreme case and may cause crashes.")
+
 
         # info over subset of MRI dset duration
         D['trough num over dset'] = str(tsobj.stats_count_pt("troughs", 
@@ -311,7 +323,7 @@ def save_cmd_orig(pcobj, verb=1):
 
     # get afni ver, and split immediately at colon to put across 2 lines
     cmd    = '''afni -ver'''
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
     vlist  = com.so[0].split(':')
 
