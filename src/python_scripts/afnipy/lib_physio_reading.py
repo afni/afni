@@ -923,7 +923,12 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         """For data that has been read in as a list of lists, extract the
         [idx] column.
 
+        If a '' (or bad "null") value is hit for floating point data,
+        it is replaced by a np.nan, so that it will be interpolated
+        later.
+
         Return that column as an array of floats, by default.
+
         """
 
         ncol = len(all_col[0])
@@ -935,7 +940,15 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         N   = len(all_col)
         arr = np.zeros(N, dtype=dtype)
         for ii in range(N):
-            arr[ii] = all_col[ii][idx]
+            val = all_col[ii][idx]
+            if val == '' :
+                if np.issubdtype(np.dtype(dtype), np.floating) :
+                    arr[ii] = np.nan
+                else:
+                    ab.EP("cannot replace null value with NaN "
+                          "for non-floating data")
+            else:
+                arr[ii] = val
 
         return arr
 
