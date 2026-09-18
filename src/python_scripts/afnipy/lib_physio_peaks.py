@@ -248,7 +248,7 @@ idx_freq_peak : int
     else:
         highpass_freq = None
 
-    msg = '( {} ) Bandpass filter frequency peak: '.format(label)
+    msg = '({}) Bandpass filter frequency peak: '.format(label)
     msg+= '{:.6f} Hz'.format(freq_peak)
     ab.IP(msg)
 
@@ -380,7 +380,7 @@ idx_freq_peak : int
     idx_freq_peak  = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
 
-    msg = '( {} ) Bandpass filter frequency peak: '.format(label)
+    msg = '({}) Bandpass filter frequency peak: '.format(label)
     msg+= '{:.6f} Hz'.format(freq_peak)
     ab.IP(msg)
 
