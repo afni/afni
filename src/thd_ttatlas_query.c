@@ -4491,7 +4491,9 @@ char **approx_str_sort_phelp(char *prog, int textinname, int *N_ws, char *str,
    }
 
    if (!textinname) {
-      if (!phelp_cmd(prog, SPX, cmd, tout, verb )) {
+      /* [pt: 2026-09-19] fix broken apsearch behavior of not getting full prog
+         opt lists, by changing SPX -> TXT here */
+      if (!phelp_cmd(prog, TXT, cmd, tout, verb )) {
          ERROR_message("Failed to get help command");
          RETURN(ws);
       }
