@@ -820,6 +820,7 @@ int progopt_C_array(FILE *fout, int verb, char *thisprog, int appendmode)
    char **ws=NULL, *sout=NULL;
    float *ws_score=NULL;
    int N_ws=0, ii = 0, jj = 0, found=0;
+   int nfail=0;  /* [pt:2026-09-19] use this to improve apsearch */
    THD_string_array *progs=NULL;
    
    ENTRY("progopt_C_array");
