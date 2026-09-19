@@ -4380,6 +4380,7 @@ char **approx_str_sort_all_popts(char *prog, int textinname, int *N_ws,
             INFO_message("Empty help for '%s'", prog);
          }
       }
+      free(Dwi); Dwi = NULL; /* [pt: 2026-09-19] plug potential mem leak */
       RETURN(NULL);
    }
    free(Dwi); Dwi=NULL;
