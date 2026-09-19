@@ -2814,7 +2814,7 @@ libmrix.so:$(IMOBJS) imseq.h display.h xim.h bbox.h xutil.h
 
 ### Dependencies for above
 
-thd_getpathprogs.o:thd_getpathprogs.c progopts.c
+thd_getpathprogs.o:thd_getpathprogs.c prog_opts.c
 thd_compress.o:thd_compress.h
 mcw_glob.o:mcw_glob.h
 thd_iochan.o:thd_iochan.h
