@@ -4669,8 +4669,9 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname,
                "%s/%s.complete", hdir, etr);
       if (!force_recreate && THD_is_file(hout)) {
          if (verb) fprintf(stderr,"Reusing %s \n", hout);
-         if (!THD_is_file(houtc)) { /* this check will fail for bash completion,
-                                       but that's not important */
+         if (!THD_is_file(houtc) || THD_filesize(houtc) <= 0) {
+            /* this check will fail for bash completion, but that's
+               not important */
             prog_complete_command(etr, houtc, shtp);
          }
       } else {
