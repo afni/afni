@@ -703,7 +703,7 @@ typedef struct {
 char *form_C_progopt_string_from_struct(PROG_OPTS po)
 {
    char *sout=NULL, sbuf[128];
-   int maxch=0, i, jj, N_opts=0;
+   int maxch=0;
    
    if (!po.program) return(NULL);
    
@@ -718,7 +718,10 @@ char *form_C_progopt_string_from_struct(PROG_OPTS po)
    strncat(sout,po.program, maxch-strlen(sout)-1);
    strncat(sout,"\", \"", maxch-strlen(sout)-1);
    strncat(sout,po.options, maxch-strlen(sout)-1);
-   sprintf(sbuf,"\", %d", N_opts); strncat(sout,sbuf, maxch-strlen(sout)-1);
+   /* [pt: 2026-09-19] before, this always sprintf()'ed 0; change to
+      nonzero option count */
+   sprintf(sbuf,"\", %d", po.N_options);
+   strncat(sout,sbuf, maxch-strlen(sout)-1);
 
    strncat(sout,"}", maxch-strlen(sout)-1);
    if (strlen(sout)>=maxch-1) {
@@ -820,6 +823,7 @@ int progopt_C_array(FILE *fout, int verb, char *thisprog, int appendmode)
    char **ws=NULL, *sout=NULL;
    float *ws_score=NULL;
    int N_ws=0, ii = 0, jj = 0, found=0;
+   int nfail=0;  /* [pt:2026-09-19] use this to improve apsearch */
    THD_string_array *progs=NULL;
    
    ENTRY("progopt_C_array");
@@ -897,6 +901,10 @@ int progopt_C_array(FILE *fout, int verb, char *thisprog, int appendmode)
          for (jj=0; jj<N_ws; ++jj) if (ws[jj]) free(ws[jj]);
          free(ws); ws = NULL;
          if (ws_score) free(ws_score); ws_score=NULL;
+      } else {
+         ERROR_message("Failed to extract options for %s",
+                       THD_trailname(progs->ar[ii],0));
+         ++nfail;
       }
    }
    fprintf(fout, "   {  NULL, NULL, 0  }\n};\n\n"
@@ -905,6 +913,12 @@ int progopt_C_array(FILE *fout, int verb, char *thisprog, int appendmode)
    
    DESTROY_SARR(progs) ;
    
+   /* [pt: 2026-09-19] at the moment, this always returns success,
+      even if there were failures (now noted by nfail); we could
+      decide to return nonzero status here, with: RETURN(nfail ? 1 : 0); 
+      and if going this route, then whenever this function is used, that
+      return status can be used and propagated.
+   */
    RETURN(0);
 }
 
