@@ -125,6 +125,58 @@ int Xznzclose(znzFile * file)
   return retval;
 }
 
+/* ====================================================================== */
+#ifdef ZNZREAD_RETRY
+
+#include <sys/select.h>
+
+/* allow napping
+ *
+ * return: 1 on nap, 0 if not
+ *
+ * nap_ms: > 0 is ms to nap for
+ *         = 0 do not nap
+ *         < 0 not yet set
+ */
+static int znz_retry_nap(void) {
+   static int     nap_ms=-1; /* set this only once */
+
+   struct timeval tv;
+   char           *envptr=NULL;
+
+   /* if unset, try to get a nap time */
+   if( nap_ms < 0 ) {
+      nap_ms = 0;  /* init to no nap */
+
+      envptr = getenv("NIFTI_ZNZREAD_RETRY_NAP_MS");
+      if( envptr )
+         nap_ms = atoi(envptr);
+   }
+
+   /* if nap_ms is now zero, no nap */
+   if ( nap_ms <= 0 )
+      return 0;
+
+   /*** nap time! ***/
+
+   /* for now, be verbose */
+   fprintf(stderr,"-- znz_retry_nap: napping for %d ms...\n", nap_ms);
+   
+   tv.tv_sec = (int)(nap_ms/1000.0);    /* ms to int sec */
+   tv.tv_usec = 1000*(nap_ms % 1000);   /* remaining ms to us */
+
+   if( select(0, NULL, NULL, NULL, &tv) < 0 ) {
+      fprintf(stderr, "** znz_retry_nap: failed select() nap\n");
+      /* do we never try this again?  not sure */
+      /* nap_ms = 0;  now don't ... do it ... again */
+      return 0;
+   }
+
+   return 1;
+}
+#endif /* ZNZREAD_RETRY */
+/* ====================================================================== */
+
 
 /* we already assume ints are 4 bytes */
 #undef ZNZ_MAX_BLOCK_SIZE
@@ -137,6 +189,13 @@ size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file)
   unsigned   n2read;
   int        nread;
 
+#ifdef ZNZREAD_RETRY
+  /* for controlling reading retries (if fail, nap and try again) */
+  /* - allow this many retries, per znzread() call */
+  /* - the alternative is read failure and likely death at a higher level */
+  int        retry_nnaps=5;
+#endif
+
   if (file==NULL) { return 0; }
 #ifdef HAVE_ZLIB
   if (file->zfptr!=NULL) {
@@ -145,10 +204,34 @@ size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file)
     while( remain > 0 ) {
        n2read = (remain < ZNZ_MAX_BLOCK_SIZE) ? remain : ZNZ_MAX_BLOCK_SIZE;
        nread = gzread(file->zfptr, (void *)cbuf, n2read);
-       if( nread < 0 ) return nread; /* returns -1 on error */
+       if( nread < 0 ) {
+
+          fprintf(stderr,"** znzread: gzread failure\n");
+
+#ifdef ZNZREAD_RETRY
+          /* if we have naps to take and we actually take one, try again */
+          if( retry_nnaps >= 0 && znz_retry_nap() ) {
+             retry_nnaps--;
+             continue; /* will try to read more */
+          }
+#endif
+
+          return nread; /* returns -1 on error */
+       }
 
        remain -= nread;
        cbuf += nread;
+
+#ifdef ZNZREAD_RETRY
+       if( nread < (int)n2read ) {
+          fprintf(stderr,"** znzread: gzread only %u byres\n", nread);
+          /* if we have naps to take and we actually take one, try again */
+          if( retry_nnaps > 0 && znz_retry_nap() ) {
+             retry_nnaps--;
+             continue; /* will try to read more */
+          }
+       }
+#endif
 
        /* require reading n2read bytes, so we don't get stuck */
        if( nread < (int)n2read ) break;  /* return will be short */
