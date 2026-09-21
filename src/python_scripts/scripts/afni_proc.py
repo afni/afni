@@ -831,9 +831,10 @@ g_history = """
     8.07 Aug 25, 2026: do not pass all_runs to @radial_correlate
     8.08 Sep  4, 2026:
        - if results dir already exists, properly report any -out_dir
+    8.09 Sep 21, 2026: minor cleanup
 """
 
-g_version = "version 8.08, September 4, 2026"
+g_version = "version 8.09, September 21, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2234,7 +2235,6 @@ class SubjProcSream:
         if opt != None: self.script = opt.parlist[0]
         else:           self.script = 'proc.%s' % self.subj_id
 
-        opt = opt_list.find_opt('-uvar')
         olist = self.user_opts.find_all_opts('-uvar')
         for opt in olist:
            self.uvars.set_var(opt.parlist[0], opt.parlist[1:])
