@@ -2762,9 +2762,9 @@ class SubjProcSream:
             if tind >= 0: return -1, 'tlrc'     # before tlrc
 
             # work our way back
-            if self.find.block('tshift'):  return 1, 'tshift'
-            if self.find.block('ricor'):   return 1, 'ricor'
-            if self.find.block('despike'): return 1, 'despike'
+            if self.find_block('tshift'):  return 1, 'tshift'
+            if self.find_block('ricor'):   return 1, 'ricor'
+            if self.find_block('despike'): return 1, 'despike'
 
             return 1, 'tcat'
 
