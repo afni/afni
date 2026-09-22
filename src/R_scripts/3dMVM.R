@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.2.3, Dec 3, 2025
+Version 4.2.4, Dec 22, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -1250,10 +1250,9 @@ runAOV <- function(inData, dataframe, ModelForm) {
 	       #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- sign(glt[1,'Value']) * sqrt(glt[1,4])  # convert F to t
                #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,4]<0.5, qt(glt[1,4], glt$Df[2],
                #   lower.tail = FALSE)*sign(glt[1,'Value']), -qt(glt[1,4], glt$Df[2], lower.tail = FALSE)*sign(glt[1,'Value'])),
- 	       # Pr(>Chisq) from the 1-df chi-square test is two-sided, so the matching Z is
- 	       # qnorm(p/2) with the sign of the estimate (as in the non-robust and 3dLMEr paths);
- 	       # the old qnorm(p) form understated |Z| (e.g. 1.645 instead of 1.96 at p=0.05)
- 	       out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, sign(glt[1,'Value'])*qnorm(glt[1,'Pr(>Chisq)']/2, lower.tail = FALSE),
+               # replaced the line below per cindykrafft: 09/22/2026
+ 	       #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,'Pr(>Chisq)']<0.5, qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value']), -qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value'])),
+               out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, sign(glt[1,'Value'])*qnorm(glt[1,'Pr(>Chisq)']/2, lower.tail = FALSE),
                   sign(glt[1,'Value']) * sqrt(glt[1, intersect(c('F', 'approx F'), names(glt))]))
             } #if(!is.null(glt))
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])

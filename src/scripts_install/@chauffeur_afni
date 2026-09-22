@@ -370,8 +370,17 @@
 #set version   = "7.01"; set rev_dat   = "Jun 12, 2025"
 #   + [PT] remove "-no1D" in afni command, so we can pick ideal time series
 #
-set version   = "7.1"; set rev_dat   = "Jun 18, 2025"
+#set version   = "7.1"; set rev_dat   = "Jun 18, 2025"
 #   + [PT] generalized use of -pbar_thr_alpha functionality
+#
+#set version   = "7.2"; set rev_dat   = "Aug 27, 2026"
+#   + [PT] capture xvfb startup warnings---which can be voluminous---
+#          into a log/text file in the temp dir. Keeps the terminal
+#          text slightly less onerous, while also preserving the content
+#          in case there really is a problem
+#
+set version   = "7.3"; set rev_dat   = "Aug 28, 2026"
+#   + [PT] -pbar_thr_alpha ON by default now
 #
 # =====================================================================
 
@@ -463,7 +472,7 @@ set gen_comm   = ""            # [PT: Feb 22, 2021] pbar json output
 set pbar_for   = ""
 set ulay_comm  = ""
 
-set do_pbar_alpha = 0          # [PT: May 202 2025] can fade with colorbar_tool.py
+set do_pbar_alpha = 1          # [PT: May 202 2025] fade with colorbar_tool.py
 set pbar_orth  = ""            # [PT: May 202 2025] fade is not orth
 
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
@@ -1442,6 +1451,8 @@ endif
 
 # in so many cases we need a tmp working directory
 set read_dir = "$odir/$tmp_dir"
+# ... and now let's capture (but save) the xvfb start stuff from the term
+set log_xvfb = "${read_dir}/log_xvfb.txt"
 if ( ! -e $read_dir ) then
     echo "++ Making temporary work directory to copy vis files: $read_dir"
     \mkdir -p $read_dir
@@ -2378,7 +2389,9 @@ EOF
             set xdisplay = `count_afni -dig 1 3 999 R1`
             if ( -e /tmp/.X${xdisplay}-lock ) continue
             echo " -- trying to start Xvfb :${xdisplay} $opts_xvfb"
-            Xvfb :${xdisplay} $opts_xvfb -screen 0 1024x768x24 &
+            # now capturing warnings, but save in a log file in tmp dir
+            Xvfb :${xdisplay} $opts_xvfb -screen 0 1024x768x24 \
+                 >&! "${log_xvfb}" &
             sleep 1
             jobs > zzerm.$ranval.txt
             grep -q Xvfb zzerm.$ranval.txt
@@ -2388,6 +2401,19 @@ EOF
             @ ntry++
             if ( $ntry > 99 ) then
               echo "** ERROR: can't start Xvfb -- exiting"
+
+              # now also dump out log file (if it exists and is nonzero)
+              if ( -s "${log_xvfb}" ) then
+                  echo ""
+                  echo "++ Just for the (debugging) record, these were the"
+                  echo "   Xvfb startup messages:"
+                  echo "--------------------------------------------------"
+                  cat "${log_xvfb}"
+                  echo "--------------------------------------------------"
+              else
+                  echo "+* and the Xvfb log file is empty or nonexistent"
+              endif
+
               goto BAD_EXIT
             endif
           end

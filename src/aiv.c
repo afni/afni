@@ -525,7 +525,7 @@ ENTRY("AIVVV_imseq_getim") ;
                                                             /* destroyed    */
      stat->num_total  = ntot ;
      stat->num_series = ntot ;
-     stat->send_CB    = (gen_func *)AIVVV_imseq_send_CB ;
+     stat->send_CB    = AIVVV_imseq_send_CB ;
      stat->parent     = NULL ;
      stat->aux        = NULL ;
 

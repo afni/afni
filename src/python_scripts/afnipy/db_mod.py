@@ -1821,25 +1821,10 @@ def db_mod_ricor(block, proc, user_opts):
 
     # --------- process user options ------------
 
-    uopt = user_opts.find_opt('-ricor_datum')
-    bopt = block.opts.find_opt('-ricor_datum')
-    if uopt: # either replace block's opt or create it
-        if bopt: bopt.parlist[0] = uopt.parlist[0]
-        else: block.opts.add_opt('-ricor_datum', 1, uopt.parlist, setpar=1)
-
-    uopt = user_opts.find_opt('-ricor_polort')
-    bopt = block.opts.find_opt('-ricor_polort')
-    if uopt and bopt: bopt.parlist[0] = uopt.parlist[0]
-
-    uopt = user_opts.find_opt('-ricor_regress_solver')
-    bopt = block.opts.find_opt('-ricor_regress_solver')
-    if uopt and bopt: bopt.parlist[0] = uopt.parlist[0]
-
-    uopt = user_opts.find_opt('-ricor_regress_method')
-    bopt = block.opts.find_opt('-ricor_regress_method')
-    if uopt:
-        if bopt: bopt.parlist[0] = uopt.parlist[0]
-        else: bopt.parlist[0] = uopt.parlist[0]
+    apply_uopt_to_block('-ricor_datum', user_opts, block)
+    apply_uopt_to_block('-ricor_polort', user_opts, block)
+    apply_uopt_to_block('-ricor_regress_solver', user_opts, block)
+    apply_uopt_to_block('-ricor_regress_method', user_opts, block)
 
     block.valid = 1
 

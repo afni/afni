@@ -829,9 +829,12 @@ g_history = """
     8.05 Jan 13, 2026: create enorm time series even if no volreg or censoring
     8.06 Apr 24, 2026: if tedana masking, suggest -blur_in_mask yes
     8.07 Aug 25, 2026: do not pass all_runs to @radial_correlate
+    8.08 Sep  4, 2026:
+       - if results dir already exists, properly report any -out_dir
+    8.09 Sep 21, 2026: minor cleanup
 """
 
-g_version = "version 8.07, August 25, 2026"
+g_version = "version 8.09, September 21, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2232,7 +2235,6 @@ class SubjProcSream:
         if opt != None: self.script = opt.parlist[0]
         else:           self.script = 'proc.%s' % self.subj_id
 
-        opt = opt_list.find_opt('-uvar')
         olist = self.user_opts.find_all_opts('-uvar')
         for opt in olist:
            self.uvars.set_var(opt.parlist[0], opt.parlist[1:])
@@ -2760,9 +2762,9 @@ class SubjProcSream:
             if tind >= 0: return -1, 'tlrc'     # before tlrc
 
             # work our way back
-            if self.find.block('tshift'):  return 1, 'tshift'
-            if self.find.block('ricor'):   return 1, 'ricor'
-            if self.find.block('despike'): return 1, 'despike'
+            if self.find_block('tshift'):  return 1, 'tshift'
+            if self.find_block('ricor'):   return 1, 'ricor'
+            if self.find_block('despike'): return 1, 'despike'
 
             return 1, 'tcat'
 
@@ -3324,9 +3326,9 @@ class SubjProcSream:
            self.write_text( \
                 '# verify that the results directory does not yet exist\n'\
                 'if ( -d %s ) then\n'                                     \
-                '    echo output dir "$subj.results" already exists\n'    \
+                '    echo output dir "%s" already exists\n'    \
                 '    exit\n'                                              \
-                'endif\n\n' % self.od_var)
+                'endif\n\n' % (self.od_var, self.od_var))
         self.write_text('# set list of runs\n')
         digs = 2
         if self.runs > 99: digs = 3

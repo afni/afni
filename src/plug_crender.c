@@ -5033,7 +5033,7 @@ ENTRY( "RCREND_imseq_getim" );
                                                             /* destroyed    */
       stat->num_total  = ntot ;
       stat->num_series = stat->num_total ;
-      stat->send_CB    = (gen_func *)RCREND_seq_send_CB ;
+      stat->send_CB    = RCREND_seq_send_CB ;
       stat->parent     = NULL ;
       stat->aux        = NULL ;
 

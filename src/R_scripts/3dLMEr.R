@@ -23,7 +23,7 @@ help.LME.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dLMEr ==================
        Program for Voxelwise Linear Mixed-Effects (LME) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.2.2, July 28, 2026
+Version 1.2.3, Sept 22, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1398,11 +1398,9 @@ if(lop$TRR) {
    #   statsym <- c(statsym, list(list(sb=n-1, typ="fizt", par=NULL)))
    if(lop$num_glt > 0) for (n in 1:lop$num_glt)
       statsym <- c(statsym, list(list(sb=lop$nF+2*n-1, typ="fizt", par=NULL)))
-   if(lop$num_glf > 0) for (n in 1:lop$num_glf)  # each GLT occupies TWO bricks (value+Z), so the
-      # GLF chi-sq brick sits at nF+2*num_glt+n (1-based); the old index nF+num_glt+n-1 stamped
-      # the chi-sq declaration onto a GLT brick whenever num_glt > 0
+   if(lop$num_glf > 0) for (n in 1:lop$num_glf)
+      # fix the missing factor of 2 in the line below: per cindykrafft's finding - 09/22/2026
       statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+n-1, typ="fict", par=2)))
-#      statsym <- c(statsym, list(list(sb=lop$nF+2*lop$num_glt+n, typ="fizt", par=NULL)))
 }
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick,drop=FALSE], brickNames, defhead=head, idcode=newid.AFNI(),

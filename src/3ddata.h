@@ -5497,7 +5497,10 @@ extern int THD_mask_fill_holes( int,int,int, byte *, THD_ivec3 *, int);
 
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
-extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm, int redilate, byte nn ) ;
+extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm, 
+                            int redilate, byte nn ) ;
+extern void THD_mask_erode2D( int nx, int ny, int nz, byte *mmm,
+                              int noerode_dim, int redilate, byte NN ) ;
 extern void THD_mask_erode_sym(int nx,int ny,int nz, byte *mmm, int nerode,
                                int NN); /* NN: 19 May 2020 [rickr] */
 
@@ -5814,7 +5817,9 @@ typedef struct {
 
 } MRI_warp3D_align_basis ;
 
-extern int         mri_warp3D_align_setup  ( MRI_warp3D_align_basis * ) ;
+extern int         smallest_dim3(int D0, int D1, int D2 ); /* 11 Sep 2026 */
+extern int         mri_warp3D_align_setup  ( MRI_warp3D_align_basis *,
+                                             int setup_mask_code ) ; /* 11 Sep 2026 */
 extern MRI_IMAGE * mri_warp3D_align_one    ( MRI_warp3D_align_basis *, MRI_IMAGE * );
 extern void        mri_warp3D_align_cleanup( MRI_warp3D_align_basis * ) ;
 

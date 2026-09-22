@@ -4380,6 +4380,7 @@ char **approx_str_sort_all_popts(char *prog, int textinname, int *N_ws,
             INFO_message("Empty help for '%s'", prog);
          }
       }
+      free(Dwi); Dwi = NULL; /* [pt: 2026-09-19] plug potential mem leak */
       RETURN(NULL);
    }
    free(Dwi); Dwi=NULL;
@@ -4490,7 +4491,9 @@ char **approx_str_sort_phelp(char *prog, int textinname, int *N_ws, char *str,
    }
 
    if (!textinname) {
-      if (!phelp_cmd(prog, SPX, cmd, tout, verb )) {
+      /* [pt: 2026-09-19] fix broken apsearch behavior of not getting full prog
+         opt lists, by changing SPX -> TXT here */
+      if (!phelp_cmd(prog, TXT, cmd, tout, verb )) {
          ERROR_message("Failed to get help command");
          RETURN(ws);
       }
@@ -4669,8 +4672,9 @@ char *get_updated_help_file(int force_recreate, byte verb, char *progname,
                "%s/%s.complete", hdir, etr);
       if (!force_recreate && THD_is_file(hout)) {
          if (verb) fprintf(stderr,"Reusing %s \n", hout);
-         if (!THD_is_file(houtc)) { /* this check will fail for bash completion,
-                                       but that's not important */
+         if (!THD_is_file(houtc) || THD_filesize(houtc) <= 0) {
+            /* this check will fail for bash completion, but that's
+               not important */
             prog_complete_command(etr, houtc, shtp);
          }
       } else {
