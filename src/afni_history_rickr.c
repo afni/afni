@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Sep, 2026, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "minor cleanup - fix find_block, more apply_uopt_to_block",
+   NULL
+ } ,
+
  {  4, Sep, 2026, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "if results dir already exists, properly report any -out_dir",
    "Thanks to S Francis for noting the problem."
