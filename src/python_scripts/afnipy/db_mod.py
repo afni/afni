@@ -14752,7 +14752,7 @@ OPTIONS:  ~2~
 
         Please see 'WARP TO TLRC NOTE' above, for additional details.
         See also -volreg_tlrc_adwarp, -volreg_warp_dxyz, -tlrc_anat,
-        -volreg_warp_master, -copy_anat.
+        -volreg_warp_master, -volreg_warp_master_box, -copy_anat.
 
     -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
 
@@ -14788,7 +14788,8 @@ OPTIONS:  ~2~
             0.375  ...  0.4374 --> 0.375
             ...
 
-        Preferably, one can specify the new dimensions via -volreg_warp_master.
+        Preferably, one can specify the new dimensions via -volreg_warp_master
+        or -volreg_warp_master_box.
 
       * As of 2024.04.07: values just under a 3 bit limit will round up.
         The minimum dimension will first be scaled up by a factor of 1.0001
@@ -14799,7 +14800,7 @@ OPTIONS:  ~2~
 
             afni_python_wrapper.py -eval 'test_truncation()'
 
-        See also -volreg_warp_master.
+        See also -volreg_warp_master, -volreg_warp_master_box.
 
     -volreg_warp_final_interp METHOD : set final interpolation method
 
@@ -14843,6 +14844,8 @@ OPTIONS:  ~2~
             default: anatomical grid at truncated voxel size
                      (if applicable)
 
+        Specify the -master dataset for any EPI warp.
+
         This option allows the user to specify a dataset grid to warp
         the registered EPI data onto.  The voxels need not be isotropic.
 
@@ -14852,7 +14855,38 @@ OPTIONS:  ~2~
         It is up to the user to be sure the MASTER grid is in a suitable
         location for the results.
 
-        See also -volreg_warp_dxyz.
+      * This option is similar to -volreg_warp_master_box, but with the
+        -volreg_warp_master, any default dxyz will come from this dataset.
+
+      * Note that if -volreg_warp_dxyz, then -volreg_warp_master and
+        -volreg_warp_master_box have the same effect.
+
+        See also -volreg_warp_dxyz, -volreg_warp_master_box.
+
+    -volreg_warp_master_box MASTER_BOX : master dataset for volreg warps
+
+            e.g. -volreg_warp_master_box my_fave_grid+orig
+            default: anatomical grid at truncated voxel size
+                     (if applicable)
+
+        Specify the -master dataset for any EPI warp.
+
+        Similar to -volreg_warp_master, this option is used to provide a
+        master dataset for the warped EPI data.  But in the _box case, only
+        the bounding box is implied by the MASTER_BOX dataset, not the dxyz
+        parameters for the voxel dimensions.  The voxel dimensions come from
+        whatever the EPI would imply or any -volreg_warp_dxyz option.
+
+            -volreg_warp_master     : master grid (bounding box and dxyz)
+            -volreg_warp_master_box : master bounding box only, dxyz from EPI
+
+      * Note that if -volreg_warp_dxyz, then -volreg_warp_master and
+        -volreg_warp_master_box have the same effect.
+
+        It is up to the user to be sure the MASTER grid is in a suitable
+        location for the results.
+
+        See also -volreg_warp_dxyz, -volreg_warp_master.
 
     -volreg_zpad N_SLICES   : specify number of slices for -zpad
 
