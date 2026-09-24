@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.1, Sept 17, 2026
+Version 0.1.2, Sept 24, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1149,6 +1149,21 @@ while(is.null(fm)) {
    options(warn=-1)
    if(is.null(lop$family)) try(fm <- glmmTMB(lop$model, data=lop$dataStr), silent=TRUE) else 
       if(lop$family=='student.t') try(fm <- glmmTMB_t(lop$model, DM=lop$dataStr, c(9,30,50)), silent=TRUE)
+
+   is_model_ok <- function(fm) {
+      if (is.null(fm)) return(FALSE)
+      ll <- suppressWarnings(logLik(fm))
+      coefs <- suppressWarnings(unlist(coef(fm))) #coefs <- suppressWarnings(coef(fm)$cond[[1]])
+      is.finite(ll) && all(is.finite(coefs))
+   }
+   if(!is_model_ok(fm)) {
+      if(is.null(lop$family))
+         try(fm <- glmmTMB(lop$model, data=DM, control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE) else {
+         if(lop$family=='student.t') 
+            try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50), control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE)
+      }
+   }
+   
    if(!is.null(fm)) {    
       brickNames <- paste(row.names(Anova(fm, type=lop$SS_type)), 'chisq')
       lop$n.omni <- length(brickNames)
@@ -1256,7 +1271,7 @@ options(contrasts = c("contr.sum", "contr.poly"))
          stopCluster(cl)
       }
       # convert to 4D
-      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick+2*lop$R2+(!is.null(lop$resid))*nrow(lop$dataStr))
       # remove the trailers (padded 0s)
       Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
    } else { # volumetric data
