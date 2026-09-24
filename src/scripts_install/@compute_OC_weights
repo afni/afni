@@ -447,7 +447,7 @@ endif
         
 
 # copy back to $prefix
-cd $root_dir
+cd "$root_dir"
 3dbucket -prefix $prefix $work_dir/$result_dset$view
 3dNotes -h "$prog $argv" $prefix$view
 set rv = $status
@@ -736,6 +736,7 @@ modification history for $prog :
    0.4  10 Dec 2019 : added 3dMean -weightset example
    0.5  20 Dec 2019 : added 3dMean hint at end of execution
    0.6  15 Aug 2025 : added -prefix_combine, to run 3dMean internally
+   0.7  24 Sep 2026 : care for space in directory
 
 EOF
 exit

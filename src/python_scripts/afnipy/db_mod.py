@@ -6563,8 +6563,11 @@ def db_cmd_regress(proc, block):
     # (early return via 'DONE' terminates this proc instance)
     if proc.skip_censor or block.opts.find_opt('-regress_skip_censor'):
        proc.skip_censor = 1
-       if proc.censor_file: censor_str = ''
-       else:                return 'DONE'
+       if proc.censor_file:
+          censor_str = ''
+       else:
+          print("** no censoring, but have -regress_skip_censor")
+          return
 
     # check for regress_orts lines
     reg_orts = []
