@@ -957,6 +957,7 @@ More detailed changes, starting May, 2018.
 """
 
 g_todo_str = """todo:
+  - add examples: fmriprep, 'current' set that varies over time
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
   - allow listing examples by keyword (choose and/or remove)
   - example demo 2b should be added to APMD1 tree
@@ -1070,22 +1071,34 @@ stim_file_types  = ['times', 'AM1', 'AM2', 'IM', 'file']
 # apply to apqc_make_tcsh.py
 g_html_review_styles = ['none', 'basic', 'pythonic' ] # java?
 
-# based on what is specified as a dataset, but focus on what
-# is expected to vary
-g_eg_skip_opts = [ 
-   '-subj_id', '-script', '-out_dir', '-align_epi_ext_dset', 
-   '-anat_follower', '-anat_follower_ROI', 
+# based on what is specified as a dataset, but focus on what is expected to vary
+#
+# - if in this list, compare_* functions consider parameter differences
+#   for these options as unimportant (they are expected to vary)
+# - as a list of file-input options, these will produce a -CHECK prefix
+#   for corresponding option names, suggesting the user should verify them
+# - a different categorization would be useful for computing a difference
+#   value between a pair of option lists, to determine similarity
+g_eg_skip_opts = [
+   # non-data input options:
+   '-subj_id', '-script', '-out_dir',
+   '-regress_extra_ortvec_labels',
+   # data input options:
+   '-copy_files', '-copy_anat',
+   '-dsets', '-dsets_me_echo', '-dsets_me_run',
+   '-align_epi_ext_dset', '-anat_follower', '-anat_follower_ROI',
    '-blip_forward_dset', '-blip_reverse_dset', '-blip_warp_dset',
-   '-copy_anat', '-dsets', '-dsets_me_echo', '-dsets_me_run', 
    '-surf_anat', '-surf_spec',
-   '-tlrc_NL_warped_dsets', 
-   # '-volreg_base_dset',   (not sure, so allow for now)
+   '-tlrc_base', '-tlrc_NL_warped_dsets', '-tlrc_affine_warped_dsets',
+   '-volreg_base_dset', '-volreg_warp_master', '-volreg_warp_master_box',
+   '-combine_tedana_path',
+   '-mask_import', '-ROI_import',
    '-regress_censor_extern',  '-regress_extra_stim_files',
-   '-regress_extra_ortvec',   '-regress_extra_ortvec_labels',
+   '-regress_extra_ortvec',
    '-regress_per_run_ortvec', '-regress_motion_file',
-   '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times', 
+   '-regress_ppi_stim_files', '-regress_stim_files', '-regress_stim_times',
    '-ricor_regs'
-   ] 
+   ]
 
 # --------------------------------------------------------------------------
 # data processing stream class

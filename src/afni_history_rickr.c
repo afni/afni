@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Sep, 2026, RCR, "@compute_OC_weights", MICRO, TYPE_ENHANCE,
+   "allow for space in execution directory, and other minor updates",
+   NULL
+ } ,
+
  { 21, Sep, 2026, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "minor cleanup - fix find_block, more apply_uopt_to_block",
    NULL

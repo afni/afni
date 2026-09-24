@@ -3801,6 +3801,7 @@ def db_mod_combine(block, proc, user_opts):
    apply_uopt_to_block('-combine_opts_tedwrap', user_opts, block)
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
    apply_uopt_to_block('-combine_tedort_reject_midk', user_opts, block)
+   apply_uopt_to_block('-combine_tedana_save_all', user_opts, block)
 
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv:
@@ -4480,7 +4481,8 @@ def db_cmd_motsim(proc, block):
    # first create afni_names for MS dsets
    # (view from proc.vr_base_dset, or proc.view for warped)
 
-   return
+   print("** db_cmd_motsim: not yet written")
+   return None # return failure for now
 
 
 # check all -surf options
@@ -4959,8 +4961,9 @@ def db_cmd_blur(proc, block):
 def mod_blur_surf(block, proc, user_opts):
 
     # check for option updates
-    uopt = user_opts.find_opt('-surf_smooth_niter')
-    if uopt: block.opts.add_opt('-surf_smooth_niter', 1, uopt.parlist, setpar=1)
+
+    # not currently implemented
+    # apply_uopt_to_block('-surf_smooth_niter', user_opts, block)
 
     # do not allow some options with surface-based analysis
     non_surf_opts = ['-blur_in_mask', '-blur_in_automask', '-blur_opts_merge']
@@ -4985,11 +4988,12 @@ def cmd_blur_surf(proc, block, bsize, havesize=1):
     if proc.verb > 2:
        print('-- surf blur_size : %s\n' % proc.surf_blur_fwhm)
 
+    # ** not sure if we want to implement -surf_smooth_niter
     # check for number of requested iterations
-    niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
-    if err: return
-    if niter != None: ss_opts = ' '*23 + '-Niter %s'%niter + ' \\\n'
-    else:             ss_opts = ''
+    # niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
+    # if err: return
+    # if niter != None: ss_opts = ' '*23 + '-Niter %s'%niter + ' \\\n'
+    # else:             ss_opts = ''
 
     cmd = "# %s\n" % block_header('blur (on surface)')
 
@@ -5133,8 +5137,9 @@ def db_cmd_mask(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-mask_type')
     mtype = opt.parlist[0]
-    if mtype == 'union': minv = 0           # result must be greater than minv
-    else:                minv = 0.999
+    if mtype.startswith('inter'): mtype = 'inter'
+    else:                         mptye = 'union'
+    # might alternatively take a float in [0,1]
 
     # if we have an EPI mask, set the view here
     if proc.mask_epi.view == '': proc.mask_epi.view = proc.view
@@ -5162,8 +5167,8 @@ def db_cmd_mask(proc, block):
 
     # make the mask (3dMean/3dcalc/3dcopy -> 3dmask_tool 26 Jun 2014 [rickr])
     cmd = cmd + "# create union of inputs, output type is byte\n"            \
-                "3dmask_tool -inputs rm.mask_r*%s.HEAD -union -prefix %s\n\n"\
-                % (proc.view, proc.mask_epi.prefix)
+                "3dmask_tool -inputs rm.mask_r*%s.HEAD -%s -prefix %s\n\n"\
+                % (proc.view, mtype, proc.mask_epi.prefix)
     proc.mask_epi.created = 1  # so this mask 'exists' now
 
     # if possible make a subject anat mask, resampled to EPI
@@ -6558,8 +6563,11 @@ def db_cmd_regress(proc, block):
     # (early return via 'DONE' terminates this proc instance)
     if proc.skip_censor or block.opts.find_opt('-regress_skip_censor'):
        proc.skip_censor = 1
-       if proc.censor_file: censor_str = ''
-       else:                return 'DONE'
+       if proc.censor_file:
+          censor_str = ''
+       else:
+          print("** no censoring, but have -regress_skip_censor")
+          return
 
     # check for regress_orts lines
     reg_orts = []
@@ -9196,7 +9204,7 @@ def db_cmd_tlrc(proc, block):
     else:                                                  strip = 1
 
     # note any requested resample mode
-    rmode, err = block.opts.get_string_opt('-tlrc_rmod', default='')
+    rmode, err = block.opts.get_string_opt('-tlrc_rmode', default='')
 
     # note any suffix for the tlrcanat dataset
     suffix, err = block.opts.get_string_opt('-tlrc_suffix', default='')
@@ -14752,7 +14760,7 @@ OPTIONS:  ~2~
 
         Please see 'WARP TO TLRC NOTE' above, for additional details.
         See also -volreg_tlrc_adwarp, -volreg_warp_dxyz, -tlrc_anat,
-        -volreg_warp_master, -copy_anat.
+        -volreg_warp_master, -volreg_warp_master_box, -copy_anat.
 
     -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
 
@@ -14788,7 +14796,8 @@ OPTIONS:  ~2~
             0.375  ...  0.4374 --> 0.375
             ...
 
-        Preferably, one can specify the new dimensions via -volreg_warp_master.
+        Preferably, one can specify the new dimensions via -volreg_warp_master
+        or -volreg_warp_master_box.
 
       * As of 2024.04.07: values just under a 3 bit limit will round up.
         The minimum dimension will first be scaled up by a factor of 1.0001
@@ -14799,7 +14808,7 @@ OPTIONS:  ~2~
 
             afni_python_wrapper.py -eval 'test_truncation()'
 
-        See also -volreg_warp_master.
+        See also -volreg_warp_master, -volreg_warp_master_box.
 
     -volreg_warp_final_interp METHOD : set final interpolation method
 
@@ -14843,6 +14852,8 @@ OPTIONS:  ~2~
             default: anatomical grid at truncated voxel size
                      (if applicable)
 
+        Specify the -master dataset for any EPI warp.
+
         This option allows the user to specify a dataset grid to warp
         the registered EPI data onto.  The voxels need not be isotropic.
 
@@ -14852,7 +14863,38 @@ OPTIONS:  ~2~
         It is up to the user to be sure the MASTER grid is in a suitable
         location for the results.
 
-        See also -volreg_warp_dxyz.
+      * This option is similar to -volreg_warp_master_box, but with the
+        -volreg_warp_master, any default dxyz will come from this dataset.
+
+      * Note that if -volreg_warp_dxyz, then -volreg_warp_master and
+        -volreg_warp_master_box have the same effect.
+
+        See also -volreg_warp_dxyz, -volreg_warp_master_box.
+
+    -volreg_warp_master_box MASTER_BOX : master dataset for volreg warps
+
+            e.g. -volreg_warp_master_box my_fave_grid+orig
+            default: anatomical grid at truncated voxel size
+                     (if applicable)
+
+        Specify the -master dataset for any EPI warp.
+
+        Similar to -volreg_warp_master, this option is used to provide a
+        master dataset for the warped EPI data.  But in the _box case, only
+        the bounding box is implied by the MASTER_BOX dataset, not the dxyz
+        parameters for the voxel dimensions.  The voxel dimensions come from
+        whatever the EPI would imply or any -volreg_warp_dxyz option.
+
+            -volreg_warp_master     : master grid (bounding box and dxyz)
+            -volreg_warp_master_box : master bounding box only, dxyz from EPI
+
+      * Note that if -volreg_warp_dxyz, then -volreg_warp_master and
+        -volreg_warp_master_box have the same effect.
+
+        It is up to the user to be sure the MASTER grid is in a suitable
+        location for the results.
+
+        See also -volreg_warp_dxyz, -volreg_warp_master.
 
     -volreg_zpad N_SLICES   : specify number of slices for -zpad
 
