@@ -957,6 +957,7 @@ More detailed changes, starting May, 2018.
 """
 
 g_todo_str = """todo:
+  - add examples: fmriprep, 'current' set that varies over time
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
   - allow listing examples by keyword (choose and/or remove)
   - example demo 2b should be added to APMD1 tree

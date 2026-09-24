@@ -3801,6 +3801,7 @@ def db_mod_combine(block, proc, user_opts):
    apply_uopt_to_block('-combine_opts_tedwrap', user_opts, block)
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
    apply_uopt_to_block('-combine_tedort_reject_midk', user_opts, block)
+   apply_uopt_to_block('-combine_tedana_save_all', user_opts, block)
 
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv:
@@ -4480,7 +4481,8 @@ def db_cmd_motsim(proc, block):
    # first create afni_names for MS dsets
    # (view from proc.vr_base_dset, or proc.view for warped)
 
-   return
+   print("** db_cmd_motsim: not yet written")
+   return None # return failure for now
 
 
 # check all -surf options
@@ -4959,8 +4961,9 @@ def db_cmd_blur(proc, block):
 def mod_blur_surf(block, proc, user_opts):
 
     # check for option updates
-    uopt = user_opts.find_opt('-surf_smooth_niter')
-    if uopt: block.opts.add_opt('-surf_smooth_niter', 1, uopt.parlist, setpar=1)
+
+    # not currently implemented
+    # apply_uopt_to_block('-surf_smooth_niter', user_opts, block)
 
     # do not allow some options with surface-based analysis
     non_surf_opts = ['-blur_in_mask', '-blur_in_automask', '-blur_opts_merge']
@@ -4985,11 +4988,12 @@ def cmd_blur_surf(proc, block, bsize, havesize=1):
     if proc.verb > 2:
        print('-- surf blur_size : %s\n' % proc.surf_blur_fwhm)
 
+    # ** not sure if we want to implement -surf_smooth_niter
     # check for number of requested iterations
-    niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
-    if err: return
-    if niter != None: ss_opts = ' '*23 + '-Niter %s'%niter + ' \\\n'
-    else:             ss_opts = ''
+    # niter, err = block.opts.get_type_opt(int, '-surf_smooth_niter')
+    # if err: return
+    # if niter != None: ss_opts = ' '*23 + '-Niter %s'%niter + ' \\\n'
+    # else:             ss_opts = ''
 
     cmd = "# %s\n" % block_header('blur (on surface)')
 
@@ -5133,8 +5137,9 @@ def db_cmd_mask(proc, block):
     cmd = ''
     opt = block.opts.find_opt('-mask_type')
     mtype = opt.parlist[0]
-    if mtype == 'union': minv = 0           # result must be greater than minv
-    else:                minv = 0.999
+    if mtype.startswith('inter'): mtype = 'inter'
+    else:                         mptye = 'union'
+    # might alternatively take a float in [0,1]
 
     # if we have an EPI mask, set the view here
     if proc.mask_epi.view == '': proc.mask_epi.view = proc.view
@@ -5162,8 +5167,8 @@ def db_cmd_mask(proc, block):
 
     # make the mask (3dMean/3dcalc/3dcopy -> 3dmask_tool 26 Jun 2014 [rickr])
     cmd = cmd + "# create union of inputs, output type is byte\n"            \
-                "3dmask_tool -inputs rm.mask_r*%s.HEAD -union -prefix %s\n\n"\
-                % (proc.view, proc.mask_epi.prefix)
+                "3dmask_tool -inputs rm.mask_r*%s.HEAD -%s -prefix %s\n\n"\
+                % (proc.view, mtype, proc.mask_epi.prefix)
     proc.mask_epi.created = 1  # so this mask 'exists' now
 
     # if possible make a subject anat mask, resampled to EPI
@@ -9196,7 +9201,7 @@ def db_cmd_tlrc(proc, block):
     else:                                                  strip = 1
 
     # note any requested resample mode
-    rmode, err = block.opts.get_string_opt('-tlrc_rmod', default='')
+    rmode, err = block.opts.get_string_opt('-tlrc_rmode', default='')
 
     # note any suffix for the tlrcanat dataset
     suffix, err = block.opts.get_string_opt('-tlrc_suffix', default='')
