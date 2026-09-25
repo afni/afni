@@ -2728,7 +2728,7 @@ else:
 #################################################
 plt.close('all')
 
-# 1: Enforce strict deep copies from your original immutable backup arrays
+# 0: Enforce strict deep copies from your original immutable backup arrays
 # This prevents previous legacy modifications from corrupting the raw input timeline.
 cardiacTimeSeries = np.array(copy.deepcopy(originalCardiacTimeSeries))
 cardiacPeaks = np.array(copy.deepcopy(originalCardiacPeaks), dtype=int)
@@ -2747,26 +2747,26 @@ print("Computing Completely Detrended Local Mahalanobis Matrix...")
 cardiac_baseline = alsBaseline(cardiacTimeSeries, lam=1e6, p=0.01)
 detrended_cardiac_signal = cardiacTimeSeries - cardiac_baseline
 
-# 1. Extract the metrics using the clean, detrended signal line directly!
+# 2. Extract the metrics using the clean, detrended signal line directly!
 # BUGFIX: extract_cardiac_metrics now also returns feature_peak_idx, the
 # explicit row -> original-peak-index map, since rows can be skipped
 # (len(cycle) < 3) and a fixed "row k == peak k+1" offset silently desyncs
 # after the first skip.
 feature_matrix, feature_peak_idx = extract_cardiac_metrics(cardiacPeaks, detrended_cardiac_signal, samp_freq)
 
-# 2. SEPARATE INTO DISTINCT FUNCTIONAL SUB-SPACES
+# 3. SEPARATE INTO DISTINCT FUNCTIONAL SUB-SPACES
 rhythm_features = feature_matrix[:, 0:2]
 morphology_features = feature_matrix[:, 2:]
 
-# 3. Calculate Independent Robust Local Distances
+# 4. Calculate Independent Robust Local Distances
 distances_rhythm = calculate_robust_local_mahalanobis(rhythm_features, window_size=60)
 distances_morph = calculate_robust_local_mahalanobis(morphology_features, window_size=60)
 
-# 4. COMBINE DISTANCES (Take the maximum risk score from either sub-space)
+# 5. COMBINE DISTANCES (Take the maximum risk score from either sub-space)
 distances = np.maximum(distances_rhythm, distances_morph)
 rankVector = np.argsort(distances)[::-1]
 
-# 5. Standard Adaptive Threshold on Combined Distances
+# 6. Standard Adaptive Threshold on Combined Distances
 q1, q3 = np.percentile(distances, [25, 75])
 iqr = q3 - q1
 sorted_vals = np.sort(np.asarray(distances))
@@ -2774,13 +2774,13 @@ real_gaps = np.diff(sorted_vals)
 k_opt = gap_based_multiplier(real_gaps)
 adaptive_upper_bound = q3 + k_opt * iqr
 
-# 6. Extract PURE Time Intervals (Column 0 of your feature matrix)
+# 7. Extract PURE Time Intervals (Column 0 of your feature matrix)
 pure_intervals = feature_matrix[:, 0]
 N_feat = len(pure_intervals)
 is_dropped_beat = np.zeros(N_feat, dtype=bool)
 assert len(feature_peak_idx) == N_feat  # BUGFIX: keep the row->peak map in sync
 
-# Window loop to isolate pure relative timing spikes (dropped beats)
+# 8.  Window loop to isolate pure relative timing spikes (dropped beats)
 window_size = 60
 for i in range(N_feat):
     start = max(0, i - window_size // 2)
@@ -2794,16 +2794,16 @@ for i in range(N_feat):
     if pure_intervals[i] > (local_median + 2.5 * max(local_mad, 0.05)):
         is_dropped_beat[i] = True
         
-# 3. Combine Outliers using an "OR" logical condition
+# 9. . Combine Outliers using an "OR" logical condition
 is_artifact = distances > adaptive_upper_bound
 is_dropped_beat_flag = is_dropped_beat
 
-# 4. Process separate index trackers to prevent index-shift cross-contamination
+# 10. Process separate index trackers to prevent index-shift cross-contamination
 mahal_ts_ranges = []
 peak_outliers_list = []
 last_peak_idx = len(cardiacPeaks) - 1
 
-# --- TRACKER A: Extract High-Dimensional Shape Metrics ---
+# 11.  --- TRACKER A: Extract High-Dimensional Shape Metrics ---
 if np.sum(is_artifact) > 0:
     flagged_art_rows = np.where(is_artifact)[0]
     for k in flagged_art_rows:
@@ -2816,7 +2816,7 @@ if np.sum(is_artifact) > 0:
         end_idx = min(last_peak_idx, target_peak_idx + 1)
         mahal_ts_ranges.append([cardiacPeaks[start_idx], cardiacPeaks[end_idx]])
 
-# --- TRACKER B: Extract Pure 1D Rhythm Timing Breaks ---
+# 12.  --- TRACKER B: Extract Pure 1D Rhythm Timing Breaks ---
 # This explicitly captures the dropped beats at 7.0, 8.5, 11.5, and 13.0 minutes
 if np.sum(is_dropped_beat_flag) > 0:
     flagged_rhythm_rows = np.where(is_dropped_beat_flag)[0]
@@ -2834,10 +2834,10 @@ if np.sum(is_dropped_beat_flag) > 0:
         end_idx = min(last_peak_idx, target_peak_idx + 2)
         mahal_ts_ranges.append([cardiacPeaks[start_idx], cardiacPeaks[end_idx]])
 
-# Ensure clean numpy formatting and uniqueness
+# 13. Ensure clean numpy formatting and uniqueness
 peak_outliers = np.unique(peak_outliers_list).astype(int)
 
-# 5. Chronological sorting and gap merging
+# 14. Chronological sorting and gap merging
 sorted_ts_ranges = sorted(mahal_ts_ranges, key=lambda item: item[0])
 outlier_ts_ranges = []
 for current_range in sorted_ts_ranges:
@@ -2853,10 +2853,10 @@ for current_range in sorted_ts_ranges:
         else:
             outlier_ts_ranges.append(list(current_range))
 
-# 6. Type-cast to numpy integer array safely to prevent plot script attribute errors
+# 15. Type-cast to numpy integer array safely to prevent plot script attribute errors
 cardiacPeaks_arr = np.array(cardiacPeaks, dtype=int)
 
-# 7. Run execution pipeline under the clean unique filename tag
+# 16. Run execution pipeline under the clean unique filename tag
 cardiacPeaks = writeCardiacResultsToFiles(
     OutDir, 
     cardiacTimeSeries, 
@@ -2869,14 +2869,14 @@ cardiacPeaks = writeCardiacResultsToFiles(
     "MAHALANOBIS"
 )
 
-# 8. Force close active layout windows
+# 17. Force close active layout windows
 plt.close('all')
                                     
 ####################################################
 # Mahalanobis Distance analysis for respiratory data
 ####################################################
 
-# Identify peak-trough mismatches (only applies to respiratory data)
+# 1: Identify peak-trough mismatches (only applies to respiratory data)
 print('Identify peak-trough mismatches')
 respiratoryPeaks_scaled = np.array(respiratoryPeaks) / samp_freq
 respiratoryTroughs_scaled = np.array(respiratoryTroughs) / samp_freq
@@ -2890,7 +2890,7 @@ respiratoryPeaks = np.array(respiratoryPeaks)
 troughPeakMismatchRanges = list(zip(respiratoryPeaks[:-1][mask], 
                   respiratoryPeaks[1:][mask]))
 
-# Fix peak-trough mismatches
+# 2: Fix peak-trough mismatches
 (
     respiratoryPeaks,
     respiratoryTroughs,
@@ -2898,7 +2898,7 @@ troughPeakMismatchRanges = list(zip(respiratoryPeaks[:-1][mask],
     added_troughs
     ) = correctRespiratoryBijectivity(respiratoryPeaks, respiratoryTroughs)
 
-# Display bijectivity correction
+# 3:  Display bijectivity correction
 if als_baseline_display:
     baseline = alsBaseline(respiratoryTimeSeries, lam=1e6, p=0.01)
     displayTimeSeries = respiratoryTimeSeries - baseline
@@ -2909,7 +2909,7 @@ dsplayBijectivityCcorrection(OutDir, displayTimeSeries, respiratoryPeaks,
                              respiratoryTroughs, added_peaks, added_troughs,
                              samp_freq)
 
-# 1. Extract the metrics incorporating your baseline subtraction rule.
+# 4. Extract the metrics incorporating your baseline subtraction rule.
 # feature_peak_idx is the explicit row -> original respiratoryPeaks index map
 # (rows can be skipped inside extract_respiratory_metrics, e.g. when a peak
 # isn't cleanly bracketed by two troughs, so we never assume row k == peak k+1
@@ -2918,7 +2918,7 @@ respiratory_features, feature_peak_idx = extract_respiratory_metrics(
     respiratoryPeaks, respiratoryTroughs, respiratoryTimeSeries, samp_freq)
 print(f"Respiratory Feature Matrix Shape: {respiratory_features.shape}")
 
-# 2. SEPARATE INTO DISTINCT FUNCTIONAL SUB-SPACES, same idea as the cardiac
+# 5. SEPARATE INTO DISTINCT FUNCTIONAL SUB-SPACES, same idea as the cardiac
 # split: timing/rate columns vs. shape/amplitude columns. Column order from
 # extract_respiratory_metrics is:
 #   0 interval, 1 relative_amplitude, 2 width, 3 ie_ratio, 4 diff_left,
@@ -2929,14 +2929,14 @@ morphology_cols = [1, 2, 3, 4, 5, 7, 8]           # breath shape / amplitude
 rhythm_features = respiratory_features[:, rhythm_cols]
 morphology_features = respiratory_features[:, morphology_cols]
 
-# 3. Calculate Independent Robust Local Distances (same windowed, median/
+# 6. Calculate Independent Robust Local Distances (same windowed, median/
 # robust-covariance approach used for the cardiac data, reused as-is since
 # it's generic over any feature matrix).
 resp_window_size = 60
 distances_rhythm = calculate_robust_local_mahalanobis(rhythm_features, window_size=resp_window_size)
 distances_morph = calculate_robust_local_mahalanobis(morphology_features, window_size=resp_window_size)
 
-# 4. COMBINE DISTANCES (take the maximum risk score from either sub-space)
+# 7. COMBINE DISTANCES (take the maximum risk score from either sub-space)
 distances = np.maximum(distances_rhythm, distances_morph)
 rankVector = np.argsort(distances)[::-1]
 
