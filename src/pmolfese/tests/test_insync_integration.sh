@@ -137,3 +137,25 @@ paste <(1dcat "$tmpdir/tail-bisided-negative.1D[8]") \
   awk '$1 < 0 && $2 < 0 {seen=1} $1 < 0 && $2 > 0 {exit 1} END {exit !seen}'
 
 echo 'PASS: 3dInSync Phase 5 integration tests'
+
+# Phase 6: -zcensor detects all-zero input volumes, uses one shared timeline,
+# and reports inputs whose zero-volume rate exceeds the default 20% warning.
+printf '%s\n' '1 0 1 0 1 1 1 1' '2 0 2 0 2 2 2 2' > "$tmpdir/z1.1D"
+printf '%s\n' '1 1 1 1 1 1 1 1' '2 2 2 2 2 2 2 2' > "$tmpdir/z2.1D"
+printf '%s\n' '2 2 2 2 2 2 2 2' '1 1 1 1 1 1 1 1' > "$tmpdir/z3.1D"
+{
+  echo 'Subj InputFile'
+  echo "z1 $tmpdir/z1.1D"
+  echo "z2 $tmpdir/z2.1D"
+  echo "z3 $tmpdir/z3.1D"
+} > "$tmpdir/zcensor.txt"
+
+AFNI_NOMMAP=YES "$prog" -prefix "$tmpdir/zcensor" -zcensor \
+  -dataTableFile "$tmpdir/zcensor.txt" >"$tmpdir/zcensor.log" 2>&1
+test "$(3dinfo -nv "$tmpdir/zcensor.1D")" -eq 3
+1dcat "$tmpdir/zcensor.1D[2]" |
+  awk 'NR==1 && $1!=6 {exit 1} NR==2 && $1!=6 {exit 1}'
+grep -q -- '-zcensor found 2 all-zero time points; removed 2 and retained 6 of 8' "$tmpdir/zcensor.log"
+grep -q -- 'Subj z1, condition All' "$tmpdir/zcensor.log"
+
+echo 'PASS: 3dInSync Phase 6 zcensor integration tests'

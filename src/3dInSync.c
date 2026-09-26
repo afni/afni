@@ -36,7 +36,7 @@ static char *insync_options[] = {
    "-temporal_null", "-nnull", "-min_shift", "-temporal_tail",
    "-condition_column", "-condition_contrast", "-ncondperm",
    "-condition_exact", "-condition_tail", "-save_pairwise",
-   "-correlation", "-censor", "-missing", "-atlas", "-roi_sel",
+   "-correlation", "-censor", "-zcensor", "-zcensor_warn", "-missing", "-atlas", "-roi_sel",
    "-save_matrix", "-memory_limit", "-memory_override", "-quiet", "-progress",
    "-dataTable", "-dataTableFile", "-show_table", "-help", "-h", NULL
 } ;
@@ -95,6 +95,13 @@ static void usage_3dInSync(void)
 "                       subjects, conditions, voxels, and ROIs. At least three\n"
 "                       must remain. Censoring cannot be combined with temporal\n"
 "                       nulls, whose circular timeline would become ambiguous.\n"
+"\n"
+"  -zcensor             Omit a time point when any subject/condition input\n"
+"                       volume is all zero in the analysis mask. This creates\n"
+"                       one common retained timeline, like -censor.\n"
+"\n"
+"  -zcensor_warn PCT    Warn for each subject/condition input with more than\n"
+"                       PCT percent all-zero volumes [20].\n"
 "\n"
 "  -missing POLICY      error  : reject nonfinite retained input data [default]\n"
 "                       common : at each voxel/ROI, drop a time point from all\n"
@@ -687,6 +694,9 @@ int main( int argc, char **argv )
    char *contrast_name1=NULL ;
    char *pair_prefix=NULL ;
    char *censor_name=NULL ;
+   int do_zcensor=0 ;
+   int zcensor_warn_given=0 ;
+   float zcensor_warn=20.0f ;
    char *atlas_name=NULL ;
    char *roi_sel=NULL ;
    char *matrix_name=NULL ;
@@ -760,6 +770,9 @@ int main( int argc, char **argv )
    int vv ;
    int kk ;
    int cc ;
+   int ci ;
+   int si ;
+   int tt ;
    int nmask ;
    long long invalid_total=0 ;
    long long boot_invalid_total=0 ;
@@ -814,6 +827,13 @@ int main( int argc, char **argv )
      if( strcasecmp(argv[nopt],"-censor")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a 1D file after -censor") ;
        censor_name=argv[nopt++] ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-zcensor")==0 ){
+       do_zcensor=1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-zcensor_warn")==0 ){
+       if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a percentage after -zcensor_warn") ;
+       zcensor_warn=(float)strtod(argv[nopt++],NULL) ; zcensor_warn_given=1 ; continue ;
      }
      if( strcasecmp(argv[nopt],"-missing")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need error or common after -missing") ;
@@ -992,9 +1012,13 @@ int main( int argc, char **argv )
    if( temporal_mode!=TNULL_NONE && nnull<20 ) ERROR_exit(PROGRAM_NAME ": -temporal_null requires -nnull >= 20") ;
    if( temporal_mode!=TNULL_TIMESHIFT && min_shift_given ) ERROR_exit(PROGRAM_NAME ": -min_shift applies only to timeshift") ;
    if( temporal_mode==TNULL_NONE && temporal_tail_given ) ERROR_exit(PROGRAM_NAME ": -temporal_tail requires -temporal_null") ;
-   if( temporal_mode!=TNULL_NONE && censor_name!=NULL )
-     ERROR_exit(PROGRAM_NAME ": -censor cannot be combined with a temporal null; "
+   if( temporal_mode!=TNULL_NONE && (censor_name!=NULL || do_zcensor) )
+     ERROR_exit(PROGRAM_NAME ": -censor/-zcensor cannot be combined with a temporal null; "
                 "circular shifts/phases require an intact timeline") ;
+   if( !isfinite(zcensor_warn) || zcensor_warn<0.0f || zcensor_warn>100.0f )
+     ERROR_exit(PROGRAM_NAME ": -zcensor_warn must be between 0 and 100") ;
+   if( !do_zcensor && zcensor_warn_given )
+     ERROR_exit(PROGRAM_NAME ": -zcensor_warn requires -zcensor") ;
    if( temporal_mode!=TNULL_NONE && missing_policy==MISSING_COMMON )
      ERROR_exit(PROGRAM_NAME ": -missing common cannot be combined with a temporal null") ;
    if( roi_sel!=NULL && atlas_name==NULL )
@@ -1215,6 +1239,48 @@ int main( int argc, char **argv )
    }
    nmask=(mask!=NULL)?THD_countmask(nvox,mask):nvox ;
 
+   /* Generalize 3dTcorrelate's -zcensor rule to every input dataset.  A
+      time point must be usable by all subjects and conditions, so detect
+      all-zero volumes once and intersect them with any supplied -censor. */
+   if( do_zcensor ){
+     int *nzero=(int *)calloc((size_t)ndset,sizeof(int)) ;
+     int nzero_time=0, nremoved=0, nkeep=0 ;
+     if( nzero==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate -zcensor counts") ;
+     for( tt=0 ; tt<ntime_input ; tt++ ){
+       int anyzero=0 ;
+       for( si=0 ; si<nsub ; si++ ) for( ci=0 ; ci<ncond ; ci++ ){
+         int dd=si*ncond+ci ;
+         int nonzero=0 ;
+         for( vv=0 ; vv<nvox ; vv++ ) if( mask==NULL || mask[vv] ){
+           if( THD_get_voxel(dset[dd],vv,tt)!=0.0f ){ nonzero=1 ; break ; }
+         }
+         if( !nonzero ){ nzero[dd]++ ; anyzero=1 ; }
+       }
+       if( anyzero ){
+         nzero_time++ ;
+         if( censor_keep[tt] ){ censor_keep[tt]=0 ; nremoved++ ; }
+       }
+     }
+     for( tt=0 ; tt<ntime_input ; tt++ ) if( censor_keep[tt] ) time_index[nkeep++]=tt ;
+     if( nkeep<3 ) ERROR_exit(PROGRAM_NAME ": -zcensor retains %d time points; need at least 3",nkeep) ;
+     ntime=nkeep ;
+     if( !quiet ) INFO_message(PROGRAM_NAME ": -zcensor found %d all-zero time points; "
+                               "removed %d and retained %d of %d common time points",
+                               nzero_time,nremoved,ntime,ntime_input) ;
+     for( si=0 ; si<nsub ; si++ ) for( ci=0 ; ci<ncond ; ci++ ){
+       int dd=si*ncond+ci ;
+       float pct=100.0f*(float)nzero[dd]/(float)ntime_input ;
+       if( pct>zcensor_warn ){
+         int rr=rowmap[dd] ;
+         const char *who=cindex?cindex->level[0][si]:tab->subj[si] ;
+         WARNING_message(PROGRAM_NAME ": -zcensor: Subj %s, condition %s, dataset '%s' "
+                         "has %d/%d all-zero volumes (%.1f%%; warning level %.1f%%)",
+                         who,clabel[ci],tab->fname[rr],nzero[dd],ntime_input,pct,zcensor_warn) ;
+       }
+     }
+     free(nzero) ;
+   }
+
    /* Assign every optional output family a contiguous sub-brick range.  The
       same offsets are later used both for computation and AFNI labels. */
    nout=2*ncond*ngroup ;
@@ -1226,7 +1292,7 @@ int main( int argc, char **argv )
      neffect=ngroup+((ngroup==2)?1:0) ; contrast_slot=nout ; nout+=neffect ;
      if( cset!=NULL ){ condperm_slot=nout ; nout+=5*neffect ; }
    }
-   if( censor_name!=NULL || missing_policy==MISSING_COMMON ){
+   if( censor_name!=NULL || do_zcensor || missing_policy==MISSING_COMMON ){
      validtr_slot=nout ; nout++ ;
    }
    npairmap=(pair_prefix!=NULL)?(size_t)ncond*ncond*nedge:0 ;
