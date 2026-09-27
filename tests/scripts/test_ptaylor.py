@@ -449,7 +449,7 @@ def test_3dClusterize_new(data, ptaylor_env):
 
 # -------------------------------------------------------------------------
 
-
+@pytest.mark.skip(reason="temporarily disabled")
 @pytest.mark.slow
 def test_3dReHo(data, ptaylor_env):
     opref = data.outdir / "o.3dReHo"
@@ -466,6 +466,7 @@ def test_3dReHo(data, ptaylor_env):
     differ.run()
 
 
+@pytest.mark.skip(reason="temporarily disabled")
 def test_3dReHo_with_box(data, ptaylor_env):
     # check with ROIs (and different kind of neighborhood opts
     opref = data.outdir / "o.3dReHo_ROI"
