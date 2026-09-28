@@ -29,6 +29,7 @@ class afni_name(object):
       self.rowsel = res['row']
       self.rangesel = res['range']
       self.selquote = '"'       # selector quote
+      self.located = -1         # -1/0/1 : unset, was not located, was located
       if view in valid_new_views: self.new_view(view)
       return
 
@@ -286,8 +287,11 @@ class afni_name(object):
             return 1
          else: return 0
    
-   def locate(self, oexec="", verb=0):
+   def locate(self, oexec="", new_locate=0, verb=0):
       """attempt to locate the file
+
+         if self.located, we have already done this, so return the result
+         if new_locate: recompute self.located
 
          First search using the input path.  If not found, drop that path
          and search using @FindAfniDsetPath.  If then found, update the
@@ -296,12 +300,23 @@ class afni_name(object):
          return 1 if found (exist() or via @Find)
          (previously, this returned 0 even if @Find succeeded)
       """
+      # if running a new locate, reset self.located to uninitialized
+      if new_locate:
+         if verb: print("-- locate: clearing old status")
+         self.located = -1
+
+      # if have we already tried to locate, return the result
+      if self.located >= 0:
+         if verb: print("-- locate: returning previous %d" % self.located)
+         return self.located
+
       # drop the path for comments and searching
       dname = self.pv()
 
       if (self.exist()):
          if verb: print("-- locate: dset %s exists" % dname)
-         return 1
+         self.located = 1
+         return self.located
 
       if verb: print("-- locate: dset %s does not exist" % dname)
 
@@ -324,13 +339,17 @@ class afni_name(object):
            print('   status = %s' % com.status)
            print('   stdout = %s' % com.so)
            print('   stderr = %s' % com.se)
-        return 0
+        self.located = 0
+        return self.located
 
       # found, so update with new path to dataset
 
       # remove any newline character
       newline = path.find('\n')
       if newline > 1: path = path[0:newline]
+
+      # be sure it is not empty
+      if path == '': path = './'
 
       # require it to end in a '/'
       if not path.endswith('/'): path += '/'
@@ -340,7 +359,8 @@ class afni_name(object):
 
       if verb: print("-- locate: @Find found dset %s @ %s" % (dname,self.path))
 
-      return 1
+      self.located = 1
+      return self.located
       
    def delete(self, oexec=""): #delete files on disk!
       """delete the files via a shell command"""
