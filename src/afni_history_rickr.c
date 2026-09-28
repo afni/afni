@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Sep, 2026, RCR, "src_notes", MINOR, TYPE_ENHANCE,
+   "add src_notes/notes_afni_proc.txt - an overview of afni_proc.py",
+   NULL
+ } ,
+
  { 24, Sep, 2026, RCR, "@compute_OC_weights", MICRO, TYPE_ENHANCE,
    "allow for space in execution directory, and other minor updates",
    NULL

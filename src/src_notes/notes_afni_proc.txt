@@ -1,0 +1,62 @@
+Brief overview of afni_proc.py:
+
+# ----------------------------------------------------------------------
+main arrays of function pointers for blocks:
+
+BlockModFunc[label]      - initialize each applied processing block
+BlockCmdFunc[label]      - create script for applied processing block
+
+# ----------------------------------------------------------------------
+# overview of AP processing:
+
+run_proc() -> make_proc():
+
+   proc = SubjProcSream(...)  # __init__: defaults only
+   proc.init_opts()           # register valid options (add_opt calls)
+   proc.get_user_opts()       # parse argv - self.user_opts - apply_initial_opt
+
+   proc.create_blocks()       # block creation/population
+      self.init_dsets()       # check EPI inputs
+      - create block list
+      - instantiate blocks
+         for label in blocks:
+            rv = self.add_block(label)
+               - call BlockModFunc[label] -> db_mod_LABEL
+               - options are passed from user_opts to block.opts
+         db_mod_postdata()
+            - register anat followers and ROI imports
+              see proc.afollowers, proc.roi_dict
+            - prepare_tlrc_base
+            - init_auto_tsnr_rois()
+
+      - status at end of create_blocks:
+         - self.blocks is ordered and fully populated
+         - proc.afollowers, roi_dict, tlrc_base, dsets/dsets_me reference
+            orig files
+         - no script started
+
+   proc.create_script()       # script text + all data-copy commands
+      rv = self.get_run_info()      # get run/TR counts, etc. from EPI dsets
+      rv = self.init_script()       # open script and write 'copy' commands
+         - write main variables (subj/output_dir/runs), mkdir
+            - stim files, extra stim files, extra_ortvec, per_run_ortvec,
+              anat, template,
+              extern: vr_base, warp_master, align_EPI base, motion, censor,
+              anat followers, ROI followers, mask_import/ROI_import,
+              tlrc_*_warped_dsets, blip dsets, -copy_files, -ricor_regs
+            * EPI dsets are copied later, in db_cmd_tcat()
+         - write script to copy non-EPI data into results dir
+      for block in self.blocks:
+         # run each db_cmd_LABEL function to get that part of script
+         cmd_str = BlockCmdFunc[block.label](self, block)
+            tcat: 3dTcat, extract vr_base, GTKYD
+         self.write_text(add_line_wrappers(cmd_str))
+      rv = self.finalize_script()   # write 'finalize' block:
+         - remove temp files
+         - write output to BIDS deriv tree
+         - epi_review - db_cmd_gen_review()
+         - self.script_final_error_checks()
+         - possibly move_/remove_preproc_files
+         - append AP command
+      self.close_script(); self.make_exec()
+
