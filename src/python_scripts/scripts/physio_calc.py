@@ -10,13 +10,9 @@
             variance in linear model. Ratio of variance with/without regressors)
             - Does it explain more of the variance in the data (which would be 
               a good thing) - (Permanent item)
-        - Convolve RVT with some function using physiological regressors (Catie 
-          Chang)
         - Get percentage of variance accounted for by cardio
         - Histogram of model
         - Remove large outliers in cardio
-        - Duplicate current code over all slices
-        - Per slice with cardio to deal with temporal offsets across slices
         - Try weird examples from physio dB
         - Options that might change do not have default
             
@@ -57,17 +53,6 @@ def main():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 # ================================ main =====================================
 
 if __name__ == "__main__":
@@ -94,101 +79,129 @@ if __name__ == "__main__":
     # build the foundation objects: make main 'retro' object from
     # processing input options, checking to see if all necessary info
     # is present, and combining it as necessary
-    retobj  = lpr.retro_obj( args_dict, args_orig=args_orig )
-    verb    = retobj.verb
+    pcobj = lpr.pcalc_obj( args_dict, args_orig=args_orig )
+    verb  = pcobj.verb
 
     # --------------------- make output directory ----------------------------
 
     ### !!! do more about checking for preexisting/overwrite
-    if os.path.isdir(retobj.out_dir) :
+    if os.path.isdir(pcobj.out_dir) :
         print("+* WARN: output directory exists already---just reusing here.")
     else:
-        print("++ Making output directory:", retobj.out_dir)
-        os.mkdir(retobj.out_dir)
+        print("++ Making output directory:", pcobj.out_dir)
+        os.mkdir(pcobj.out_dir)
+
+    # ... and make the supplementary subdirs for text and images
+    if not(os.path.isdir(pcobj.extras_dir)) :
+        os.mkdir(pcobj.extras_dir)
+    if not(os.path.isdir(pcobj.images_dir)) :
+        os.mkdir(pcobj.images_dir)
 
     # save original command line opts (and the set of parsed opts) to
     # a log file in output dir
-    tmp1 = lpl.save_cmd_orig(retobj)
-    tmp2 = lpl.save_cmd_opts_parsed(retobj)
+    tmp1 = lpl.save_cmd_orig(pcobj)
+    tmp2 = lpl.save_cmd_opts_parsed(pcobj)
 
     # ---------------------- physio-MRI timing selection ---------------------
 
     # Set up timing selection matrices, for slicewise regressors
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpf.calc_timing_selection_phys( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_timing_selection_phys( pcobj, label=label, verb=verb )
 
-    # Set up timing for RVT time series
-    label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_timing_selection_rvt( retobj, label=label, verb=verb )
+    # Set up timing for volume-based time series (RVT, HR, etc.)
+    for label in ['card', 'resp']:
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_timing_selection_volbase( pcobj, label=label, verb=verb )
 
     # ------------- Process any card/resp/etc. time series ------------------
 
     # Peak and trough estimation: now can also be loaded in from a previous run
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
             # check if the peaks/troughs were loaded in already
-            if not(retobj.count_load_proc(label)) :
+            if not(pcobj.count_load_proc(label)) :
                 # do all peak/trough processing steps
-                tmp3 = lpf.calc_time_series_peaks( retobj, label=label, 
+                tmp3 = lpf.calc_time_series_peaks( pcobj, label=label, 
                                                    verb=verb )
             # see if interactive mode refinement is on
-            if retobj.data[label].do_interact :
-                tmp4 = lpf.run_interactive_peaks( retobj, label=label, 
+            if pcobj.data[label].do_interact :
+                tmp4 = lpf.run_interactive_peaks( pcobj, label=label, 
                                                   verb=verb )
             # make final peak/trough images
-            tmp5 = lpf.make_final_image_peaks( retobj, label=label, 
+            tmp5 = lpf.make_final_image_peaks( pcobj, label=label, 
                                                verb=verb )
 
 
     # save/write out peaks/troughs, if user asks
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpl.save_peaks_troughs_file_1D( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpl.save_peaks_troughs_file_1D( pcobj, label=label, verb=verb )
 
 
     # Phase estimation, which uses very diff methods for card and resp
     # processing.
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpf.calc_time_series_phases( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_time_series_phases( pcobj, label=label, verb=verb )
 
-    # RVT time series estimation (prob just for resp)
+    # RVT time series estimation (just for resp)
     label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_time_series_rvt( retobj, label=label, verb=verb )
+    if pcobj.data[label] and pcobj.do_calc_rvt :
+        lpf.calc_time_series_rvt( pcobj, label=label, verb=verb )
+
+    # HR time series estimation (just for card; and on EPI ts grid)
+    label = 'card'
+    if pcobj.data[label] and pcobj.do_calc_hr :
+        lpf.calc_time_series_hr( pcobj, label=label, verb=verb )
 
     # ------------- Calculate regressors ------------------
 
     # Regressors, for all physio inputs
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpf.calc_regress_phys( retobj, label=label, verb=verb )
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_regress_retroicor( pcobj, label=label, verb=verb )
 
     ### Comment: after this step, here is an example of the physio
     ### regressors being stored:
-    # retobj.data["resp"].regress_dict_phys["c2"][4][1]
+    # pcobj.data["resp"].regress_dict_regress["c2"][4][1]
     # -> for the 'resp' physio time series, "c2" means cos() with m=2, 
     #    and 4 means the [4]th slice, and [1] means the actual regression
     #    time series (the [0] in the last bracket would point to a label)
 
-    # make a plot of the physio regressors
-    lpplt.plot_regressors_phys(retobj)
+    # make a plot of the retroicor regressors
+    tmp = lpplt.plot_regressors_retro(pcobj)
 
-    # Regressors, for RVT time series (plot is made within this func)
+    # Resp-derived volbase regressors (plot is made within this func)
     label = 'resp'
-    if retobj.data[label] :
-        lpf.calc_regress_rvt( retobj, label=label, verb=verb )
+    if pcobj.data[label] :
+        # make RVT regressor 
+        if pcobj.do_calc_rvt :
+            lpf.calc_regress_rvt( pcobj, label=label, verb=verb )
+
+        # make RVTRRF regressor (can only be done after RVT one is made)
+        if pcobj.do_calc_rvtrrf :
+            lpf.calc_regress_rvtrrf( pcobj, label=label, verb=verb )
+
+    # Card-derived volbase regressors
+    label = 'card'
+    if pcobj.data[label] and pcobj.do_calc_hr :
+        lpf.calc_regress_hr( pcobj, label=label, verb=verb )
 
     # ------------- Write out regressors ------------------
 
-    lpreg.write_regressor_file(retobj)
+    # optional (not recommended; testing only): older RetroTS.py format
+    if pcobj.do_slibase_out :
+        lpreg.write_regressor_file_OLD(pcobj)
+
+    # modern output format, separate slice-based and volume-wise regressors
+    lpreg.write_regressor_file_sli(pcobj)
+    lpreg.write_regressor_file_vol(pcobj)
 
     # -------------------- log some of the results --------------------------
 
     for label in lpf.PO_all_label:
-        if retobj.data[label] :
-            lpl.make_ts_obj_review_log( retobj, label=label, verb=verb )
+        if pcobj.data[label] :
+            lpl.make_ts_obj_review_log( pcobj, label=label, verb=verb )
 
     print("++ DONE.  Goodbye.")

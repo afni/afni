@@ -7,11 +7,11 @@ import numpy as np
 
 # ===========================================================================
 
-def calc_interval_stats_perc(A, samp_rate=None, 
+def calc_interval_stats_perc(A, samp_delt=None, 
                              all_perc = (10, 25, 40, 50, 60, 75, 90),
                              verb=0 ):
     """Calculate percentile-based statistics of the intervals of 1D array
-A (which is assumed to be sorted already).  A sampling rate can be
+A (which is assumed to be sorted already).  A sampling interval can be
 input to provide output units; if none is entered, then units are
 those of A (which are typically unitless when A represents peaks or
 troughs).
@@ -21,8 +21,8 @@ Parameters
 A : list
     1D list (likely of int values if representing peaks or 
     troughs); assumed to be sorted already
-samp_rate : float
-    physical value of sampling rate associated with A
+samp_delt : float
+    physical value of sampling interval associated with A (units: s)
 all_perc : set/np.ndarray
     1D Python array of percentile values in range [0, 100], for which 
     values of the distribution of intervals within A will be calculated
@@ -48,15 +48,15 @@ stats_arr : np.ndarray
     stats_arr = np.percentile(intervals, q=all_perc)
 
     # scale values, if applicable
-    if samp_rate :
-        stats_arr*= samp_rate
+    if samp_delt :
+        stats_arr*= samp_delt
 
     return stats_arr
 
-def calc_interval_stats_mmms(A, samp_rate=None, 
+def calc_interval_stats_mmms(A, samp_delt=None, 
                              verb=0 ):
     """Calculate statistics (min, max, mean and stdev) of the intervals of
-1D array A (which is assumed to be sorted already).  A sampling rate
+1D array A (which is assumed to be sorted already).  A sampling interval
 can be input to provide output units; if none is entered, then units
 are those of A (which are typically unitless when A represents peaks
 or troughs).
@@ -66,8 +66,8 @@ Parameters
 A : list
     1D list (likely of int values if representing peaks or 
     troughs); assumed to be sorted already
-samp_rate : float
-    physical value of sampling rate associated with A
+samp_delt : float
+    physical value of sampling interval associated with A (units: s)
 
 Returns
 -------
@@ -97,11 +97,11 @@ stdval : float
     stdval  = np.std(intervals)
 
     # scale values, if applicable
-    if samp_rate :
-        minval *= samp_rate
-        maxval *= samp_rate
-        meanval*= samp_rate
-        stdval *= samp_rate
+    if samp_delt :
+        minval *= samp_delt
+        maxval *= samp_delt
+        meanval*= samp_delt
+        stdval *= samp_delt
 
     return minval, maxval, meanval, stdval
 

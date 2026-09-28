@@ -12,7 +12,7 @@ PI2 = np.pi * 2
 
 # ===========================================================================
 
-def calc_phases_M1(phobj, verb=0):
+def calc_phases_M1(tsobj, verb=0):
     """Calculate phases of a time series, here using "Method 1", which
 essentially just looks at peak info.  This is largely just a simple,
 linear mapping of the interval [-Pi, Pi) to each interpeak interval.
@@ -20,7 +20,7 @@ This applies to card time series at present.
 
 Parameters
 ----------
-phobj : phys_ts_obj class
+tsobj : ts_obj class
     object with all necessary input time series info; will also store
     the newly populated phases array when done here
 
@@ -34,9 +34,9 @@ phases : np.ndarray (1D)
     # some simpler definitions here (NB: not copying obj, just
     # dual-labelling for simplifying function calls while still
     # updating peaks info, at end)
-    peaks  = phobj.peaks
-    Npeaks = phobj.n_peaks
-    Nts    = phobj.n_ts_orig
+    peaks  = tsobj.peaks
+    Npeaks = tsobj.n_peaks
+    Nts    = tsobj.n_ts_orig
 
     # init phases: matches len of input time series
     phases = np.zeros(Nts, dtype=float)
@@ -77,7 +77,7 @@ phases : np.ndarray (1D)
 
 # ===========================================================================
 
-def calc_phases_M2(phobj, nbin=100, verb=0):
+def calc_phases_M2(tsobj, nbin=100, verb=0):
     """Calculate phases of a time series, here using "Method 2", which is
 some reasonably complicated function of interpeak interval
 distribution stats and the time series. This comes from Glover, Li and
@@ -97,11 +97,11 @@ func and compare!!!)
 The phases are estimated within the interval [-Pi, Pi).  This applies
 to resp time series at present.
 
-When done, add phases array to the phobj object.
+When done, add phases array to the tsobj object.
 
 Parameters
 ----------
-phobj : phys_ts_obj class
+tsobj : ts_obj class
     object with all necessary input time series info; will also store
     the newly populated phases array when done here
 nbin : int
@@ -117,13 +117,13 @@ phases : np.ndarray (1D)
     # some simpler definitions here (NB: not copying obj, just
     # dual-labelling for simplifying function calls while still
     # updating peaks info, at end)
-    peaks  = phobj.peaks
-    Npeaks = phobj.n_peaks
-    troughs  = phobj.troughs
-    Ntroughs = phobj.n_troughs
+    peaks  = tsobj.peaks
+    Npeaks = tsobj.n_peaks
+    troughs  = tsobj.troughs
+    Ntroughs = tsobj.n_troughs
 
     # vertically shift the time series used here
-    ts_orig = phobj.ts_orig - min(phobj.ts_orig)
+    ts_orig = tsobj.ts_orig - min(tsobj.ts_orig)
     Nts     = len(ts_orig)
 
     # init phases: matches len of input time series
@@ -251,7 +251,7 @@ phases : np.ndarray (1D)
 
     return phases
 
-def calc_phases_M3(phobj, nbin=100, verb=0):
+def calc_phases_M3(tsobj, nbin=100, verb=0):
     """Calculate phases of a time series, here using "Method 3", which
 should be a faster way to approximate the recipe/algorithm from
 Glover, Li and Riess (2000) for respiratory data; see calc_phases_M2()
@@ -267,11 +267,11 @@ here, without making a running sum over a histogram.
 The phases are estimated within the interval [-Pi, Pi).  This applies
 to resp time series at present.
 
-When done, add phases array to the phobj object.
+When done, add phases array to the tsobj object.
 
 Parameters
 ----------
-phobj : phys_ts_obj class
+tsobj : ts_obj class
     object with all necessary input time series info; will also store
     the newly populated phases array when done here
 
@@ -285,12 +285,12 @@ phases : np.ndarray (1D)
     # some simpler definitions here (NB: not copying obj, just
     # dual-labelling for simplifying function calls while still
     # updating peaks info, at end)
-    peaks    = phobj.peaks
-    Npeaks   = phobj.n_peaks
-    troughs  = phobj.troughs
-    Ntroughs = phobj.n_troughs
-    ts_orig  = phobj.ts_orig
-    Nts      = phobj.n_ts_orig
+    peaks    = tsobj.peaks
+    Npeaks   = tsobj.n_peaks
+    troughs  = tsobj.troughs
+    Ntroughs = tsobj.n_troughs
+    ts_orig  = tsobj.ts_orig
+    Nts      = tsobj.n_ts_orig
 
 
     # init phases: matches len of input time series
