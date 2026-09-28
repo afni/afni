@@ -957,6 +957,8 @@ More detailed changes, starting May, 2018.
 """
 
 g_todo_str = """todo:
+  - add -per_run_ortvec to help, along with an example that processes
+    the current physio_calc.py output
   - add examples: fmriprep, 'current' set that varies over time
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
   - allow listing examples by keyword (choose and/or remove)
