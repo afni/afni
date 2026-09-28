@@ -6131,7 +6131,7 @@ printf(
     "        possible values for TYPE:\n"
     "\n"
     "           GEMS      : GE Medical Systems GEMS 5.x format\n"
-    "           DICOM     : DICOM format, possibly Siemens mosaic\n"
+    "           DICOM     : DICOM format, possibly Siemens mosaic or enhanced\n"
     "           AFNI      : AFNI or NIfTI formatted datasets\n"
     "\n"
     "    -help              : show this help information\n"
