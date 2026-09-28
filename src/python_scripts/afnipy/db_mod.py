@@ -6046,6 +6046,7 @@ def db_mod_regress(block, proc, user_opts):
                     '   or all stim files, but not to a mix\n' % oname)
               errs += 1
 
+        # give new names for files to be copied to later in proc.init_script()
         proc.stims = []
         for fname in proc.stims_orig:
             proc.stims.append('stimuli/%s%s' % \
