@@ -151,6 +151,11 @@ DEF_margin_on     = True
 DEF_bplot_view    = ""  # vals: ["BC_ONLY", "BC_AC"]
 DEF_boxplot_ycen  = False
 DEF_censor_on     = False
+DEF_plot_kind     = 'line'
+DEF_histbin       = 0
+DEF_histwidth     = 0.0
+DEF_hist_density  = False
+DEF_heat_cmap     = 'viridis'
 
 # mostly from: plt.cm.get_cmap('Set1') and plt.cm.get_cmap('tab10')
 DEF_color_table = [
@@ -314,6 +319,48 @@ COMMAND OPTIONS ~1~
                '-yfiles_pm ..' is used, you can use this option to expand
                those limits by the min and max of the extra error-bounded
                space.
+
+-histogram    :draw a binned histogram of each input column, rather than
+               a line plot.  This is distinct from the older 1dplot
+               "-hist" step-line style.
+
+-histbin NN   :set the number of bins to use with '-histogram'.  By default,
+               a simple sqrt(N) rule is used, with a minimum of 8 bins.
+
+-histwidth WW :set the bin width to use with '-histogram'.  This is an
+               alternative to '-histbin ..'.
+
+-density      :with '-histogram', normalize the histogram to show density
+               instead of counts.
+
+-vline VV1 VV2 ...
+              :add vertical reference lines to histogram, scatter or line
+               plots.  For example, use '-vline 0' to mark zero.
+
+-vline_hl VV LABEL
+              :add a highlighted vertical reference line to histogram,
+               scatter or line plots: drawn in a distinct color and added
+               to the legend under LABEL.  For example, use
+               '-vline_hl 0.42 "mean 0.42"' to call out the mean.  May be
+               repeated.
+
+-scatter      :draw points rather than lines.  This is mainly useful with
+               '-xfile ..' to provide the x-values.
+
+-diagonal     :with '-scatter', add a dashed y=x reference line and use
+               equal x/y scaling.
+
+-heat         :draw the single input as a square matrix heatmap.  This mode
+               is meant for numeric 1D matrix files, such as RDMs.
+
+-cbar CMAP    :with '-heat', set the color map.  Matplotlib colormap names
+               are accepted, as are a couple AFNI-style names such as
+               'Reds_and_Blues' and 'Reds_and_Blues_Inv'.
+
+-zerocenter   :with '-heat', make the color range symmetric around zero.
+
+-reorder RR   :with '-heat', read one column of 0-based row/column indices
+               from RR, and apply the same permutation to rows and columns.
 
 -xfile   XX   :one way to input x-values explicitly: as a "1D" file XX, a
                containing a single file of numbers.  If no xfile is 
@@ -687,6 +734,19 @@ class figplobj:
         self.legend_on    = False
         self.ylim_use_pm  = False
         self.ylabels_maxlen = None
+        self.plot_kind   = DEF_plot_kind
+        self.histbin     = DEF_histbin
+        self.histwidth   = DEF_histwidth
+        self.hist_density = DEF_hist_density
+        self.vlines      = []
+        self.vlines_hl   = []
+        self.heat_matrix = []
+        self.heat_cmap   = DEF_heat_cmap
+        self.zerocenter  = False
+        self.reorder_file = ''
+        self.reorder     = []
+        self.scatter_on  = False
+        self.diagonal    = False
 
 
     # ----------------------------
@@ -702,6 +762,31 @@ class figplobj:
 
     def set_ylabels_maxlen(self, c):
         self.ylabels_maxlen = c
+
+    def set_plot_kind(self, c):
+        self.plot_kind = c
+
+    def set_hist_opts(self, nbins, width, density):
+        self.histbin      = nbins
+        self.histwidth    = width
+        self.hist_density = density
+
+    def set_vlines(self, ll):
+        self.vlines = ll
+
+    def set_vlines_hl(self, ll):
+        self.vlines_hl = ll
+
+    def set_heat_opts(self, mat, cmap, zcen):
+        self.heat_matrix = mat
+        self.heat_cmap   = cmap
+        self.zerocenter  = zcen
+
+    def set_scatter(self, c):
+        self.scatter_on = c
+
+    def set_diagonal(self, c):
+        self.diagonal = c
 
     def set_boxplot(self, c):
         self.boxplot_on = c
@@ -1030,6 +1115,19 @@ class apqc_1dplot_opts:
         self.ndsets = -1
         self.all_ymin = 0
         self.all_ymax = 0
+        self.plot_kind  = DEF_plot_kind
+        self.histbin    = DEF_histbin
+        self.histwidth  = DEF_histwidth
+        self.hist_density = DEF_hist_density
+        self.vlines     = []
+        self.vlines_hl  = []
+        self.heat_matrix = []
+        self.heat_cmap  = DEF_heat_cmap
+        self.zerocenter = False
+        self.reorder_file = ''
+        self.reorder    = []
+        self.scatter_on = False
+        self.diagonal   = False
 
     # ----------- req -----------------
 
@@ -1051,6 +1149,9 @@ class apqc_1dplot_opts:
         if self.infiles == []:
             print("missing: infiles")
             MISS+=1
+        if self.plot_kind == 'heat' and len(self.infiles) != 1:
+            print("missing: heat plots require exactly one infile")
+            MISS+=1
         if self.prefix == "":
             print("missing: prefix")
             MISS+=1
@@ -1060,6 +1161,26 @@ class apqc_1dplot_opts:
         CONFLICTS = 0
         if self.boxplot_on and self.one_graph :
             print("conflict: using both '-boxplot_on' and '-onegraph'")
+            CONFLICTS+=1
+        if self.plot_kind == 'heat':
+            if self.boxplot_on or self.one_graph or self.yfile_pm:
+                print("conflict: '-heat' with boxplot/one_graph/yfiles_pm")
+                CONFLICTS+=1
+            if self.xfile or self.xvals:
+                print("conflict: '-heat' with x-axis input")
+                CONFLICTS+=1
+            if self.censor_on or self.censor_hline or self.patch_arr:
+                print("conflict: '-heat' with censor/patch options")
+                CONFLICTS+=1
+        if self.plot_kind == 'histogram':
+            if self.boxplot_on or self.yfile_pm:
+                print("conflict: '-histogram' with boxplot/yfiles_pm")
+                CONFLICTS+=1
+        if self.histbin and self.histwidth:
+            print("conflict: using both '-histbin' and '-histwidth'")
+            CONFLICTS+=1
+        if self.diagonal and self.plot_kind != 'scatter':
+            print("conflict: '-diagonal' currently requires '-scatter'")
             CONFLICTS+=1
         return CONFLICTS
 
@@ -1080,6 +1201,86 @@ class apqc_1dplot_opts:
 
     def set_bkgd_color(self, c):
         self.bkgd_color = c
+
+    def set_plot_kind(self, c):
+        self.plot_kind = c
+
+    def set_histbin(self, c):
+        self.histbin = int(c)
+        if self.histbin < 1:
+            sys.exit("** ERROR: '-histbin' must be positive")
+
+    def set_histwidth(self, c):
+        self.histwidth = float(c)
+        if self.histwidth <= 0:
+            sys.exit("** ERROR: '-histwidth' must be positive")
+
+    def set_hist_density(self, c):
+        self.hist_density = c
+
+    def add_vline(self, c):
+        self.vlines.append(float(c))
+
+    def add_vline_hl(self, val, label):
+        self.vlines_hl.append((float(val), label))
+
+    def set_heat_cmap(self, c):
+        self.heat_cmap = c
+
+    def set_zerocenter(self, c):
+        self.zerocenter = c
+
+    def set_reorder_file(self, fff):
+        self.reorder_file = fff
+
+    def set_scatter(self, c):
+        self.scatter_on = c
+        if c:
+            self.set_plot_kind('scatter')
+
+    def set_diagonal(self, c):
+        self.diagonal = c
+
+    def read_heat_matrix(self):
+        dat = LAD.Afni1D(self.infiles[0])
+        if dat.nt < 1 or dat.nvec < 1:
+            sys.exit("** ERROR: empty matrix for '-heat': {}".format(
+                     self.infiles[0]))
+        if dat.nt != dat.nvec:
+            sys.exit("** ERROR: '-heat' requires a square matrix; have "
+                     "{} rows and {} cols in {}".format(dat.nt, dat.nvec,
+                                                        self.infiles[0]))
+        mat = []
+        for r in range(dat.nt):
+            mat.append([dat.mat[c][r] for c in range(dat.nvec)])
+        self.heat_matrix = mat
+
+    def read_reorder_file(self):
+        if not(self.reorder_file):
+            return
+        dat = LAD.Afni1D(self.reorder_file)
+        if dat.nvec != 1:
+            sys.exit("** ERROR: '-reorder' file must have exactly one column")
+        order = []
+        for val in dat.mat[0]:
+            ii = int(val)
+            if ii != val:
+                sys.exit("** ERROR: '-reorder' values must be integers")
+            order.append(ii)
+        if len(order) != len(self.heat_matrix):
+            sys.exit("** ERROR: '-reorder' length {} does not match matrix "
+                     "size {}".format(len(order), len(self.heat_matrix)))
+        if sorted(order) != list(range(len(order))):
+            sys.exit("** ERROR: '-reorder' must be a permutation of 0..N-1")
+        self.reorder = order
+
+    def apply_heat_reorder(self):
+        if not(self.reorder):
+            return
+        mat = []
+        for r in self.reorder:
+            mat.append([self.heat_matrix[r][c] for c in self.reorder])
+        self.heat_matrix = mat
 
     # [PT: Jan 15, 2019] e.g., for multiple dsets, concatenated runs;
     # just a list that must be in correct order
@@ -1692,6 +1893,72 @@ def parse_1dplot_args(full_argv):
 
         elif argv[i] == "-ylim_use_pm":
             iopts.ylim_use_pm = True
+
+        elif argv[i] == "-histogram":
+            iopts.set_plot_kind('histogram')
+
+        elif argv[i] == "-histbin":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_histbin(argv[i])
+
+        elif argv[i] == "-histwidth":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_histwidth(argv[i])
+
+        elif argv[i] == "-density":
+            iopts.set_hist_density(True)
+
+        elif argv[i] == "-vline":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])):
+                    iopts.add_vline(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-vline_hl":
+            if i+2 >= Narg:
+                ARG_missing_arg(argv[i])
+            val = argv[i+1]
+            label = argv[i+2]
+            i+= 2
+            iopts.add_vline_hl(val, label)
+
+        elif argv[i] == "-scatter":
+            iopts.set_scatter(True)
+
+        elif argv[i] == "-diagonal":
+            iopts.set_diagonal(True)
+
+        elif argv[i] == "-heat":
+            iopts.set_plot_kind('heat')
+
+        elif argv[i] == "-cbar":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_heat_cmap(argv[i])
+
+        elif argv[i] == "-zerocenter":
+            iopts.set_zerocenter(True)
+
+        elif argv[i] == "-reorder":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_reorder_file(argv[i])
 
         elif argv[i] == "-ylabels":
             count = 0
