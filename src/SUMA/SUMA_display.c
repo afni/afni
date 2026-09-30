@@ -12800,7 +12800,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_SO (
 
    /* set the colormap */
    SUMA_LH("Cmap time");
-   if (SO->SurfCont->cmp_ren->cmap_context) {
+   if (SO->SurfCont->cmp_ren->cmap_context || SUMAg_CF->Fake_Cmap) {
       SUMA_LH("Rendering context not null");
       if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") == 0 ||
           SUMA_is_Label_dset(SO->SurfCont->curColPlane->dset_link, NULL)) {
@@ -12916,7 +12916,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_GLDO (
 
    /* set the colormap */
    SUMA_LH("Cmap time");
-   if (SurfCont->cmp_ren->cmap_context) {
+   if (SurfCont->cmp_ren->cmap_context || SUMAg_CF->Fake_Cmap) {
       SUMA_LH("Rendering context not null");
       if (strcmp(curColPlane->cmapname, "explicit") == 0 ||
           SUMA_is_Label_dset(curColPlane->dset_link, NULL)) {
@@ -13034,7 +13034,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_TDO (
 
    /* set the colormap */
    SUMA_LH("Cmap time");
-   if (SurfCont->cmp_ren->cmap_context) {
+   if (SurfCont->cmp_ren->cmap_context || SUMAg_CF->Fake_Cmap) {
       SUMA_LH("Rendering context not null");
       if (strcmp(curColPlane->cmapname, "explicit") == 0 ||
           SUMA_is_Label_dset(curColPlane->dset_link, NULL)) {
@@ -13189,7 +13189,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_VO (
 
    /* set the colormap */
    SUMA_LH("Cmap time");
-   if (SurfCont->cmp_ren->cmap_context) {
+   if (SurfCont->cmp_ren->cmap_context || SUMAg_CF->Fake_Cmap) {
       SUMA_LH("Rendering context not null");
       if (strcmp(curColPlane->cmapname, "explicit") == 0 ||
           SUMA_is_Label_dset(curColPlane->dset_link, NULL)) {
@@ -13241,7 +13241,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_VO (
 
 /*!
    This function mirrors SUMA_InitializeColPlaneShell_SO
-   but it is for volume objects
+   but it is for mask data objects - used in tractography
 */
 SUMA_Boolean SUMA_InitializeColPlaneShell_MDO (
                   SUMA_ALL_DO *ado,
@@ -13305,7 +13305,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell_MDO (
 
    /* set the colormap */
    SUMA_LH("Cmap time");
-   if (SurfCont->cmp_ren->cmap_context) {
+   if (SurfCont->cmp_ren->cmap_context || SUMAg_CF->Fake_Cmap) {
       SUMA_LH("Rendering context not null");
       if (strcmp(curColPlane->cmapname, "explicit") == 0 ||
           SUMA_is_Label_dset(curColPlane->dset_link, NULL)) {
