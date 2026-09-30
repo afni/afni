@@ -267,6 +267,9 @@ static char SUMA_SCR_LIST_WIDGET_TRANSLATIONS[] =
 
 extern Bool clippingPlaneMode;
 
+static void SUMA_glstartup_reposition_TO(XtPointer cd, XtIntervalId *id);
+static void SUMA_glstartup_remanage_TO(XtPointer cd, XtIntervalId *id);
+static void SUMA_glstartup_recontext_TO(XtPointer cd, XtIntervalId *id);
 
 /*!
 
@@ -2918,7 +2921,6 @@ SUMA_resize(Widget w,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
    /* determine the surface viewer that the widget belongs to */
    SUMA_ANY_WIDGET2SV(w, sv, isv);
    if (isv < 0) {
@@ -2928,6 +2930,9 @@ SUMA_resize(Widget w,
    }
 
    callData = (GLwDrawingAreaCallbackStruct *) call;
+/* in SUMA_resize, first line after SUMA_ENTRY: */
+fprintf(stderr,"++ SUMA_resize fired: %dx%d\n", callData->width, callData->height);
+
    SUMA_LH("Resizing sv %d to %dx%d from %dx%d", isv,
                   callData->width, callData->height,
                sv->X->aWIDTH, sv->X->aHEIGHT);
@@ -4223,6 +4228,8 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMA_Boolean NewCreation = NOPE, Found=NOPE, Inherit = NOPE;
    char slabel[20]="\0", *eee=NULL;
    SUMA_Boolean LocalHead = NOPE;
+Arg args[10];
+    int n;
 
    // Initialise to NULL before .vss file possibly read
    clippingPlaneFile = NULL;
@@ -4424,14 +4431,18 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
         SUMAg_SVv[ic].X->CMAP = SUMA_getShareableColormap(&(SUMAg_SVv[ic]));
 
         /* create a frame to put glxarea in */
-        SUMAg_SVv[ic].X->FRAME = XmCreateFrame (Gmainw, "frame", NULL, 0);
+    n = 0;
+//    XtSetArg(args[n], XmNshadowType, XmSHADOW_ETCHED_IN); n++;
+    XtSetArg(args[n], XmNmarginWidth, 10); n++;
+    XtSetArg(args[n], XmNmarginHeight, 0); n++;
+        SUMAg_SVv[ic].X->FRAME = XmCreateFrame (Gmainw, "frame", args, n);
         XtManageChild(SUMAg_SVv[ic].X->FRAME);
 
       #ifdef SUMA_MOTIF_GLXAREA
         SUMA_LH("MOTIF Drawing Area");
         /* Step 6. */
          /* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
-
+printf("motif glxarea\n");
         if( glwMDrawingAreaWidgetClass == NULL ) {
             fprintf(stderr,"** ERROR: glwMDrawingAreaWidgetClass is NULL\n"
             "   This might be an error in GLwDrawA.h where the class is\n"
@@ -4447,6 +4458,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
           NULL);
       #else
         SUMA_LH("GL Drawing Area");
+printf("GL glxarea\n");
 
         /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
 
@@ -4474,7 +4486,18 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
           XtNcolormap, SUMAg_SVv[ic].X->CMAP,
           NULL);
       #endif
+      /* Tell the MainWindow which children are the menu bar and work region.
+      Newer XQuartz/mesa no longer auto-assigns the work window, so the
+      GLXAREA otherwise falls to the bottom of the shell. */
+#if 0
+      XmMainWindowSetAreas(Gmainw, Gmenubar,
+                     NULL,   /* command window   */
+                     NULL,   /* horiz scrollbar  */
+                     NULL,   /* vert  scrollbar  */
+                     SUMAg_SVv[ic].X->FRAME);   /* work region */
+#endif
 
+XtVaSetValues(Gmainw, XmNworkWindow, SUMAg_SVv[ic].X->FRAME, NULL);
 
       /* Step 7. */
       SUMA_LH("Callbacks");
@@ -4502,6 +4525,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
 
       /* Step 8. */
       XtRealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL);
+/* Claude Opus 4.8 recommendation */
+//XtAppAddTimeOut(SUMAg_CF->X->App, 150,
+//                SUMA_glstartup_recontext_TO, (VOID_CAST)ic);
 
       /* I will need a Graphics Context variable to draw into the window */
       SUMA_LH("Getting a graphics context");
@@ -4578,7 +4604,9 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          }
 
       }
-      SUMA_SV_InitDrawAreaOffset(SUMAg_SVv+ic);
+
+      if(!SUMA_SV_InitDrawAreaOffset(SUMAg_SVv+ic))
+         printf("Init drawing area not sane\n");
 
       SUMA_LH("Done with new window setup");
 
@@ -4594,6 +4622,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
         if( g_needs_x11_redraw_verb )
           printf("++ add event handler for resize of OpenGL surface window\n");
       }
+
 
    } else {    /* widget already set up, just undo whatever
                   was done in SUMA_ButtClose_pushed */
@@ -4621,6 +4650,48 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    }
 
    SUMAg_SVv[ic].Open = YUP;
+/* after XtRealizeWidget on TOPLEVEL, before the ChatGPT block: 
+ * just for information now, can remove */
+{
+   Position gx=0, gy=0; Dimension gw=0, gh=0;
+   XtVaGetValues(SUMAg_SVv[ic].X->GLXAREA,
+                 XmNx,&gx, XmNy,&gy, XmNwidth,&gw, XmNheight,&gh, NULL);
+   fprintf(stderr,"++ GLXAREA post-realize geom: x%d y%d w%d h%d\n",
+           gx,gy,gw,gh);
+}
+
+/* ChatGPT recommmendation for Docker to work in XQuartz
+ * and for MacOS with mesa versions around 26.2.3
+ * This fixes only the initial display of suma window not appearing
+ * Other problems persist - drag corner covered, surface window on bottom of
+ * window, colorbar on bottom of surface object controller, thin white rectangle
+ * bar at top of surface window
+ * The glViewport is only necessary step */
+{
+    Dimension w, h;
+
+    XtVaGetValues(SUMAg_SVv[ic].X->GLXAREA,
+                  XmNwidth,  &w,
+                  XmNheight, &h,
+                  NULL);
+    if (SUMA_glXMakeCurrent(SUMAg_SVv[ic].X->DPY,
+                            XtWindow(SUMAg_SVv[ic].X->GLXAREA),
+                            SUMAg_SVv[ic].X->GLXCONTEXT,
+                            "initial resize workaround",
+                            "GLXAREA",
+                            1)) {
+        glXWaitX();
+
+        SUMAg_SVv[ic].X->aWIDTH  = (int)w;
+        SUMAg_SVv[ic].X->aHEIGHT = (int)h;
+        glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+        SUMAg_SVv[ic].Aspect = (GLfloat)w / (GLfloat)h;
+        SUMAg_SVv[ic].rdc = SUMA_RDC_X_RESIZE;
+
+        SUMA_postRedisplay(SUMAg_SVv[ic].X->GLXAREA, NULL, NULL);
+    }
+}
+
    ++SUMAg_CF->N_OpenSV;
    ++CallNum;
 
@@ -4628,9 +4699,81 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    SUMA_UpdateViewerCursor (&(SUMAg_SVv[ic]));
    SUMA_UpdateViewerTitle (&(SUMAg_SVv[ic]));
 
+//   if( needsX11Redraw() ){   /*  Workaround with Ubuntu Docker on MacOS */
+//printf("I never realized what I realized....\n");
+//        forceExpose( Gmainw , 0 ) ;
+//        forceExpose( Gmainw , 0 ) ;
+//        forceExpose( Gmainw , 0 ) ;
+//  }
+
+
    SUMA_LH("Returning");
    SUMA_RETURN (YUP);
 }
+
+// Claude 4.8 code - recommendations (recontext, remanage, reposition)
+static void SUMA_glstartup_recontext_TO(XtPointer cd, XtIntervalId *id)
+{
+   int ic = (INT_CAST)cd;
+   Widget w = SUMAg_SVv[ic].X->GLXAREA;
+   Display *dpy = SUMAg_SVv[ic].X->DPY;
+   XVisualInfo *vi = NULL;
+
+   if (!SUMAg_SVv[ic].X->TOPLEVEL || !XtWindow(w)) return;
+
+   XtVaGetValues(w, GLwNvisualInfo, &vi, NULL);
+
+   /* Surface origin appears bound at context-create time to the shell frame.
+      Recreate the context now that the window is mapped/sized, to force the
+      surface to re-derive its position. */
+   glXDestroyContext(dpy, SUMAg_SVv[ic].X->GLXCONTEXT);
+   SUMAg_SVv[ic].X->GLXCONTEXT = glXCreateContext(dpy, vi, 0, GL_TRUE);
+
+   SUMA_SiSi_I_Insist();  /* force a real make-current next redraw */
+   SUMA_SV_Mark_Textures_Status(SUMAg_SVv+ic, "unloaded_all", NULL, 0, 0);
+   SUMAg_SVv[ic].ResetGLStateVariables = YUP;
+   SUMA_postRedisplay(w, NULL, NULL);
+}
+
+static void SUMA_glstartup_remanage_TO(XtPointer cd, XtIntervalId *id)
+{
+   int ic = (INT_CAST)cd;
+   Widget gla, fr;
+
+   if (!SUMAg_SVv[ic].X->TOPLEVEL) return;
+   gla = SUMAg_SVv[ic].X->GLXAREA;
+   fr  = SUMAg_SVv[ic].X->FRAME;
+   if (!gla) return;
+
+   /* #438-style remanage. Resize/move don't correct surface placement on
+      Tahoe; unmanage/manage rebuilds geometry state and can force the GL
+      surface to re-bind to the subwindow's actual position. */
+   XtUnmanageChild(fr);
+   XSync(SUMAg_SVv[ic].X->DPY, False);
+   XtManageChild(fr);
+   XSync(SUMAg_SVv[ic].X->DPY, False);
+}
+
+static void SUMA_glstartup_reposition_TO(XtPointer cd, XtIntervalId *id)
+{
+   int ic = (INT_CAST)cd;
+   Position gx=0, gy=0;
+   Display *dpy = SUMAg_SVv[ic].X->DPY;
+   Window gw;
+   int dy;                          /* pixels to push up; tune this */
+
+   if (!SUMAg_SVv[ic].X->TOPLEVEL) return;
+   gw = XtWindow(SUMAg_SVv[ic].X->GLXAREA);
+   if (!gw) return;
+
+   dy = (int) (double)SUMA_floatEnv("SUMA_GLXAREA_YSHIFT", 0.0);  /* see note below */
+   if (dy == 0) return;
+
+   XtVaGetValues(SUMAg_SVv[ic].X->GLXAREA, XmNx,&gx, XmNy,&gy, NULL);
+   XMoveWindow(dpy, gw, (int)gx, (int)gy - dy);
+   XSync(dpy, False);
+}
+
 
 void SUMA_ButtOpen_pushed (Widget w, XtPointer cd1, XtPointer cd2)
 {
