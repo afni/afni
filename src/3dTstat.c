@@ -865,7 +865,14 @@ static void STATS_tsfunc( double tzero, double tdelta ,
      ts_dif = (float*)calloc(npts, sizeof(float)) ;
      for( ii=1 ; ii < npts ; ii++ ) ts_dif[ii-1] = ts[ii]-ts[ii-1] ;
      get_linear_trend( npts-1 , ts_dif , &tsm , &tss ) ;
-     ts_mean = (double)tsm ; ts_slope = (double)tss ;
+     /* get_linear_trend returns the intercept at index 0 (tsm) and the
+        slope per INDEX (tss), but ts_mean/ts_slope carry the MAKER
+        convention used by the detrend formula below: the series mean
+        and the slope per SECOND -- so convert (the fitted line's mean
+        is its value at the center index, which for least squares
+        equals the sample mean) */
+     ts_mean  = (double)tsm + 0.5*(double)tss*(npts-2) ;
+     ts_slope = (double)tss / tdelta ;
      npts-- ; ts = ts_dif ;
    }
 
@@ -1111,7 +1118,10 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
       case METH_DW:{
          register int ii ;
-         register float den=ts[0]*ts[0] ;
+         register float den=ts_det[0]*ts_det[0] ; /* was ts[0]: the raw first
+                            sample (baseline ~ 1000) swamped the detrended
+                            residual sum in the denominator, collapsing DW
+                            toward 0 for non-demeaned data */
          register float num=0 ;
          for( ii=1 ; ii < npts ; ii++ ) {
            num = num + (ts_det[ii] - ts_det[ii-1])
@@ -1225,7 +1235,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
                nzpts++;
              }
            }
-           if(npts>0)
+           if(nzpts>0)   /* was npts>0, giving 0.0/0 = NaN for all-zero voxels */
               val[out_index] = sum / nzpts;
            else
               val[out_index] = 0.0;
