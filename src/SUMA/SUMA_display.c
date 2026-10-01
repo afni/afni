@@ -267,9 +267,13 @@ static char SUMA_SCR_LIST_WIDGET_TRANSLATIONS[] =
 
 extern Bool clippingPlaneMode;
 
+#if 0
+//Claude AI recommendations that are not needed now
+// Keeping it here for now in case we need ways to force updates to glxareas
 static void SUMA_glstartup_reposition_TO(XtPointer cd, XtIntervalId *id);
 static void SUMA_glstartup_remanage_TO(XtPointer cd, XtIntervalId *id);
 static void SUMA_glstartup_recontext_TO(XtPointer cd, XtIntervalId *id);
+#endif
 
 /*!
 
@@ -2930,8 +2934,6 @@ SUMA_resize(Widget w,
    }
 
    callData = (GLwDrawingAreaCallbackStruct *) call;
-/* in SUMA_resize, first line after SUMA_ENTRY: */
-fprintf(stderr,"++ SUMA_resize fired: %dx%d\n", callData->width, callData->height);
 
    SUMA_LH("Resizing sv %d to %dx%d from %dx%d", isv,
                   callData->width, callData->height,
@@ -4650,15 +4652,6 @@ XtVaSetValues(Gmainw, XmNworkWindow, SUMAg_SVv[ic].X->FRAME, NULL);
    }
 
    SUMAg_SVv[ic].Open = YUP;
-/* after XtRealizeWidget on TOPLEVEL, before the ChatGPT block: 
- * just for information now, can remove */
-{
-   Position gx=0, gy=0; Dimension gw=0, gh=0;
-   XtVaGetValues(SUMAg_SVv[ic].X->GLXAREA,
-                 XmNx,&gx, XmNy,&gy, XmNwidth,&gw, XmNheight,&gh, NULL);
-   fprintf(stderr,"++ GLXAREA post-realize geom: x%d y%d w%d h%d\n",
-           gx,gy,gw,gh);
-}
 
 /* ChatGPT recommmendation for Docker to work in XQuartz
  * and for MacOS with mesa versions around 26.2.3
@@ -4666,7 +4659,10 @@ XtVaSetValues(Gmainw, XmNworkWindow, SUMAg_SVv[ic].X->FRAME, NULL);
  * Other problems persist - drag corner covered, surface window on bottom of
  * window, colorbar on bottom of surface object controller, thin white rectangle
  * bar at top of surface window
- * The glViewport is only necessary step */
+ * Other problems mostly fixed by setting MESA_LOADER_DRIVER_OVERRIDE to 
+ * gibberish or noapplegl (for MacOS 26.5 or higher, mesa switched its default to
+ * applegl without that set to something) 
+ * The glViewport is only necessary step below */
 {
     Dimension w, h;
 
@@ -4699,17 +4695,13 @@ XtVaSetValues(Gmainw, XmNworkWindow, SUMAg_SVv[ic].X->FRAME, NULL);
    SUMA_UpdateViewerCursor (&(SUMAg_SVv[ic]));
    SUMA_UpdateViewerTitle (&(SUMAg_SVv[ic]));
 
-//   if( needsX11Redraw() ){   /*  Workaround with Ubuntu Docker on MacOS */
-//printf("I never realized what I realized....\n");
-//        forceExpose( Gmainw , 0 ) ;
-//        forceExpose( Gmainw , 0 ) ;
-//        forceExpose( Gmainw , 0 ) ;
-//  }
-
-
    SUMA_LH("Returning");
    SUMA_RETURN (YUP);
 }
+
+#if 0
+// Claude AI recommendations that are not needed now
+// Keeping it here for now in case we need ways to force updates to glxareas
 
 // Claude 4.8 code - recommendations (recontext, remanage, reposition)
 static void SUMA_glstartup_recontext_TO(XtPointer cd, XtIntervalId *id)
@@ -4773,7 +4765,8 @@ static void SUMA_glstartup_reposition_TO(XtPointer cd, XtIntervalId *id)
    XMoveWindow(dpy, gw, (int)gx, (int)gy - dy);
    XSync(dpy, False);
 }
-
+// end of Claude AI force update attempts
+#endif
 
 void SUMA_ButtOpen_pushed (Widget w, XtPointer cd1, XtPointer cd2)
 {

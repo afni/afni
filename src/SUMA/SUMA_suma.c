@@ -815,8 +815,6 @@ int main (int argc,char *argv[])
       }
 
       if (!brk && (strcmp(argv[kar], "-fake_cmap") == 0)) {
-         SUMA_S_Warn("-fake_cmap is for automatic selfies of the widgets.\n"
-                     "You should not use this option for any other reason\n");
          SUMAg_CF->Fake_Cmap = YUP;
          brk = YUP;
       }
