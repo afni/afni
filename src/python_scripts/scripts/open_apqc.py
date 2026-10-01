@@ -20,6 +20,11 @@ version = '1.11' # add more help text and examples
 version = '2.0'  # add in AV button functionality 
 version = '3.0'  # run with or without server going
 version = '3.1'  # add in -find_infiles opt
+version = '3.2'  # fix occasional/semi-systematic blank tab when opening
+version = '3.3'  # remove unnec werkzeug WARNING @ production server.
+version = '3.4'  # add OS- and browser-specific funcs to open new window
+version = '3.5'  # add more macOS/Darwin-specific browser functionality
+version = '3.6'  # add Linux-specific browser functionality
 
 # ==========================================================================
 
@@ -32,6 +37,7 @@ import os
 import argparse   as     argp
 import webbrowser
 import textwrap
+import time
 
 from afnipy       import lib_apqc_open as lao
 from afnipy       import afni_base     as BASE
@@ -96,12 +102,55 @@ When finished:
   When you are doing viewing the APQC HTMLs, you can close all of
   them, and type 'Ctrl+c' in the terminal (to cancel/exit the server).
 
+
+Troubleshooting ~1~
+
+Some suggestions of things to try if problems arise.  NB: I would not
+default to any of these options, just try/use them if necessary.
+
+
+Seeing blank pages/tabs? ~2~
+
+  Occasionally, when opening a ~large number of APQC HTML pages, an
+  individual tab might open empty.  This appears to occur when there
+  isn't a large enough pause after the first new page opening for the
+  next tab to open.  This appears to be some interaction between the
+  flask server and browser. Exact behavior and/or presence of delays may
+  vary by browser, system and number of tabs.
+
+  We have put a short default pause in now to hopefully avoid this, but
+  it is possible that it could happen in some cases. Users can try to
+  avoid this by using the '-pause_tab0 ..' option, by trying to increase
+  the pause-after-initial-tab time slightly. But hopefully this is
+  mainly handled automatically now within the code.
+
+Failure to open all tabs in browser? ~2~
+
+  By default, this program tries to use some OS- and browser-specific 
+  info to open new windows.  However, this can be challenging on some
+  systems, and may run into issues.  If it happens that _no_ windows or 
+  tabs open, then try using the '-use_webbrowser' option, to skip the
+  fancier functionality and just use the webbrowser Python module.  It
+  might not be able to force the system to open a new window to start, 
+  but it should be relatively stable.  
+
+Desktop asks for permission to open browser ~2~
+
+  Occasionally, when this program is run a user might be asked to verify
+  whether the system is allowed to fire up the browser.  For example,
+  we have seen this on macOS/Darwin systems, particularly for the Safari
+  browser.  This shouldn't actually cause any problems, and you should 
+  just be able to click 'Yes'.  Moreover, this should just be queried 
+  one time, so hopefully it shouldn't be too big of a deal.
+
+
 Notes on dependencies ~1~
 
 To get the most information (and fun!) when using the program, the 
 following Python modules should be installed, to enable a local server
 to be up and running: {flask_deps}
 These could/should be installed with a package manager, Conda, etc.
+
 
 {ddashline}
 
@@ -187,6 +236,11 @@ parser.add_argument('-pause_time', nargs=1,
                     help='total time (s) to pause to let pages load '
                     '(def: {})'.format(lao.DEF['pause_time']))
 
+parser.add_argument('-pause_tab0', nargs=1,
+                    default=[lao.DEF['pause_tab0']],
+                    help='total time (s) to pause after the initial tab '
+                    '(def: {})'.format(lao.DEF['pause_tab0']))
+
 parser.add_argument('-open_pages_off', action="store_false", 
                     default=lao.DEF['open_pages'],
                     help='(not typically needed) '
@@ -217,6 +271,12 @@ parser.add_argument('-nv_dir', nargs=1,
                     'path to directory containing "niivue_afni.umd.js" '
                     '(def: {})'.format('use the location of "afni" program'))
 
+parser.add_argument('-use_webbrowser', action="store_true", 
+                    default=lao.DEF['do_use_wbrsr'],
+                    help='(not typically needed) '
+                    'ignore attempts to use system- and browser-specific '
+                    'info to open new windows/tabs (def: use OS info)')
+
 parser.add_argument('-verb', nargs=1,
                     default=[lao.DEF['verb']],
                     help='verbosity level '
@@ -243,6 +303,7 @@ host             = args.host[0]
 nv_dir           = args.nv_dir[0]
 jump_to          = args.jump_to[0]
 do_open_pages    = args.open_pages_off
+do_use_wbrsr     = args.use_webbrowser
 do_ver           = args.ver
 do_help          = args.help
 do_hview         = args.hview
@@ -250,6 +311,7 @@ do_disp_jump_ids = args.disp_jump_ids
 do_new_tabs_only = args.new_tabs_only
 do_new_wins_only = args.new_windows_only
 pause_time       = float(args.pause_time[0])
+pause_tab0       = float(args.pause_tab0[0])
 verb             = int(args.verb[0])
 
 # do we have index.html files to find?
@@ -330,6 +392,7 @@ rem_apqc_json_list, rem_ssrev_json_list = \
 
 # debugging display at present
 if verb :
+    print("++ Open APQC HTML report(s)...")
     print("++ Number of paths:", npath)
     print("++ common_abs_path:" + dent + common_abs_path)
     print("++ rem index.html:" + dent + dent.join(rem_html_list))
@@ -349,6 +412,10 @@ DO_HAVE_FLASK = 0
 try:
     from flask        import Flask, send_from_directory, request, jsonify, cli
     from flask_cors   import CORS   # to circumvent 'no access issues from UI'
+    import werkzeug                 # avoid: "WARNING: This is a develop..."
+    import werkzeug.serving
+    import functools
+
     DO_HAVE_FLASK = 1
 except (ImportError,NotImplementedError):
     print(flask_warn)
@@ -357,7 +424,27 @@ if DO_HAVE_FLASK :
     app = Flask(__name__)           # initialize flask app
     CORS(app)                       # let CORS package upgrade app
 
-    cli.show_server_banner = lambda *_: None   # disable warning @ dev server
+    # disable warning @ dev server
+    cli.show_server_banner = lambda *_: None
+
+    # disable Werkzeug's dev-server warning
+    werkzeug.serving.show_server_banner = lambda *_: None   
+    # ... and suppress Werkzeug's separate "development server"
+    # warning, which is printed via its internal _ansi_style()
+    # helper. We wrap that helper and seek out only that one line,
+    # leaving all other server output (incl. per-request GET logs)
+    # intact.
+    ## NB: _ansi_style is a private Werkzeug function; correct for at
+    ## least v3.1.3, but we might have to re-check this if Werkzeug is
+    ## upgraded.
+    _orig_ansi_style = werkzeug.serving._ansi_style
+    @functools.wraps(_orig_ansi_style)
+    def _quiet_ansi_style(value, *args, **kwargs):
+        if isinstance(value, str) and \
+           value.startswith('WARNING: This is a development server.'):
+            return ''
+        return _orig_ansi_style(value, *args, **kwargs)
+    werkzeug.serving._ansi_style = _quiet_ansi_style
 
     if not(nv_dir) :
         # get location of AFNI binaries dir, which is where
@@ -530,10 +617,26 @@ def open_all_browser_pages( portnum ):
     server is up and running.
 
     """
+
+    # get system name and (in some cases) browser ID, to try to follow
+    # 'new window' directive more widely, since different OSs and
+    # browsers present challenges to generic webbrowser calls
+    is_fail, sys_name, browser_id = lao.get_system_and_browser()
+    if is_fail :
+        msg = "** ERROR: could not get system name and/or browser ID"
+        print(msg)
+        return -1
+
+    if verb :
+        msg = "++ System name (and browser ID, if applicable): "
+        msg+= "{} ({})".format(sys_name, browser_id)
+        print(msg)
+
     page_code = first_page_code
     if verb>1 :
         print('++ URL for browser:')
-    for rem_html in rem_html_list:
+
+    for ii, rem_html in enumerate(rem_html_list):
         if DO_HAVE_FLASK :
             url = lao.construct_url(host, portnum, rem_html, jump_to=jump_to)
         else:
@@ -541,11 +644,33 @@ def open_all_browser_pages( portnum ):
             if jump_to :
                 ttt = '#' + jump_to
             url = 'file://' + common_abs_path + '/' + rem_html + ttt
-            if verb>1 :
-                print('       {}'.format( url ))
+        if verb>1 :
+            print('       {}'.format(url))
         if do_open_pages :
-            webbrowser.open(url, new = page_code)
+
+            # decide whether to go for simple webbrowser module (where
+            # 'new window' may be more likely ignored), or use fancier
+            # route for trying to control OS-specific (and sometimes
+            # browser-specific) commands
+            if do_use_wbrsr :
+                # simple but often overruled
+                webbrowser.open(url, new = page_code)
+            else :
+                # fancy approach
+                lao.open_url_in_browser(url, 
+                                        page_code=page_code, 
+                                        sys_name=sys_name, 
+                                        browser_id=browser_id,
+                                        verb=verb)
+
+            # after ii==0, use the second setting
             page_code = other_page_code
+
+            # after the first page opens a NEW WINDOW, give the browser
+            # a moment to create it before firing a tab into it; without
+            # this, that first tab request is dropped and the tab is blank
+            if ii == 0 and not do_new_tabs_only:
+                time.sleep(pause_tab0)
 
 # ================================ main =====================================
 
@@ -565,7 +690,10 @@ if __name__ == "__main__":
     
     if DO_HAVE_FLASK :
         # start the flask application---have to refresh above pages?
-        print(anti_warn)
+
+        # This text is no longer needed, as long as the suppression of
+        # the annoying werkzeug WARNING remains intact, added above
+        ###print(anti_warn)
         app.run(host=host, port=portnum) #, debug=True)
 
         print("++ DONE.  Goodbye.")

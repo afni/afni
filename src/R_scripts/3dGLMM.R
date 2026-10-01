@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, Feb 18, 2025
+Version 0.1.2, Sept 24, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -136,11 +136,8 @@ Introduction
  This method saves output in `diary.txt`, allowing you to review
  progress and troubleshoot if needed.\n'                                                                                                                           
    ex1 <-
-"Here’s a revised version with improved clarity, grammar, and formatting:
-
----
-
-### Example 1: one within-individual factor and a quantitiave predictor
+"
+ ### Example 1: one within-individual factor and a quantitiave predictor
 
 -------------------------------------------------------------------------
   3dGLMM -prefix glmm.student -jobs 12                              \\
@@ -245,8 +242,18 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-jobs' = apl(n = 1, d = 1, h = paste(
-   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
-   "         up the program significantly.",
+   "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
+   "         up the program significantly. However, increasing the number of CPUs", 
+   "         processes does not necessarily improve performance. Because each",
+   "         CPU is an independent R process, aggregate memory usage grows",
+   "         with the number of CPUs. It is therefore advisable to identify",
+   "         the largest number of CPUs that fits comfortably within physical",
+   "         RAM while avoiding swap activity, rather than simply using all",
+   "         available CPU cores. A useful strategy is to benchmark several",
+   "         CPU counts while monitoring memory usage (e.g., with free -h,",
+   "         vmstat, or htop) and choose the largest number that avoids",
+   "         sustained swapping, as memory thrashing can more than offset the",
+   "         benefits of additional parallelism.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 
@@ -631,21 +638,37 @@ process.GLMM.opts <- function (lop, verb = 0) {
      return(output)
    }
 
+   #if(!is.null(lop$level)) {
+   #   strings <- lapply(lop$level, parse_strings)
+   #   lop$level.LAB  <- unlist(lapply(strings, `[`, 1))
+   #   lop$level.pair <- lapply((lapply(strings, `[`, 2)), formula)
+   #   lop$level.fix  <- unlist(lapply(strings, `[`, 3))
+   #}
+   #
+   #if(!is.null(lop$slope)) {
+   #   strings <- lapply(lop$slope, parse_strings)
+   #   lop$slope.LAB  <- unlist(lapply(strings, `[`, 1))
+   #   lop$slope.pair <- lapply((lapply(strings, `[`, 2)), formula)
+   #   lop$slope.fix  <- unlist(lapply(strings, `[`, 3))
+   #   lop$slope.slp  <- unlist(lapply(strings, `[`, 4))
+   #}
+
    if(!is.null(lop$level)) {
       strings <- lapply(lop$level, parse_strings)
-      lop$level.LAB  <- unlist(lapply(strings, `[`, 1))
-      lop$level.pair <- lapply((lapply(strings, `[`, 2)), formula)
-      lop$level.fix  <- unlist(lapply(strings, `[`, 3))
+      lop$level.LAB  <- sapply(strings, `[[`, 1)
+      lop$level.pair <- lapply(strings, function(x) formula(x[[2]]))
+      lop$level.fix  <- lapply(strings, `[[`, 3)
    }
-
+   
    if(!is.null(lop$slope)) {
       strings <- lapply(lop$slope, parse_strings)
-      lop$slope.LAB  <- unlist(lapply(strings, `[`, 1))
-      lop$slope.pair <- lapply((lapply(strings, `[`, 2)), formula)
-      lop$slope.fix  <- unlist(lapply(strings, `[`, 3))
-      lop$slope.slp  <- unlist(lapply(strings, `[`, 4))
+      lop$slope.LAB  <- sapply(strings, `[[`, 1)
+      lop$slope.pair <- lapply(strings, function(x) formula(x[[2]]))
+      lop$slope.fix  <- lapply(strings, `[[`, 3)
+      lop$slope.slp  <- sapply(strings, `[[`, 4)
    }
 
+   
    if(lop$iometh == 'Rlib') {
       lop$outFN <- paste(lop$outFN, "+tlrc", sep="")
       if(!is.null(lop$resid)) lop$resid <- paste(lop$resid, "+tlrc", sep="")
@@ -808,7 +831,7 @@ runGLMM <- function(myData, DM, tag) {
       DM <- assVV2(DM, lop$vQV, myData[(length(myData)/2+1):length(myData)], all(is.na(lop$vVarCenters)))
    }
 
-   if(mean(na.omit(myData) != 0) >= 0.75) {
+   if(mean(na.omit(myData) != 0) >= 0.5) { # only analyze data with more than half nonzeros
       DM$yy <- myData[1:nrow(DM)]
       options(warn=-1)
       fm <- NULL
@@ -819,6 +842,7 @@ runGLMM <- function(myData, DM, tag) {
       }
 
       is_model_ok <- function(fm) {
+        if (is.null(fm)) return(FALSE)
         ll <- suppressWarnings(logLik(fm))
         coefs <- suppressWarnings(unlist(coef(fm))) #coefs <- suppressWarnings(coef(fm)$cond[[1]])
         is.finite(ll) && all(is.finite(coefs))
@@ -833,7 +857,7 @@ runGLMM <- function(myData, DM, tag) {
       if(!is.null(fm)) {
          Stat <- Anova(fm, type=lop$SS_type)[,1]
          if(length(lop$level) > 0) for(ii in 1:length(lop$level)) {
-            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ii]], at=lop$level.fix[ii]))
+            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ii]], at=lop$level.fix[[ii]]))
             tmp1 <- as.data.frame(glt$emmeans)
             Stat <- c(Stat,  c(rbind(tmp1[,'emmean'], tmp1[,'emmean']/tmp1[,'SE'])))
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
@@ -844,9 +868,9 @@ runGLMM <- function(myData, DM, tag) {
          }
 
          if(length(lop$slope) > 0) for(ii in 1:length(lop$slope)) {
-            glt  <- suppressMessages(emmeans(fm, lop$slope.pair[[ii]], at=lop$slope.fix[ii], var=lop$slope.slp[ii]))
-            tmp1 <- as.data.frame(glt$emmeans)
-            Stat <- c(Stat,  c(rbind(tmp1[,'emmean'], tmp1[,'emmean']/tmp1[,'SE'])))
+            glt  <-suppressMessages(emtrends(fm, lop$slope.pair[[ii]], at=lop$slope.fix[[ii]], var=lop$slope.slp[ii]))
+            tmp1 <- as.data.frame(glt$emtrends)
+            Stat <- c(Stat,  c(rbind(tmp1[,paste0(lop$slope.slp[ii], '.trend')], tmp1[,paste0(lop$slope.slp[ii], '.trend')]/tmp1[,'SE'])))
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
                tmp2 <- as.data.frame(glt$contrasts)
                if(lop$z) Stat <- c(Stat,  c(rbind(tmp2[,'estimate'], tmp2[,'z.ratio']))) else
@@ -936,11 +960,11 @@ if(!is.na(lop$qVarCenters)) lop$qVarCenters <- as.numeric(strsplit(as.character(
 options(contrasts = c("contr.sum", "contr.poly"))
 
 # standardize the names for Y, ROI and subject
-#names(lop$dataStr)[names(lop$dataStr)==lop$Subj] <- 'Subj'
+names(lop$dataStr)[names(lop$dataStr)==lop$Subj] <- 'Subj'
 names(lop$dataStr)[names(lop$dataStr)==lop$IF] <- 'InputFile'
 
 # Maybe not list for these two, or yes?
-#lop$dataStr$Subj <-  as.factor(lop$dataStr$Subj)
+lop$dataStr$Subj <-  as.factor(lop$dataStr$Subj)
 lop$dataStr$InputFile <-  as.character(lop$dataStr$InputFile)
 #if(is.null(lop$Tstat)) lop$dataStr$Tstat <-  as.character(lop$dataStr$Tstat)
 
@@ -989,6 +1013,13 @@ tryCatch(dim(inData) <- c(dimx, dimy, dimz, nF), error=function(e)
    "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
 cat('Reading input files for effect estimates: Done!\n\n')
 
+# outlier removal
+if(!is.null(lop$bounds)) {
+   inData[inData > lop$bounds[2]] <- NA
+   inData[inData < lop$bounds[1]] <- NA
+   cat(paste0('\nInput data confined within [', lop$bounds[1], ', ', lop$bounds[2], ']\n\n'))
+}
+
 # masking
 if(!is.na(lop$maskFN)) {
    #Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
@@ -1001,17 +1032,29 @@ if(!is.na(lop$maskFN)) {
 # voxel-wise covariate files
 if(!is.na(lop$vQV)) {
    tmpDat <- read.AFNI(as.character(unique(lop$dataStr[,lop$vQV[1]])[1]), verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
-   dimx <- tmpDat$dim[1]
-   dimy <- tmpDat$dim[2]
-   dimz <- tmpDat$dim[3]
-   head <- tmpDat
+   #dimx <- tmpDat$dim[1]
+   #dimy <- tmpDat$dim[2]
+   #dimz <- tmpDat$dim[3]
+   #head <- tmpDat
    #for(ii in lop$vQV)
    #if(length(unique(lop$dataStr[,ii])) != nlevels(lop$dataStr$Subj))
    #   errex.AFNI(c("Error with voxel-wise covariate ", ii, ": Each subject is only\n",
    #             "allowed to have one volume; that is, the covariate has to be at the\n",
    #             "subject level.")) else {  # currently consider one voxel-wise covariate only: may generalize later?
       #vQV <- unlist(lapply(lapply(unique(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
-      vQV <- unlist(lapply(lapply(as.character(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+   vQV <- unlist(lapply(lapply(as.character(lop$dataStr[,lop$vQV[1]]), read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+   tryCatch(dim(vQV) <- c(dimx, dimy, dimz, length(lop$dataStr[,lop$vQV[1]])), error=function(e)
+   errex.AFNI(c("Dimension mismatch between voxel-level covariate file and the input data!\n",
+   "Check files in the InputFile column all have\n",
+   " (1) a single timepoint/value per voxel\n",
+   "     Use sub-brick selectors if \"3dinfo -nt\" is >1 volume",
+   " (2) the same number of voxels along X, Y, and Z axes\n",
+   "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
+   "the files are stored, and pinpoint out which file(s) is the trouble maker.\n",
+   "Replace *.HEAD with *.nii or something similar for other file formats.\n")))
+   cat('Reading voxel-level covariate file: Done!\n\n')
+
+   
       #dim(vQV) <- c(dimx, dimy, dimz, length(unique(lop$dataStr[,lop$vQV[1]])))
       dim(vQV) <- c(dimx, dimy, dimz, length(lop$dataStr[,lop$vQV[1]]))
       inData <- c(inData, vQV)
@@ -1037,13 +1080,6 @@ if(any(!is.na(lop$vVars))) {
 rg <- range(inData)
 cat(paste0('\nRange of input data: [', sprintf(rg[1], fmt = '%#.3f'), ', ', sprintf(rg[2], fmt = '%#.3f'), ']\n\n'))
 
-# outlier removal
-if(!is.null(lop$bounds)) {
-   inData[inData > lop$bounds[2]] <- NA
-   inData[inData < lop$bounds[1]] <- NA
-   cat(paste0('\nInput data confined within [', lop$bounds[1], ', ', lop$bounds[2], ']\n\n'))
-}
-
 cat('If the program hangs for an extended period (e.g., more than 5\n')
 cat('minutes), terminate the process as it likely indicates an issue with\n')
 cat('the model specification or other factors.\n\n')
@@ -1056,7 +1092,7 @@ cat('the model specification or other factors.\n\n')
 # 1) error message: even though various estimates are provided; 
 # 2) NA information criteria (AIC/BIC), logLik, deviance: any(is.na(summary(fm)$AICtab))
 # 3) NaNs standard errors for estimated parameters: any(sapply(Anova(fm, type=3)[,c('Chisq', 'Pr(>Chisq)')], is.nan))
-glmmTMB_t <- function(model, DM, start_DFs) {
+glmmTMB_t <- function(model, DM, start_DFs, control = glmmTMBControl()) {
   for (psi_value in start_DFs) {
     captured_result <- tryCatch({
       capture.output({
@@ -1065,7 +1101,8 @@ glmmTMB_t <- function(model, DM, start_DFs) {
           data = DM,
           family = t_family(),
           start = list(psi = log(psi_value)),
-          map = list(psi = factor(NA))
+          map = list(psi = factor(NA)),
+          control = control
         )
       }, type = "message")
       if(!any(is.na(summary(fm)$AICtab)) & !any(sapply(Anova(fm, type=3)[,c('Chisq', 'Pr(>Chisq)')], is.nan)))
@@ -1107,11 +1144,26 @@ if(any(!is.na(lop$vQV))) {
 }
 
 while(is.null(fm)) {
-  if(mean(na.omit(inData[ii, jj, kk,1:nrow(lop$dataStr)]) != 0) >= 0.75) {
+  if(mean(na.omit(inData[ii, jj, kk,1:nrow(lop$dataStr)]) != 0) >= 0.5) {
    lop$dataStr$yy <- inData[ii, jj, kk,1:nrow(lop$dataStr)]
    options(warn=-1)
    if(is.null(lop$family)) try(fm <- glmmTMB(lop$model, data=lop$dataStr), silent=TRUE) else 
       if(lop$family=='student.t') try(fm <- glmmTMB_t(lop$model, DM=lop$dataStr, c(9,30,50)), silent=TRUE)
+
+   is_model_ok <- function(fm) {
+      if (is.null(fm)) return(FALSE)
+      ll <- suppressWarnings(logLik(fm))
+      coefs <- suppressWarnings(unlist(coef(fm))) #coefs <- suppressWarnings(coef(fm)$cond[[1]])
+      is.finite(ll) && all(is.finite(coefs))
+   }
+   if(!is_model_ok(fm)) {
+      if(is.null(lop$family))
+         try(fm <- glmmTMB(lop$model, data=DM, control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE) else {
+         if(lop$family=='student.t') 
+            try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50), control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE)
+      }
+   }
+   
    if(!is.null(fm)) {    
       brickNames <- paste(row.names(Anova(fm, type=lop$SS_type)), 'chisq')
       lop$n.omni <- length(brickNames)
@@ -1119,7 +1171,7 @@ while(is.null(fm)) {
       lop$n.t <- 0; t.df <- NULL
       if(length(lop$level) > 0) {
          for(ll in 1:length(lop$level)) {
-            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ll]], at=lop$level.fix[ll]))
+            glt  <- suppressMessages(emmeans(fm, lop$level.pair[[ll]], at=lop$level.fix[[ll]]))
             lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$emmeans))
             t.df <- c(t.df, as.data.frame(glt$emmeans)[,'df'])
             if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$emmeans)[,1]),
@@ -1129,8 +1181,8 @@ while(is.null(fm)) {
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
                lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$contrasts))
                t.df <- c(t.df, as.data.frame(glt$contrasts)[,'df'])
-               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1]),
-                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
+               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrasts)[,1]),
+                                  paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrasts)[,1], ' z'))) else
                brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1]),
                                   paste0(lop$level.LAB[ll],'.', as.data.frame(glt$contrast)[,1], ' t')))
             }
@@ -1138,20 +1190,20 @@ while(is.null(fm)) {
       }
       if(length(lop$slope) > 0) {
          for(ss in 1:length(lop$slope)) {
-            glt  <- suppressMessages(emtrends(fm, lop$slope.pair[[ss]], at=lop$slope.fix[ss], var=lop$slope.slp[ss]))
+            glt  <- suppressMessages(emtrends(fm, lop$slope.pair[[ss]], at=lop$slope.fix[[ss]], var=lop$slope.slp[ss]))
             lop$n.t <- lop$n.t + 2*nrow(as.data.frame(glt$emtrends))
             t.df <- c(t.df, as.data.frame(glt$emtrends)[,'df'])
-            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1]),
-                 paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' z'))) else
-            brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.',as.data.frame(glt$emtrends)[,1]),
-                 paste0(lop$level.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' t')))
+            if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$slope.LAB[ss],'.', as.data.frame(glt$emtrends)[,1]),
+                 paste0(lop$slope.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' z'))) else
+            brickNames <- c(brickNames, rbind(paste0(lop$slope.LAB[ss],'.',as.data.frame(glt$emtrends)[,1]),
+                 paste0(lop$slope.LAB[ss],'.', as.data.frame(glt$emtrends)[,1], ' t')))
             if(!any(is.na(as.data.frame(glt$contrasts)['SE']))) {
                lop$n.t <-lop$n.t + 2*nrow(as.data.frame(glt$contrasts))
                t.df <- c(t.df, as.data.frame(glt$contrasts)[,'df'])
-               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1]),
-                  paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1], ' z'))) else
-               brickNames <- c(brickNames, rbind(paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1]),
-                  paste0(lop$level.LAB[ss],'.', as.data.frame(glt$contrast)[,1], ' t')))
+               if(any(is.infinite(t.df))) brickNames <- c(brickNames, rbind(paste0(lop$slope.LAB[ss],'.', as.data.frame(glt$contrasts)[,1]),
+                  paste0(lop$slope.LAB[ss],'.', as.data.frame(glt$contrasts)[,1], ' z'))) else
+               brickNames <- c(brickNames, rbind(paste0(lop$slope.LAB[ss],'.', as.data.frame(glt$contrast)[,1]),
+                  paste0(lop$slope.LAB[ss],'.', as.data.frame(glt$contrast)[,1], ' t')))
             }             
          }
       }
@@ -1196,8 +1248,9 @@ options(contrasts = c("contr.sum", "contr.poly"))
       inData <- rbind(inData, array(0, dim=c(fill, nF)))
       # break input multiple segments for parrel computation
       dim(inData) <- c(dimx_n, nSeg, nF)
-      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
-      if (lop$nNodes==1) for(kk in 1:nSeg) {
+      Stat <- array(0, dim=c(dimx_n, nSeg, lop$NoBrick+2*lop$R2+(!is.null(lop$resid))*nrow(lop$dataStr)))
+      if (lop$nNodes == 1) {
+         if(lop$R2) pkgLoad('MuMIn')
          for(kk in 1:nSeg) {
             Stat[,kk,] <- aperm(apply(inData[,kk,], 1, runGLMM, DM=lop$dataStr, tag=0), c(2,1))
             cat("Computation done ", 100*kk/nSeg, "%: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n", sep='')
@@ -1218,12 +1271,13 @@ options(contrasts = c("contr.sum", "contr.poly"))
          stopCluster(cl)
       }
       # convert to 4D
-      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
+      dim(Stat) <- c(dimx_n*nSeg, 1, 1, lop$NoBrick+2*lop$R2+(!is.null(lop$resid))*nrow(lop$dataStr))
       # remove the trailers (padded 0s)
       Stat <- Stat[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
    } else { # volumetric data
-      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
+      Stat <- array(0, dim=c(dimx, dimy, dimz, lop$NoBrick+2*lop$R2+(!is.null(lop$resid))*nrow(lop$dataStr)))
       if (lop$nNodes==1) {
+         if(lop$R2) pkgLoad('MuMIn')
          for (kk in 1:dimz) {
             if((lop$NoBrick > 1) | (!is.null(lop$resid))) Stat[,,kk,] <- aperm(apply(inData[,,kk,], c(1,2), runGLMM,
                DM=lop$dataStr, tag=0), c(2,3,1)) else

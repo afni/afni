@@ -62,7 +62,8 @@
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
 
-static char afni_host[128] = "." ;
+/* limit the host to allow for control characters */
+static char afni_host[120] = "." ;
 static char afni_name[128] = "\0" ;
 static int  afni_port      = 0 ;  /* Init. before parsing command line  
                                     ZSS June 2011 */
@@ -127,7 +128,7 @@ int main( int argc , char * argv[] )
          if( narg >= argc ){
             fprintf(stderr,"-host needs a following name!\a\n"); exit(1);
          }
-         strcpy( afni_host , argv[narg] ) ;
+         strncpy( afni_host , argv[narg] , 120 ) ;
          narg++ ; continue ;
       }
 

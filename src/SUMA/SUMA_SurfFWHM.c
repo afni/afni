@@ -1,4 +1,6 @@
 #include "SUMA_suma.h"
+#include "SUMA_SurfACF.h"
+#include <ctype.h>
 
 static char uSFWHM_Example1[]={
    "1- Estimating the FWHM of smoothed noise:\n"   
@@ -174,6 +176,48 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
 "               in the selection of neighborhood size for local smoothness\n"
 "               estimation.\n"
 "\n"
+" -acf [ANAME [RADIUS]]\n"
+" -ACF [ANAME [RADIUS]]\n"
+"             = Estimate the spatial AutoCorrelation Function of the data\n"
+"               and fit it to the same mixed model 3dFWHMx -acf reports:\n"
+"\n"
+"                 ACF(r) = a*exp(-r*r/(2*b*b)) + (1-a)*exp(-r/c)\n"
+"\n"
+"               where r is GEODESIC distance along the surface.  The four\n"
+"               numbers a, b, c and the effective FWHM are written to stdout\n"
+"               in the same order and format as 3dFWHMx, so scripts that\n"
+"               parse one can parse the other.\n"
+"             * Why you might want this: a FWHM is one number describing the\n"
+"               ACF near the origin.  Cluster-extent inference depends on the\n"
+"               far tail, and real data has a much heavier tail than the\n"
+"               Gaussian shape a FWHM implicitly assumes.  That mismatch is\n"
+"               what inflated cluster false-positive rates in the volume\n"
+"               (Eklund, Nichols & Knutsson 2016) and is why 3dClustSim\n"
+"               gained -acf.  'a' is the tell: a near 1 means nearly\n"
+"               Gaussian, smaller means a heavy exponential tail.  Noise\n"
+"               smoothed to a target FWHM fits at about a=0.95; real data is\n"
+"               typically nearer a=0.5.\n"
+"             * The effective FWHM (fourth number) is NOT comparable to the\n"
+"               classic estimate above it, and is normally about 1.5 times\n"
+"               larger, because it is the width of the ACF itself and\n"
+"               accounts for the tail.  3dFWHMx behaves the same way.\n"
+"             * ANAME is where the empirical and fitted curves are written\n"
+"               (default SurfFWHM.1D), in columns:\n"
+"                 radius  ACF(r)  model(r)  gaussian_NEWmodel(r)\n"
+"               Give '-' or NULL for ANAME to skip writing the curve.\n"
+"             * RADIUS is the largest geodesic distance considered.  The\n"
+"               default is 20 times the mean intersegment distance, which\n"
+"               scales with the mesh instead of assuming millimetres.\n"
+"             * Cost grows with RADIUS squared, since the neighbourhood of\n"
+"               every node has to be walked.  Expect tens of seconds on a\n"
+"               dense mesh; shrink RADIUS if that is too slow, but check\n"
+"               that the curve still reaches well below 0.5 before it ends.\n"
+"\n"
+" -acf_binwidth DR\n"
+"             = Width of the geodesic distance bins for -acf.  Default is\n"
+"               the mean intersegment distance, i.e. roughly one bin per\n"
+"               edge step, which is about the finest the mesh supports.\n"
+"\n"
 " -ok_warn\n"
 " -examples  = Show command line examples and quit.\n"
 " Options for no one to use:\n"
@@ -199,6 +243,151 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
       exit(0);
 }
 static int ncode=-1 , code[MAX_NCODE];
+
+/* ---- -acf option state -------------------------------------------------
+   Kept file-static rather than added to SUMA_GENERIC_PROG_OPTIONS_STRUCT so
+   that this option touches no shared header.  ncode above sets the
+   precedent. */
+static int    acf_do    = 0;      /* 1 = -acf given */
+static char  *acf_fname = NULL;   /* curve output; NULL -> SurfFWHM.1D */
+static float  acf_rad   = 0.0f;   /* <= 0 -> derive from mean edge length */
+static float  acf_dr    = 0.0f;   /* <= 0 -> derive from mean edge length */
+
+/*!
+   Estimate the surface ACF and fit it to AFNI's mixed model.  All the real
+   work -- the geodesic estimator and the pseudo-cluster trick that lets
+   ACF_cluster_to_modelE() do the fitting unchanged -- lives in
+   SUMA_SurfACF.h, shared with SurfClustSim so the program that MEASURES an
+   ACF and the program that has to GENERATE noise matching one cannot drift
+   apart.  This is just the dataset-shaped wrapper: pull each numeric column
+   out as a full per-node float vector, accumulate its curve, average, fit,
+   and optionally write the curves out.
+
+   Returns {a,b,c,effective FWHM}, or all -1 on failure.
+*/
+static float_quad SUMA_SurfFWHM_ACF(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
+                                    int *icols, int N_icols, byte *nmask,
+                                    float radius, float dr, char *fname,
+                                    int debug)
+{
+   static char FuncName[]={"SUMA_SurfFWHM_ACF"};
+   float_quad qout = { -1.0f, -1.0f, -1.0f, -1.0f };
+   SUMA_GET_OFFSET_STRUCT *off=NULL;
+   double *acf=NULL, *nacc=NULL;
+   int nbins=0, ib, k, n, ncol_used=0;
+   float *fin=NULL;
+   byte *bfull=NULL;
+   FILE *fout=NULL;
+
+   SUMA_ENTRY;
+
+   if (!SO || !dset || !icols || N_icols <= 0) SUMA_RETURN(qout);
+
+   /* need the edge list (for mean edge length) and the neighbour list */
+   if (!SO->EL || !SO->FN) {
+      if (!SUMA_SurfaceMetrics(SO, "EdgeList", NULL)) {
+         SUMA_S_Err("Failed to compute edge list");
+         SUMA_RETURN(qout);
+      }
+   }
+   if (!SO->EL || SO->EL->AvgLe <= 0.0f) {
+      SUMA_S_Err("Cannot determine mean intersegment distance");
+      SUMA_RETURN(qout);
+   }
+
+   SUMA_SurfACF_defaults(SO, &radius, &dr);
+   nbins = SUMA_SurfACF_nbins(radius, dr);
+   if (nbins < 5) {
+      SUMA_S_Errv("ACF radius %g with bin width %g gives %d bins; "
+                  "need at least 5\n", radius, dr, nbins);
+      SUMA_RETURN(qout);
+   }
+
+   acf  = (double *)SUMA_calloc(nbins, sizeof(double));
+   nacc = (double *)SUMA_calloc(nbins, sizeof(double));
+   off  = SUMA_Initialize_getoffsets(SO->N_Node);
+   if (!acf || !nacc || !off) {
+      SUMA_S_Err("Failed to allocate for ACF accumulation");
+      goto CLEANUP;
+   }
+
+   if (debug)
+      SUMA_S_Notev("ACF: radius %g, bin width %g, %d bins, "
+                   "mean edge length %g\n", radius, dr, nbins, SO->EL->AvgLe);
+
+   for (k=0; k < N_icols; ++k) {
+      fin = SUMA_DsetCol2Float(dset, icols[k], 1);
+      if (!fin) { SUMA_S_Err("Failed to extract data column"); goto CLEANUP; }
+      bfull = NULL;
+      if (!SUMA_MakeSparseColumnFullSorted(&fin, SDSET_VECFILLED(dset),
+                                           0.0, &bfull, dset, SO->N_Node)) {
+         SUMA_S_Err("Failed to get full column vector");
+         goto CLEANUP;
+      }
+      /* combine the dataset's own coverage mask with the user's, if both */
+      if (bfull && nmask) {
+         for (n=0; n < SO->N_Node; ++n) bfull[n] = (bfull[n] && nmask[n]);
+      } else if (!bfull && nmask) {
+         bfull = (byte *)SUMA_malloc(sizeof(byte)*SO->N_Node);
+         if (!bfull) { SUMA_S_Err("Failed to allocate mask"); goto CLEANUP; }
+         memcpy(bfull, nmask, sizeof(byte)*SO->N_Node);
+      }
+
+      if (SUMA_SurfACF_accumulate(SO, fin, bfull, radius, dr, nbins,
+                                  acf, nacc, off)) ++ncol_used;
+      else if (debug)
+         SUMA_S_Notev("Column %d: no usable variance, skipped\n", icols[k]);
+
+      SUMA_free(fin);   fin = NULL;
+      if (bfull) { SUMA_free(bfull); bfull = NULL; }
+   }
+
+   if (ncol_used == 0) {
+      SUMA_S_Err("No usable data columns for the ACF estimate");
+      goto CLEANUP;
+   }
+
+   SUMA_SurfACF_finalize(acf, nacc, nbins);
+   qout = SUMA_SurfACF_fit(acf, nbins, dr);
+   if (qout.a < 0.0f) { SUMA_S_Err("ACF model fit failed"); goto CLEANUP; }
+
+   if (!fname) fname = "SurfFWHM.1D";
+   if (strcmp(fname, "-") != 0 && strcmp(fname, "NULL") != 0) {
+      fout = fopen(fname, "w");
+      if (!fout) {
+         SUMA_S_Errv("Cannot write ACF curve to %s\n", fname);
+      } else {
+         float sig = FWHM_TO_SIGMA(qout.d);
+         fprintf(fout,
+            "# Surface ACF from %d data column%s, %d nodes, "
+            "mean edge length %.6g\n"
+            "# model: a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c)\n"
+            "# a=%.6g  b=%.6g  c=%.6g  effective FWHM=%.6g\n"
+            "# radius  ACF(r)  model(r)  gaussian_NEWmodel(r)\n",
+            ncol_used, ncol_used == 1 ? "" : "s", SO->N_Node,
+            SO->EL->AvgLe, qout.a, qout.b, qout.c, qout.d);
+         for (ib=0; ib < nbins; ++ib) {
+            float r, mod, gau;
+            if (acf[ib] < -0.5) continue;
+            r   = dr * (float)ib;
+            mod = (float)SUMA_SurfACF_model(qout.a, qout.b, qout.c, r);
+            gau = (sig > 0.0f) ? expf(-0.5f*r*r/(sig*sig)) : 0.0f;
+            fprintf(fout, " %9.4f %11.6f %11.6f %11.6f\n",
+                    r, (float)acf[ib], mod, gau);
+         }
+         fclose(fout); fout = NULL;
+         if (debug) SUMA_S_Notev("Wrote ACF curve to %s\n", fname);
+      }
+   }
+
+CLEANUP:
+   if (fin)   SUMA_free(fin);
+   if (bfull) SUMA_free(bfull);
+   if (acf)   SUMA_free(acf);
+   if (nacc)  SUMA_free(nacc);
+   if (off)   SUMA_Free_getoffsets(off);
+   SUMA_RETURN(qout);
+}
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
@@ -330,6 +519,41 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-acf") == 0 ||
+                   strcmp(argv[kar], "-ACF") == 0)) {
+         acf_do = 1;
+         /* optional: [aname [radius]], same shape as 3dFWHMx -acf */
+         if (kar+1 < argc && argv[kar+1][0] != '-') {
+            ++kar;
+            if (strcmp(argv[kar], "NULL") != 0) acf_fname = argv[kar];
+            else                                acf_fname = "-";
+            if (kar+1 < argc &&
+                (isdigit((int)argv[kar+1][0]) || argv[kar+1][0] == '.')) {
+               ++kar;
+               acf_rad = (float)strtod(argv[kar], NULL);
+               if (acf_rad <= 0.0f) {
+                  fprintf(SUMA_STDERR, "-acf radius must be positive\n");
+                  exit(1);
+               }
+            }
+         }
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-acf_binwidth") == 0)) {
+         kar ++;
+         if (kar >= argc) {
+            fprintf (SUMA_STDERR, "need a value after -acf_binwidth \n");
+            exit (1);
+         }
+         acf_dr = (float)strtod(argv[kar], NULL);
+         if (acf_dr <= 0.0f) {
+            fprintf(SUMA_STDERR, "-acf_binwidth must be positive\n");
+            exit(1);
+         }
+         brk = YUP;
+      }
+
       if (!brk && (strcmp(argv[kar], "-ok_warn") == 0))
       {
          Opt->b1 = 1;
@@ -645,6 +869,23 @@ int main (int argc,char *argv[])
       exit(1);                                         
    }
   
+   /* -acf: report the autocorrelation model alongside the FWHM.  Done here
+      so it sees exactly the data the FWHM estimate sees -- after detrending
+      and after the NN-oversampling fix. */
+   if (acf_do) {
+      float_quad aq = SUMA_SurfFWHM_ACF(SO, din, icols, N_icols, Opt->nmask,
+                                        acf_rad, acf_dr, acf_fname,
+                                        Opt->debug);
+      if (aq.a < 0.0f) {
+         SUMA_S_Err("Failed to estimate the surface ACF");
+         exit(1);
+      }
+      fprintf(stdout,
+         "# ACF model parameters for a*exp(-r*r/(2*b*b))+(1-a)*exp(-r/c) "
+         "plus effective FWHM\n");
+      fprintf(stdout, " %.6g  %.6g  %.6g  %.6g\n", aq.a, aq.b, aq.c, aq.d);
+   }
+
    fprintf(stderr,"Global FWHM estimates for each column:\n");
    fwhmg_max = fwhmv[0];
    for (i=0; i<N_icols; ++i) {

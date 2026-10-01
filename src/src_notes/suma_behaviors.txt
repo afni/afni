@@ -1,0 +1,141 @@
+﻿SUMA Behavior
+
+For the most part, the behavior applies to both hemispheres when
+control panels are joined (when SUMA_SameSurfCont = YES in .sumarc).
+To separate the behavior to separate hemispheres, set
+SUMA_SameSurfCont = NO in .sumarc.  Some behavior only applies to one
+dataset.
+
+A **surface object** (SO) _does_ have topological (=mesh) information.
+There might be only one SO viewed in suma (e.g. class demo with left hemi,
+lh.spec), or there might be two SOs, one for each hemi (e.g. both.spec),
+or there might be many SOs (e.g. suma -onestate -i roi*.gii).  Note that
+the one/two SO cases apply to the entire families, meaning SUMAg_DOv will
+have only one or two entries, each for that hemi's family, based on the
+family parent.
+
+A **surface dataset** does _not_ have topological information, and is
+only nodewise information.  It is often represented by an overlay
+(like a *.niml.dset file, or within the code SO->Overlays), to be
+displayed _on_ a surface dataset.
+
+There are many file formats that are handled, and NIML has many sub-formats.
+Some formats are for surface objects, some are for surface datasets, and
+some are for either.
+
+   File format       suffix            read  write  SurfObj  SurfData
+   -------------     --------------    ----  -----  -------  --------
+   GIFTI             .gii               Y      Y      Y        Y
+   niml (asc/bin)    .niml.dset         Y      Y      -        Y
+   BrainVoyager                         Y      -      Y        -
+   Caret/Surefit                        Y      -      Y        -
+   FreeSurfer        .asc               Y      -      Y        -
+   vec/1D surf       .coord/.topo       Y      Y      Y        -
+   1D data           .1D                Y      Y      -        Y
+
+
+The SC_Notebook variable is a widget for managing all surface objects
+currently loaded into SUMA.  The object controller can either be a
+single notebook window for all, or each object gets its own window.
+* This notebook widget can encompass many different kinds of objects,
+  even beyond surfaces (graphs, tracts, etc.).
+* The children of the notebook widget at called pages.
+
+
+A table of object configurations. 
+  - : that this attribute/feature  does _not_ apply to multiple
+      things, and that it explicitly needs to be turned off for other 
+      objects when it is turned on for one
+  / : that this attribute/feature  does _not_ apply to multiple
+      things, and they are independent
+  + : this attribute/feature _does_ apply to multiple things
+  S : surface object
+  D : surface dataset (like overlay)
+The P and O columns are for reference, with existing functionality (and don't
+refer to the Ctrl+P and Ctrl+O cases).
+----------------------------------------------------------------------------
+                    A(alpha)  B(box)  T(threshold)  P(points)  O(opacity)
+1S, Multi-D         -         -       -             +          +
+2Hemi-S, Single-D   +         +       +             +          +
+Multi-S, Multi-D    /         /       / ^1
+Volumes             NA        NA      
+Tracts
+Graphs              NA        NA
+----------------------------------------------------------------------------
+^1: the T propagates from earlier values, _until_ it has been set, after which
+    it remains constant for the given surface.  
+
+SUMA has some preexisting functionality to propagate the left-right
+properties, and that should probably be used to deal with the
+"2Hemi-S, Single-D" cases.  That magical function is:
+SUMA_Contralateral_overlay.  It should be used in place of the newer
+SUMA_ADOs_WithUniqueSurfCont().
+
+
+A (Alpha) check box: When this is unchecked, subthreshold regions of the overlay
+are purely transparent.  When it is checked, the opacity falls off as the point 
+value falls below threshold.  This falloff may be quadratic (default) or linear.  
+The quadratic/linear model may not be chosen on the surface control panel.  It 
+must be selected with DriveSuma.  The function, SUMA_cb_AlphaOpacityFalloff_tb_toggled, 
+handles the clicking of the A checkbox.  The AlphaOpacityFalloff_tb field of the 
+surface controller (SUMA_X_SurfCont) structure is the widget associated with the A checkbox.
+
+B (Box) check box.  When this is checked, an outline separates regions that are 
+above, from those that are below, the threshold. The function, SUMA_cb_BoxOutlineThresh_tb_toggled, 
+handles the clicking of the B checkbox.  The BoxOutlineThresh_tb field of the surface controller 
+(SUMA_X_SurfCont) structure is the widget associated with the B checkbox.  When the B box is checked on, the Dsp setting (in the ShowMode field of the overlay) is changed either from Col to C&C or from XXX to Con.  These settings are represented by the SW_SurfCont_DsetViewCol, SW_SurfCont_DsetViewCaC, SW_SurfCont_DsetViewXXX and SW_SurfCont_DsetViewCon tokens respectively. When the B box is checked off, the Dsp setting is changed either from C&C to Col or from Con to XXX. 
+
+A and B check boxes may each be positive for no more than one dataset.
+Each dataset has an associated overlay.  The number of overlays is
+given by SO->N_Overlays and the overlays are in SO->Overlays.
+
+The function, SUMA_LoadDsetOntoSO, is called when a dataset is
+loaded. When a new dataset is loaded, the A and B boxes are
+initialized to off, as are variable opacity and threshold outlining
+for the overlay associated with the dataset.
+
+The function, SUMA_cb_SelectSwitchColPlane, switches between two datasets that have already been loaded.  The A and B check boxes are set from the values associated with the overlay (dataset) that has just been selected.
+
+notebook applies to surface controller 
+
+Section referencing where clipping planes located.  See “suma -help_clipping_planes”
+
+Checks:
+- Alpha and Box outline should only be true for at most one dataset.  Check that turning A/B on for the active dataset turns A/B off for all the other data sets. If A/B turned on for a dataset, and the user switches to another dataset and switches back to the original dataset without changing A/B, then the A/B settings of the original dataset are maintained.  For example, with
+suma $HOME/AFNI_data6/FT_analysis/FT.surf.results \
+        stats.FT.surf.lh.niml.dset \
+        -spec $HOME/AFNI_data6/FT_analysis/FT/SUMA/std.60.FT_both.spec \
+        -sv FT.surf_SurfVol_Alnd_Exp+orig
+do the following.
+- Set threshold to 21
+- Toggle B key on
+- Toggle A key on
+- Load pb03.FT.surf.lh.r01.surf.niml.dset
+- A and B should both be off
+- Raise threshold to 1583 
+- Switch Dset back to pb03.FT.surf.lh.r01.surf.niml.dset
+- A and B should both be off.  Threshold outlines may still be seen but not corresponding to the threshold boundaries of the current dataset.
+- Check A and B check boxes on.
+- Switch Dset back to fg:stats.FT.surf.lh.niml.dset
+- A and B should both be off.
+- Check A and B check boxes on.
+- Set alpha model to linear.  The subthreshold coloration should expand.
+- Set alpha model to quadratic.  The subthreshold coloration should contract.
+- Change threshold to 14.
+- Change intensity range to [0.5,1.4].
+- Switch I (Intensity sub-brick) to 1.
+- Check color hues don't change as threshold changes.
+- Switch I (Intensity sub-brick) to 2.
+- Check color hues don't change as threshold changes.
+- Switch I (Intensity sub-brick) to 3.
+- Check color hues don't change as threshold changes.
+- Switch T (Threshold sub-brick) to 4.
+- Check color hues don't change as threshold changes.
+- Switch I (Intensity sub-brick) to 4.
+- Check color hues don't change as threshold changes.
+- Switch T (Threshold sub-brick) to 5.
+- Check color hues don't change as threshold changes.
+- Turn "Sym I" on
+- Check color hues don't change as threshold changes.
+
+

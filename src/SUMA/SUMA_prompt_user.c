@@ -1,5 +1,10 @@
 #include "SUMA_suma.h"
 
+/*
+  [pt: 2026-08-21] testing Claude-proposed fixes for various crashes when
+  using/closing the prompt dialogue popups.  See "FIX" comments below.
+*/
+
 /* local proto */
 static char * read_file_text(FILE * fp);  /* 29 Jun 2012 [rickr] */
 
@@ -109,9 +114,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_prompt_user_ParseInput(
 /* return all of fp (stdin, probably) in a string */
 static char * read_file_text(FILE * fp)
 {
-   static char FuncName[]={"read_file_text"}; 
-   char * str, ch;
+   static char FuncName[]={"read_file_text"};
+   int    ch;  /* FIX: use int (not char) so EOF (-1) is distinguishable from valid bytes */
    int    i, len, nalloc;
+   char * str;
 
    SUMA_ENTRY;
 
@@ -127,9 +133,11 @@ static char * read_file_text(FILE * fp)
          fprintf(stderr,"** RFT alloc fail on len %d\n", nalloc);
          SUMA_RETURN(NULL);
       }
-      for( i=0; i < 100 && !feof(fp); i++ )
-         str[len++] = fgetc(fp);
-      if( feof(fp) ) len--;
+      for( i=0; i < 100 && !feof(fp); i++ ) {
+         ch = fgetc(fp);               /* FIX: store in int before narrowing */
+         if( ch == EOF ) break;        /* FIX: check EOF before storing */
+         str[len++] = (char)ch;
+      }
    }
    str[len] = '\0'; /* terminate */
 
@@ -170,6 +178,11 @@ int main (int argc,char *argv[])
    
    switch (Opt->b1) {
       case 1:
+         /* FIX: guard against NULL from read_file_text before passing to unescape_unix_str */
+         if (!Opt->in_name) {
+            SUMA_S_Err("Empty or unreadable message string.\n");
+            exit(1);
+         }
          /* apply some escape characters     31 Jul 2009 [rickr] */
          esc_str = unescape_unix_str(Opt->in_name);
          ii = SUMA_PauseForUser(w, esc_str, SWP_POINTER_LEFT_BOTTOM, 

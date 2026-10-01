@@ -121,12 +121,21 @@ if(COMP_GUI)
   set(PROGRAMS_BUILT mrix)
 endif()
 
+if(COMP_COREBINARIES OR COMP_SUMA)
+  add_subdirectory(ptaylor)
+endif()
+
 # Add suma
 if(COMP_SUMA)
   # segtools/avovk only used by suma so add it here
-  add_subdirectory(ptaylor)
   add_subdirectory(avovk)
   add_subdirectory(SUMA)
+  if(TARGET 3dRSA)
+    # SUMA's public headers include mrix/coxplot headers, while SUMA itself
+    # keeps mrix private; consumers of SUMA_suma.h therefore link both.
+    target_link_libraries(3dRSA PRIVATE AFNI::SUMA AFNI::mrix)
+    target_compile_definitions(3dRSA PRIVATE USE_SUMA)
+  endif()
 endif()
 
 # Add_plugin targets

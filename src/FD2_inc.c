@@ -19,8 +19,7 @@
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
 #endif
 
-int  thd_floatscan();
-int  fseeko();
+int thd_floatscan( int nbuf , float *fbuf );
 
 extern char MRILIB_orients[] ;          /* 12 Mar 2001 */
 extern float MRILIB_zoff ;              /* global variables from mri_read.c */

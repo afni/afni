@@ -1936,7 +1936,7 @@ extern XtPointer AFNI_brick_to_mri( int n , int type , FD_brick * br );
 
 extern THD_3dim_dataset * AFNI_read_images( int nf , char * fname[] );
 
-extern void AFNI_seq_send_CB(MCW_imseq   * seq    ,FD_brick * br,ISQ_cbs * cbs);
+extern void AFNI_seq_send_CB(MCW_imseq   * seq    ,XtPointer xptr, ISQ_cbs * cbs);
 extern void AFNI_gra_send_CB(MCW_grapher * grapher,FD_brick * br,GRA_cbs * cbs);
 
 extern void AFNI_read_inputs   ( int argc, char * argv[] );
@@ -2027,6 +2027,9 @@ extern void AFNI_writeout_dataset    ( THD_3dim_dataset * , char * ) ;     /* 16
 
 extern void AFNI_do_many_writes      ( Widget , XtPointer , MCW_choose_cbs * ) ; /* 23 Nov 1996 */
 extern void AFNI_finalize_dataset_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern int  AFNI_parse_jumpto_coord  ( char *str, char negdir, float *val, 
+                                       int *is_lettered ) ;
+extern char AFNI_opposite_dir        ( char cc ) ;
 extern void AFNI_jumpto_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_jump_and_seed       ( Three_D_View * , float, float, float  ) ;

@@ -18,9 +18,7 @@ int swap2(int,short *) ;
 
 static short buf[BUFSIZE] ;
 
-int main( argc , argv )
-   int argc ;
-   char * argv[] ;
+int main( int argc , char * argv[] )
 {
    FILE * infil , * outfil ;
    int narg , nbyte , nsh , quiet = 0 , ndone ;

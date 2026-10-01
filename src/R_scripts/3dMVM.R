@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.2.3, Dec 3, 2025
+Version 4.2.4, Dec 22, 2025
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MVM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -290,8 +290,18 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-jobs' = apl(n = 1, d = 1, h = paste(
-   "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
-   "         up the program significantly.",
+   "-jobs NJOBS: On a multi-processor machine, parallel computing can speed",
+   "         up the program significantly. However, increasing the number of CPUs", 
+   "         processes does not necessarily improve performance. Because each",
+   "         CPU is an independent R process, aggregate memory usage grows",
+   "         with the number of CPUs. It is therefore advisable to identify",
+   "         the largest number of CPUs that fits comfortably within physical",
+   "         RAM while avoiding swap activity, rather than simply using all",
+   "         available CPU cores. A useful strategy is to benchmark several",
+   "         CPU counts while monitoring memory usage (e.g., with free -h,",
+   "         vmstat, or htop) and choose the largest number that avoids",
+   "         sustained swapping, as memory thrashing can more than offset the",
+   "         benefits of additional parallelism.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
                      ) ),
 
@@ -1240,7 +1250,9 @@ runAOV <- function(inData, dataframe, ModelForm) {
 	       #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- sign(glt[1,'Value']) * sqrt(glt[1,4])  # convert F to t
                #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,4]<0.5, qt(glt[1,4], glt$Df[2],
                #   lower.tail = FALSE)*sign(glt[1,'Value']), -qt(glt[1,4], glt$Df[2], lower.tail = FALSE)*sign(glt[1,'Value'])),
- 	       out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,'Pr(>Chisq)']<0.5, qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value']), -qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value'])),
+               # replaced the line below per cindykrafft: 09/22/2026
+ 	       #out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, ifelse(glt[1,'Pr(>Chisq)']<0.5, qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value']), -qnorm(glt[1,'Pr(>Chisq)'], lower.tail = FALSE)*sign(glt[1,'Value'])),
+               out[lop$nF+lop$GES*lop$nFu+2*ii]   <- ifelse(rlm_run, sign(glt[1,'Value'])*qnorm(glt[1,'Pr(>Chisq)']/2, lower.tail = FALSE),
                   sign(glt[1,'Value']) * sqrt(glt[1, intersect(c('F', 'approx F'), names(glt))]))
             } #if(!is.null(glt))
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])

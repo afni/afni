@@ -1210,6 +1210,202 @@ ENTRY("THD_mask_erode") ;
    free(nnn) ; EXRETURN ;
 }
 
+/* ------------------------------------------------------------------------ */
+/*! Erode a 3D mask slicewise (in only 2 dimensions at a time).
+    This is particularly useful when input data is a single/few slices.
+
+    Inputs and usage are basically the same as the 3D version in
+    THD_mask_erode(), but with an extra parameter to control which the
+    erosion is done within (basically, an array index to define the 
+    slice):
+
+      noerode_dim:
+         0 = do not erode along i/x  -> erosion in y-z planes
+         1 = do not erode along j/y  -> erosion in x-z planes
+         2 = do not erode along k/z  -> erosion in x-y planes
+
+    Additionally, we keep the same usage of NN, which is a 3D nearest
+    neighbor parameter, but it its behavior applying to this 2D case 
+    as follows:
+
+      NN:
+         1 = use 4 face neighbors in the erosion plane
+         2 = use all 8 neighbors in the erosion plane
+         3 = same as 2 in 2-D (there is no third-axis corner)
+
+    If redilate != 0, restore an eroded voxel if it has any surviving
+    neighbor in the same erosion plane.
+
+    [pt: 2026-09-11] done using chatgpt
+  ------------------------------------------------------------------------- */
+void THD_mask_erode2D( int nx, int ny, int nz, byte *mmm,
+                       int noerode_dim, int redilate, byte NN )
+{
+   int ii,jj,kk, iv,jv;
+   int uu,vv, cu,cv;
+   int aa,bb, dd;
+   int num, victim;
+   int nxy = nx*ny, nxyz = nxy*nz;
+   int dim[3], stride[3], cc[3];
+   int useNN, nneed;
+   byte *nnn;
+
+   ENTRY("THD_mask_erode2D");
+
+   if( mmm == NULL ) EXRETURN;
+   if( noerode_dim < 0 || noerode_dim > 2 ) EXRETURN;
+
+   dim[0] = nx;  dim[1] = ny;  dim[2] = nz;
+
+   stride[0] = 1;
+   stride[1] = nx;
+   stride[2] = nxy;
+
+   /* Find the 2 axes on which erosion is to be performed. */
+   aa = bb = -1;
+   for( dd=0 ; dd < 3 ; dd++ ){
+      if( dd == noerode_dim ) continue;
+      if( aa < 0 ) aa = dd;
+      else         bb = dd;
+   }
+
+   /* In a plane:
+         NN1 -> 4 neighbors
+         NN2 -> 8 neighbors
+         NN3 -> still only 8, since displacement along the
+                excluded dimension is forbidden. */
+   useNN = (NN <= 1) ? 1 : 2;
+   nneed = (useNN == 1) ? 4 : 8;
+
+   nnn = (byte *)calloc(sizeof(byte),nxyz); /* voxels marked for erosion */
+   if( nnn == NULL ) EXRETURN;
+
+   /* ------------------------------------------------------------------ */
+   /* mark voxels for erosion */
+
+   STATUS("marking to erode in 2D");
+
+   for( kk=0 ; kk < nz ; kk++ ){
+      for( jj=0 ; jj < ny ; jj++ ){
+         for( ii=0 ; ii < nx ; ii++ ){
+
+            iv = ii + jj*nx + kk*nxy;
+            if( !mmm[iv] ) continue;
+
+            cc[0] = ii;
+            cc[1] = jj;
+            cc[2] = kk;
+
+            num = 0;
+
+            /* uu and vv are offsets along the two active dimensions.
+               There is never an offset along noerode_dim. */
+            for( uu=-1 ; uu <= 1 ; uu++ ){
+               for( vv=-1 ; vv <= 1 ; vv++ ){
+
+                  if( uu == 0 && vv == 0 ) continue;
+
+                  /* NN1 excludes the 4 in-plane diagonal neighbors. */
+                  if( useNN == 1 && uu != 0 && vv != 0 ) continue;
+
+                  cu = cc[aa] + uu;
+                  cv = cc[bb] + vv;
+
+                  /* Out-of-volume neighbors count as absent.
+                     Thus an edge in an ERODED dimension gets peeled,
+                     but an edge in noerode_dim has no special effect. */
+                  if( cu < 0 || cu >= dim[aa] ||
+                      cv < 0 || cv >= dim[bb] ) continue;
+
+                  jv = iv + uu*stride[aa] + vv*stride[bb];
+
+                  if( mmm[jv] ) num++;
+               }
+            }
+
+            if( num < nneed ) nnn[iv] = 1;
+         }
+      }
+   }
+
+   /* actually erode */
+
+   STATUS("eroding in 2D");
+
+   for( jj=ii=0 ; ii < nxyz ; ii++ ){
+      if( nnn[ii] ){
+         mmm[ii] = 0;
+         jj++;
+      }
+   }
+
+   if( verb && jj > 0 )
+      ININFO_message("Eroded   %d voxels in 2D\n",jj);
+
+   /* ------------------------------------------------------------------ */
+   /* optionally restore eroded voxels next to surviving in-plane voxels */
+
+   if( redilate ){
+
+      STATUS("marking to redilate in 2D");
+
+      for( kk=0 ; kk < nz ; kk++ ){
+         for( jj=0 ; jj < ny ; jj++ ){
+            for( ii=0 ; ii < nx ; ii++ ){
+
+               iv = ii + jj*nx + kk*nxy;
+               if( !nnn[iv] ) continue;   /* wasn't eroded */
+
+               cc[0] = ii;
+               cc[1] = jj;
+               cc[2] = kk;
+
+               victim = 0;
+
+               for( uu=-1 ; uu <= 1 && !victim ; uu++ ){
+                  for( vv=-1 ; vv <= 1 ; vv++ ){
+
+                     if( uu == 0 && vv == 0 ) continue;
+                     if( useNN == 1 && uu != 0 && vv != 0 ) continue;
+
+                     cu = cc[aa] + uu;
+                     cv = cc[bb] + vv;
+
+                     if( cu < 0 || cu >= dim[aa] ||
+                         cv < 0 || cv >= dim[bb] ) continue;
+
+                     jv = iv + uu*stride[aa] + vv*stride[bb];
+
+                     if( mmm[jv] ){
+                        victim = 1;
+                        break;
+                     }
+                  }
+               }
+
+               /* Re-use nnn: leave it set only for voxels that
+                  should actually be restored. */
+               nnn[iv] = (byte)victim;
+            }
+         }
+      }
+
+      STATUS("redilating in 2D");
+
+      for( jj=ii=0 ; ii < nxyz ; ii++ ){
+         if( nnn[ii] ){
+            mmm[ii] = 1;
+            jj++;
+         }
+      }
+
+      if( verb && jj > 0 )
+         ININFO_message("Restored %d eroded voxels in 2D\n",jj);
+   }
+
+   free(nnn);
+   EXRETURN;
+}
 
 /*--------------------------------------------------------------------------*/
 /*! Erode away nonzero voxels that aren't neighbored by mostly other nonzero

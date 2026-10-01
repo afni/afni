@@ -351,7 +351,7 @@
       char *opref = SUMA_copy_string(DSET_PREFIX(mdset)); \
       char *m_pref = SUMA_append_string("t.",DSET_PREFIX(mdset)); \
       char *oid = SUMA_copy_string(DSET_IDCODE_STR(mdset));   \
-      char lbuf[strlen(sstr)+10];   \
+      char lbuf[strlen(sstr)+11];   \
       if (Opt->debug > 1) SUMA_S_Notev("Sending %s volume to AFNI, iter %d\n", \
                    sstr, iter); \
       if (iter >=0) sprintf(lbuf, "%s.%d", sstr, iter); \

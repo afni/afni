@@ -496,6 +496,7 @@ SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                                      SUMA_SurfaceViewer *sv);
 XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
                                  char *fontname, char *tag);
+SUMA_Boolean SUMA_AB_Ready(SUMA_ALL_DO *ado);
 
 /* the help strings */
 

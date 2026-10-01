@@ -33,7 +33,7 @@ target_link_libraries(
            X11::X11
            X11::Xext
   PRIVATE
-          $<IF:$<BOOL:${USE_SYSTEM_XMHTML}>,XmTHML::XmHTML,AFNI::XmHTML>
+          $<IF:$<BOOL:${USE_SYSTEM_XMHTML}>,XmHTML::XmHTML,AFNI::XmHTML>
 )
 
 set_source_files_properties(

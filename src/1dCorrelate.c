@@ -1,5 +1,4 @@
 #include "mrilib.h"
-#include "zgaussian.c"
 
 #define NCOR 6
 
@@ -81,6 +80,11 @@ void usage_1dCorrelate( int detail ){
       "               correlation (along each column) is present and significant.\n"
       "             * Block resampling requires at least 20 data points in each\n"
       "               input column.  Fewer than 20 will turn off this option.\n"
+      "\n"
+      " -seed SSS = provide an integer seed value for controlling the random number\n"
+      "             generation step. Probably only useful for testing purposes.\n"
+      "             Entering a seed of value 0 leads to random selection, which\n"
+      "             is the default behavior.\n"
 #if 0
       "\n"
       " -vsig ss  = With this option, you specify that each individual measurement\n"
@@ -198,9 +202,13 @@ int main( int argc , char *argv[] )
    int cormeth=0 ;    /* 0=Pearson, 1=Spearman, 2=Quadrant, 3=Kendall tau_b */
    float (*corfun)(int,float *,float *) ;
 
+   /* def seed: use wall clock (always changes); user can set from cmd line */
+   uint32_t rseed = 0;
+   long lseed = 0;
+
    /*-- start the AFNI machinery --*/
 
-   mainENTRY("1dCorrelate main") ; machdep() ;
+   mainENTRY("1dCorrelate") ; machdep() ;
 
    /* check for options */
 
@@ -215,12 +223,41 @@ int main( int argc , char *argv[] )
 
      /*--- methods ---*/
 
-     if( toupper(argv[iarg][1]) == 'P' ){ cormeth = 0 ; iarg++ ; continue ; }
-     if( toupper(argv[iarg][1]) == 'S' ){ cormeth = 1 ; iarg++ ; continue ; }
-     if( toupper(argv[iarg][1]) == 'Q' ){ cormeth = 2 ; iarg++ ; continue ; }
-     if( toupper(argv[iarg][1]) == 'K' ){ cormeth = 3 ; iarg++ ; continue ; }
-     if( toupper(argv[iarg][1]) == 'T' ){ cormeth = 4 ; iarg++ ; continue ; }
-     if( toupper(argv[iarg][1]) == 'U' ){ cormeth = 5 ; iarg++ ; continue ; }
+     /* 
+        [pt: 2026-08-12] change the way supershort abbreviations are
+        processed (like "-S" for "-Spearman", etc.) because
+        only looking at the first letter crushes the ability to have
+        more options; it got in the way of allowing '-seed ..' to be
+        added, for example
+     */
+
+     if( strcasecmp(argv[iarg],"-P") == 0 || \
+         strcasecmp(argv[iarg],"-Pearson") == 0 ){
+       cormeth = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-S") == 0 || \
+         strcasecmp(argv[iarg],"-Spearman") == 0 ){
+       cormeth = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-Q") == 0 || \
+         strcasecmp(argv[iarg],"-Quadrant") == 0 ){
+       cormeth = 2 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-K") == 0 || \
+         strcasecmp(argv[iarg],"-Ktaub") == 0 ){
+       cormeth = 3 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-T") == 0 ){
+       cormeth = 4 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-U") == 0 ){
+       cormeth = 5 ; iarg++ ; continue ;
+     }
 
      /*--- set nboot ---*/
 
@@ -262,6 +299,14 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after -vsig") ;
        vsim = mri_read_1D(argv[iarg]) ;
        if( vsim == NULL ) ERROR_exit("Can't read -vsig file '%s'",argv[iarg]) ;
+       iarg++ ; continue ;
+     }
+
+     /*--- control seed for random num gen ---*/
+
+     if( strcasecmp(argv[iarg],"-seed") == 0 ){
+       iarg++ ; if( iarg >= argc ) ERROR_exit("Need argument after '-seed'") ;
+       rseed = (uint32_t)strtod(argv[iarg],NULL) ;
        iarg++ ; continue ;
      }
 
@@ -345,6 +390,12 @@ int main( int argc , char *argv[] )
      }
    }
    DESTROY_IMARR(tar) ;
+
+   /* apply the seed to initialize for Gaussian calcs */
+   zgaussian2_init( rseed );
+   /* ... and also the other random numbers used */
+   lseed = (rseed != 0) ? (long)rseed : (long)time(NULL) ;
+   srand48( lseed ) ;
 
    /*--- Print a beeyootiful header ---*/
 
@@ -455,7 +506,7 @@ ENTRY("Corrboot") ;
      }
      if( xsig > 0.0f || ysig > 0.0f ){
        for( ii=0; ii < nn; ii++ ){
-         xar[ii] += zgaussian()*xsig; yar[ii] += zgaussian()*ysig;
+         xar[ii] += zgaussian2()*xsig; yar[ii] += zgaussian2()*ysig;
        }
      }
      cbb[kk] = cfun(nn,xar,yar) ;  /* bootstrap result */

@@ -41,6 +41,9 @@ Support for cancel wait period
 $log
 */
 
+/* [pt: 2026-08-23] chatgpt fix+updates added, to re-enable 
+   LiteClue-based hover help on macOS */
+
 #ifndef _DEF_LiteClueP_h
 #define _DEF_LiteClueP_h
 
@@ -85,6 +88,7 @@ typedef struct {
 	XFontStruct *font;	/* the font for text in box */
 #else
 	XFontSet fontset;	/* the font for text in box */
+	XFontStruct *font;	/* core-font fallback when XFontSet creation fails */
 #endif
         int  waitPeriod;	/* the delay resource - pointer must be
 				   in watched widget this long before

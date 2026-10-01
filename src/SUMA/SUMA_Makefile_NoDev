@@ -77,7 +77,7 @@ SUMA_EXECS = CreateIcosahedron  MapIcosahedron       \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec \
 	FScurv_to_1D FSread_annot	suma \
-   SUMA_TestDsetIO ConvertDset  SurfClust IsoSurface 3dSkullStrip \
+   SUMA_TestDsetIO ConvertDset SurfClust SurfClustSim IsoSurface 3dSkullStrip \
    3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI 3dSurfMask Surf2VolCoord \
 	SurfToSurf ROIgrow\
    NikoMap SurfDsetInfo SurfInfo AnalyzeTrace DriveSuma SurfLocalstat SurfFWHM \
@@ -382,6 +382,11 @@ SurfClust: SUMA_SurfClust.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfClust.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
+SurfClustSim: SUMA_SurfClustSim.c SUMA_SurfClustSim_core.c SUMA_SurfClustSim_core.h
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${OMPFLAG} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
+         SUMA_SurfClustSim.c SUMA_SurfClustSim_core.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 IsoSurface: SUMA_IsoSurface.c MarchingCubes.o mc_ziad.o libgts.a ${SUMAGTSLIB}
 	$(RM) $@
@@ -805,6 +810,7 @@ install:
 	@if [ -f ROI2dataset ]; then mv ROI2dataset ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfSmooth ]; then mv SurfSmooth ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfClust ]; then mv SurfClust ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfClustSim ]; then mv SurfClustSim ${INSTALLDIR_SUMA}; fi;
 	@if [ -f IsoSurface ]; then mv IsoSurface ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfPatch ]; then mv SurfPatch ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfQual ]; then mv SurfQual ${INSTALLDIR_SUMA}; fi;
@@ -862,6 +868,7 @@ packbins:
 	@if [ -f ROI2dataset ]; then $(CP) -p ROI2dataset SUMA_bin/; fi;
 	@if [ -f SurfSmooth ]; then $(CP) -p SurfSmooth SUMA_bin/; fi;
 	@if [ -f SurfClust ]; then $(CP) -p SurfClust SUMA_bin/; fi;
+	@if [ -f SurfClustSim ]; then $(CP) -p SurfClustSim SUMA_bin/; fi;
 	@if [ -f IsoSurface ]; then $(CP) -p IsoSurface SUMA_bin/; fi;
 	@if [ -f SurfPatch ]; then $(CP) -p SurfPatch SUMA_bin/; fi;
 	@if [ -f SurfQual ]; then $(CP) -p SurfQual SUMA_bin/; fi;

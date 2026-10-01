@@ -355,7 +355,7 @@ extern void clock_time_atexit(void) ;
       if( MCW_MALLOC_enabled )                                                      \
         strcat(qss, mcw_malloc_OK(p) ? "  OK" : "  not OK") ;                       \
       if( TRACK_TRACING ){                                                          \
-        char sbuf[2048] ;                                                           \
+        char sbuf[2053] ;                                                           \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
         sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,qss);               \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK;}  \

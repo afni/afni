@@ -60,7 +60,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   int LENTIE = 0;
   float TIERANK;
   int *toP=NULL; // to reset permuts
-  int *sorted=NULL; // hold sorted time course, assume has been turned into int
+  float *sorted=NULL; // hold sorted time course
   int val;
 
   // GSL stuff
@@ -69,7 +69,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
 
 
   toP = (int *)calloc(TDIM,sizeof(int)); 
-  sorted = (int *)calloc(TDIM,sizeof(int)); 
+  sorted = (float *)calloc(TDIM,sizeof(float)); 
 
   if( (toP ==NULL) || (sorted ==NULL) ) { 
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -96,7 +96,13 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   // ******** start tie rank adjustment *******
   // find ties in sorted, record how many per time 
   //  series, and fix in IND
-  for( m=1 ; m<TDIM ; m++)
+  for( m=1 ; m<TDIM ; m++) {
+
+    /* [pt: 2026-08-27] implemented a fix for the following (now 2)
+       if-conditions from Kevin Tran, to appropriately catch ties at
+       the end of time series */
+
+    /* this if condition looks for the start+continuation of any tie... */
     if( (sorted[m]==sorted[m-1]) && LENTIE==0 ) {
       ISTIE = m-1; //record where it starts
       LENTIE = 2;
@@ -104,7 +110,9 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
     else if( (sorted[m]==sorted[m-1]) && LENTIE>0 ) {
       LENTIE+= 1 ;
     }
-    else if( (sorted[m]!=sorted[m-1]) && LENTIE>0 ) {
+
+    /* ... and this if condition looks for the end of any tie... */
+    if( ((sorted[m]!=sorted[m-1]) || (m == TDIM-1)) && LENTIE>0 ) {
       // end of tie: calc mean index
       TIERANK = 1.0*ISTIE; // where tie started
       TIERANK+= 0.5*(LENTIE-1); // make average rank
@@ -115,8 +123,9 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
       }
       ISTIE = -1; // reset, prob unnec
       LENTIE = 0; // reset
-    } // ******* end of tie rank adjustment ***********
-  
+    } 
+  }// ******* end of tie rank adjustment ***********
+
   // FREE
   gsl_vector_free(Y);
   gsl_permutation_free(P);
@@ -172,6 +181,7 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
   double bigR = 0.;
   double fac1,fac2;
   double Tfac = 0.0;
+  double denom = 0.0;
 	
   if( (M<1) || (N<2) )
     ERROR_exit("WARNING: either neighborhood size (M=%d) or time series\n"
@@ -192,8 +202,12 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
     bigR+= miniR*miniR;
   }
 
-  W = 12.*bigR-fac1;
-  W/= fac2 - 1.*M*Tfac;
+  // guard against divide by 0; if such happens, return W as 0
+  denom = fac2 - 1.*M*Tfac;
+  if (denom == 0.0 )
+     W = 0.0;
+  else
+     W = (12.*bigR-fac1) / denom ;
 	
   return (float) W;
 }

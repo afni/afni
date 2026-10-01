@@ -1,8 +1,11 @@
 #include "mrilib.h"
-#include "zgaussian.c"
-
 #include <time.h>
 #include <unistd.h>
+
+/*
+  [pt: 2026-08-13] update this function to use a newer+faster
+  zgaussian2() function.
+*/
 
 #undef  LAMBDA
 #define LAMBDA(a,b) ((b+a)*(1.0+a*b)/(1.0+2.0*a*b+b*b))
@@ -22,6 +25,10 @@ int main( int argc , char *argv[] )
    float *tsar , val , wal , a0,a1 , b0,b1 , dsig , aa,bb,lam ;
    MRI_IMAGE *armim ; float *armar ;
    long seed ;
+
+   /* def seed: use wall clock (always changes); user can set from cmd line */
+   uint32_t rseed = 0;
+   long lseed = 0;
 
    /*-- the pitiful help --*/
 
@@ -155,7 +162,12 @@ int main( int argc , char *argv[] )
      EDIT_substitute_brick(dset,tt,MRI_float,NULL) ;
 
    tsar = (float *)malloc(sizeof(float)*ntr) ;
-   seed = (long)GSEED ; srand48(seed) ; INFO_message("seed = %ld",seed) ;
+
+   /* apply the seed to initialize for Gaussian calcs */
+   zgaussian2_init( rseed );
+   /* ... and also the other random numbers used */
+   lseed = (rseed != 0) ? (long)rseed : (long)GSEED ;
+   srand48( lseed ) ; INFO_message("seed = %ld", lseed) ;
 
    /* build baseline model into dataset */
 
@@ -167,11 +179,11 @@ int main( int argc , char *argv[] )
      for( zz=0 ; zz < nz ; zz++ ){
       for( yy=0 ; yy < nxy ; yy++ ){
        for( xx=0 ; xx < nxy ; xx++ ){
-         val = zgaussian() ; val *= val * base ;
+         val = zgaussian2() ; val *= val * base ;
          for( tt=0 ; tt < ntr ; tt++ ) tsar[tt] = val ;
          wal = 1.99998f / (ntr-1.0f) ;
          for( kk=1 ; kk <= nbb ; kk++ ){
-           val = bsig * zgaussian() ;
+           val = bsig * zgaussian2() ;
            for( tt=0 ; tt < ntr ; tt++ )
              tsar[tt] += val * Plegendre( wal*tt-0.99999 , kk ) ;
          }
@@ -208,7 +220,7 @@ int main( int argc , char *argv[] )
      for( zz=0 ; zz < nz ; zz++ ){
        for( yy=0 ; yy < nbar ; yy++ )
          for( xx=0 ; xx < nbar ; xx++ )
-           bar[xx+yy*nbar] = zgaussian() * xx*dtau ;
+           bar[xx+yy*nbar] = zgaussian2() * xx*dtau ;
        for( xx=0 ; xx < nxy ; xx++ ){
          dvx = xx/ndiv ;
          for( yy=0 ; yy < nxy ; yy++ ){

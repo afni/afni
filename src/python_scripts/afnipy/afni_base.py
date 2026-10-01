@@ -1534,9 +1534,10 @@ def APRINT( S, ptype=None, indent=True, flush=True):
 
     if ptype == 'ERROR' :
        out+= "\n"
-    
-    print(out, flush=flush)
-    
+
+    print(out)
+    if flush:
+       sys.stdout.flush()
 
 def ARG_missing_arg(arg):
     EP("missing argument after option flag: {}".format(arg))

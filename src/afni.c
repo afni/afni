@@ -693,11 +693,18 @@ void AFNI_syntax(void)
      "                  variable will still be read (if this variable is\n"
      "                  not set, then './' will be scanned for *.1D files).\n"
      "\n"
-     "   -nocsv       Each of these option flags does the same thing (i.e.,\n"
-     "   -notsv         they are synonyms): each tells AFNI not to read\n"
+     "   -nocsv       Each of these 3 option flags does the same thing (i.e.,\n"
+     "   -notsv         they are synonyms): each tells afni not to read\n"
      "   -notcsv        *.csv or *.tsv files from the dataset directories.\n"
      "                  You can also set env AFNI_SKIP_TCSV_SCAN = YES to the\n"
      "                  same effect.\n"
+     "                * This option is set by default, such files are not\n"
+     "                  scanned.\n"
+     "   -yestcsv     The opposite.  This option tells afni to indeed read\n"
+     "                  the *.csv and *.tsv files.\n"
+     "                  You can also set env AFNI_SKIP_TCSV_SCAN = NO to the\n"
+     "                  same effect.\n"
+     "                * default: -notcsv : do not scan such files\n"
 #if 0
      "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
@@ -1365,7 +1372,13 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.all_dsets_startup = AFNI_yesenv("ALL_DSETS_STARTUP") ;
 
    /* Jan 2022 ZSS */
-   GLOBAL_argopt.read_tcsv = !AFNI_yesenv("AFNI_SKIP_TCSV_SCAN") ;
+   /* default change - require SKIP to be "NO" <sigh> to search for tcsv
+    *                - was set to !AFNI_yesenv()
+    *                - "find -maxdepth 4" seems a bit much
+    *                - and starting at ./ hits forbidden directories
+    *                - the maxdepth search is still done in data dirs
+    *                  [2 Sep 2026 rickr]                            */
+   GLOBAL_argopt.read_tcsv = AFNI_noenv("AFNI_SKIP_TCSV_SCAN") ;
 
    while( narg < argc ){
 
@@ -1493,10 +1506,18 @@ ENTRY("AFNI_parse_args") ;
 
       /*----- -notcsv option (16 Jun 2020) ----- */
 
+      /* now the default [2 Sep 2026 rickr] */
       if( strncmp(argv[narg],"-notcsv",7) == 0 ||
           strncmp(argv[narg],"-notsv" ,6) == 0 ||
           strncmp(argv[narg],"-nocsv" ,6) == 0   ){
          GLOBAL_argopt.read_tcsv = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      /*----- -yestcsv option (2 Sep 2026) ----- */
+
+      if( strncmp(argv[narg],"-yestcsv",8) == 0 ){
+         GLOBAL_argopt.read_tcsv = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -3641,7 +3662,7 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
             GLOBAL_library.have_dummy_dataset  &&
             MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
     int horz = MAIN_im3d->vwid->view->session_horz ; /* 29 Apr 2010 */
-    char hstr[1024] ;
+    char hstr[1035] ;
     sprintf( hstr ,
              "***** NOTICE *** UWAGA *** AVVISO *** WARNUNG *** RABHADH *****\n"
              "                                                               \n"
@@ -4117,7 +4138,7 @@ if(PRINT_TRACING){ char str[1024] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(
       grstat->ny         = br->n2 ;
       grstat->nz         = br->n3 ;
 
-      grstat->send_CB    = (void (*)(void))AFNI_gra_send_CB ;
+      grstat->send_CB    = AFNI_gra_send_CB ;
       grstat->parent     = (XtPointer) br ;
       grstat->aux        = NULL ;
 
@@ -4206,7 +4227,7 @@ STATUS("get status") ;
 
       stat->num_total  = br->n3 ;
       stat->num_series = br->n3 ;
-      stat->send_CB    = (void (*)(void))AFNI_seq_send_CB ;
+      stat->send_CB    = AFNI_seq_send_CB ;
       stat->parent     = (XtPointer) br ;
       stat->aux        = NULL ;
 
@@ -5501,8 +5522,9 @@ void AFNI_jumpto_clus_nearby( Three_D_View *im3d , int dci ) /* 29 Apr 2019 */
    respond to events that one of the MCW_imseq's sends to us
 ------------------------------------------------------------------------*/
 
-void AFNI_seq_send_CB( MCW_imseq *seq , FD_brick *br , ISQ_cbs *cbs )
+void AFNI_seq_send_CB( MCW_imseq *seq , XtPointer xptr , ISQ_cbs *cbs )
 {
+   FD_brick *br=(FD_brick *)xptr;
    Three_D_View *im3d = (Three_D_View *) seq->parent ;
 
 ENTRY("AFNI_seq_send_CB") ;
@@ -5778,13 +5800,13 @@ if(PRINT_TRACING)
          LOAD_DSET_VIEWS(im3d) ;  /* 20 Nov 2003 */
          daxes = CURRENT_DAXES(im3d->anat_now) ;
 
-              if( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
+         if     ( id.ijk[0] <  0          ) id.ijk[0] += daxes->nxx ;
          else if( id.ijk[0] >= daxes->nxx ) id.ijk[0] -= daxes->nxx ;
 
-              if( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
+         if     ( id.ijk[1] <  0          ) id.ijk[1] += daxes->nyy ;
          else if( id.ijk[1] >= daxes->nyy ) id.ijk[1] -= daxes->nyy ;
 
-              if( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
+         if     ( id.ijk[2] <  0          ) id.ijk[2] += daxes->nzz ;
          else if( id.ijk[2] >= daxes->nzz ) id.ijk[2] -= daxes->nzz ;
 
          if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
@@ -6495,7 +6517,7 @@ ENTRY("AFNI_read_inputs") ;
 
    else if( GLOBAL_argopt.read_sessions ){   /*--- the usual method ---*/
 
-      char str[256] ;
+      char str[THD_MAX_NAME+51] ;
       RwcBoolean good ;
       int num_ss , qd , qs , vv=0 , no_args , jj , nskip_noanat=0 ;
       THD_string_array *flist , *dlist=NULL , *elist=NULL , *qlist ;
@@ -7943,9 +7965,9 @@ STATUS("realizing new image viewer") ;
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
       AFNI_sleep(17) ;                                                /* 17 Oct 2005 */
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
-if( !AFNI_yesenv("TMONT") )
-      drive_MCW_imseq( *snew, isqDR_periodicmont,
-                      (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
+      if( !AFNI_yesenv("TMONT") ) /* indent to clarify */
+         drive_MCW_imseq( *snew, isqDR_periodicmont,
+                         (XtPointer)ITOP(im3d->vinfo->xhairs_periodic) );
       drive_MCW_imseq( *snew , isqDR_allowmerger , NULL ) ;           /* 25 Aug 2014 */
       AFNI_set_rinfo_labels( im3d ) ;                                 /* 11 Mar 2020 */
 
@@ -12028,17 +12050,137 @@ ENTRY("AFNI_mnito_CB") ;
 }
 
 /*---------------------------------------------------------------------
+
+   [pt: 2026-09-04] using chatgpt, below are two helper functions for
+   translating "lettered" coordinate notation to numbers.
+
+   Below, "negdir" is the direction represented by negative
+   coordinates in the current GUI coordinate system -- e.g. 'R' for
+   the first coordinate in RAI mode.
+
+   For lettered input, the numeric part is treated as a magnitude, and
+   cannot have a sign attached separately. Valid formats for individual 
+   coordinates include (and similarly for other directions):
+
+       -12.3  ;  12.3  ;  12.3R
+
+   Invalid formats include:
+
+       R12.3  ;  L12.3  ;  -R12.3  ;  -L12.3  ;  -12.3R  ;  -12.3L
+
+   These triplets are valid for RAI or LPS coords: 
+
+       12R 34A 56I
+       12L,34P,56S
+       12.5R 20A 3S
+
+   It is invalid to mix the order:
+
+       34A 56I 12R
+
+-----------------------------------------------------------------------*/
+
+int AFNI_parse_jumpto_coord( char *str, char negdir, float *val, 
+                             int *is_lettered )
+{
+   char *end ;
+   char dir='\0' ;
+   double vv ;
+   int had_sign = 0 ;
+
+   if( str == NULL || val == NULL || is_lettered == NULL ) return 0 ;
+
+   *is_lettered = 0 ;
+
+   while( isspace((unsigned char)*str) ) str++ ;
+   if( *str == '\0' ) return 0 ;
+
+   if( *str == '+' || *str == '-' )
+      had_sign = 1 ;
+
+   vv = strtod( str , &end ) ;
+   if( end == str ) return 0 ;
+
+   while( isspace((unsigned char)*end) ) end++ ;
+
+   /* optional trailing anatomical direction */
+   if( isalpha((unsigned char)*end) ){
+      dir = toupper((unsigned char)*end) ;
+      end++ ;
+      while( isspace((unsigned char)*end) ) end++ ;
+   }
+
+   if( *end != '\0' ) return 0 ;
+
+   /*
+      Ordinary numeric form.
+   */
+   if( dir == '\0' ){
+      *val = (float)vv ;
+      *is_lettered = 0 ;
+      return 1 ;
+   }
+
+   /*
+      Lettered form may not also have an explicit sign.
+   */
+   if( had_sign )
+      return 0 ;
+
+   negdir = toupper((unsigned char)negdir) ;
+
+   if( dir != negdir && dir != AFNI_opposite_dir(negdir) )
+      return 0 ;
+
+   if( dir == negdir )
+      vv = -vv ;
+
+   *val = (float)vv ;
+   *is_lettered = 1 ;
+
+   return 1 ;
+}
+
+/* Return the anatomical direction opposite cc. */
+
+char AFNI_opposite_dir( char cc )
+{
+   switch( toupper((unsigned char)cc) ){
+      case 'R': return 'L' ;
+      case 'L': return 'R' ;
+      case 'A': return 'P' ;
+      case 'P': return 'A' ;
+      case 'I': return 'S' ;
+      case 'S': return 'I' ;
+   }
+
+   return '\0' ;
+}
+
+/*---------------------------------------------------------------------
    called when the jumpto chooser is set
+
+   [pt: 2026-09-04] updated using chatgpt, to accept input coords
+   using a single, appended letter to denote pos/neg for a given
+   coordinate instead of sign; this uses GLOBAL_library.cord.orcode[n]
+   information to know how to translate, say "R" to positive or
+   negative.  So, this is how an input of the "lettered" sign format
+   would translate when RAI coords are being used:
+
+      12.3R 34.0P 56I   -->   -12.3 34.0 -56
+
 -----------------------------------------------------------------------*/
 
 void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View *im3d = (Three_D_View *) cd ;
    float xx,yy,zz ;
-   char dum1[32],dum2[32];
-   int nn ;
+   char *xyzstr , *cpt ;
+   char *tok[3] ;
+   int ntok , nn ;
+   int let0,let1,let2 ;
 
-ENTRY("AFNI_jumpto_CB") ;
+   ENTRY("AFNI_jumpto_CB") ;
 
    if( ! IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
@@ -12046,8 +12188,68 @@ ENTRY("AFNI_jumpto_CB") ;
    if( last_jumpto_xyz_string != NULL ) free(last_jumpto_xyz_string) ;
    last_jumpto_xyz_string = strdup(cbs->cval) ;
 
-   nn = sscanf( cbs->cval , "%f%[ ,]%f%[ ,]%f" , &xx,dum1,&yy,dum2,&zz ) ;
-   if( nn != 5 ){ BEEPIT ; WARNING_message("bad Jumpto entries!?") ; EXRETURN ; }
+   /*
+      Make a scratch copy, converting commas to spaces.
+   */
+
+   xyzstr = strdup(cbs->cval) ;
+
+   for( cpt=xyzstr ; *cpt != '\0' ; cpt++ )
+      if( *cpt == ',' ) *cpt = ' ' ;
+
+   /*
+      Split into exactly 3 whitespace-separated coordinates.
+   */
+
+   ntok = 0 ;
+   cpt = strtok( xyzstr , " \t\n\r" ) ;
+
+   while( cpt != NULL && ntok < 3 ){
+      tok[ntok++] = cpt ;
+      cpt = strtok( NULL , " \t\n\r" ) ;
+   }
+
+   if( ntok != 3 || cpt != NULL ){
+      free(xyzstr) ;
+      BEEPIT ;
+      WARNING_message("bad Jumpto entries: wrong number of coords!?") ;
+      EXRETURN ;
+   }
+
+   /*
+      orcode[] gives the negative-direction letter for each coordinate
+      in the GUI coordinate system.
+
+      Thus, for RAI:
+          R -> negative first coordinate
+          A -> negative second coordinate
+          I -> negative third coordinate
+
+      and the opposite letters give positive coordinates.
+   */
+
+   if( !AFNI_parse_jumpto_coord(tok[0],GLOBAL_library.cord.orcode[0],
+                                &xx,&let0) ||
+       !AFNI_parse_jumpto_coord(tok[1],GLOBAL_library.cord.orcode[1],
+                                &yy,&let1) ||
+       !AFNI_parse_jumpto_coord(tok[2],GLOBAL_library.cord.orcode[2],
+                                &zz,&let2)   ){
+
+      free(xyzstr) ;
+      BEEPIT ;
+      WARNING_message("bad Jumpto entries: unparsable item(s)!?") ;
+      EXRETURN ;
+   }
+
+   /* extra failure mode: mix of lettered and non-lettered coords */
+   if( let0 != let1 || let0 != let2 ){
+      free(xyzstr) ;
+      BEEPIT ;
+      WARNING_message("bad Jumpto entries: use letters on all or none") ;
+      EXRETURN ;
+   }
+
+   free(xyzstr) ;
 
    THD_coorder_to_dicom( &GLOBAL_library.cord , &xx,&yy,&zz ) ;
 

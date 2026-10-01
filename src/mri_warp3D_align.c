@@ -417,14 +417,19 @@ static MRI_IMAGE * mri_warp3D_align_fitim( MRI_warp3D_align_basis *bas ,
 }
 
 /*-------------------------------------------------------------------------
-   Input:  pointer to a filled in MRI_warp3D_align_basis struct.
+   Input:  
+     bas             : pointer to a filled in MRI_warp3D_align_basis struct.
+     setup_mask_code : integer value that encodes how to do erosion in 
+                       mask setup; see 3dWarpDrive's help about -setup_mask,
+                       and the opt processing for code values.
+           
    Output: 0 if setup went OK, 1 if it failed.
            Some elements in the MRI_warp3D_align_basis struct
            will be filled in for internal use in MRI_warp3D_align_one().
            They can be freed later with  MRI_warp3D_align_cleanup().
 ---------------------------------------------------------------------------*/
 
-int mri_warp3D_align_setup( MRI_warp3D_align_basis *bas )
+int mri_warp3D_align_setup( MRI_warp3D_align_basis *bas, int setup_mask_code )
 {
    MRI_IMAGE *cim , *fitim ;
    int nx, ny, nz, nxy, nxyz , ii,jj,kk , nmap, *im ;
@@ -560,19 +565,42 @@ ENTRY("mri_warp3D_align_setup") ;
      for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (wf[ii] > 0.0f) ;
      THD_mask_clust( nx,ny,nz, mmm ) ;
 
-     /* [PT: Jul 17, 2024] Original behavior here was to erode+dilate
-        the masks from weight dsets. But for 2D (slice) inputs, which
-        occur for SLOMOCO applications, for example, this created
-        empty masks and errors. So, now only erode+dilate for 3D dsets */
-     if ( nx==1 || ny==1 || nz==1 ) {
-        /* 2D dset: don't erode+dilate */
-        if( bas->verb ) 
-           INFO_message("Weight dset has >=1 dim of len=1; don't erode");
-     } else {
-        /* 3D dset: erode+dilate */
-        THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
+     /* [pt: 2026-11-09] more complicated behavior here, to generalize
+        control of mask erosion (motivated by SLOMOCO updates) */
+     if( setup_mask_code == 0 ) { // "default"
+        /* [PT: Jul 17, 2024] Original behavior here was to erode+dilate
+           the masks from weight dsets. But for 2D (slice) inputs, which
+           occur for SLOMOCO applications, for example, this created
+           empty masks and errors. So, now only erode+dilate for 3D dsets */
+        if ( nx==1 || ny==1 || nz==1 ) {
+           /* 2D dset: don't erode+dilate */
+           if( bas->verb ) 
+              INFO_message("Weight dset has >=1 dim of len=1; don't erode");
+        } else {
+           /* 3D dset: erode+dilate */
+           THD_mask_erode( nx,ny,nz, mmm, 1, 2 ) ;  /* cf. thd_automask.c */
+           THD_mask_clust( nx,ny,nz, mmm ) ;
+        }
+     }
+     else if( setup_mask_code == 1 ) { // "erode_off"
+        INFO_message("No erosion+dilation in mri_warp3D_align_setup");
+     }
+     else if( setup_mask_code == 2 ) { // "erode_2d_min_dim"
+        int noerode_dim=0;
+
+        /* find axis with minimum dimension */
+        noerode_dim = smallest_dim3( nx, ny, nz );
+        INFO_message("Erode slicewise (noerode_dim=%d) in "
+                     "mri_warp3D_align_setup", noerode_dim);
+
+        THD_mask_erode2D( nx,ny,nz, mmm, noerode_dim, 1, 2 ) ; 
         THD_mask_clust( nx,ny,nz, mmm ) ;
      }
+     else {
+        /* should never reach here */
+        ERROR_message("Unknown setup_mask_code (%d)", setup_mask_code);
+     }
+
      for( ii=0 ; ii < nxyz ; ii++ ) if( !mmm[ii] ) wf[ii] = 0.0f ;
      free((void *)mmm) ;
    }
@@ -671,6 +699,19 @@ ENTRY("mri_warp3D_align_setup") ;
    }
 
    RETURN(0);
+}
+
+/* small helper function. Take 3 integers are arguments, and return
+   the index of the smallest one (if there is a tie, return the leftmost) */
+int smallest_dim3(int D0, int D1, int D2 )
+{
+   if ( D0 <= D1 && D0 <= D2 )
+      return 0;
+   
+   if ( D1 <= D2 )
+      return 1;
+
+   return 2;
 }
 
 /*-----------------------------------------------------------------------

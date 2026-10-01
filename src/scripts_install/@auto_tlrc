@@ -17,7 +17,12 @@
 #                    for auto_warp.py to be able to be used happily, because
 #                    now it will use *.nii.gz volumes, instead of *.nii
 #                    because of current AFNI_COMPRESSOR behavior (gzips *.nii)
-
+# 
+# [PT: Aug 25, 2026] remove some "-view .." options added to 3drefit; they
+#                    do the correct thing, but the code was written to check
+#                    separately about updating views. So, things finished
+#                    correctly, but there were some non-fatal error messages
+#                    during runtime execution, which are better to avoid.
 
 PARSE: 
    #exit status
@@ -46,7 +51,7 @@ PARSE:
    set KeepTmp = 0
    set verb = 0
    set pd = $pd_default
-   #set suf = "_at"	
+   #set suf = "_at"
    set suf = ""
    set prefix = ""
    set gz = ""
@@ -143,15 +148,15 @@ PARSE:
          endif   
       endif
       if ($donext && "$argv[$cnt]" == "-clip_below") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need Zmm after -clip_below"
+         set pLoc = $cnt
+         if ($pLoc == $Narg) then
+            echo "Need Zmm after -clip_below"
             goto END
-			else
+         else
             @ cnt ++
             set clpbelow = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0
+         endif
       endif
       if ($donext && "$argv[$cnt]" == "-rmode") then
          set pLoc = $cnt      
@@ -297,7 +302,7 @@ PARSE:
       
       if ($donext && "$argv[$cnt]" == "-copy_warp") then
          set apar_copyWarpinfo = 1
-         set donext = 0		
+         set donext = 0
       endif
       
       if (  $donext && \
@@ -333,33 +338,33 @@ PARSE:
       # now default, here for old scripts
       if ($donext && "$argv[$cnt]" == "-OK_maxite") then
          set accept_maxite = 1
-         set donext = 0		
+         set donext = 0
       endif
 
       if ($donext && "$argv[$cnt]" == "-not_OK_maxite") then
          set accept_maxite = 0
-         set donext = 0		
+         set donext = 0
       endif
 
       if ($donext && "$argv[$cnt]" == "-onepass") then
          set npass = ''
-         set donext = 0		
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-twopass") then
          set npass = '-twopass'
-         set donext = 0		
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-ncr") then
          set cropt = ''
-         set donext = 0		
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-inweight") then
-         set inweight = 1		
-         set donext = 0		
+         set inweight = 1
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-ok_notice") then
-         set ok_notice = 1;		
-         set donext = 0		
+         set ok_notice = 1;
+         set donext = 0
       endif
       if ($donext && "$argv[$cnt]" == "-no_ss") then
          set RemoveSkull = 0;      
@@ -845,10 +850,10 @@ AUTO_TLRC_MODE:
                      -input ${ns_pref}${anat_view} -prefix ${ns_pref}_clpbel
       set ns_pref = ${ns_pref}_clpbel
       if (`@CheckForAfniDset ${ns_pref}${anat_view}` != 2) then 
-			echo "Error: Failed to clip below $clpbelow mm"
+         echo "Error: Failed to clip below $clpbelow mm"
          set estat = 1
          goto END
-		endif
+      endif
    endif
       
    RES:
@@ -1215,8 +1220,19 @@ AUTO_TLRC_MODE:
    endif
       UP:       
 
-   # set the space of the output to match the template space
-   3drefit -space $ref_space -view ${ref_aview} ${tt_prefupad}${anat_view}
+   # set the space of the output to match the template space;
+   # [pt: 2026-08-25] in Dec, 2025, this next command was updated to 
+   # update the view via "-view ${ref_aview}"; however, while this gives
+   # the file in question the _correct_ properties, the logic of the 
+   # pre-existing code did not welcome that (it checks below about the 
+   # value of $KeepView in an if-condition), and so throws some errors,
+   # even though the script will eventually finish with what it needs 
+   # correctly. To avoid this woe and apparent stain on the script's valid
+   # execution, I am now withdrawing the "-view ${ref_aview}" command and
+   # beg a thousand pardons for every having introduced it.
+   echo "++ NB: you can likely ignore any 3drefit warning in the next line"
+   echo "   about updating the view; that is checked separately, just below"
+   3drefit -space $ref_space ${tt_prefupad}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]"   \
@@ -1268,9 +1284,9 @@ AUTO_TLRC_MODE:
       endif
 
       if ($KeepView == 0) then
- 	     set rigid_outview =  ${ref_view}
-	  else
-	     set rigid_outview =  ${anat_view}
+         set rigid_outview =  ${ref_view}
+      else
+         set rigid_outview =  ${anat_view}
       endif
        
       if ("$isNIFTI" == 1) then
@@ -1305,8 +1321,10 @@ AUTO_TLRC_MODE:
       if ($KeepView == 0 && $isNIFTI == 0) then
          3drefit -space "ACPC" -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
       else
-         # reset the space of the output to be ACPC
-         # [PT] the view here be +tlrc, then, right?  
+         # reset the space of the output to be ACPC;
+         # [PT] the view here be +tlrc, then, right? -> actually, no, because
+         # this code will check separately below about whether to update
+         # the view, based on the $KeepView value
          3drefit  -space "ACPC" ${rigid_inprefix}
       endif
 #      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
@@ -1437,7 +1455,18 @@ APAR_MODE:
    endif
    
    # reset the space of the output to match the template space
-   3drefit -space $ref_space -view ${ref_aview} ${tmp_out_pref}${anat_view}
+   # [pt: 2026-08-25] in Dec, 2025, this next command was updated to 
+   # update the view via "-view ${ref_aview}"; however, while this gives
+   # the file in question the _correct_ properties, the logic of the 
+   # pre-existing code did not welcome that (it checks below about the 
+   # value of $KeepView in an if-condition), and so throws some errors,
+   # even though the script will eventually finish with what it needs 
+   # correctly. To avoid this woe and apparent stain on the script's valid
+   # execution, I am now withdrawing the "-view ${ref_aview}" command and
+   # beg a thousand pardons for every having introduced it.
+   echo "++ NB: you can likely ignore any 3drefit warning in the next line"
+   echo "   about updating the view; that is checked separately, just below"
+   3drefit -space $ref_space ${tmp_out_pref}${anat_view}
 
    3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
             -h "Dataset created via: `basename $0` $argv[*]" \
@@ -1604,354 +1633,511 @@ goto SET_REF_PATH_RETURN
 
 HELP:
    if (1) then
-echo "Usage 1: A script to transform an antomical dataset to align with"
-echo "         some standard space template."
-echo ""
-echo "   `basename $0` [options] <-base template> <-input anat>"
-echo "   Mandatory parameters:"
-echo "      -base template :  Reference anatomical volume"
-echo "                        Usually this volume is in some standard space like"
-echo "                        TLRC or MNI space and with afni dataset view of"
-echo "                        (+tlrc)."
-echo "                        Preferably, this reference volume should have had"
-echo "                        the skull removed but that is not mandatory."
-echo "                        AFNI's distribution contains several templates."
-echo '                        For a longer list, use "whereami_afni -show_templates"'
-echo "          TT_N27+tlrc --> Single subject, skull stripped volume."
-echo "                       This volume is also known as "
-echo "                       N27_SurfVol_NoSkull+tlrc elsewhere in "
-echo "                       AFNI and SUMA land."
-echo "                       (www.loni.ucla.edu, www.bic.mni.mcgill.ca)"
-echo "                       This template has a full set of FreeSurfer"
-echo "                       (surfer.nmr.mgh.harvard.edu)"
-echo "                       surface models that can be used in SUMA. "
-echo "                       For details, see Talairach-related link:"
-echo "                       https://afni.nimh.nih.gov/afni/suma"
-echo "          TT_icbm452+tlrc --> Average volume of 452 normal brains."
-echo "                           Skull Stripped. (www.loni.ucla.edu)"
-echo "          TT_avg152T1+tlrc --> Average volume of 152 normal brains."
-echo "                           Skull Stripped.(www.bic.mni.mcgill.ca)"
-echo "          TT_EPI+tlrc --> EPI template from spm2, masked as TT_avg152T1"
-echo "                          TT_avg152 and TT_EPI volume sources are from"
-echo "                          SPM's distribution. (www.fil.ion.ucl.ac.uk/spm/)"
-echo ""
-echo "          If you do not specify a path for the template, the script"
-echo "          will attempt to locate the template AFNI's binaries directory."
-echo ""
-echo "          NOTE: These datasets have been slightly modified from"
-echo "                their original size to match the standard TLRC"
-echo "                dimensions (Jean Talairach and Pierre Tournoux"
-echo "                Co-Planar Stereotaxic Atlas of the Human Brain"
-echo "                Thieme Medical Publishers, New York, 1988). "
-echo "                That was done for internal consistency in AFNI."
-echo "                You may use the original form of these"
-echo "                volumes if you choose but your TLRC coordinates"
-echo "                will not be consistent with AFNI's TLRC database"
-echo "                (San Antonio Talairach Daemon database), for example."
-echo "      -input anat    :  Original anatomical volume (+orig)."
-echo "                        The skull is removed by this script"
-echo "                        unless instructed otherwise (-no_ss)."
-echo "   Optional parameters:"
-echo "      -no_ss         :  Do not strip skull of input data set"
-echo "                        (because skull has already been removed"
-echo "                        or because template still has the skull)"
-echo "      NOTE: The -no_ss option is not all that optional."
-echo "         Here is a table of when you should and should not use -no_ss"
-echo "   "
-echo "                        Template          Template"
-echo "                        WITH skull        WITHOUT skull"
-echo "         Dset."
-echo "         WITH skull      -no_ss            xxx "
-echo "         "
-echo "         WITHOUT skull   No Cigar          -no_ss"
-echo "         "
-echo "         Template means: Your template of choice"
-echo "         Dset. means: Your anatomical dataset"
-echo "         -no_ss means: Skull stripping should not be attempted on Dset"
-echo "         xxx means: Don't put anything, the script will strip Dset"
-echo "         No Cigar mean: Don't try that combination, it makes no sense."
-echo "               "
-echo "      -warp_orig_vol: Produce a TLRC version of the input volume, rather"
-echo "                      than a TLRC version of the skull-stripped input."
-echo "                      This option is useful if you want the skull to be "
-echo "                      preserved in the +tlrc output. "
-echo "                      The default is to produce the skull-stripped version"
-echo "                      of the input in +tlrc space."
-echo "      -dxyz MM          : Cubic voxel size of output DSET in TLRC"
-echo "                          space. Default is the resolution of the "
-echo "                          template. If you do not want your output"
-echo "                          voxels to be cubic, then use the "
-echo "                          -dx, -dy, -dz options below."
-echo "      -dx MX            : Size of voxel in the x direction"
-echo "                          (Right-Left). Default is 1mm."
-echo "      -dy MY            : Size of voxel in the y direction"
-echo "                          (Anterior-Posterior). Default is 1mm."
-echo "      -dz MZ            : Size of voxel in the z direction."
-echo "                          (Inferior-Superior). Default is 1mm."
-echo "      -pad_base  MM  :  Pad the base dset by MM mm in each directions."
-echo "                        That is needed to  make sure that datasets"
-echo "                        requiring wild rotations do not get cropped."
-echo "                        Default is MM = $pd_default."
-echo "                        If your output dataset is clipped, try increasing"
-echo "                        MM to `ccalc -eval $pd_default+10` or "
-echo "                              `ccalc -eval $pd_default+20`."
-echo "                        If that does not help, make sure"
-echo "                        that the skull-stripped volume has no clipping."
-echo "                        If it does, then the skull stripping needs to"
-echo "                        be corrected. Feel free to report such instances"
-echo "                        to the script's authors." 
-echo "      -keep_tmp      :  Keep temporary files."
-echo "      -clean         :  Clean all temp files, likely left from -keep_tmp"
-echo "                        option then exit."
-echo "      -xform  XFORM  : Transform to use for warping:"
-echo "                       Choose from affine_general or shift_rotate_scale"
-echo "                       Default is affine_general but the script will"
-echo "                       automatically try to use shift_rotate_scale "
-echo "                       if the alignment does not converge."
-echo "      -no_avoid_eyes : An option that gets passed to 3dSkullStrip."
-echo "                       Use it when parts of the frontal lobes get clipped"
-echo "                       See 3dSkullStrip -help for more details."
-echo "      -ncr           : 3dWarpDrive option -coarserot is now a default."
-echo "                       It will cause no harm, only good shall come of it."
-echo "                       -ncr is there however, should you choose NOT TO"
-echo "                       want coarserot used for some reason"
-echo "      -onepass       : Turns off -twopass option for 3dWarpDrive. This will"
-echo "                       speed up the registration but it might fail if the "
-echo "                       datasets are far apart.          "
-echo "      -twopass       : Opposite of -onepass, default."
-echo "      -maxite NITER  : Maximum number of iterations for 3dWarpDrive."
-echo "                       Note that the script will try to increase the "
-echo "                       number of iterations if needed. "
-echo "                       When the maximum number of iterations is reached"
-echo "                       without meeting the convergence criteria,"
-echo "                       the script will double the number of iterations"
-echo "                       and try again. If the second pass still fails,"
-echo "                       the script will continue unless the user specifies the"
-echo "                       -not_OK_maxite option."
-echo "                       The default number of iterations is 50 for first"
-echo "                       pass and then doubled to 100 in second pass."
-echo "                       To reset to former default, set maxite to 0"
-echo "      -not_OK_maxite : See -maxite option."
-echo "      -inweight      : Apply -weight INPUT (in 3dWarpDrive)."
-echo "                       By default, 3dWarpDrive uses the BASE dataset to"
-echo "                       weight the alignment cost.  Use this option to"
-echo "                       weight via the INPUT dataset, instead."
-echo "                       This might be useful for partial coverage cases."
-echo "      -rigid_equiv   : Also output a the rigid-body version of the "
-echo "                       alignment. This would align the brain with"
-echo "                       TLRC axis without any distortion. Note that"
-echo "                       the resultant .Xrigid volume is NOT in TLRC"
-echo "                       space. **Do not use this option if you do not"
-echo "                       know what to do with it**"
-echo "                       For more information on how the rigid-body"
-echo "                       equivalent transformation is obtained, see"
-echo "                       cat_matvec -help 's output for the -P option. "
-echo "      -init_xform XFORM0.1D: Apply affine transform in XFORM0.1D before"
-echo "                       beginning registration and then include XFORM0.1D"
-echo "                       in the final xform."
-echo "                       To verify that XFORM0.1D does what you think"
-echo "                       it should be doing, try:"
-echo "                 3dWarp    -matvec_out2in XFORM0.1D \\"
-echo "                           -prefix pre.anat anat+orig"
-echo "                       and verify that 'pre.anat+orig' is"
-echo "                       transformed by XFORM0.1D as you expected it to be."
-echo ""
-echo "                    XFORM0.1D can be obtained in a variety of ways. "
-echo "                    One of which involves extracting it from a transformed"
-echo "                    volume."
-echo "                    For example, say you want to perform an initial"
-echo "                    rotation that is equivalent to: "
-echo "                 3drotate -matvec_order RotMat.1D \\"
-echo "                          -prefix struct.r struct+orig "
-echo "                    The equivalent XFORM0.1D is obtained with:\n"
-echo "                 cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I \\"
-echo "                           > XFORM0.1D  "
-echo ""
-echo "                    See cat_matvec -help for more details on extracting"
-echo "                    appropriate affine transforms from dataset headers."
-echo ""
-echo "          Note: You can also use -init_xform AUTO_CENTER to automatically"
-echo "                run @Align_Centers if the centers are off by more than "
-echo "                40 mm. "
-echo "                AUTO_CENTER_CM would do the centering based on the"
-echo "                center of mass rather than the center of the volume grids."
-echo ""
-echo "                You can force centering with -init_xform CENTER"
-echo "                or with -init_xform CENTER_CM regardless of the center"
-echo "                distance between volumes"
-echo ""
-echo "      -no_pre: Delete temporary dataset created by -init_xform"
-echo ""  
-echo "      -out_space spacename: Set output to a particular space"
-echo "                       Usually, output space is determined by the space"
-echo "                       of the input template and does not need to be set"
-echo "                       explicitly here"
-echo ""
-echo "      -3dAllineate: Use 3dAllineate with the lpa+ZZ cost function"
-echo "                    instead of 3dWarpDrive"
-echo "      -3dAlcost costfunction : use another cost function, like nmi,"
-echo "                    for instance"
-echo "      -overwrite: Overwrite existing output. "
-echo "                  With this option, 3dSkullstrip will get rerun even"
-echo "                  if skull stripped volume is found on disk, unless of"
-echo "                  course you use the -no_ss option."
-echo "                  This option has not been fully tested under the myriad"
-echo "                  combinations possible. So check closely the first"
-echo "                  time you use it, if use it you must" 
-echo ""                      
-echo "Note on the subject of transforms:"
-echo "   The script will output the final transform in a 1D file with the"
-echo "   extension Xat.1D, say THAT_NAME.1D"
-echo "   Call this transform Mt and let Xt and Xo be the 4x1 column vectors"
-echo "   coordinates of the same voxel in standard (t) and original (o)"
-echo "   space, respectively. The transform is such that Xo = Mt Xt "
-echo "   You can use this transform to manually warp a volume in orig"
-echo "   space to the standard space with:"
-echo ""
-echo "      3dWarp -matvec_out2in THAT_NAME.Xat.1D -prefix PPP SOME_VOL+orig."
-echo "      3drefit -view +tlrc PPP+orig"
-echo ""
-echo "   Example:"
-echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
-echo "    (the output is named SubjectHighRes+TLRC, by default."
-echo "     See -suffix for more info.)"
-echo ""
-echo "Usage 2: A script to transform any dataset by the same TLRC "
-echo "         transform obtained with `basename $0` in Usage 1 mode"
-echo ""
-echo "         Note: You can now also use adwarp instead."
-echo ""
-echo "   `basename $0` [options] <-apar TLRC_parent> <-input DSET>"
-echo "   Mandatory parameters:"
-echo "      -apar TLRC_parent : An anatomical dataset in tlrc space"
-echo "                          created using Usage 1 of `basename $0`"
-echo "                          From the example for usage 1, TLRC_parent"
-echo "                          would be: SubjectHighRes+TLRC"
-echo "      -input DSET       : Dataset (typically EPI time series or"
-echo "                          statistical dataset) to transform to"
-echo "                          tlrc space per the xform in TLRC_parent"
-echo "      -dxyz MM          : Cubic voxel size of output DSET in TLRC"
-echo "                          space Default MM is 1. If you do not"
-echo "                          want your output voxels to be cubic"
-echo "                          Then use the -dx, -dy, -dz options below."
-echo "      -dx MX            : Size of voxel in the x direction"
-echo "                          (Right-Left). Default is 1mm."
-echo "      -dy MY            : Size of voxel in the y direction"
-echo "                          (Anterior-Posterior). Default is 1mm."
-echo "      -dz MZ            : Size of voxel in the z direction."
-echo "                          (Inferior-Superior).Default is 1mm."
-echo "   Optional parameters:"
-echo "      -pad_input  MM    :  Pad the input DSET by MM mm in each direction."
-echo "                        That is needed to  make sure that datasets"
-echo "                        requiring wild rotations do not get cropped."
-echo "                        Default is MM = $pd_default."
-echo "                        If your output dataset is clipped, try increasing"
-echo "                        MM to `ccalc -eval $pd_default+10` or "
-echo "                              `ccalc -eval $pd_default+20`."
-echo "                        If that does not help, report the"
-echo "                        problem to the script's authors."
-echo "      -onewarp          : Create follower data (-apar use) with one interpolation"
-echo "                          step, instead of two. - Now default "
-echo "                          This option reduces blurring of the output data."
-echo "      -twowarp          : Create follower data (-apar use) with two interpolations"
-echo "                          step, instead of one. "
-echo "                          This option is for backward compatibility."
 
-echo "" 
-echo "   Example:"
-echo "   `basename $0`  -apar SubjectHighRes+tlrc. \\"
-echo "                  -input Subject_EPI+orig. -dxyz 3"
-echo "    (the output is named Subject_EPI_at+TLRC, by default."
-echo ""
-echo "Common Optional parameters:"
-echo "   -rmode     MODE:  Resampling mode. Choose from:"
-echo "                     linear, cubic, NN or quintic ."
-echo "                     Default for 'Usage 1' is cubic."
-echo "                     Default for 'Usage 2' is cubic for 3dWarp,"
-echo "                      followed by Bk for the 3dresample step."
-echo "   -prefix   prefix: Name output dataset "
-echo "                     (xxx -> xxx+tlrc, yyy.nii.gz, zzz.nii)" 
-echo "   -suffix    SUF :  Name the output dataset by append SUF "
-echo "                     to the prefix of the input data for the output."
-echo "                     Default for SUF is NONE (see below)"
-echo "              NOTE:  You can now set SUF to 'none' or 'NONE' and enable"
-echo "                     afni's warp on demand features."
-echo "                     With NIFTI input volumes -suffix defaults to _at"
-echo "   -keep_view     :  Do not mark output dataset as +tlrc"
-echo "   -base_copy COPY_PREFIX: Copy base (template) dataset into COPY_PREFIX."
-echo "                           You can use ./ for COPY_PREFIX if you"
-echo "                           want the copy to have the same name as the"
-echo "                           template."
-echo "   -base_list     : List the full path of the base dataset"
-echo "   -use_gz        : When using '-suffix ..', behave as if you had"
-echo "                    provided a prefix with '*.gz' at the end."
-echo "                    Useful if your '-suffix'-specified output will"
-echo "                    be NIFTI, and you want it zipped"
-echo "   -verb          :  Yakiti yak yak" 
-echo ""
-echo ""
-echo "When you're down and troubled and you need a helping hand:"
-echo "   1- The brain is horribly distorted (by Jason Stein):"
-echo "      The probable cause is a failure of 3dWarpDrive to converge."
-echo "      In that case, rerun the script with the option "
-echo "      -xform shift_rotate_scale. That usually takes care of it."
-echo "      Update:"
-echo "      The script now has a mechanism for detecting cases "
-echo "      where convergence is not reached and it will automatically"
-echo "      change -xform to fix the problem. So you should see very "
-echo "      few such cases. If you do, check the skull stripping"
-echo "      step for major errors and if none are found send the"
-echo "      authors a copy of the command you used, the input and base"
-echo "      data and they'll look into it."
-echo "   2- Parts of the frontal cortex are clipped in the output:"
-echo "      That is likely caused by aggressive skull stripping."
-echo "      When that happens, use the -no_avoid_eyes option."
-echo "   3- Other parts of the brain are missing:"
-echo "      Examine the skull stripped version of the brain"
-echo "      If the source of the problem is with the stripping,"
-echo "      then you'll need to run 3dSkullStrip manually and "
-echo "      select the proper options for that dataset."
-echo "      Once you have a satisfactorily stripped brain, use that"
-echo "      version as input to @auto_tlrc along with the -no_ss option."
-echo "   4- Skull stripped dataset looks OK, but TLRC output is clipped."
-echo "      Increase the padding from the default value by little more "
-echo '      than the size of the clipping observed. (see -pad_* '
-echo "      options above)"
-echo "   5- The high-res anatomical ends up at a lower resolution: "
-echo "      That is because your template is at a lower resolution."
-echo "      To preserve (or control) the resolution of your input,"
-echo "      run @auto_tlrc in usage 2 mode and set the resolution"
-echo '      of the output with the -d* options.'
-echo "   6- I want the skulled anatomical, not just the stripped"
-echo "      anatomical in TLRC space:"
-echo "      Use @auto_tlrc in usage 2 mode."
-echo "   7- What if I want to warp EPI data directly into TLRC space?"
-echo "      If you have an EPI template in TLRC space you can use it"
-echo "      as the base in @auto_tlrc, usage 1 mode. You can use whatever"
-echo "      you want as a template. Just make sure you are warping"
-echo "      apples to oranges, not apples to bananas for example."
-echo "   8- Bad alignment still:"
-echo "      Check that the center of your input data set is not too"
-echo "      far off from that of the template. Centers (not origins)"
-echo "      of the templates we have are close to 0, 0, 0. If your"
-echo "      input dataset is 100s of mm off center then the alignment"
-echo "      will fail. "
-echo "      The easiest way around this is to add -init_xform AUTO_CENTER"
-echo "      to your command. If that still fails you can try to manually"
-echo "      shift all of the input data in your session by an equal amount"
-echo "      to get the centers closer to zero."
-echo "      For example, say the center of your subject's volumes"
-echo "      is around 100, 100, 100. To shift the centers close to 0, 0, 0 do:"
-echo "      3drefit -dxorigin -100 -dyorigin -100 -dzorigin -100 Data+orig"
-echo "      Then use @auto_tlrc on the shifted datasets."     
-echo "      Take care not to shift datasets from the same session by differing"
-echo "      amounts as they will no longer be in alignment." 
-echo ""
+# [pt: 2026-08-25] Make the help file more readable. Including adding more
+# modern links, and notes in compartments
+cat << EOF
+Overview ~1~
+
+A script for performing special cases of affine(ish) alignment to
+standard space.  NB: despite its name, the base/reference template
+space need not be Talairach specifically.
+
+This program can operate in a couple different modes:
++ (Usage 1) align some anatomical dataset to a standard space template,
++ (Usage 2), _apply_ a transform any dataset by the same TLRC
+  transform obtained with @auto_tlrc in "Usage 1" mode
+
+-----------------------------------------------------------------------------
+
+Usage 1. ~1~
+
+Have this script transform an anatomical dataset to align with some
+standard space template.
+
+Options ~2~
+
+Basic usage is given as:
+
+  @auto_tlrc [options] <-base template> <-input anat>
+
+Mandatory parameters:
+
+  -base template  :Reference anatomical volume.
+
+                   Usually this volume is in some standard space like
+                   TLRC or MNI space and with afni dataset view of
+                   (+tlrc).
+
+                   Preferably, this reference volume should have had the
+                   skull removed but that is not mandatory.  If you do
+                   not specify a path for the template, the script will
+                   attempt to locate the template AFNI's binaries
+                   directory.
+
+                   AFNI's distribution contains several templates, or
+                   you can provide a template dset really from
+                   _anywhere_.  See "General Notes" below for some links.
+
+  -input anat     :Original anatomical volume (+orig).
+                   The skull is removed by this script
+                   unless instructed otherwise (-no_ss).
+
+Optional parameters:
+
+  -no_ss          :Do not strip skull of input data set (because skull
+                   has already been removed or because template still
+                   has the skull).
+                   See the "General Notes" below for a table of when or
+                   when not to use this option.
+               
+  -warp_orig_vol  :Produce a TLRC version of the input volume, rather
+                   than a TLRC version of the skull-stripped input.
+                   This option is useful if you want the skull to be
+                   preserved in the +tlrc output.  The default is to
+                   produce the skull-stripped version of the input in
+                   +tlrc space.
+
+  -dxyz MM        :Cubic voxel size of output DSET in TLRC space. 
+                   Default is the resolution of the template. If you
+                   do not want your output voxels to be cubic, then
+                   use the -dx, -dy, -dz options below.
+
+  -dx MX          :Size of voxel in the x direction (Right-Left). 
+                   Default is 1mm.
+
+  -dy MY          :Size of voxel in the y direction (Anterior-Posterior). 
+                   Default is 1mm.
+
+  -dz MZ          :Size of voxel in the z direction. (Inferior-Superior).
+                   Default is 1mm.
+
+  -pad_base MM    :Pad the base dset by MM mm in each directions. That
+                   is needed to make sure that datasets requiring wild
+                   rotations do not get cropped. Default is MM = 15.
+                   If your output dataset is clipped, try increasing
+                   MM to 25.000000 or 35.000000.
+                   If that does not help, make sure that the
+                   skull-stripped volume has no clipping.  If it does,
+                   then the skull stripping needs to be corrected.
+                   Feel free to report such instances to the script's
+                   authors.
+
+  -keep_tmp       :Keep temporary files.
+
+  -clean          :Clean all temp files, likely left from -keep_tmp
+                   option then exit.
+
+  -xform  XFORM   :Transform to use for warping:
+                   Choose from affine_general or shift_rotate_scale
+                   Default is affine_general but the script will
+                   automatically try to use shift_rotate_scale 
+                   if the alignment does not converge.
+
+  -no_avoid_eyes  :An option that gets passed to 3dSkullStrip.
+                   Use it when parts of the frontal lobes get clipped
+                   See 3dSkullStrip -help for more details.
+
+  -ncr            :3dWarpDrive option -coarserot is now a default.
+                   It will cause no harm, only good shall come of it.
+                   -ncr is there however, should you choose NOT TO
+                   want coarserot used for some reason
+
+  -onepass        :Turns off -twopass option for 3dWarpDrive. This will
+                   speed up the registration but it might fail if the 
+                   datasets are far apart.          
+
+  -twopass        :Opposite of -onepass, default.
+
+  -maxite NITER   :Maximum number of iterations for 3dWarpDrive.
+                   Note that the script will try to increase the 
+                   number of iterations if needed. 
+                   When the maximum number of iterations is reached
+                   without meeting the convergence criteria,
+                   the script will double the number of iterations
+                   and try again. If the second pass still fails,
+                   the script will continue unless the user specifies the
+                   -not_OK_maxite option.
+                   The default number of iterations is 50 for first
+                   pass and then doubled to 100 in second pass.
+                   To reset to former default, set maxite to 0
+
+  -not_OK_maxite  :See -maxite option.
+
+  -inweight       :Apply -weight INPUT (in 3dWarpDrive).
+                   By default, 3dWarpDrive uses the BASE dataset to
+                   weight the alignment cost.  Use this option to
+                   weight via the INPUT dataset, instead.
+                   This might be useful for partial coverage cases.
+
+  -rigid_equiv    :Also output a the rigid-body version of the 
+                   alignment. This would align the brain with
+                   TLRC axis without any distortion. Note that
+                   the resultant .Xrigid volume is NOT in TLRC
+                   space. **Do not use this option if you do not
+                   know what to do with it**
+                   For more information on how the rigid-body
+                   equivalent transformation is obtained, see
+                   cat_matvec -help 's output for the -P option. 
+
+  -init_xform XFORM0.1D: Apply affine transform in XFORM0.1D before
+                   beginning registration and then include XFORM0.1D
+                   in the final xform.
+
+                   To verify that XFORM0.1D does what you think
+                   it should be doing, try:
+
+                     3dWarp -matvec_out2in XFORM0.1D       \
+                            -prefix pre.anat anat+orig
+
+                   and verify that 'pre.anat+orig' is transformed by
+                   XFORM0.1D as you expected it to be.
+
+                   XFORM0.1D can be obtained in a variety of ways.
+                   One of which involves extracting it from a
+                   transformed volume.  For example, say you want to
+                   perform an initial rotation that is equivalent to:
+
+                     3drotate -matvec_order RotMat.1D      \
+                              -prefix struct.r struct+orig 
+
+                   The equivalent XFORM0.1D is obtained with:
+
+                     cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I \
+                               > XFORM0.1D  
+
+                   See cat_matvec -help for more details on extracting
+                   appropriate affine transforms from dataset headers.
+
+                   Note: You can also use -init_xform AUTO_CENTER to
+                   automatically run @Align_Centers if the centers are
+                   off by more than 40 mm.  AUTO_CENTER_CM would do
+                   the centering based on the center of mass rather
+                   than the center of the volume grids.
+
+                   You can force centering with -init_xform CENTER or
+                   with -init_xform CENTER_CM regardless of the center
+                   distance between volumes
+
+  -no_pre         :Delete temporary dataset created by -init_xform
+
+  -out_space spacename: Set output to a particular space.
+                   Usually, output space is determined by the space
+                   of the input template and does not need to be set
+                   explicitly here
+
+  -3dAllineate    :Use 3dAllineate with the lpa+ZZ cost function
+                   instead of 3dWarpDrive
+
+  -3dAlcost costfunction :use another cost function (e.g., nmi)
+
+  -overwrite      :Overwrite existing output. 
+                   With this option, 3dSkullstrip will get rerun even
+                   if skull stripped volume is found on disk, unless of
+                   course you use the -no_ss option.
+                   This option has not been fully tested under the myriad
+                   combinations possible. So check closely the first
+                   time you use it, if use it you must
+
+      -echo       :apply 'set echo' in script (verbose terminal output)
+
+==============================================================================
+
+Usage 2. ~1~
+
+Have this script transform any dataset by the same TLRC transform
+obtained with @auto_tlrc in Usage 1 mode. 
+
+Note: You can now also use adwarp instead.
+
+Options ~2~
+
+Basic usage is given as:
+
+  @auto_tlrc [options] <-apar TLRC_parent> <-input DSET>
+
+Mandatory parameters:
+
+  -apar TLRC_parent :An anatomical dataset in tlrc space created
+                   using Usage 1 of @auto_tlrc From the example for
+                   usage 1, TLRC_parent would be: SubjectHighRes+TLRC
+
+  -input DSET     :Dataset (typically EPI time series or statistical
+                   dataset) to transform to tlrc space per the xform
+                   in TLRC_parent
+
+  -dxyz MM        :Cubic voxel size of output DSET in TLRC space. 
+                   Default is the resolution of the template. If you
+                   do not want your output voxels to be cubic, then
+                   use the -dx, -dy, -dz options below.
+
+  -dx MX          :Size of voxel in the x direction (Right-Left). 
+                   Default is 1mm.
+
+  -dy MY          :Size of voxel in the y direction (Anterior-Posterior). 
+                   Default is 1mm.
+
+  -dz MZ          :Size of voxel in the z direction. (Inferior-Superior).
+                   Default is 1mm.
+
+
+Optional parameters:
+
+  -pad_input MM   :Pad the input DSET by MM mm in each direction.
+                   That is needed to make sure that datasets requiring
+                   wild rotations do not get cropped.  Default is MM =
+                   15.  If your output dataset is clipped, try
+                   increasing MM to 25.000000 or 35.000000.  If that
+                   does not help, report the problem to the script's
+                   authors.
+
+  -onewarp        :Create follower data (-apar use) with one interpolation
+                   step, instead of two (Now default).
+                   This option reduces blurring of the output data.
+
+  -twowarp        :Create follower data (-apar use) with two interpolations
+                   step, instead of one. 
+                   This option is for backward compatibility.
+
+Common optional parameters:
+
+  -rmode MODE     :Resampling mode. Choose from:
+                   linear, cubic, NN or quintic .
+                   Default for 'Usage 1' is cubic.
+                   Default for 'Usage 2' is cubic for 3dWarp,
+                   followed by Bk for the 3dresample step.
+
+  -prefix prefix  :Name of output dataset.
+                   (xxx -> xxx+tlrc, yyy.nii.gz, zzz.nii)
+
+  -suffix SUF     :Name the output dataset by append SUF to the prefix of
+                   the input data for the output.  Default for SUF is
+                   NONE (see below).
+
+                   NB: You can now set SUF to 'none' or 'NONE' and
+                   enable afni's warp on demand features.  
+
+                   With NIFTI input volumes -suffix defaults to _at
+
+  -keep_view      :Do not mark output dataset as +tlrc
+
+  -base_copy COPY_PREFIX :Copy base (template) dataset into COPY_PREFIX.
+                   You can use ./ for COPY_PREFIX if you want the copy
+                   to have the same name as the template.
+
+  -base_list      :List the full path of the base dataset
+
+  -use_gz         :When using '-suffix ..', behave as if you had
+                   provided a prefix with '*.gz' at the end.
+                   Useful if your '-suffix'-specified output will
+                   be NIFTI, and you want it zipped
+
+  -verb           :Yakiti yak yak
+
+  -echo           :apply 'set echo' in script (verbose terminal output)
+
+=============================================================================
+
+General Notes ~1~
+
+  Re. specifying a template ~2~
+
+  Some examples of what template datasetes are distributed in AFNI can
+  be seen on the atlases page (as underlays):
+
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/all_afni_atlases_dist.html
+
+  Or by checking the webpage that displays the contents of the (current,
+  hopefully) distributed templates+atlases:
+
+    https://afni.nimh.nih.gov/pub/dist/atlases/afni_atlases_dist/
+
+  You can also run this command to see some commonly used ones in the
+  current code: 
+
+    whereami_afni -show_templates
+
+  We used to display a list of some dsets that could be used, but
+  several of these became woefully out of date and most were no longer
+  recommended (e.g., they didn't have good structural details). In the
+  interests of historical knowledge, we will list them here, with their
+  info:
+
+      TT_N27+tlrc (this one is still distributed and common to use)
+
+        Single subject, skull stripped volume (www.loni.ucla.edu,
+        www.bic.mni.mcgill.ca).  This volume is also known as
+        N27_SurfVol_NoSkull+tlrc elsewhere in AFNI and SUMA land.  This
+        template has a full set of FreeSurfer (surfer.nmr.mgh.harvard.edu)
+        surface models that can be used in SUMA.  For details, see
+        Talairach-related link: https://afni.nimh.nih.gov/afni/suma
+
+      TT_icbm452+tlrc
+
+        Average volume of 452 normal brains (www.loni.ucla.edu).
+        Skull-stripped.
+
+      TT_avg152T1+tlrc
+
+        Average volume of 152 normal brains (www.bic.mni.mcgill.ca).
+        Skull-stripped.
+
+      TT_EPI+tlrc 
+
+        EPI template from spm2 (www.fil.ion.ucl.ac.uk/spm/), masked as
+        TT_avg152T1; TT_avg152 and TT_EPI volume sources are from SPM's
+        distribution.
+
+      These datasets have been slightly modified from their original size
+      to match the standard TLRC dimensions (Jean Talairach and Pierre
+      Tournoux Co-Planar Stereotaxic Atlas of the Human Brain Thieme
+      Medical Publishers, New York, 1988).  That was done for internal
+      consistency in AFNI.  You may use the original form of these volumes
+      if you choose but your TLRC coordinates will not be consistent with
+      AFNI's TLRC database (San Antonio Talairach Daemon database), for
+      example.
+
+
+  Re. using -no_ss (or not) ~2~
+
+  The -no_ss option is not all that optional. Here is a table of when
+  you should and should not use -no_ss:
+
+                    Template          Template
+                    WITH skull        WITHOUT skull
+    Dset.
+    WITH skull      -no_ss            xxx 
+
+    WITHOUT skull   No Cigar          -no_ss
+
+  ... where:
+    Template means : Your template of choice
+    Dset. means    : Your anatomical dataset
+    -no_ss means   : Skull stripping should not be attempted on Dset
+    xxx means      : Don't put anything, the script will strip Dset
+    No Cigar means : Don't try that combination, it makes no sense.
+
+
+  Re. transforms ~2~
+
+  The script will output the final transform in a 1D file with the
+  extension Xat.1D, say THAT_NAME.1D
+  Call this transform Mt and let Xt and Xo be the 4x1 column vectors
+  coordinates of the same voxel in standard (t) and original (o)
+  space, respectively. The transform is such that Xo = Mt Xt 
+  You can use this transform to manually warp a volume in orig
+  space to the standard space with:
+
+    3dWarp -matvec_out2in THAT_NAME.Xat.1D -prefix PPP SOME_VOL+orig.
+
+    3drefit -view +tlrc PPP+orig
+
+=============================================================================
+
+Notes for Troubleshooting ~1~
+
+  When you're down and troubled and you need a helping hand, for
+  various kinds of badness, such as if...
+
+  1- The brain is horribly distorted (by Jason Stein): 
+
+     The probable cause is a failure of 3dWarpDrive to converge.  In
+     that case, rerun the script with the option -xform
+     shift_rotate_scale. That usually takes care of it.
+
+     Update: The script now has a mechanism for detecting cases where
+     convergence is not reached and it will automatically change
+     -xform to fix the problem. So you should see very few such
+     cases. If you do, check the skull stripping step for major errors
+     and if none are found send the authors a copy of the command you
+     used, the input and base data and they'll look into it.
+
+  2- Parts of the frontal cortex are clipped in the output: 
+
+     That is likely caused by aggressive skull stripping.  When that
+     happens, use the -no_avoid_eyes option.
+
+  3- Other parts of the brain are missing:
+
+     Examine the skull stripped version of the brain If the source of
+     the problem is with the stripping, then you'll need to run
+     3dSkullStrip manually and select the proper options for that
+     dataset.  Once you have a satisfactorily stripped brain, use that
+     version as input to @auto_tlrc along with the -no_ss option.
+
+  4- Skull stripped dataset looks OK, but TLRC output is clipped:
+
+     Increase the padding from the default value by little more than
+     the size of the clipping observed. (see -pad_* options above)
+
+  5- The high-res anatomical ends up at a lower resolution:
+
+     That is because your template is at a lower resolution.  To
+     preserve (or control) the resolution of your input, run
+     @auto_tlrc in usage 2 mode and set the resolution of the output
+     with the -d* options.
+
+  6- I want the skulled anatomical, not just the stripped anatomical
+     in TLRC space:
+
+     Use @auto_tlrc in usage 2 mode.
+
+  7- I want to warp EPI data directly into TLRC space:
+
+     If you have an EPI template in TLRC space you can use it as the
+     base in @auto_tlrc, usage 1 mode. You can use whatever you want
+     as a template. Just make sure you are warping apples to oranges,
+     not apples to bananas for example.
+
+  8- Bad alignment still:
+
+     Check that the center of your input data set is not too far off
+     from that of the template. Centers (not origins) of the templates
+     we have are close to 0, 0, 0. If your input dataset is 100s of mm
+     off center then the alignment will fail.
+
+     The easiest way around this is to add -init_xform AUTO_CENTER to
+     your command. If that still fails you can try to manually shift
+     all of the input data in your session by an equal amount to get
+     the centers closer to zero.
+
+     For example, say the center of your subject's volumes is around
+     100, 100, 100. To shift the centers close to 0, 0, 0 do:
+
+       3drefit -dxorigin -100 -dyorigin -100 -dzorigin -100 Data+orig
+
+     Then use @auto_tlrc on the shifted datasets.  Take care not to
+     shift datasets from the same session by differing amounts as they
+     will no longer be in alignment.
+
+=============================================================================
+
+Examples ~1~
+
+  1) Example of Usage 1 (the output is named SubjectHighRes+tlrc, by
+     default; see -suffix for more info):
+
+       @auto_tlrc -base TT_N27+tlrc. -input SubjectHighRes+orig.
+
+  2) Example of Usage 2 (the output is named Subject_EPI_at+TLRC, by
+     default):
+
+       @auto_tlrc  -apar   SubjectHighRes+tlrc. \
+                   -input  Subject_EPI+orig.    \
+                   -dxyz   3
+
+=============================================================================
+
+Written by Ziad S. Saad (saadz@mail.nih.gov)
+                        SSCC/NIMH/NIH/DHHS
+
+=============================================================================
+
+EOF
+
+# and finish help info with this
 @global_parse -gopts_help
-echo ""
-echo "Written by Ziad S. Saad (saadz@mail.nih.gov)"
-echo "                        SSCC/NIMH/NIH/DHHS"
-echo ""
+
       goto END
    endif
 

@@ -630,7 +630,10 @@ int main( int argc , char *argv[] )
             if( TS_detrend )
                THD_linear_detrend( ntt-ignore , gar+ignore , &g0,&g1 ) ;
             else
-               THD_const_detrend( ntt-ignore , far+ignore , &g0 ) ;
+               THD_const_detrend( ntt-ignore , gar+ignore , &g0 ) ; /* was
+                    far+ignore: with -no_detrend the mean was removed from
+                    far a second time (a near no-op) while gar was shifted
+                    with its full DC offset against the zero-filled edges */
 
             for( gmin=gmax=gar[ignore],jj=ignore+1 ; jj < ntt ; jj++ ){
                     if( gar[jj] < gmin ) gmin = gar[jj] ;

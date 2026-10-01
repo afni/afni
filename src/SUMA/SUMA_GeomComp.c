@@ -15447,7 +15447,7 @@ SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
       if (n > 1 && (exptmp[n-1] == '|' || exptmp[n-1] == '&')) {
          exptmp[n-1] = '\0';
       } else exptmp[n] = '\0';
-      SUMA_STRING_REPLACE(mep->expr, expr);
+      SUMA_STRING_REPLACE(mep->expr, expr); 
       SUMA_LH("Expression now:%s ", mep->expr);
    } else {
       SUMA_STRING_REPLACE(mep->expr, expr);
@@ -15461,10 +15461,11 @@ SUMA_Boolean SUMA_PrepMaskEval_Params(char *expr, int N_vals,
       if (*c >= 'a' && *c <='z') mep->varsused[*c-'a']=1;
       ++c;
    }
-   mep->allvarsineq[0]='\0';
+   /* allvarsineq seems unused, but fix to track [15 Jun 2026 rickr] */
    for (n=0,i=0; i<26; ++i) {
-      if (mep->varsused[i]) mep->allvarsineq[n]=i+'a';
+      if (mep->varsused[i]) mep->allvarsineq[n++]=i+'a';
    }
+   mep->allvarsineq[n]='\0';
    mep->varsused[i]='\0';
    
    /* How does N_vals square with what was available */

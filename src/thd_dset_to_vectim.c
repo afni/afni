@@ -78,7 +78,6 @@ STATUS("create index list") ;
    }
 
    if( ignore > 0 ){  /* extract 1 at a time, save what we want */
-
      float *var;
 #pragma omp critical (MALLOC)
      var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;
@@ -311,7 +310,6 @@ ENTRY("THD_dset_to_vectim_stend") ;
    }
 
    if( nvals < DSET_NVALS(dset) ){ /* extract 1 at a time, save what we want */
-
      float *var;
 #pragma omp critical (MALLOC)
      var = (float *)malloc(sizeof(float)*(DSET_NVALS(dset))) ;
@@ -479,7 +477,6 @@ ENTRY("THD_2dset_to_vectim") ;
    }
 
    if( ignore > 0 ){  /* extract 1 at a time, save what we want */
-
      float *var;
 #pragma omp critical (MALLOC)
      var = (float *)malloc(sizeof(float)*(nvals+ignore)) ;

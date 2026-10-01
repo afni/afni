@@ -54,6 +54,14 @@
 afni_history_struct laurenpd_history[] = {
 
  /* can copy to and change one of the examples here */
+
+ { 24, Aug, 2026, PDL, "suma", MAJOR, TYPE_ENHANCE,
+   "Add Box feature (paired with Alpha) to match that of afni.",
+   "Now 'A' (alpha) and 'B' (box) are similar to afni, with the new Box\n"
+   "feature used to outline thresholded/clustered voxels (though Alpha does\n"
+   "not currently work with clustering)."
+ } ,
+
  { 21, May, 2025, PDL, "suma", MAJOR, TYPE_MODIFY,
    "Made alpha variable opacity apply to all surfaces",
    NULL

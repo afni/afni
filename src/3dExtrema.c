@@ -1540,7 +1540,7 @@ void write_bucket ()
   int ibrick;                      /* extrema sub-brick index */
   int ierror;                      /* number of errors in editing data */
 
-  char message[80];           /* error message */
+  char message[THD_MAX_NAME+80];   /* error message */
 
 
   /*----- Initialize local variables -----*/

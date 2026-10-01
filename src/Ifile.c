@@ -739,8 +739,7 @@ struct  dirent {
  */
 
 static DIR *
-Opendir(str)
-    register Char *str;
+Opendir(register Char *str)
 {
     char    buf[MAXPATHLEN];
     register char *dc = buf;
@@ -754,9 +753,7 @@ Opendir(str)
 
 #ifdef S_IFLNK
 static int
-Lstat(fn, sb)
-    register Char *fn;
-    struct stat *sb;
+Lstat(register Char *fn, struct stat *sb)
 {
     char    buf[MAXPATHLEN];
     register char *dc = buf;
@@ -781,9 +778,7 @@ Lstat(fn, sb)
 #endif /* S_IFLNK */
 
 static int
-Stat(fn, sb)
-    register Char *fn;
-    struct stat *sb;
+Stat(register Char *fn, struct stat *sb)
 {
     char    buf[MAXPATHLEN];
     register char *dc = buf;
@@ -805,9 +800,7 @@ Stat(fn, sb)
 }
 
 static Char *
-Strchr(str, ch)
-    Char *str;
-    int ch;
+Strchr(Char *str, int ch)
 {
     do
    if (*str == ch)
@@ -836,8 +829,7 @@ Char *s;
 #endif /* DEBUG */
 
 static int
-compare(p, q)
-    const ptr_t  p, q;
+compare(const ptr_t p, const ptr_t q)
 {
 #if defined(NLS) && !defined(NOSTRCOLL)
     errno = 0;  /* strcoll sets errno, another brain-damage */
@@ -856,11 +848,7 @@ compare(p, q)
  * to find no matches.
  */
 int
-glob(pattern, flags, errfunc, pglob)
-    const char *pattern;
-    int     flags;
-    int     (*errfunc) __P((char *, int));
-    glob_t *pglob;
+glob(const char *pattern, int flags, int (*errfunc) __P((char *, int)), glob_t *pglob)
 {
     int     err, oldpathc;
     Char *bufnext, *bufend, *compilebuf, m_not;
@@ -1014,10 +1002,7 @@ glob(pattern, flags, errfunc, pglob)
 }
 
 static int
-glob1(pattern, pglob, no_match)
-    Char *pattern;
-    glob_t *pglob;
-    int     no_match;
+glob1(Char *pattern, glob_t *pglob, int no_match)
 {
     Char pathbuf[MAXPATHLEN + 1];
 
@@ -1035,10 +1020,7 @@ glob1(pattern, pglob, no_match)
  * more meta characters.
  */
 static int
-glob2(pathbuf, pathend, pattern, pglob, no_match)
-    Char *pathbuf, *pathend, *pattern;
-    glob_t *pglob;
-    int     no_match;
+glob2(Char *pathbuf, Char *pathend, Char *pattern, glob_t *pglob, int no_match)
 {
     struct stat sbuf;
     int anymeta;
@@ -1095,10 +1077,7 @@ glob2(pathbuf, pathend, pattern, pglob, no_match)
 
 
 static int
-glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
-    Char *pathbuf, *pathend, *pattern, *restpattern;
-    glob_t *pglob;
-    int     no_match;
+glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pglob, int no_match)
 {
     extern int errno;
     DIR    *dirp;
@@ -1191,9 +1170,7 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
  *    gl_pathv points to (gl_offs + gl_pathc + 1) items.
  */
 static int
-globextend(path, pglob)
-    Char *path;
-    glob_t *pglob;
+globextend(Char *path, glob_t *pglob)
 {
     register char **pathv;
     register int i;
@@ -1236,9 +1213,7 @@ globextend(path, pglob)
  * pattern causes a recursion level.
  */
 static  int
-match(name, pat, patend, m_not)
-    register Char *name, *pat, *patend;
-    int m_not;
+match(register Char *name, register Char *pat, register Char *patend, int m_not)
 {
     int ok, negate_range;
     Char c, k;
@@ -1288,8 +1263,7 @@ match(name, pat, patend, m_not)
 
 /* free allocated data belonging to a glob_t structure */
 void
-globfree(pglob)
-    glob_t *pglob;
+globfree(glob_t *pglob)
 {
     register int i;
     register char **pp;
