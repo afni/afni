@@ -686,7 +686,9 @@ int main( int argc , char *argv[] )
          EDIT_substitute_brick( new_dset , jj , MRI_short , bout ) ;
        }
 
-       sprintf(vname,"var=%6.3f%%" , 100.0*perc[jj]+0.499 ) ;
+       sprintf(vname,"var=%6.3f%%" , 100.0*perc[jj] ) ; /* +0.499 was an
+                        integer-rounding idiom left in a %f format, inflating
+                        every label by ~0.5 percentage points */
        EDIT_BRICK_LABEL( new_dset , jj , vname ) ;
      }
      free(fout) ;
