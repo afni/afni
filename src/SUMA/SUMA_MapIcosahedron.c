@@ -247,7 +247,7 @@ int main (int argc, char *argv[])
    float etime_MapSurface, UserRadius=-1.0, Uctr[3];
    int UserCenter=-1;
    double cent[3], centmed[3];
-   char snote[1000], sbuf[1000];
+   char snote[1000]="", sbuf[1000]="";
    SUMA_Boolean UseCOM, CheckSphere, WriteMI;
    SUMA_SurfaceObject *SO=NULL, *SO_morph=NULL, *SOw=NULL;
    void *writeFile=NULL, *vbufp=NULL;
@@ -1052,6 +1052,9 @@ int main (int argc, char *argv[])
                         SO_morph->Label, 
                         Uctr[0], Uctr[1], Uctr[2],
                         ctrX, ctrY, ctrZ);
+      snprintf(snote, sizeof(snote),
+               "Notice: Used user-specified center of [%f   %f   %f] for %s.",
+               Uctr[0], Uctr[1], Uctr[2], SO_morph->Label);
       ctrX = Uctr[0];
       ctrY = Uctr[1];
       ctrZ = Uctr[2];
@@ -1122,7 +1125,7 @@ int main (int argc, char *argv[])
       sprintf( sbuf,
                " User specified radius = %.4f, Average raidus is     = %.4f."
                , UserRadius, r);
-      strcat (snote,sbuf);
+      strncat (snote,sbuf,sizeof(snote)-strlen(snote)-1);
       r = UserRadius;
    } else {
       if (verb) {
@@ -1131,7 +1134,7 @@ int main (int argc, char *argv[])
                      , SO_morph->Label, r  );
       } 
       sprintf(sbuf," Using average radius of %.4f", r);
-      strcat (snote,sbuf);
+      strncat (snote,sbuf,sizeof(snote)-strlen(snote)-1);
    }
    
    if (verb) 
