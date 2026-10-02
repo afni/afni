@@ -157,6 +157,16 @@ examples (very basic for now): ~1~
          1d_tool.py -infile fmriprep_confounds.tsv'[rot_?,trans_?]' \\
                     -show_group_labels
 
+       a new way to choose the same labels, but in the order z,x,y:
+
+         1d_tool.py -infile fmriprep_confounds.tsv'[FMRIPREP_MOT]' \\
+                    -show_group_labels
+
+       get the Friston 24 (6 mot, 6 deriv, and the 12 squares):
+
+         1d_tool.py -infile fmriprep_confounds.tsv'[FMRIPREP_MOT_DER_P2]' \\
+                    -show_group_labels
+
    Example 3.  Transpose a dataset, akin to 1dtranspose. ~2~
 
          1d_tool.py -infile t3.1D -transpose -write ttr.1D
@@ -1107,7 +1117,12 @@ general options: ~2~
    -select_cols SELECTOR        : apply AFNI column selectors, [] is optional
                                   e.g. '[5,0,7..21(2)]'
                                   e.g. '[aroma_mot*]'       # aroma_motion
-                                  e.g. '[rot_?,trans_?]'    " 6 motion params
+                                  e.g. '[rot_?,trans_?]'    # 6 motion params
+        convenience SELECTORs for column sets:
+           FMRIPREP_MOT          : rot_z,rot_x,rot_y,trans_z,trans_x,trans_y
+           FMRIPREP_MOT_P2       : MOT, each appended with '_power2'
+           FMRIPREP_MOT_DER      : MOT, each appended with '_derivative1'
+           FMRIPREP_MOT_DER_P2   : MOT_DER, each appended with '_power2'
    -select_cols_via_TSV_table TABLE FIELD WHERE
                                 : use tsv TABLE to select FIELD elements where
                                   WHERE is true; resulting values are then
@@ -1582,9 +1597,10 @@ g_history = """
    2.24 Jan  7, 2026 - add -show_xmat_warnings
    2.25 Mar 18, 2026 - add -censor_to_spike_regs
    2.26 May 26, 2026 - add new slice patterns alt+z_D and alt-z_D
+   2.27 Oct  1, 2026 - add convenience group labels, FMRIPREP_MOT*
 """
 
-g_version = "1d_tool.py version 2.26, May 26, 2026"
+g_version = "1d_tool.py version 2.27, Oct 1, 2026"
 
 # g_show_regs_list = ['allzero', 'set', 'constant', 'binary']
 g_show_regs_list = ['allzero', 'set']

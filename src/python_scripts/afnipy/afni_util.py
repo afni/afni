@@ -3187,6 +3187,16 @@ def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
                '5,??'         : return [5, 0, 1, 2, 9, 10, 11]
                'mot03*,??'    : return [5, 0, 1, 2, 9, 10, 11]
 
+           special labels will be first converted to lists of labels:
+
+               FMRIPREP_MOT          : rot_z,rot_x,rot_y,trans_z,trans_x,trans_y
+               FMRIPREP_MOT_P2       : MOT, each appended with '_power2'
+               FMRIPREP_MOT_DER      : MOT, each appended with '_derivative1'
+               FMRIPREP_MOT_DER_P2   : MOT_DER, each appended with '_power2'
+
+               consider that ['FMRIPRE_MOT'] == ['rot_?','trans_?']
+               (except that MOT has order z,x,y, rather than alphabetical x,y,z)
+
        - return a list of ints
     """
 
@@ -3194,7 +3204,7 @@ def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
     slist = newstr.split(',')
     # expand labels like 'FMRIPREP_MOT', _2, deriv, _2
     # (could also use wildcarding, but this might be more clear)
-    slist = _expand_by_special_labels(slist)
+    slist = _expand_by_special_labels(slist, verb)
 
     if len(slist) == 0:
         if verb > 1: print("-- empty 1D_ints from string '%s'" % istr)
@@ -3250,7 +3260,7 @@ def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
     del(newstr)
     return ilist
 
-def _expand_by_special_labels(slist):
+def _expand_by_special_labels(slist, verb):
    """for each known label in slist, expand it to the corresponding list
 
       slist: a list of strings (ints or labels)
@@ -3284,6 +3294,8 @@ def _expand_by_special_labels(slist):
          snew.extend(g_general_tsv_labels_d[s])
       else:
          snew.append(s)
+
+   if verb > 1: print("-- expanded label list: %s" % ','.join(snew))
 
    return snew
 

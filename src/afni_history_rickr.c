@@ -53,6 +53,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Oct, 2026, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "allow for FMRIPREP_MOT* 1D column selectors",
+   "These selectors will be expanded into fmriprep confound column sets.\n"
+   "  FMRIPREP_MOT          : rot_z,rot_x,rot_y,trans_z,trans_x,trans_y\n"
+   "  FMRIPREP_MOT_P2       : MOT, each appended with '_power2'\n"
+   "  FMRIPREP_MOT_DER      : MOT, each appended with '_derivative1'\n"
+   "  FMRIPREP_MOT_DER_P2   : MOT_DER, each appended with '_power2'"
+ } ,
+
  { 28, Sep, 2026, RCR, "src_notes", MINOR, TYPE_ENHANCE,
    "add src_notes/notes_afni_proc.txt - an overview of afni_proc.py",
    NULL
