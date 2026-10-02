@@ -1,5 +1,6 @@
 #include "SUMA_suma.h"
 #include "SUMA_Macros.h"
+#include <float.h>
 #if 0
    /* does not work on the MAC, check with Brenna about that inclusion */
    #include "malloc.h"
@@ -1609,6 +1610,8 @@ typedef struct {
    int n[3];          /* number of cells along x, y, z */
    float org[3];      /* coordinate of the corner of cell (0,0,0) */
    float h;           /* cell edge length */
+   double slop;       /* how far float rounding can put a node outside 
+                         the cell it was binned in */
    int *cell_start;   /* n[0]*n[1]*n[2]+1 offsets into node_ind */
    int *node_ind;     /* node indices, grouped by cell */
 } SUMA_NODE_GRID;
@@ -1621,6 +1624,18 @@ static void SUMA_Free_NodeGrid(SUMA_NODE_GRID *G)
    if (G->cell_start) SUMA_free(G->cell_start);
    if (G->node_ind) SUMA_free(G->node_ind);
    SUMA_free(G);
+}
+
+/* cell index of coordinate x along axis k, clamped to the grid.
+   Used for binning nodes and for queries so the two always agree.
+   NaN goes to cell 0 rather than through an undefined (int) cast. */
+static int SUMA_NodeGrid_Cell(SUMA_NODE_GRID *G, int k, float x)
+{
+   float q = (x - G->org[k])/G->h;
+   
+   if (!(q >= 0.0f)) return 0;
+   if (q >= (float)G->n[k]) return G->n[k]-1;
+   return (int)q;
 }
 
 /*!
@@ -1638,6 +1653,7 @@ static SUMA_NODE_GRID *SUMA_Make_NodeGrid(float *nodeList, int N_Node, float h)
    SUMA_NODE_GRID *G=NULL;
    float mn[3], mx[3];
    int i, k, c, N_cells, *fill=NULL;
+   double dN_cells;
 
    SUMA_ENTRY;
 
@@ -1660,14 +1676,21 @@ static SUMA_NODE_GRID *SUMA_Make_NodeGrid(float *nodeList, int N_Node, float h)
    if (!(G = (SUMA_NODE_GRID *)SUMA_calloc(1, sizeof(SUMA_NODE_GRID)))) {
       SUMA_RETURN(NULL);
    }
+   /* count cells in double so a tiny h cannot overflow an int */
    do {
-      N_cells = 1;
-      for (k=0; k<3; ++k) {
-         G->n[k] = (int)((mx[k]-mn[k])/h) + 1;
-         N_cells *= G->n[k];
-      }
-      if (N_cells > SUMA_NODE_GRID_MAX_CELLS) h *= 1.25f;
-   } while (N_cells > SUMA_NODE_GRID_MAX_CELLS);
+      dN_cells = 1.0;
+      for (k=0; k<3; ++k) dN_cells *= floor((mx[k]-mn[k])/h) + 1.0;
+      if (dN_cells > SUMA_NODE_GRID_MAX_CELLS) h *= 1.25f;
+   } while (dN_cells > SUMA_NODE_GRID_MAX_CELLS);
+   N_cells = 1;
+   G->slop = 0.0;
+   for (k=0; k<3; ++k) {
+      G->n[k] = (int)((mx[k]-mn[k])/h) + 1;
+      N_cells *= G->n[k];
+      /* binning computes (x-org)/h in float, each step good to FLT_EPSILON 
+         relative to the grid's extent. 4x that is plenty. */
+      G->slop = SUMA_MAX_PAIR(G->slop, 4.0*FLT_EPSILON*G->n[k]*(double)h);
+   }
    G->h = h;
    G->org[0] = mn[0]; G->org[1] = mn[1]; G->org[2] = mn[2];
 
@@ -1685,11 +1708,7 @@ static SUMA_NODE_GRID *SUMA_Make_NodeGrid(float *nodeList, int N_Node, float h)
       cell, and ascending node order is preserved within each cell */
    for (i=0; i<N_Node; ++i) {
       int ci[3];
-      for (k=0; k<3; ++k) {
-         ci[k] = (int)((nodeList[3*i+k]-mn[k])/h);
-         if (ci[k] >= G->n[k]) ci[k] = G->n[k]-1;
-         if (ci[k] < 0) ci[k] = 0;
-      }
+      for (k=0; k<3; ++k) ci[k] = SUMA_NodeGrid_Cell(G, k, nodeList[3*i+k]);
       c = (ci[2]*G->n[1] + ci[1])*G->n[0] + ci[0];
       fill[i] = c;
       ++G->cell_start[c+1];
@@ -1754,11 +1773,7 @@ static void SUMA_NodeGrid_3NN(SUMA_NODE_GRID *G, float *nodeList, float *pt,
    double bound, b;
 
    for (k=0; k<3; ++k) { dist[k] = 0.0f; i_dist[k] = -1; }
-   for (k=0; k<3; ++k) {
-      c[k] = (int)floor((pt[k]-G->org[k])/G->h);
-      if (c[k] >= G->n[k]) c[k] = G->n[k]-1;
-      if (c[k] < 0) c[k] = 0;
-   }
+   for (k=0; k<3; ++k) c[k] = SUMA_NodeGrid_Cell(G, k, pt[k]);
 
    for (R=0; ; ++R) {
       i0 = SUMA_MAX_PAIR(c[0]-R, 0); i1 = SUMA_MIN_PAIR(c[0]+R, G->n[0]-1);
@@ -1787,8 +1802,9 @@ static void SUMA_NodeGrid_3NN(SUMA_NODE_GRID *G, float *nodeList, float *pt,
          }
       }
 
-      /* distance from pt to the nearest cell outside the visited cube;
-         sides of the cube that reach the grid edge have nothing left */
+      /* distance from pt to the nearest cell outside the visited cube,
+         less the slop of node binning; sides of the cube that reach
+         the grid edge have nothing left */
       done = 1; bound = 0.0;
       for (k=0; k<3; ++k) {
          if (c[k]-R > 0) {
@@ -1804,7 +1820,7 @@ static void SUMA_NodeGrid_3NN(SUMA_NODE_GRID *G, float *nodeList, float *pt,
       }
       if (done) return;
       /* small margin so float rounding of distances cannot matter */
-      if (i_dist[2] >= 0 && dist[2] < bound*(1.0-1.0e-5)) return;
+      if (i_dist[2] >= 0 && dist[2] < (bound - G->slop)*(1.0-1.0e-5)) return;
    }
 }
 
