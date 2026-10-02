@@ -820,6 +820,9 @@ inobj : InOpts object
             is_ok = os.path.isfile(self.checkpoint)
             if not(is_ok) :
                 ab.EP("Failed to load checkpoint")
+        else:
+            # *** at some point will have default selection
+            ab.EP("At present, you _need_ to use '-checkpoint ..'")
 
         if os.path.isfile(self.prefix) and not(self.overwrite) :
             msg = "The prefix '{}' dset exists already, ".format(self.prefix)
