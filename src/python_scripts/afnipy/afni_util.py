@@ -16,12 +16,20 @@ import glob
 import re
 from   datetime   import datetime
 
+# ---------------------------------------------------------------------------
+# this file contains various afni utilities   17 Nov 2006 [rickr]
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# global vars
+
 # global lists for basis functions
 basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
                       'WAV', 'MION']
 basis_one_regr_l   = basis_known_resp_l[:]
 basis_one_regr_l.append('MION')
 stim_types_one_reg = ['file', 'AM1', 'times']
+
 g_valid_shells = ['csh','tcsh','sh','bash','zsh']
 g_text_file_suffix_list = ['1D', 'json', 'niml', 'tsv', 'txt']
 g_valid_slice_patterns = [ # synonymous pairs      # z2-types
@@ -33,8 +41,16 @@ g_valid_slice_patterns = [ # synonymous pairs      # z2-types
                          ]
 g_tpattern_irreg = 'irregular'
 
+# list of labels representing groups of known TSV labels
+# (do not bother with anything easily done with "wildcards")
+g_general_tsv_labels = [ "FMRIPREP_MOT",     "FMRIPREP_MOT_P2",
+                         "FMRIPREP_MOT_DER", "FMRIPREP_MOT_DER_P2" ]
+# dictionary to expand g_general_tsv_labels into labels
+# (to be populated later, since they overlap, construct well, and have an order)
+g_general_tsv_labels_d = {}
 
-# this file contains various afni utilities   17 Nov 2006 [rickr]
+# ---------------------------------------------------------------------------
+# functions
 
 def change_path_basename(orig, prefix='', suffix='', append=0):
     """given a path (leading directory or not) swap the trailing
@@ -3176,6 +3192,10 @@ def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
 
     newstr = strip_list_brackets(istr, verb)
     slist = newstr.split(',')
+    # expand labels like 'FMRIPREP_MOT', _2, deriv, _2
+    # (could also use wildcarding, but this might be more clear)
+    slist = _expand_by_special_labels(slist)
+
     if len(slist) == 0:
         if verb > 1: print("-- empty 1D_ints from string '%s'" % istr)
         return []
@@ -3184,6 +3204,7 @@ def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
              % (newstr,len(labels)))
     ilist = []                  # init return list
     for s in slist:
+        # attempt to parse a valid comma-delimited token
         try:
             if s.find('@') >= 0:        # then expect "A@B"
                 [N, val] = [n for n in s.split('@')]
@@ -3223,11 +3244,80 @@ def decode_1D_ints(istr, imax=-1, labels=[], verb=1):
             else:
                 ilist.extend([to_int_special(s, '$', imax, labels)])
         except:
-            print("** cannot decode_1D '%s' in '%s'" % (s, istr))
+            print("** cannot decode_1D '%s' in '%s' or in labels" % (s, istr))
             return []
     if verb > 3: print('++ ilist: %s' % ilist)
     del(newstr)
     return ilist
+
+def _expand_by_special_labels(slist):
+   """for each known label in slist, expand it to the corresponding list
+
+      slist: a list of strings (ints or labels)
+
+      If any label in slist exists in g_general_tsv_labels, replace it with
+      the list of labels from the corresponding dictionary.
+
+      return a constructed new list, with relevant labels replaced with lists
+             (if no changes are needed, return the original list)
+   """
+   global g_general_tsv_labels
+   global g_general_tsv_labels_d
+
+   # if the dict is not yet populated, do so
+   if len(g_general_tsv_labels_d.keys()) == 0:
+      _populate_g_general_tsv_labels_d()
+
+   # since such labels will be uncommon, see if any changes are needed, first
+   found = 0
+   for s in slist:
+      if s in g_general_tsv_labels:
+         found = 1
+         break
+   if not found:
+      return slist
+
+   # construct a new list, replacing any known labels with those from the dict
+   snew = []
+   for s in slist:
+      if s in g_general_tsv_labels:
+         snew.extend(g_general_tsv_labels_d[s])
+      else:
+         snew.append(s)
+
+   return snew
+
+def _populate_g_general_tsv_labels_d(verb=0):
+   """populate this global dictionary with corresponding known labels
+      e.g., the FMRIPREP ones should apply to those in a 'confounds' file
+
+         "FMRIPREP_MOT"         : as rot_{z,x,y} trans_{z,x,y}
+         "FMRIPREP_MOT_P2"      : MOT, each appended with "_power2"
+         "FMRIPREP_MOT_DER"     : MOT, each appended with "_derivative1"
+         "FMRIPREP_MOT_DER_P2"  : MOT_DER, each appended with "_power2"
+
+      These could be wildcarded, but this is for convenience and ordering
+      (motion to match those from volreg).
+   """
+   global g_general_tsv_labels_d
+   mot_cols   = ["rot_z", "rot_x", "rot_y", "trans_z", "trans_x", "trans_y"]
+
+   # mot_cols_2: add _power2 to mot_cols
+   mot_cols_2 = mot_cols[:]
+   mot_cols_2.extend(["%s_power2"      % s for s in mot_cols])
+
+   # md_cols: add _derivative1 to mot_cols
+   md_cols    = mot_cols[:]
+   md_cols.extend(["%s_derivative1" % s for s in mot_cols])
+
+   # md_cols_2: add _power2 to md_cols (mot and deriv)
+   md_cols_2  = md_cols[:]
+   md_cols_2.extend(["%s_power2"      % s for s in md_cols])
+
+   g_general_tsv_labels_d["FMRIPREP_MOT"] = mot_cols
+   g_general_tsv_labels_d["FMRIPREP_MOT_P2"] = mot_cols_2
+   g_general_tsv_labels_d["FMRIPREP_MOT_DER"] = md_cols
+   g_general_tsv_labels_d["FMRIPREP_MOT_DER_P2"] = md_cols_2
 
 def to_intlist_wild(cval, labels=[]):
    """return the index list of any labels that match cval, including wildcards

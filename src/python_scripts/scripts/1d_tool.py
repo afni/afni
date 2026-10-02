@@ -2701,8 +2701,8 @@ class A1DInterface:
       # have string of encoded 1D column selectors (e.g. 2,3..7)
       # (or values from prior self.select_cols_vtsv)
       if self.select_cols:
-         ilist=UTIL.decode_1D_ints(self.select_cols, verb=self.verb,
-                          imax=self.adata.nvec-1, labels=self.adata.labels)
+         ilist = UTIL.decode_1D_ints(self.select_cols, imax=self.adata.nvec-1,
+                                     labels=self.adata.labels, verb=self.verb)
          if ilist == None: return 1
          if self.adata.reduce_by_vec_list(ilist): return 1
 
