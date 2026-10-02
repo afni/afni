@@ -1599,6 +1599,216 @@ float intersection_map(float a, float b, float c, float d, float val) {
 }
 
 
+/*!
+   Uniform grid over a list of nodes, used by SUMA_MapSurface to find the
+   3 nodes closest to a point without scanning a large slab of the surface.
+   Nodes are bucketed by cell, and within a cell they are stored in
+   ascending index order.
+*/
+typedef struct {
+   int n[3];          /* number of cells along x, y, z */
+   float org[3];      /* coordinate of the corner of cell (0,0,0) */
+   float h;           /* cell edge length */
+   int *cell_start;   /* n[0]*n[1]*n[2]+1 offsets into node_ind */
+   int *node_ind;     /* node indices, grouped by cell */
+} SUMA_NODE_GRID;
+
+#define SUMA_NODE_GRID_MAX_CELLS (1<<22)
+
+static void SUMA_Free_NodeGrid(SUMA_NODE_GRID *G)
+{
+   if (!G) return;
+   if (G->cell_start) SUMA_free(G->cell_start);
+   if (G->node_ind) SUMA_free(G->node_ind);
+   SUMA_free(G);
+}
+
+/*!
+   G = SUMA_Make_NodeGrid(nodeList, N_Node, h);
+
+   \param nodeList (float *) 3 x N_Node node coordinates
+   \param N_Node (int) number of nodes
+   \param h (float) desired cell edge length. It is enlarged if the grid
+                    would otherwise exceed SUMA_NODE_GRID_MAX_CELLS cells.
+   \return G (SUMA_NODE_GRID *) free with SUMA_Free_NodeGrid, NULL on failure
+*/
+static SUMA_NODE_GRID *SUMA_Make_NodeGrid(float *nodeList, int N_Node, float h)
+{
+   static char FuncName[]={"SUMA_Make_NodeGrid"};
+   SUMA_NODE_GRID *G=NULL;
+   float mn[3], mx[3];
+   int i, k, c, N_cells, *fill=NULL;
+
+   SUMA_ENTRY;
+
+   if (!nodeList || N_Node < 1) SUMA_RETURN(NULL);
+
+   mn[0] = mx[0] = nodeList[0];
+   mn[1] = mx[1] = nodeList[1];
+   mn[2] = mx[2] = nodeList[2];
+   for (i=1; i<N_Node; ++i) {
+      for (k=0; k<3; ++k) {
+         if (nodeList[3*i+k] < mn[k]) mn[k] = nodeList[3*i+k];
+         if (nodeList[3*i+k] > mx[k]) mx[k] = nodeList[3*i+k];
+      }
+   }
+   if (!(h > 0.0f)) {
+      h = SUMA_MAX_PAIR(mx[0]-mn[0], SUMA_MAX_PAIR(mx[1]-mn[1], mx[2]-mn[2]));
+      if (!(h > 0.0f)) h = 1.0f;
+   }
+
+   if (!(G = (SUMA_NODE_GRID *)SUMA_calloc(1, sizeof(SUMA_NODE_GRID)))) {
+      SUMA_RETURN(NULL);
+   }
+   do {
+      N_cells = 1;
+      for (k=0; k<3; ++k) {
+         G->n[k] = (int)((mx[k]-mn[k])/h) + 1;
+         N_cells *= G->n[k];
+      }
+      if (N_cells > SUMA_NODE_GRID_MAX_CELLS) h *= 1.25f;
+   } while (N_cells > SUMA_NODE_GRID_MAX_CELLS);
+   G->h = h;
+   G->org[0] = mn[0]; G->org[1] = mn[1]; G->org[2] = mn[2];
+
+   G->cell_start = (int *)SUMA_calloc(N_cells+1, sizeof(int));
+   G->node_ind = (int *)SUMA_calloc(N_Node, sizeof(int));
+   fill = (int *)SUMA_calloc(N_Node, sizeof(int));
+   if (!G->cell_start || !G->node_ind || !fill) {
+      SUMA_S_Err("Failed to allocate for node grid");
+      if (fill) SUMA_free(fill);
+      SUMA_Free_NodeGrid(G);
+      SUMA_RETURN(NULL);
+   }
+
+   /* counting sort of nodes by cell; fill[] temporarily holds each node's
+      cell, and ascending node order is preserved within each cell */
+   for (i=0; i<N_Node; ++i) {
+      int ci[3];
+      for (k=0; k<3; ++k) {
+         ci[k] = (int)((nodeList[3*i+k]-mn[k])/h);
+         if (ci[k] >= G->n[k]) ci[k] = G->n[k]-1;
+         if (ci[k] < 0) ci[k] = 0;
+      }
+      c = (ci[2]*G->n[1] + ci[1])*G->n[0] + ci[0];
+      fill[i] = c;
+      ++G->cell_start[c+1];
+   }
+   for (c=0; c<N_cells; ++c) G->cell_start[c+1] += G->cell_start[c];
+   {
+      int *pos = (int *)SUMA_calloc(N_cells, sizeof(int));
+      if (!pos) {
+         SUMA_S_Err("Failed to allocate for node grid");
+         SUMA_free(fill);
+         SUMA_Free_NodeGrid(G);
+         SUMA_RETURN(NULL);
+      }
+      for (i=0; i<N_Node; ++i) {
+         c = fill[i];
+         G->node_ind[G->cell_start[c] + pos[c]] = i;
+         ++pos[c];
+      }
+      SUMA_free(pos);
+   }
+   SUMA_free(fill);
+
+   SUMA_RETURN(G);
+}
+
+/* insert node idx at distance d into the sorted list of the 3 closest
+   nodes. Ties in distance go to the lower node index. */
+static void SUMA_NodeGrid_Insert3(float d, int idx, float *dist, int *i_dist)
+{
+   int k, m;
+
+   for (k=0; k<3; ++k) {
+      if (i_dist[k] < 0 || d < dist[k] || (d == dist[k] && idx < i_dist[k]))
+         break;
+   }
+   if (k == 3) return;
+   for (m=2; m>k; --m) {
+      dist[m] = dist[m-1]; i_dist[m] = i_dist[m-1];
+   }
+   dist[k] = d; i_dist[k] = idx;
+}
+
+/*!
+   SUMA_NodeGrid_3NN(G, nodeList, pt, dist, i_dist);
+
+   Find the 3 nodes of grid G closest to pt (exact, not approximate).
+   Cells are visited in growing cubic shells around pt's cell until no
+   unvisited cell can hold a node closer than the 3rd closest so far.
+   Ties in distance go to the lower node index.
+
+   \param G (SUMA_NODE_GRID *) grid built from nodeList
+   \param nodeList (float *) 3 x N_Node node coordinates used to build G
+   \param pt (float *) query point
+   \param dist (float *) returned distances, ascending
+   \param i_dist (int *) returned node indices, -1 when fewer than 3 nodes
+*/
+static void SUMA_NodeGrid_3NN(SUMA_NODE_GRID *G, float *nodeList, float *pt,
+                              float *dist, int *i_dist)
+{
+   int c[3], k, R, i0, i1, j0, j1, l0, l1, i, j, l, s, idx, step, done;
+   float dx, dy, dz;
+   double bound, b;
+
+   for (k=0; k<3; ++k) { dist[k] = 0.0f; i_dist[k] = -1; }
+   for (k=0; k<3; ++k) {
+      c[k] = (int)floor((pt[k]-G->org[k])/G->h);
+      if (c[k] >= G->n[k]) c[k] = G->n[k]-1;
+      if (c[k] < 0) c[k] = 0;
+   }
+
+   for (R=0; ; ++R) {
+      i0 = SUMA_MAX_PAIR(c[0]-R, 0); i1 = SUMA_MIN_PAIR(c[0]+R, G->n[0]-1);
+      j0 = SUMA_MAX_PAIR(c[1]-R, 0); j1 = SUMA_MIN_PAIR(c[1]+R, G->n[1]-1);
+      l0 = SUMA_MAX_PAIR(c[2]-R, 0); l1 = SUMA_MIN_PAIR(c[2]+R, G->n[2]-1);
+      for (l=l0; l<=l1; ++l) {
+         for (j=j0; j<=j1; ++j) {
+            /* inside the shell only the cells at i = c-R and c+R are new */
+            if (R > 0 && SUMA_ABS(l-c[2]) < R && SUMA_ABS(j-c[1]) < R)
+               step = 2*R;
+            else step = 1;
+            for (i=c[0]-R; i<=c[0]+R; i+=step) {
+               if (i < i0 || i > i1) continue;
+               s = (l*G->n[1] + j)*G->n[0] + i;
+               for (k=G->cell_start[s]; k<G->cell_start[s+1]; ++k) {
+                  idx = G->node_ind[k];
+                  dx = pt[0]-nodeList[3*idx];
+                  dy = pt[1]-nodeList[3*idx+1];
+                  dz = pt[2]-nodeList[3*idx+2];
+                  /* same arithmetic as SUMA_Search_Min_Dist */
+                  SUMA_NodeGrid_Insert3(
+                     (float)sqrt(pow(dx,2) + pow(dy,2) + pow(dz,2)),
+                     idx, dist, i_dist);
+               }
+            }
+         }
+      }
+
+      /* distance from pt to the nearest cell outside the visited cube;
+         sides of the cube that reach the grid edge have nothing left */
+      done = 1; bound = 0.0;
+      for (k=0; k<3; ++k) {
+         if (c[k]-R > 0) {
+            b = pt[k] - (G->org[k] + (double)(c[k]-R)*G->h);
+            if (done || b < bound) bound = b;
+            done = 0;
+         }
+         if (c[k]+R < G->n[k]-1) {
+            b = (G->org[k] + (double)(c[k]+R+1)*G->h) - pt[k];
+            if (done || b < bound) bound = b;
+            done = 0;
+         }
+      }
+      if (done) return;
+      /* small margin so float rounding of distances cannot matter */
+      if (i_dist[2] >= 0 && dist[2] < bound*(1.0-1.0e-5)) return;
+   }
+}
+
+
 
 /*!
   MI = MapSurface (surf1, surf2);
@@ -1639,8 +1849,9 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    int *i_SrtdX_2=NULL;
    int N_outliers;
    float currNode[3], ptHit[3], currDist=0, avgDist=0.0, pi=3.14159265359;
-   int seg[2], i_node[3];
-   float min_dist[3], curr_restr;
+   int i_node[3];
+   float min_dist[3];
+   SUMA_NODE_GRID *NG=NULL;
 
    SUMA_Boolean found=NOPE;
    float *triNode0, *triNode1, *triNode2, weight_tot;
@@ -1865,8 +2076,10 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    /* actually keep this result in r2 (compute as double, keep as float) */
    r2 = dr2;
 
-   avgDist = (4*pi*pow(r2,2))/numNodes_2;  /*average distance between nodes on 
-                                             surf2 surface */
+   /* average distance between nodes on surf2: the square root of the
+      area per node. (This used to be the area itself, which only
+      approximated a length for spheres of radius near 100.) */
+   avgDist = sqrt( (4*pi*pow(r2,2))/numNodes_2 );
   
 
    /**make certain surf2 is spherical*/
@@ -1940,6 +2153,27 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       srtdX_ctrNodeList_2[j+2] = ctrNodeList_2[j_srtd+2];
    }
 
+   /* bucket the x-sorted nodes into a grid for the closest node search.
+      Searching in x-sorted order keeps ties resolved as the older slab
+      search did. Cells of about 2 node spacings hold a handful of nodes. */
+   if (!(NG = SUMA_Make_NodeGrid(srtdX_ctrNodeList_2, numNodes_2,
+                                 2.0*avgDist))) {
+      fprintf (SUMA_STDERR,
+               "Error %s: Failed to create node grid.\n", FuncName);
+      if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
+      if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
+      if (clsNodes) SUMA_free(clsNodes);
+      if (weight) SUMA_free(weight);
+      if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
+      if (justX_2) SUMA_free(justX_2);
+      if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
+      SUMA_RETURN (NULL);
+   }
+   if (verb)
+      fprintf(SUMA_STDERR,
+              "-- MI: node spacing %f, grid of %d x %d x %d cells of %f\n",
+              avgDist, NG->n[0], NG->n[1], NG->n[2], NG->h);
+
 
    /* allow users to write distortions out              27 Mar 2017 [rickr] */
    if( dist_prefix ) {
@@ -1999,81 +2233,8 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
 
       /**find 3 nodes in ctrNodeList_2 closest to ptHit*/
       
-      /*initialize variables*/
-      found = NOPE;
-      for (k=0; k<3; ++k) { 
-         min_dist[k] = 2*r2;
-         i_node[k] = -1;
-      }
-      curr_restr = (float)12.0*avgDist;  /*12.0 chosen by trial/error for best 
-                                           timing compromise between 
-                                           using expanded search vs brute force 
-                                           for trouble nodes*/
-
-      /*find placement of ptHit[0] in justX_2*/
-      seg[0] = 0; 
-      seg[1] = numNodes_2-1;
-
-      if ( ptHit[0] < justX_2[seg[0]] )   /*note ptHit will be within r2/10 of 
-                                    either of these values, so assignment is ok*/
-         seg[1] = seg[0];                 /*(since ctrNodeList2 was adjusted to 
-                                    have each distance within )*/
-      else if ( ptHit[0] > justX_2[seg[1]] )  /*(r2/10 of r2, which was used to 
-                                                scale ctrNodeList1, from which)*/
-         seg[0] = seg[1];                      /*(justX_2 comes)*/
-      else {
-         if ( !SUMA_binSearch( justX_2, ptHit[0], seg, 0 )) {
-            fprintf( SUMA_STDERR, 
-                     "Error %s: Failed in binary search !(%f < %f < %f).\n\n", 
-                     FuncName, justX_2[seg[0]], ptHit[0], justX_2[seg[1]]);
-            if (ctrNodeList_1) SUMA_free(ctrNodeList_1);
-            if (ctrNodeList_2) SUMA_free(ctrNodeList_2);
-            if (clsNodes) SUMA_free(clsNodes);
-            if (weight) SUMA_free(weight);
-            if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
-            if (justX_2) SUMA_free(justX_2);
-            if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
-            SUMA_RETURN (NULL);
-         }
-      }
-
-      /*expand search segment*/
-      while ( (ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]]) < curr_restr 
-               && seg[0]>0) { 
-         if ( seg[0]>10 ) seg[0] = seg[0]-10; 
-         else --seg[0];
-      }
-      while ( (srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0]) < curr_restr 
-               && seg[1]<(numNodes_2-1) ) { 
-         if ( seg[1]<(numNodes_2-11) ) seg[1] = seg[1]+10;
-         else ++seg[1]; 
-      }
-
-      /*search for 3 minimum distances to ptHit*/
-      while ( !found && seg[1]-seg[0]<numNodes_2 && curr_restr<3*r2 ) { 
-         /*3 min distances have not yet been found*/
-
-         SUMA_Search_Min_Dist( ptHit, srtdX_ctrNodeList_2, seg, 
-                               curr_restr, min_dist, i_node );
-         
-         if ( i_node[0]==-1 || i_node[1]==-1 || i_node[2]==-1 ) {
-            /*sufficient (3) min_dist were not found -> 
-               repeat and expand search of segment with more relaxed measures*/
-            curr_restr = (float) 1.5*curr_restr;
-            found = NOPE;
-            while ( ptHit[0] - srtdX_ctrNodeList_2[3*seg[0]] < curr_restr 
-                    && seg[0]>0) { 
-               if (seg[0]>10) seg[0] = seg[0]-10; 
-               else --seg[0];
-            }
-            while (  srtdX_ctrNodeList_2[3*seg[1]] - ptHit[0] < curr_restr && 
-                     seg[1]<numNodes_2-1) { 
-               if (k<numNodes_2-11) seg[1] = seg[1]+10;
-               else ++seg[1]; 
-            }
-         }
-         else found = YUP;
-      }
+      /* indices are into srtdX_ctrNodeList_2, -1 if not found */
+      SUMA_NodeGrid_3NN( NG, srtdX_ctrNodeList_2, ptHit, min_dist, i_node );
 
 
       if ( i_node[0]==-1 || i_node[1]==-1 || i_node[2]==-1 ) {
@@ -2088,6 +2249,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
          if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
          if (justX_2) SUMA_free(justX_2);
          if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
+         SUMA_Free_NodeGrid(NG); NG=NULL;
          SUMA_RETURN (NULL);
       }
 
@@ -2129,6 +2291,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
          if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
          if (justX_2) SUMA_free(justX_2);
          if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
+         SUMA_Free_NodeGrid(NG); NG=NULL;
          SUMA_RETURN (NULL);
       }
 
@@ -2179,6 +2342,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
          if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
          if (justX_2) SUMA_free(justX_2);
          if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
+         SUMA_Free_NodeGrid(NG); NG=NULL;
          SUMA_RETURN (NULL);
       } 
     
@@ -2239,6 +2403,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
       if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
       if (justX_2) SUMA_free(justX_2);
       if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
+      SUMA_Free_NodeGrid(NG); NG=NULL;
       SUMA_RETURN (NULL);
    }
    for (i=0; i<numFace_1; ++i) {
@@ -2253,6 +2418,7 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    if (i_SrtdX_2) SUMA_free(i_SrtdX_2);
    if (justX_2) SUMA_free(justX_2);
    if (srtdX_ctrNodeList_2) SUMA_free(srtdX_ctrNodeList_2);
+   SUMA_Free_NodeGrid(NG); NG=NULL;
 
    SUMA_RETURN (MI);
 } 
