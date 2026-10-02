@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Oct, 2026, RCR, "Makefile.linux_ubuntu_26_ARM", MINOR, TYPE_NEW_OPT,
+   "add Makefile.linux_ubuntu_26_ARM, a dupe of 24_ARM but SYSTEM_NAME",
+   NULL
+ } ,
+
  {  1, Oct, 2026, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
    "allow for FMRIPREP_MOT* 1D column selectors",
    "These selectors will be expanded into fmriprep confound column sets.\n"
