@@ -24,24 +24,6 @@ rehash
 
 # ------------------------------------------------------------------------
 
-echo "++ Download Bootcamp data, **if** it doesn't appear to exist already"
-
-if ( 1 && ! -d ~/AFNI_data6 && ! -d ~/AFNI_demos ) then
-   echo "++ No ~/AFNI_data6 and ~/AFNI_demo dirs already,"
-   echo "   so will download+install the Bootcamp data CD.tgz"
-
-   curl -O https://afni.nimh.nih.gov/pub/dist/edu/data/CD.tgz
-   tar xvzf CD.tgz
-   cd CD
-   tcsh s2.cp.files . ~
-   cd ..
-else
-   echo "+* WARN: Finding ~/AFNI_data6 and ~/AFNI_demo dirs already,"
-   echo "         so I will *not* download+install the Bootcamp data CD.tgz"
-endif
-
-# ------------------------------------------------------------------------
-
 echo "++ Prepare to install R and its packages (will take a while)"
 
 set rver = `R --version | head -n 1 | cut -d ' ' -f 3`
