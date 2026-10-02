@@ -1938,7 +1938,7 @@ static SUMA_Boolean SUMA_SlabSearch_3NN( float *ptHit, float *srtdX_nodeList,
 
 
 /*!
-  MI = MapSurface (surf1, surf2, verb, dist_prefix, classic);
+  MI = MapSurface_Impl (surf1, surf2, verb, dist_prefix, classic);
 
   This function creates a mapping of one surface onto another (surfaces assumed to be spherical).
   \param surf1 (SUMA_SurfaceObject *) first surface of surface object structure
@@ -1957,10 +1957,10 @@ static SUMA_Boolean SUMA_SlabSearch_3NN( float *ptHit, float *srtdX_nodeList,
   Written by Brenna Argall
 */
 
-SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1, 
-                                  SUMA_SurfaceObject *surf2,
-                                  int verb, char * dist_prefix,
-                                  int classic )
+static SUMA_MorphInfo * SUMA_MapSurface_Impl (SUMA_SurfaceObject *surf1,
+                                              SUMA_SurfaceObject *surf2,
+                                              int verb, char * dist_prefix,
+                                              int classic )
 {
    static char FuncName[]={"SUMA_MapSurface"};
 
@@ -2579,7 +2579,23 @@ SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
    SUMA_Free_NodeGrid(NG); NG=NULL;
 
    SUMA_RETURN (MI);
-} 
+}
+
+
+SUMA_MorphInfo * SUMA_MapSurface (SUMA_SurfaceObject *surf1,
+                                  SUMA_SurfaceObject *surf2,
+                                  int verb, char *dist_prefix)
+{
+   return SUMA_MapSurface_Impl(surf1, surf2, verb, dist_prefix, 0);
+}
+
+
+SUMA_MorphInfo * SUMA_MapSurface_Classic (SUMA_SurfaceObject *surf1,
+                                          SUMA_SurfaceObject *surf2,
+                                          int verb, char *dist_prefix)
+{
+   return SUMA_MapSurface_Impl(surf1, surf2, verb, dist_prefix, 1);
+}
 
  
 /*!
@@ -3940,5 +3956,4 @@ SUMA_Boolean SUMA_Free_1dData (SUMA_1dData *data)
    
    SUMA_RETURN (YUP);
 }
-
 

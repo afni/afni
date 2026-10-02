@@ -1247,7 +1247,10 @@ int main (int argc, char *argv[])
       SO_morph->isSphere = SUMA_GEOM_NOT_SET;
    }
    
-   MI = SUMA_MapSurface( icoSurf, SO_morph, verb, dist_prefix, Classic ) ;
+   if (Classic)
+      MI = SUMA_MapSurface_Classic(icoSurf, SO_morph, verb, dist_prefix);
+   else
+      MI = SUMA_MapSurface(icoSurf, SO_morph, verb, dist_prefix);
    if (!MI) {
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
@@ -1611,4 +1614,3 @@ int main (int argc, char *argv[])
    SUMA_RETURN(0);
    
 }/* main SUMA_MapIcosahedron*/
-
