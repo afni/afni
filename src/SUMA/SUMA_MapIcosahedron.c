@@ -13,7 +13,7 @@ void SUMA_MapIcosahedron_usage ()
 "                      [-it numIt] [-prefix fout] \n"
 "                      [-NN_dset_map DSET]\n"
 "                      [-dset_map DSET] [-fix_cut_surfaces]\n"
-"                      [-verb] [-help] [...]\n"
+"                      [-classic] [-verb] [-help] [...]\n"
 "\n"
 "Creates new versions of the original-mesh surfaces using the mesh\n"
 "of an icosahedron. \n"
@@ -180,6 +180,11 @@ void SUMA_MapIcosahedron_usage ()
 "        or simply write out the euclidean norms for suma display:\n"
 "            1d_tool.py -collapse_cols euclidean_norm \\\n"
 "                       -infile PREFIX.LABEL.txt -write PREFIX.enorm.1D\n"
+"   -classic: Find the original-mesh nodes closest to each icosahedron\n"
+"             node with the older, slower search used before Oct 2026.\n"
+"             That search could occasionally miss one of the 3 closest\n"
+"             nodes, so its output can differ slightly for a few nodes.\n"
+"             This option is for comparing the two methods.\n"
 "\n"
 "NOTE 1: The algorithm used by this program is applicable\n"
 "      to any surfaces warped to a spherical coordinate\n"
@@ -207,6 +212,44 @@ void SUMA_MapIcosahedron_usage ()
 "\n");
    exit (0);
 }/*Usage*/
+/*!
+   Path to put in front of the -prefix for an output named after
+   input file infile: infile's own path, or nothing if the prefix is
+   an absolute path (else "./" + "/abs/..." would be relative).
+   Do NOT free the returned string.
+*/
+static char *SUMA_MI_OutPath(char *fout, char *infile)
+{
+   if (fout && fout[0] == '/') return("");
+   return(SUMA_FnameGet(infile, "pa", SUMAg_CF->cwd));
+}
+
+/*!
+   Spec file entries are read relative to the spec file's dir, but
+   outputs are named <path><fout><name> relative to the current dir.
+   When fout has a dir, rewrite such an entry as ./<fout file><name>,
+   which is where the output is, relative to the std spec file.
+   Entries not named that way (e.g., inputs from other dirs) are left
+   alone.  entry is a SUMA_MAX_FP_NAME_LENGTH string, changed in place.
+*/
+static void SUMA_MI_SpecRelative(char *entry, char *fout)
+{
+   char buf[SUMA_MAX_FP_NAME_LENGTH], *s=NULL;
+   int nf;
+
+   if (!entry || !entry[0] || strstr(entry, "SAME")) return;
+   if (!strcmp(SUMA_FnameGet(fout, "pa", SUMAg_CF->cwd), "./")) return;
+
+   nf = strlen(fout);
+   s = entry;
+   if (!strncmp(s, "./", 2) && !strncmp(s+2, fout, nf)) s += 2;
+   if (strncmp(s, fout, nf)) return;
+
+   snprintf(buf, sizeof(buf), "./%s%s",
+            SUMA_FnameGet(fout, "f", SUMAg_CF->cwd), s+nf);
+   strcpy(entry, buf);
+}
+
 #define SCRUBIT { \
    if (SUMAg_DOv) \
       SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv); \
@@ -248,7 +291,7 @@ int main (int argc, char *argv[])
    int UserCenter=-1;
    double cent[3], centmed[3];
    char snote[1000]="", sbuf[1000]="";
-   SUMA_Boolean UseCOM, CheckSphere, WriteMI;
+   SUMA_Boolean UseCOM, CheckSphere, WriteMI, Classic=NOPE;
    SUMA_SurfaceObject *SO=NULL, *SO_morph=NULL, *SOw=NULL;
    void *writeFile=NULL, *vbufp=NULL;
    int oform=SUMA_ASCII_NIML, iform=SUMA_NO_DSET_FORMAT;
@@ -528,6 +571,12 @@ int main (int argc, char *argv[])
             brk = YUP;
          }   
       
+      if (!brk && strcmp(argv[kar], "-classic") == 0)
+         {
+            Classic = YUP;
+            brk = YUP;
+         }
+
       if (!brk && strcmp(argv[kar], "-write_dist") == 0)
          {
             kar ++;
@@ -710,21 +759,21 @@ int main (int argc, char *argv[])
          snprintf(stdSpec->TopoFile[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "%s%s%s", 
-                  SUMA_FnameGet(brainSpec.TopoFile[i], "pa", SUMAg_CF->cwd),
+                  SUMA_MI_OutPath(fout, brainSpec.TopoFile[i]),
                   fout,
                   SUMA_FnameGet(brainSpec.TopoFile[i], "f", SUMAg_CF->cwd));
       if (brainSpec.CoordFile[i] && brainSpec.CoordFile[i][0])    
          snprintf(stdSpec->CoordFile[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "%s%s%s", 
-                  SUMA_FnameGet(brainSpec.CoordFile[i], "pa", SUMAg_CF->cwd),
+                  SUMA_MI_OutPath(fout, brainSpec.CoordFile[i]),
                   fout,
                   SUMA_FnameGet(brainSpec.CoordFile[i], "f", SUMAg_CF->cwd));
       if (brainSpec.SurfaceFile[i] && brainSpec.SurfaceFile[i][0])    
          snprintf(stdSpec->SurfaceFile[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "%s%s%s", 
-                  SUMA_FnameGet(brainSpec.SurfaceFile[i], "pa", SUMAg_CF->cwd),
+                  SUMA_MI_OutPath(fout, brainSpec.SurfaceFile[i]),
                   fout,
                   SUMA_FnameGet(brainSpec.SurfaceFile[i], "f", SUMAg_CF->cwd));
       if (  brainSpec.LocalDomainParent[i] && 
@@ -733,8 +782,7 @@ int main (int argc, char *argv[])
          snprintf(stdSpec->LocalDomainParent[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "%s%s%s", 
-                  SUMA_FnameGet( brainSpec.LocalDomainParent[i], "pa", 
-                                 SUMAg_CF->cwd),
+                  SUMA_MI_OutPath(fout, brainSpec.LocalDomainParent[i]),
                   fout,
                   SUMA_FnameGet( brainSpec.LocalDomainParent[i], "f", 
                                  SUMAg_CF->cwd) );
@@ -778,8 +826,7 @@ int main (int argc, char *argv[])
          snprintf(stdSpec->LocalCurvatureParent[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "%s%s%s", 
-                  SUMA_FnameGet( brainSpec.LocalCurvatureParent[i], "pa", 
-                                 SUMAg_CF->cwd),
+                  SUMA_MI_OutPath(fout, brainSpec.LocalCurvatureParent[i]),
                   fout,
                   SUMA_FnameGet( brainSpec.LocalCurvatureParent[i], "f", 
                                  SUMAg_CF->cwd) );
@@ -790,8 +837,7 @@ int main (int argc, char *argv[])
          snprintf(stdSpec->LabelDset[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "%s%s%s", 
-                  SUMA_FnameGet( brainSpec.LabelDset[i], "pa", 
-                                 SUMAg_CF->cwd),
+                  SUMA_MI_OutPath(fout, brainSpec.LabelDset[i]),
                   fout,
                   SUMA_FnameGet( brainSpec.LabelDset[i], "f", 
                                  SUMAg_CF->cwd) );
@@ -1079,7 +1125,7 @@ int main (int argc, char *argv[])
             }
             sprintf(snote, 
                "Notice: Forced to use COM of [%f   %f   %f], "
-               "instead of geom. center of [%f   %f   %f] for %s.\n"
+               "instead of geom. center of [%f   %f   %f] for %s."
                               , ctrX, ctrY, ctrZ,
                               centmed[0], centmed[1], centmed[2],
                               SO_morph->Label );
@@ -1098,7 +1144,7 @@ int main (int argc, char *argv[])
             }
             sprintf(snote, 
                "Notice: Used geom. center of [%f   %f   %f] for %s. "
-               "COM was [%f   %f   %f].\n",
+               "COM was [%f   %f   %f].",
                               centmed[0], centmed[1], centmed[2], 
                               SO_morph->Label, ctrX, ctrY, ctrZ);
             ctrX = centmed[0];
@@ -1201,7 +1247,7 @@ int main (int argc, char *argv[])
       SO_morph->isSphere = SUMA_GEOM_NOT_SET;
    }
    
-   MI = SUMA_MapSurface( icoSurf, SO_morph, verb, dist_prefix ) ;
+   MI = SUMA_MapSurface( icoSurf, SO_morph, verb, dist_prefix, Classic ) ;
    if (!MI) {
       fprintf (SUMA_STDERR, 
                "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
@@ -1274,7 +1320,7 @@ int main (int argc, char *argv[])
             exit(1);
          }
          uname = SUMA_append_replace_string(
-               SUMA_FnameGet(in_name[i],"pa", SUMAg_CF->cwd), 
+               SUMA_MI_OutPath(fout, in_name[i]), 
                              SUMA_FnameGet(in_name[i],"l",SUMAg_CF->cwd), 
                              fout, 0);
          oname = SUMA_WriteDset_s (uname, dseto, SUMA_ASCII_NIML, 1, 1); 
@@ -1512,7 +1558,18 @@ int main (int argc, char *argv[])
    
    
    /*write spec file*/
-   
+
+   /* all outputs are written, so make the entries relative to the
+      spec file, for when -prefix has a dir */
+   for (i=0; i<stdSpec->N_Surfs; ++i) {
+      SUMA_MI_SpecRelative(stdSpec->SurfaceFile[i], fout);
+      SUMA_MI_SpecRelative(stdSpec->TopoFile[i], fout);
+      SUMA_MI_SpecRelative(stdSpec->CoordFile[i], fout);
+      SUMA_MI_SpecRelative(stdSpec->LocalDomainParent[i], fout);
+      SUMA_MI_SpecRelative(stdSpec->LocalCurvatureParent[i], fout);
+      SUMA_MI_SpecRelative(stdSpec->LabelDset[i], fout);
+   }
+
    if (!SUMA_Write_SpecFile(stdSpec, outSpecFileNm, FuncName, histnote)) {
       SUMA_S_Err("Failed to write spec file!");
       exit(1);
