@@ -3452,6 +3452,7 @@ class Afni1D:
 
          ilist = UTIL.decode_1D_ints(aname.colsel, imax=self.nvec-1,
                                      labels=labels, verb=self.verb)
+
          if ilist == None: return 1
          if self.verb > 1:
             print("-- selecting columns: %s" % UTIL.int_list_string(ilist))
