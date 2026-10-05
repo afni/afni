@@ -3504,6 +3504,67 @@ def egs_demo():
        ],
      ))
 
+   examples.append( APExample('AP demo 3a',
+     source='todo: possible fmriprep demo',
+     descrip='fMRIPrep 1 - basic rest - only motion',
+     moddate='2026.10.05',
+     keywords=['complete', 'rest', 'fmriprep'],
+     header="""
+              (recommended?  somewhat - early preproc from fmriprep)
+
+         This is a sample rest processing command, where initial preprocessing
+         (through alignment and counfound computation) was done with fMRIPrep.
+
+            - inputs:
+                - anat (final space)
+                - EPI (final space)
+                - confounds_fp.tsv
+                    - standard 6 motion parameters, extracted via:
+
+                  1d_tool.py -infile "confounds_fp.tsv[FMRIPREP_MOT]" \\
+                             -write fp_motion.1D
+
+            - blocks: mask blur scale regress
+                - all typical blocks after volreg
+
+            - QC options (limited):
+                -radial_correlate_blocks, -regress_est_blur_*,
+                -html_review_style
+
+            - noise removal of:
+                - motion and derivatives, per run
+                - censoring for both motion and outliers
+                - from fmriprep: motion
+                - from AP:       motion derivatives and censoring
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-000.1.basic']],
+        ['-uvar',                    ['ses', 'ses-01']],
+        ['-uvar',                    ['taskname', 'rest']],
+        ['-dsets',                   ['func/sub-000-fp-bold.nii.gz']],
+        ['-copy_anat',               ['anat/sub-000-fp-anat.nii.gz']],
+        ['-anat_has_skull',          ['no']],
+        ['-blocks',                  ['mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'regress']],
+        ['-tcat_remove_first_trs',   ['3']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-blur_size',               ['4']],
+        ['-regress_motion_file',     ['fp_motion.1D']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
+        ['-regress_run_clustsim',    ['no']],
+        ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
    return examples
 
 def egs_short():
