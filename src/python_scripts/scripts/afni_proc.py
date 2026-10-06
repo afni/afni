@@ -832,9 +832,10 @@ g_history = """
     8.08 Sep  4, 2026:
        - if results dir already exists, properly report any -out_dir
     8.09 Sep 21, 2026: minor cleanup
+    8.10 Oct  6, 2026: add fMRIPrep examples, demo 3a, 3b, 3c
 """
 
-g_version = "version 8.09, September 21, 2026"
+g_version = "version 8.10, October 6, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -959,7 +960,7 @@ More detailed changes, starting May, 2018.
 g_todo_str = """todo:
   - add -per_run_ortvec to help, along with an example that processes
     the current physio_calc.py output
-  - add examples: fmriprep, 'current' set that varies over time
+  - add examples: 'current' set that varies over time
   - when replacing 'examples' help section, move -ask_me EXAMPLES section
   - allow listing examples by keyword (choose and/or remove)
   - example demo 2b should be added to APMD1 tree
@@ -968,10 +969,8 @@ g_todo_str = """todo:
      - add -volreg_compute_tsnr_stats
   - ME:
      - handle MEICA tedana methods
-        x m_tedana, m_tedana_OC, m_tedana_OC_tedort
+        x m_tedana, m_tedana_OC, m_tedana_OC_tedort, OC_m_tedort
         * WAS done, but soon-to-come tedana JSON output must be handled by AP
-        - done again, but still might want OC_m_tedort
-          (consider m_tedana_OC_m_tedort say, to have AP do the projections)
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
      - pre-ME: motion params?  censoring?
