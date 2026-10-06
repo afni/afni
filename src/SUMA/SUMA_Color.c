@@ -6989,8 +6989,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_ALL_DO *ado,
 {
    static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
    SUMA_Boolean LocalHead = NOPE;
-
-
+    
    SUMA_ENTRY;
    if (!ado) SUMA_RETURN(NOPE);
    if (LocalHead) {
@@ -7513,7 +7512,7 @@ int drawThresholdOutline(SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    el = dlist_head(SUMAg_CF->DsetList);
    while (el) {
       dd = (SUMA_DSET*)el->data;
@@ -7806,7 +7805,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_SO(SUMA_SurfaceObject *SO,
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */
 
    SUMA_ENTRY;
-   
+      
    // AlphaOpacityFalloff can only be 1 or 0
    if (currentOverlay->AlphaOpacityFalloff != 1) currentOverlay->AlphaOpacityFalloff = 0;
    
@@ -9715,8 +9714,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
-
+   
    isv = SUMA_WhichSVg(sv);
 
    if (LocalHead) SUMA_DUMP_TRACE("Mixing of the colors, sv %d, N_ColList = %d",

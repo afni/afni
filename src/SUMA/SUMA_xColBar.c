@@ -2459,6 +2459,7 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    static int BoxOutlineThresh = 0;  
    SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
    SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
+   int OverInd = -1;
    static int savedShowMode;
 
    SUMA_ENTRY;
@@ -2477,7 +2478,19 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
    // Get box outline threshold status from checkbox
    BoxOutlineThresh = XmToggleButtonGetState(w);
    /* rcr : this does not look correct, what is wrong with previous? */
-   over2 = SO->Overlays[SO->N_Overlays - 1];
+    // 1. Get the currently active color plane from the surface object
+    SUMA_OVERLAYS *curColPlane = SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO);
+
+    // 2. Fetch the corresponding overlay pointer using the color plane's name
+    if (curColPlane && SO->Overlays) {
+         over2 = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, curColPlane->Name, &OverInd);
+    }
+
+    // 3. Fallback to the last overlay if the active one wasn't found (original behavior)
+    if (!over2 && SO->N_Overlays > 0) {
+        over2 = SO->Overlays[SO->N_Overlays - 1];
+    }
+   // over2 = SO->Overlays[SO->N_Overlays - 1];
    // over2 = SUMA_ADO_CurColPlane(ado);
    over2->BoxOutlineThresh = BoxOutlineThresh;
    // Process for current hemisphere

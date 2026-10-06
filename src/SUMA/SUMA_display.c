@@ -369,7 +369,6 @@ Boolean SUMA_handleRedisplay(XtPointer closure)
 
    SUMA_ENTRY;
 
-
    if (LocalHead) {
       SUMA_REPORT_WICH_WIDGET_SV ((Widget)closure);
    }
@@ -381,7 +380,7 @@ Boolean SUMA_handleRedisplay(XtPointer closure)
                "Error %s: Failed in macro SUMA_ANY_WIDGET2SV.\n", FuncName);
       SUMA_RETURN(NOPE);
    }
-
+   
    /* NEED TO DO WITHOUT THIS SILLY LOGIC HERE.
       SUMA_glXMakeCurrent() below should be able to figure out
       on its own if a call to glXMakeCurrent is needed... */
@@ -591,7 +590,7 @@ SUMA_Boolean SUMA_display_edge_striplist(DList *striplist,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-
+   
    if (dlist_size(striplist)) {
       do {
          if (!elm) elm = dlist_head(striplist);
@@ -943,7 +942,7 @@ void SUMA_LoadSegDO (char *s, void *csvp )
 
    SUMA_LH("Loading %s", s);
    sv = (SUMA_SurfaceViewer *)csvp;
-
+   
    if (!s) { SUMA_RETURNe; }
 
    /* what type are we dealing with ? */
@@ -2015,7 +2014,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    static char FuncName[]={"SUMA_display"};
    static SUMA_CONV_MODES l_C_mode=SUMA_CONV_NONE;
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */
-
+   
    SUMA_ENTRY;
 
    if (LocalHead) {
@@ -2191,7 +2190,7 @@ void SUMA_display_one(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    int  N_dov = 1;
 
    SUMA_ENTRY;
-
+   
    if (LocalHead) {
       SUMA_DUMP_TRACE("Trace At display_one call");
    }
@@ -5268,7 +5267,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    int isv=-1;
    char buf[32];
    static char FuncName[]={"SUMA_RenderToPixMap"};
-
+   
    SUMA_ENTRY;
    SUMA_S_Note("CALLED!");
    dpy = XOpenDisplay(NULL);
