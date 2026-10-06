@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Oct, 2026, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add examples of use with fMRIPrep outputs - AP demo 3a,b,c",
+   NULL
+ } ,
+
  {  2, Oct, 2026, RCR, "Makefile.linux_ubuntu_26_ARM", MINOR, TYPE_NEW_OPT,
    "add Makefile.linux_ubuntu_26_ARM, a dupe of 24_ARM but SYSTEM_NAME",
    NULL
