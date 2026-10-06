@@ -97,242 +97,220 @@ Below, we use the following abbreviations a lot:
 {ddashline}
 
 Options ~1~
+-resp_file RF      : Path to one respiration data file
 
--resp_file RESP_FILE
-    Path to one respiration data file
+-card_file CF      : Path to one cardiac data file
 
--card_file CARD_FILE
-    Path to one cardiac data file
+-phys_file PF      : BIDS-formatted physio file in tab-separated format. May
+                     be gzipped
 
--phys_file PHYS_FILE
-    BIDS-formatted physio file in tab-separated format. May be
-    gzipped
+-phys_json PJ      : BIDS-formatted physio metadata JSON file. This is
+                     required whenever -phys_file is used
 
--phys_json PHYS_JSON
-    BIDS-formatted physio metadata JSON file. This is required
-    whenever -phys_file is used
+-freq F            : Physiological signal sampling frequency (in Hz)
 
--freq FREQ
-    Physiological signal sampling frequency (in Hz)
+-start_time ST     : The start time for the physio time series, relative to
+                     the initial MRI volume (in s) (def: {start_time})
 
--start_time START_TIME
-    The start time for the physio time series, relative to the initial
-    MRI volume (in s) (def: {start_time})
+-out_dir OD        : Output directory name (can include path)
 
--out_dir OUT_DIR
-    Output directory name (can include path)
+-prefix P          : Prefix of output filenames, without path (def:
+                     {prefix})
 
--prefix PREFIX
-    Prefix of output filenames, without path (def: {prefix})
+-dset_epi DE       : Accompanying EPI/FMRI dset to which the physio
+                     regressors will be applied, for obtaining the
+                     volumetric parameters (namely, dset_tr, dset_nslice,
+                     dset_nt)
 
--dset_epi DSET_EPI
-    Accompanying EPI/FMRI dset to which the physio regressors will be
-    applied, for obtaining the volumetric parameters (namely, dset_tr,
-    dset_nslice, dset_nt)
+-dset_tr TR        : FMRI dataset's repetition time (TR), which defines the
+                     time interval between consecutive volumes (in s)
 
--dset_tr DSET_TR
-    FMRI dataset's repetition time (TR), which defines the time
-    interval between consecutive volumes (in s)
+-dset_nt NT        : Integer number of time points to have in the output
+                     (should likely match FMRI dataset's number of volumes)
 
--dset_nt DSET_NT
-    Integer number of time points to have in the output (should likely
-    match FMRI dataset's number of volumes)
+-dset_nslice NS    : Integer number of slices in FMRI dataset
 
--dset_nslice DSET_NSLICE
-    Integer number of slices in FMRI dataset
+-dset_slice_times DST
+                   : Slice time values (space separated list of numbers)
 
--dset_slice_times SLI_T1 [SLI_T2 ...]
-    Slice time values (space separated list of numbers)
+-dset_slice_pattern SP
+                   : Slice timing pattern code (def: {dset_slice_pattern}).
+                     Use '-disp_all_slice_patterns Yes' to see all allowed
+                     patterns. Alternatively, one can enter the filename of
+                     a file containing a single column of slice times.
 
--dset_slice_pattern DSET_SLICE_PATTERN
-    Slice timing pattern code (def: {dset_slice_pattern}). Use
-    '-disp_all_slice_patterns' to see all allowed patterns. Alternatively,
-    one can enter the filename of a file containing a single column of
-    slice times.
+-prefilt_max_freq PMF
+                   : Allow for downsampling of the input physio time series,
+                     by providing a maximum sampling frequency (in Hz). This
+                     is applied just after badness checks.  Values <=0 mean
+                     that no downsampling will occur (def:
+                     {prefilt_max_freq})
 
--prefilt_max_freq PREFILT_MAX_FREQ
-    Allow for downsampling of the input physio time series, by
-    providing a maximum sampling frequency (in Hz). This is applied just
-    after badness checks.  Values <=0 mean that no downsampling will occur
-    (def: {prefilt_max_freq})
+-prefilt_mode PM   : Filter input physio time series (after badness checks),
+                     likely aiming at reducing noise; can be combined
+                     usefully with prefilt_max_freq. Allowed modes:
+                     {all_prefilt_mode} (def: {prefilt_mode})
 
--prefilt_mode PREFILT_MODE
-    Filter input physio time series (after badness checks), likely
-    aiming at reducing noise; can be combined usefully with
-    prefilt_max_freq. Allowed modes: {all_prefilt_mode} (def: {prefilt_mode})
+-prefilt_win_card PWC
+                   : Window size (in s) for card time series, if
+                     prefiltering input physio time series with
+                     '-prefilt_mode ..'; value must be >0 (def:
+                     {prefilt_win_card}, only used if prefiltering is on)
 
--prefilt_win_card PREFILT_WIN_CARD
-    Window size (in s) for card time series, if prefiltering input
-    physio time series with '-prefilt_mode ..'; value must be >0 (def:
-    {prefilt_win_card}, only used if prefiltering is on)
+-prefilt_win_resp PWR
+                   : Window size (in s) for resp time series, if
+                     prefiltering input physio time series with
+                     '-prefilt_mode ..'; value must be >0 (def:
+                     {prefilt_win_resp}, only used if prefiltering is on)
 
--prefilt_win_resp PREFILT_WIN_RESP
-    Window size (in s) for resp time series, if prefiltering input
-    physio time series with '-prefilt_mode ..'; value must be >0 (def:
-    {prefilt_win_resp}, only used if prefiltering is on)
+-do_fix_nan DFN    : Fix (= replace with interpolation) any NaN values in
+                     the physio time series. Allowed values are: Yes, 1, No,
+                     0 (def: '{do_fix_nan}')
 
--do_fix_nan
-    Fix (= replace with interpolation) any NaN values in the physio
-    time series (def: exit if any appears)
+-do_fix_null DFN   : Fix (= replace with interpolation) any null or missing
+                     values in the physio time series. Allowed values are:
+                     Yes, 1, No, 0 (def: '{do_fix_null}')
 
--do_fix_null
-    Fix (= replace with interpolation) any null or missing values in
-    the physio time series (def: exit if any appears)
+-do_fix_outliers DFO
+                   : Fix (= replace with interpolation) any outliers in the
+                     physio time series. Allowed values are: Yes, 1, No, 0
+                     (def: '{do_fix_outliers}')
 
--do_fix_outliers
-    Fix (= replace with interpolation) any outliers in the physio time
-    series (def: don't change them and continue)
+-extra_fix_list EFL: List of one or more values that will also be considered
+                     'bad' if they appear in the physio time series, and
+                     replaced with interpolated values
 
--extra_fix_list FVAL1 [FVAL2 ...]
-    List of one or more values that will also be considered 'bad' if
-    they appear in the physio time series, and replaced with interpolated
-    values
+-remove_val_list RVL
+                   : List of one or more values that will removed (not
+                     interpolated: the time series will be shorter, if any
+                     are found) if they appear in the physio time series;
+                     this is necessary with some manufacturers' outputs, see
+                     "Notes of input peculiarities," below.
 
--remove_val_list RVAL1 [RVAL2 ...]
-    List of one or more values that will removed (not interpolated: the
-    time series will be shorter, if any are found) if they appear in the
-    physio time series; this is necessary with some manufacturers'
-    outputs, see "Notes of input peculiarities," below.
+-do_interact DI    : Enter into interactive mode as the last stage of
+                     peak/trough estimation for the physio time series.
+                     Allowed values are: Yes, 1, No, 0 (def:
+                     '{do_interact}')
 
--do_interact
-    Enter into interactive mode as the last stage of peak/trough
-    estimation for the physio time series (def: only automatic peak/trough
-    estimation)
+-do_slibase_out DSO: Output the older style of physio output from the
+                     RetroTS.py days, namely where all regressors are output
+                     in a single slice-based regressor file, *slibase.1D;
+                     not recommended, and only existing for comparisons to
+                     older formats. Allowed values are: Yes, 1, No, 0 (def:
+                     '{do_slibase_out}')
 
--do_slibase_out
-    Output the older style of physio output from the RetroTS.py days,
-    namely where all regressors are output in a single slice-based
-    regressor file, *slibase.1D; not recommended, and only existing for
-    comparisons to older formats (def: output separate slice-based and 
-    volume-wise regressor files, as appropriate)
+-regress_types_resp RTR
+                   : Provide a list of one or more types of regressors
+                     derived from the input respiratory physio data. This is
+                     done by listing one or more codes from among the
+                     following list: {all_volbase_resp} (def:
+                     {regress_types_resp})
 
--regress_types_resp TYPER1 [TYPER2 ...]
-    Provide a list of one or more types of regressors derived from the
-    input respiratory physio data. This is done by listing one or more
-    codes from among the following list:   {all_volbase_resp}   
-    (def: {regress_types_resp})
+-regress_types_card RTC
+                   : Provide a list of one or more types of regressors
+                     derived from the input cardiac physio data. This is
+                     done by listing one or more codes from among the
+                     following list:   {all_volbase_card} (def:
+                     {regress_types_card})
 
--regress_types_card TYPEC1 [TYPEC2 ...]
-    Provide a list of one or more types of regressors derived from the
-    input cardiac physio data. This is done by listing one or more codes
-    from among the following list:   {all_volbase_card}   
-    (def: {regress_types_card})
+-rvt_shift_list RSL: Provide one or more values to specify how many and what
+                     kinds of shifted copies of RVT are output as
+                     regressors. Units are seconds, and including 0 may be
+                     useful. Shifts could also be entered via
+                     '-rvt_shift_linspace ..' (def: {DEF_rvt_shift_list})
 
--rvt_shift_list SHIFT1 [SHIFT2 ...]
-    Provide one or more values to specify how many and what kinds of
-    shifted copies of RVT are output as regressors. Units are seconds, and
-    including 0 may be useful. Shifts could also be entered via
-    '-rvt_shift_linspace ..' 
-    (def: {DEF_rvt_shift_list})
+-rvt_shift_linspace A B N
+                   : Alternative to '-rvt_shift_list ..'. Provide three
+                     space-separated values (start stop N) used to determine
+                     how many and what kinds of shifted copies of RVT are
+                     output as regressors, according to the Python-Numpy
+                     function linspace(start, stop, N). Both start and stop
+                     (units of seconds) can be negative, zero or positive.
+                     Including 0 may be useful.  Example params: 0 4 5,
+                     which lead to shifts of 0, 1, 2, 3 and 4 sec (def:
+                     {rvt_shift_linspace}, use '-rvt_shift_list')
 
--rvt_shift_linspace START STOP N
-    Alternative to '-rvt_shift_list ..'. Provide three space-separated
-    values (start stop N) used to determine how many and what kinds of
-    shifted copies of RVT are output as regressors, according to the
-    Python-Numpy function linspace(start, stop, N). Both start and stop
-    (units of seconds) can be negative, zero or positive.  Including 0 may
-    be useful.  Example params: 0 4 5, which lead to shifts of 0, 1, 2, 3
-    and 4 sec 
-    (def: {rvt_shift_linspace}, use '-rvt_shift_list')
+-min_bpm_resp MNR  : Set the minimum breaths per minute for respiratory proc
+                     (def: {min_bpm_resp})
 
--min_bpm_resp MIN_BPM_RESP
-    Set the minimum breaths per minute for respiratory proc 
-    (def: {min_bpm_resp})
+-max_bpm_resp MXR  : Set the maximum breaths per minute for respiratory proc
+                     (def: {max_bpm_resp})
 
--max_bpm_resp MAX_BPM_RESP
-    Set the maximum breaths per minute for respiratory proc 
-    (def: {max_bpm_resp})
+-min_bpm_card MNC  : Set the minimum beats per minute for cardiac proc (def:
+                     {min_bpm_card})
 
--min_bpm_card MIN_BPM_CARD
-    Set the minimum beats per minute for cardiac proc 
-    (def: {min_bpm_card})
+-max_bpm_card MXC  : Set the maximum beats per minute for cardiac proc (def:
+                     {max_bpm_card})
 
--max_bpm_card MAX_BPM_CARD
-    Set the maximum beats per minute for cardiac proc 
-    (def: {max_bpm_card})
+-img_verb IV       : Verbosity level for saving QC images during processing,
+                     by choosing one integer: 0 - Do not save graphs 1 -
+                     Save end results (card and resp peaks, final RVT) 2 -
+                     Save end results and intermediate steps (bandpassing,
+                     peak refinement, etc.) (def: {img_verb})
 
--img_verb IMG_VERB
-    Verbosity level for saving QC images during processing, by choosing
-    one integer:
-    0 - Do not save graphs
-    1 - Save end results (card and resp peaks, final RVT)
-    2 - Save end results and intermediate steps (bandpassing, peak 
-        refinement, etc.)
-    (def: {img_verb})
+-img_figsize W H   : Figure dimensions used for QC images (def: depends on
+                     length of physio time series)
 
--img_figsize WID LEN
-    Figure dimensions used for QC images (def: depends on length of
-    physio time series)
+-img_fontsize FS   : Font size used for QC images (def: {img_fontsize})
 
--img_fontsize IMG_FONTSIZE
-    Font size used for QC images 
-    (def: {img_fontsize})
+-img_line_time LT  : Maximum time duration per line in the QC images, in
+                     units of sec (def: {img_line_time})
 
--img_line_time IMG_LINE_TIME
-    Maximum time duration per line in the QC images, in units of sec
-    (def: {img_line_time})
+-img_fig_line NL   : Maximum number of lines per fig in the QC images (def:
+                     {img_fig_line})
 
--img_fig_line IMG_FIG_LINE
-    Maximum number of lines per fig in the QC images
-    (def: {img_fig_line})
+-img_dot_freq DF   : Maximum number of dots per line in the QC images (to
+                     save filesize and plot time), in units of dots per sec
+                     (def: {img_dot_freq})
 
--img_dot_freq IMG_DOT_FREQ
-    Maximum number of dots per line in the QC images (to save filesize
-    and plot time), in units of dots per sec 
-    (def: {img_dot_freq})
+-img_bp_max_f MF   : Maximum frequency in the bandpass QC images (i.e.,
+                     upper value of x-axis), in units of Hz (def:
+                     {img_bp_max_f})
 
--img_bp_max_f IMG_BP_MAX_F
-    Maximum frequency in the bandpass QC images (i.e., upper value of
-    x-axis), in units of Hz 
-    (def: {img_bp_max_f})
+-save_proc_peaks   : Write out the final set of peaks indices to a text file
+                     called PREFIX_LABEL_proc_peaks_00.1D ('LABEL' is
+                     'card', 'resp', etc.), which is a single column of the
+                     integer values (def: don't write them out)
 
--save_proc_peaks
-    Write out the final set of peaks indices to a text file called
-    PREFIX_LABEL_proc_peaks_00.1D ('LABEL' is 'card', 'resp', etc.),
-    which is a single column of the integer values 
-    (def: don't write them out)
+-save_proc_troughs : Write out the final set of trough indices to a text
+                     file called PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is
+                     'card', 'resp', etc.), which is a single column of the
+                     integer values (def: don't write them out). The file is
+                     only output for LABEL types where troughs were
+                     estimated (e.g., resp).
 
--save_proc_troughs
-    Write out the final set of trough indices to a text file called
-    PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is 'card', 'resp', etc.), 
-    which is a single column of the integer values (def: don't write 
-    them out). The file is only output for LABEL types where troughs
-    were estimated (e.g., resp).
+-load_proc_peaks_resp LPR
+                   : Load in a file of resp data peaks that have been saved
+                     via '-save_proc_peaks'. This file is a single column of
+                     integer values, which are indices of the peak locations
+                     in the processed time series.
 
--load_proc_peaks_resp LOAD_PROC_PEAKS_RESP
-    Load in a file of resp data peaks that have been saved via
-    '-save_proc_peaks'. This file is a single column of integer values,
-    which are indices of the peak locations in the processed time series.
+-load_proc_troughs_resp LTR
+                   : Load in a file of resp data troughs that have been
+                     saved via '-save_proc_troughs'. This file is a single
+                     column of integer values, which are indices of the
+                     trough locations in the processed time series.
 
--load_proc_troughs_resp LOAD_PROC_TROUGHS_RESP
-    Load in a file of resp data troughs that have been saved via
-    '-save_proc_troughs'. This file is a single column of integer values,
-    which are indices of the trough locations in the processed time series.
+-load_proc_peaks_card LPC
+                   : Load in a file of card data peaks that have been saved
+                     via '-save_proc_peaks'. This file is a single column of
+                     integer values, which are indices of the peak locations
+                     in the processed time series.
 
--load_proc_peaks_card LOAD_PROC_PEAKS_CARD
-    Load in a file of card data peaks that have been saved via
-    '-save_proc_peaks'. This file is a single column of integer values,
-    which are indices of the peak locations in the processed time series.
+-verb V            : Integer values to control verbosity level (def: {verb})
 
--verb VERB
-    Integer values to control verbosity level
-    (def: {verb})
+-disp_all_slice_patterns DSP
+                   : Display all allowed slice pattern names? Allowed values
+                     are: Yes, 1, No, 0 (def: '{disp_all_slice_patterns}')
 
--disp_all_slice_patterns
-    Display all allowed slice pattern names
+-disp_all_opts DAO : Display all options for this program? Allowed values
+                     are: Yes, 1, No, 0 (def: '{disp_all_opts}')
 
--disp_all_opts
-    Display all options for this program
+-ver               : Display program version number
 
--ver
-    Display program version number
+-help              : Display help text in terminal
 
--help
-    Display help text in terminal
-
--hview
-    Display help text in a text editor (AFNI functionality)
-
+-hview             : Display help text in a text editor (AFNI functionality)
 
 {ddashline}
 
@@ -343,23 +321,23 @@ Notes on usage and required inputs ~1~
   line) must be used to provide input physio data (i.e., card, resp or 
   both):
 
-    -card_file CARD_FILE
-    -resp_file RESP_FILE
-    -card_file CARD_FILE  -resp_file RESP_FILE
-    -phys_file PHYS_FILE  -phys_json PHYS_JSON
+    -card_file CF
+    -resp_file RF
+    -card_file CF  -resp_file RF
+    -phys_file PF  -phys_json PJ
 
 * Physio data details:
   If the sampling frequency (units: Hz) of the physio data is not
   provided by -phys_json, then it must be provided with this opt:
 
-    -freq FREQ
+    -freq F
 
   Additionally, the starting time of the physio data relative to the
   start of the EPI data will be assumed to be 0.0 unless another value
   is provided by the user (units: sec; the value should be <=0); this
   can be provided either via the -phys_json file, or by this opt:
 
-    -start_time START_TIME
+    -start_time ST
 
 * The following table shows the mapping parameters that could be
   provided from either a '-phys_json ..' file's keys or a command line
@@ -377,13 +355,13 @@ Notes on usage and required inputs ~1~
   is easiest to provide these items by just providing the dset
   directly with:
 
-    -dset_epi DSET_EPI
+    -dset_epi DE
 
   But, users can also provide that info separately, with:
 
-    -dset_tr      DSET_TR
-    -dset_nslice  DSET_NSLICE
-    -dset_nt      DSET_NT
+    -dset_tr      TR
+    -dset_nslice  NS
+    -dset_nt      NT
 
   ... and the slice timing information (see next item).
 
@@ -392,8 +370,8 @@ Notes on usage and required inputs ~1~
   useful) volumetric information, then exactly one of the following
   input option must be used:
 
-    -dset_slice_times    SLICE_TIMES
-    -dset_slice_pattern  SLICE_PATTERN
+    -dset_slice_times    DST
+    -dset_slice_pattern  SP
 
 {ddashline}
 
@@ -442,8 +420,8 @@ for each of the card and resp time series, because each has a
 different expected time scale of variability (and experimental design
 can affect this choice, as well).  So, the user can use:
 
-    -prefilt_win_card  TIME_C
-    -prefilt_win_resp  TIME_R
+    -prefilt_win_card  PWC
+    -prefilt_win_resp  PWR
 
 ... and replace TIME_* with real time values, in using of seconds.  There
 are default time values in place, when '-prefilt_mode ..' is used; see
@@ -463,7 +441,7 @@ near the beginning of processing. This would be done by specifying a
 max sampling frequency MAX_F for the input data, to downsample to (or 
 near to), via: 
 
-    -prefilt_max_freq  MAX_F
+    -prefilt_max_freq  PMF
 
 All of the above prefiltering is applied after initial 'badness'
 checks for outliers or missing values, so those processes can be a bit
@@ -496,7 +474,7 @@ kind of fun.
 To enter interactive mode during the runtime of the program, add this
 option:
 
-  -do_interact
+  -do_interact Yes
 
 Then, at some stage during the processing, a Matplotlib panel will pop
 up, showing estimated troughs and/or peaks, which the user can edit if
@@ -523,7 +501,7 @@ processed time series.
 
 It is now possible to re-load those text files of integer indices back
 into the program, which might be useful when further editing of
-peaks/troughs is necessary, for example, via '-do_interact'.  
+peaks/troughs is necessary, for example, via '-do_interact Yes'.  
 
 To do this, you should basically run the same physio_calc.py command
 you initially ran to create the time points (same inputs, same
@@ -531,9 +509,9 @@ you initially ran to create the time points (same inputs, same
 directory and/or prefix, and add the one or more of the following
 options:
 
-   -load_proc_peaks_resp    FILE_PEAKS_RESP
-   -load_proc_troughs_resp  FILE_TROUGHS_RESP
-   -load_proc_peaks_card    FILE_PEAKS_CARD
+   -load_proc_peaks_resp    LPR
+   -load_proc_troughs_resp  LTR
+   -load_proc_peaks_card    LPC
 
 Each of these takes a single argument, which is the appropriate file
 name to read in.
@@ -604,9 +582,9 @@ Outputs in: OUT_DIR/PREFIX_physio_extras/ ~2~
   The following text files are only output when using the
   '-save_proc_peaks' and/or '-save_proc_troughs' option flag(s):
 
-    PREFIX_card_peaks_00.1D   : 1D column file of peak indices for card data,
+    PREFIX_card_peaks_00.1D   : 1D column file of peak indices for card data
                                 corresponding to card*final_peaks*svg image.
-    PREFIX_resp_peaks_00.1D   : 1D column file of peak indices for resp data,
+    PREFIX_resp_peaks_00.1D   : 1D column file of peak indices for resp data
                                 corresponding to resp*final_peaks*svg image.
     PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp 
                                 data, corresponding to resp*final_peaks*svg
@@ -699,7 +677,7 @@ appropriately in the regress block stage.
 *If* you would like the older format of all-physio-regressors-in-a-single-
 slicewise-file, you can add an option here for that:
 
-   -do_slibase_out 
+   -do_slibase_out Yes 
 
 ... but this is not recommended and primarily exists just for testing
 purposes.  If you do want the older *_slibase.1D file output, it
@@ -718,7 +696,7 @@ Examples ~1~
         -dset_epi            DSET_MRI                                  \\
         -dset_slice_pattern  alt+z                                     \\
         -extra_fix_list      5000                                      \\
-        -do_fix_nan                                                    \\
+        -do_fix_nan          Yes                                       \\
         -out_dir             OUT_DIR                                   \\
         -prefix              PREFIX
 
@@ -731,7 +709,7 @@ Examples ~1~
         -dset_nt             34                                        \\
         -dset_nslice         34                                        \\
         -dset_slice_pattern  alt+z                                     \\
-        -do_fix_nan                                                    \\
+        -do_fix_nan          Yes                                       \\
         -extra_fix_list      5000                                      \\
         -out_dir             OUT_DIR                                   \\
         -prefix              PREFIX
@@ -746,7 +724,7 @@ Examples ~1~
         -dset_nt             220                                       \\
         -dset_nslice         33                                        \\
         -dset_slice_pattern  alt+z                                     \\
-        -do_fix_nan                                                    \\
+        -do_fix_nan          Yes                                       \\
         -out_dir             OUT_DIR                                   \\
         -prefix              PREFIX
     
@@ -1369,13 +1347,13 @@ class InOpts:
         self.add_opt('prefilt_win_resp', 1, 'float',
                      'respiration prefilter window')
 
-        self.add_opt('do_fix_nan', 0, 'flag',
+        self.add_opt('do_fix_nan', 1, 'yesno',
                      'interpolate NaN values')
 
-        self.add_opt('do_fix_null', 0, 'flag',
+        self.add_opt('do_fix_null', 1, 'yesno',
                      'interpolate null values')
 
-        self.add_opt('do_fix_outliers', 0, 'flag',
+        self.add_opt('do_fix_outliers', 1, 'yesno',
                      'interpolate outlier values')
 
         self.add_opt('extra_fix_list', -1, 'list',
@@ -1384,10 +1362,10 @@ class InOpts:
         self.add_opt('remove_val_list', -1, 'list',
                      'values to remove from physio data')
 
-        self.add_opt('do_interact', 0, 'flag',
+        self.add_opt('do_interact', 1, 'yesno',
                      'enable interactive peak/trough editing')
 
-        self.add_opt('do_slibase_out', 0, 'flag',
+        self.add_opt('do_slibase_out', 1, 'yesno',
                      'write old-style slibase regressors')
 
         self.add_opt('regress_types_resp', -1, 'list',
@@ -1453,10 +1431,10 @@ class InOpts:
         self.add_opt('verb', 1, 'int',
                      'verbosity level')
 
-        self.add_opt('disp_all_slice_patterns', 0, 'flag',
+        self.add_opt('disp_all_slice_patterns', 1, 'yesno',
                      'show valid slice timing patterns')
 
-        self.add_opt('disp_all_opts', 0, 'flag',
+        self.add_opt('disp_all_opts', 1, 'yesno',
                      'show valid options')
 
         self.add_opt('ver', 0, 'flag',
@@ -1503,6 +1481,8 @@ class InOpts:
 
             if kind == 'str' :
                 val, err = uopts.get_string_opt('', opt=opt)
+            elif kind == 'yesno' :
+                val, err = uopts.get_string_opt('', opt=opt)
             elif kind == 'int' :
                 val, err = uopts.get_type_opt(int, '', opt=opt)
             elif kind == 'float' :
@@ -1523,6 +1503,18 @@ class InOpts:
                 return -1
 
             self.args_dict[key] = val
+
+        # As in the archimedes_* option processing, keep Yes/1 and No/0
+        # user-facing values for -do_* and -disp_* options, but convert them
+        # to Python bools before the rest of physio_calc.py uses args_dict.
+        for key in self.args_dict :
+            if key.startswith('do_') or key.startswith('disp_') :
+                val = UTIL.convert_to_bool_yn10(self.args_dict[key])
+                if val is None :
+                    ab.EP("option '-{}' requires one of: Yes, 1, No, 0"
+                          "".format(key))
+                    return -1
+                self.args_dict[key] = val
 
         return 0
 

@@ -189,8 +189,8 @@ DOPTS = {
     'prefilt_mode'      : DEF_prefilt_mode,      # (str) kind of downsamp
     'prefilt_win_card'  : DEF_prefilt_win_card,  # (num) window size for dnsmpl
     'prefilt_win_resp'  : DEF_prefilt_win_resp,  # (num) window size for dnsmpl
-    'do_interact'       : False,     # (bool) turn on interactive mode
-    'do_slibase_out'    : False,     # (bool) output older slibase-style file
+    'do_interact'       : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
+    'do_slibase_out'    : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
     'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
     'dset_tr'           : None,      # (float) TR of MRI
     'dset_nslice'       : None,      # (int) number of MRI vol slices
@@ -201,9 +201,9 @@ DOPTS = {
     'start_time'        : None,      # (float) leave none, bc can be set in json
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
-    'do_fix_nan'        : False,     # (str) fix/interp NaN in physio
-    'do_fix_null'       : False,     # (str) fix/interp null/missing in physio
-    'do_fix_outliers'   : False,     # (list) fix/interp outliers
+    'do_fix_nan'        : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
+    'do_fix_null'       : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
+    'do_fix_outliers'   : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
     'extra_fix_list'    : [],        # (list) extra values to fix
     'remove_val_list'   : [],        # (list) purge some values from ts
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
@@ -211,8 +211,8 @@ DOPTS = {
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
     'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
     'verb'              : 0,         # (int) verbosity level
-    'disp_all_slice_patterns' : False, # (bool) display known sli patterns
-    'disp_all_opts'     : False,     # (bool) display opts for this prog
+    'disp_all_slice_patterns' : 'No', # (str) Yes/1 or No/0 -> bool after parsing
+    'disp_all_opts'     : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
