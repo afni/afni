@@ -8,7 +8,7 @@ import copy
 import numpy  as np
 
 from   afnipy import  afni_base          as ab
-from   afnipy import  lib_physio_opts    as lpo
+from   afnipy import  lib_physio_defs    as DEF
 from   afnipy import  lib_physio_funcs   as lpf
 from   afnipy import  lib_physio_util    as lpu
 from   afnipy import  lib_physio_filt    as lpfilt
@@ -34,7 +34,7 @@ derived data.
     def __init__(self, ts_orig, samp_freq = 0.0, 
                  label=None, fname=None, ts_unfilt = None,
                  min_bps = 0.0, max_bps = sys.float_info.max, 
-                 start_time = 0.0, img_dot_freq = lpo.DEF_img_dot_freq,
+                 start_time = 0.0, img_dot_freq = DEF.DEF_img_dot_freq,
                  prefilt_init_freq = None, prefilt_mode = None, 
                  prefilt_win = None, do_interact = False, 
                  do_slibase_out=False,
@@ -482,13 +482,13 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         }
 
         # QC image opts
-        self.img_verb     = 1          # int, amount of graphs to save
-        self.img_fontsize = lpo.DEF_img_fontsize   # flt, FS for output images
-        self.img_figsize  = lpo.DEF_img_figsize    # 2-ple, img height/wid
-        self.img_line_time = lpo.DEF_img_line_time # flt, time per line in plt
-        self.img_fig_line  = lpo.DEF_img_fig_line  # int, lines per fig in plt
-        self.img_dot_freq  = lpo.DEF_img_dot_freq  # flt, pts per sec
-        self.img_bp_max_f  = lpo.DEF_img_bp_max_f  # flt, Hz for bp plot
+        self.img_verb      = 1          # int, amount of graphs to save
+        self.img_fontsize  = DEF.DEF_img_fontsize  # flt, FS for output images
+        self.img_figsize   = DEF.DEF_img_figsize   # 2-ple, img height/wid
+        self.img_line_time = DEF.DEF_img_line_time # flt, time per line in plt
+        self.img_fig_line  = DEF.DEF_img_fig_line  # int, lines per fig in plt
+        self.img_dot_freq  = DEF.DEF_img_dot_freq  # flt, pts per sec
+        self.img_bp_max_f  = DEF.DEF_img_bp_max_f  # flt, Hz for bp plot
 
         # -----------------------------------------------------------------
 

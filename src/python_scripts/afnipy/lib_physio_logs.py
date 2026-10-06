@@ -3,7 +3,7 @@
 import sys, os
 import copy
 import json
-from   afnipy  import lib_physio_opts    as lpo
+from   afnipy  import lib_physio_defs    as DEF
 from   afnipy  import lib_physio_util    as lpu
 from   afnipy  import lib_format_cmd_str as lfcs
 from   afnipy  import afni_base          as ab
@@ -77,7 +77,7 @@ arg_str : str
 
     if do_niceify :
         # might be simpler way to get from parser?
-        all_opts = ["-" + key for key in lpo.DEF.keys()]
+        all_opts = ["-" + key for key in DEF.DOPTS.keys()]
 
         # create str
         is_diff, arg_str = \
@@ -319,7 +319,7 @@ def save_cmd_orig(pcobj, verb=1):
     comm_str = '# A backup of the physio_calc.py command use to create '
     comm_str+= 'this set of data\n\n'
 
-    time_str = '# created  : {}\n'.format(lpo.now_str)
+    time_str = '# created  : {}\n'.format(DEF.now_str)
 
     # get afni ver, and split immediately at colon to put across 2 lines
     cmd    = '''afni -ver'''
@@ -334,7 +334,7 @@ def save_cmd_orig(pcobj, verb=1):
 
     # make the command str, in a niceified way
     cmd_orig = ' '.join(pcobj.args_orig)
-    all_opt  = ['-'+opt for opt in lpo.DEF.keys()]
+    all_opt  = ['-'+opt for opt in DEF.DOPTS.keys()]
     is_ok, cmd_str = \
         lfcs.afni_niceify_cmd_str(cmd_orig, list_cmd_args=all_opt)
 

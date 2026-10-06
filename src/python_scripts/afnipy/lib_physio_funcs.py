@@ -6,7 +6,6 @@ import numpy  as np
 from   scipy  import signal             as sps
 
 from   afnipy import afni_base          as ab
-from   afnipy import lib_physio_opts    as lpo
 from   afnipy import lib_physio_peaks   as lpp
 from   afnipy import lib_physio_phases  as lpph
 from   afnipy import lib_physio_rvt     as lprvt

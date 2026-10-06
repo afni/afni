@@ -18,7 +18,7 @@ from   matplotlib.lines   import Line2D
 from   matplotlib.patches import Polygon
 import matplotlib.pyplot  as     plt
 
-from   afnipy import lib_physio_opts as lpo 
+from   afnipy import lib_physio_defs as DEF 
 
 # -------------------------------------------------------------------------
 
@@ -80,7 +80,7 @@ TEXT_interact_term_desc =  '''
 ++ User-interaction for peak/trough vertex updates is ON.
    {tikd}
 
-'''.format(tikd=lpo.TEXT_interact_key_mouse)
+'''.format(tikd=DEF.TEXT_interact_key_mouse)
 
 class PolygonInteractor:
     """A polygon editor.  Here, the vertices of the polygons being edited
