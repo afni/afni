@@ -3621,7 +3621,77 @@ def egs_demo():
         ['-mask_epi_anat',           ['yes']],
         ['-blur_size',               ['4']],
         ['-regress_extra_ortvec',    ['fp_mot_der.1D','fp_mot_outlier.1D']],
-        ['-regress_extra_ortvec_labels',    ['mot_der','mot_outlier']],
+        ['-regress_extra_ortvec_labels', ['mot_der','mot_outlier']],
+
+        ['-regress_motion_file',     ['fp_motion.1D']],
+        ['-regress_apply_mot_types', ['basic']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
+        ['-regress_run_clustsim',    ['no']],
+        ['-html_review_style',       ['pythonic']],
+        ['-execute',                 []],
+       ],
+     ))
+
+   examples.append( APExample('AP demo 3c',
+     source='todo: possible fmriprep demo',
+     descrip='fMRIPrep 3 - basic rest - FP motion/deriv/censor/aroma',
+     moddate='2026.10.06',
+     keywords=['complete', 'rest', 'fmriprep'],
+     header="""
+              (recommended?  somewhat - early preproc from fmriprep)
+
+         This is a sample rest processing command, where initial preprocessing
+         (through alignment and confound computation) was done with fMRIPrep.
+
+         It is very similar to "AP demo 3b", but also includes AROMA terms.
+         AROMA is the only difference with "demo 3b".
+            - get motion file from fmriprep
+            - get motion deriv from fmriprep
+            - get censoring from fmriprep (confounds: motion_outlier*)
+            - get AROMA terms from fmriprep (confounds: aroma_motion*)
+
+         Comparing with "AP demo 3a", this gets motion deriv and censor terms
+         from fmriprep, and includes the AROMA terms.
+
+            - inputs:
+                - anat (final space)
+                - EPI (final space)
+                - confounds_fp.tsv
+                    - standard 6 motion parameters
+                    - standard 6 motion derivatives parameters
+                    - censor regressors
+                    - AROMA confound regressors
+
+                  1d_tool.py -infile "confounds_fp.tsv[FMRIPREP_MOT]"    \\
+                             -write fp_motion.1D
+                  1d_tool.py -infile "confounds_fp.tsv[trans*1,rot*1]"   \\
+                             -write fp_mot_der.1D
+                  1d_tool.py -infile "confounds_fp.tsv[motion_outlier*]" \\
+                             -write fp_mot_outlier.1D
+                  1d_tool.py -infile "confounds_fp.tsv[aroma_motion*]" \\
+                             -write fp_aroma_mot.1D
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-000.3.aroma']],
+        ['-uvar',                    ['ses', 'ses-01']],
+        ['-uvar',                    ['taskname', 'rest']],
+        ['-dsets',                   ['func/sub-000-fp-bold.nii.gz']],
+        ['-copy_anat',               ['anat/sub-000-fp-anat.nii.gz']],
+        ['-anat_has_skull',          ['no']],
+        ['-blocks',                  ['mask', 'blur', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'regress']],
+        ['-tcat_remove_first_trs',   ['3']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-blur_size',               ['4']],
+        ['-regress_extra_ortvec',    ['fp_mot_der.1D','fp_mot_outlier.1D',
+                                      'fp_aroma_mot.1D']],
+        ['-regress_extra_ortvec_labels', ['mot_der','mot_outlier','aroma']],
 
         ['-regress_motion_file',     ['fp_motion.1D']],
         ['-regress_apply_mot_types', ['basic']],
