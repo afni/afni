@@ -14,7 +14,8 @@ from datetime import datetime
 #version = '1.3'   # can read in previous peaks/troughs
 #version = '1.4'   # separate sli/vol regr; implement RVTRRF, too
 #version = '1.5'   # control on/off of all regressors with the -regress_types*
-version = '1.6'   # refactor opts processing to be more AFNI-like
+#version = '1.6'   # refactor opts processing to be more AFNI-like
+version = '1.61'  # more refactoring and AFNI-izing, and setting new defaults
 
 # threshold values for some floating point comparisons
 EPS_TH = 1.e-3
@@ -45,9 +46,9 @@ DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
 # some init proc options for phys time series
-DEF_prefilt_max_freq  = -1            # Hz, for init filter to reduce ts
+DEF_prefilt_max_freq  = 50            # Hz, for init filter to reduce ts
 all_prefilt_mode = ['none', 'median'] # list of possible downsamp types
-DEF_prefilt_mode = 'none'             # str, keyword for filtering in downsamp
+DEF_prefilt_mode = 'median'           # str, keyword for filtering in downsamp
 DEF_prefilt_win_card  = 0.10          # flt, window size (s) for median filter
 DEF_prefilt_win_resp  = 0.25          # flt, window size (s) for median filter
 
