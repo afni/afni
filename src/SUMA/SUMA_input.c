@@ -1591,7 +1591,7 @@ int SUMA_F12_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -3546,7 +3546,7 @@ int SUMA_R_Key(SUMA_SurfaceViewer *sv, char *key, char *callmode)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    SUMA_KEY_COMMON;
 
    /* do the work */
@@ -5251,7 +5251,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
       SUMA_RETURNe;
    }
    SUMA_LH("A call from SUMA_SurfaceViewer[%d], Pointer %p\n", isv, sv);
-   
+
    /* ******** ABOUT EVENT HANDLING ************** */
    /* Eventually you should use the structure
       created by RecordEvent to decide on what was clicked
@@ -7528,7 +7528,7 @@ SUMA_Boolean SUMA_PickBuffer(SUMA_SurfaceViewer *sv, int action, SUMA_DO *dov)
       SUMA_S_Err("Null sv!");
       SUMA_RETURN(NOPE);
    }
-   
+
    if ( action == 0 || /* flush only */
         action == 1 /* Recreate regardless */ ) {
          /* flush needed */
@@ -12748,7 +12748,7 @@ void SUMA_JumpIndex_SO (char *s, SUMA_SurfaceViewer *sv, SUMA_SurfaceObject *SO)
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!s || !sv || !SO) SUMA_RETURNe;
 
   /* HERE you should check if you have an L or R at the beginning
@@ -12913,7 +12913,7 @@ void SUMA_JumpIndex_GDSET (char *s, SUMA_SurfaceViewer *sv,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    if (!s || !sv) SUMA_RETURNe;
 
    /* parse s */
@@ -13041,7 +13041,7 @@ void SUMA_JumpIndex_TDO (char *s, SUMA_SurfaceViewer *sv,
    SUMA_ENTRY;
 
    if (!s || !sv || !tdo || !tdo->net) SUMA_RETURNe;
-   
+
    /* parse s */
    if ((nv = SUMA_StringToNum(s, (void*)fv3, 3,1)) != 1 &&
        nv != 3) {
@@ -13240,7 +13240,7 @@ void SUMA_JumpIndex_VO (char *s, SUMA_SurfaceViewer *sv,
    if (!s || !sv || !vo ||
        !(dset = SUMA_VO_dset(vo)) ||
        !(dims = SUMA_GetDatasetDimensions(dset))) SUMA_RETURNe;
-   
+
    /* parse s */
    if ((nv = SUMA_StringToNum(s, (void*)fv3, 3,1)) != 1 &&
        nv != 3) {
@@ -13414,7 +13414,7 @@ void SUMA_JumpIndex_MDO (char *s, SUMA_SurfaceViewer *sv, SUMA_MaskDO *mo)
    SUMA_ENTRY;
 
    if (!s || !sv) SUMA_RETURNe;
-   
+
    SUMA_S_Err("Not ready for action");
    SUMA_RETURNe;
 
@@ -13592,7 +13592,7 @@ void SUMA_JumpXYZ (char *s, void *data)
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
-   
+
    /* parse s */
    if (SUMA_StringToNum (s, (void*)fv3, 3,1) != 3) {/*problem, beep and ignore */
       XBell (XtDisplay (sv->X->TOPLEVEL), 50);
@@ -13699,7 +13699,8 @@ void SUMA_JumpFocusNode (char *s, void *data)
       SUMA_S_Err("No SO in focus");
       SUMA_RETURNe;
    }
-   
+
+
    /* HERE you should check if you have an L or R at the beginning
    or end of s.
    If you do, then first see if the side of SO (the focus surface)
@@ -13786,7 +13787,7 @@ void SUMA_JumpFocusFace (char *s, void *data)
    if (!s) SUMA_RETURNe;
 
    sv = (SUMA_SurfaceViewer *)data;
-   
+
    /* parse s */
    if (SUMA_StringToNum (s, (void*)fv3, 1,1) != 1) {/*problem, beep and ignore */
       XBell (XtDisplay (sv->X->TOPLEVEL), 50);

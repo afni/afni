@@ -4376,7 +4376,7 @@ void SUMA_C_convolve(SUMA_SurfaceViewer *csv, SUMA_DO *dov, SUMA_C_FILTER *mat)
 {
   int i, j;
   int imax, jmax;
-   
+
   imax = mat->cols;
   jmax = mat->rows;
   for(j = 0; j < jmax; j++) {
