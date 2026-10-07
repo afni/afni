@@ -766,7 +766,7 @@ them.
                     )
                 else :
                     pp.yaxis.set_major_formatter(
-                        mpl.ticker.FormatStrFormatter('%6.2d')
+                        mpl.ticker.FormatStrFormatter('%6.2f')
                     )
 
                 # now that we know xlim and ylim values, we can check
