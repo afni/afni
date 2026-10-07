@@ -78,9 +78,9 @@ all_x : list
 
 TEXT_interact_term_desc =  '''
 ++ User-interaction for peak/trough vertex updates is ON.
-   {tikd}
+   {tikm}
 
-'''.format(tikd=DEF.TEXT_interact_key_mouse)
+'''.format(tikm=DEF.TEXT_interact_key_mouse)
 
 class PolygonInteractor:
     """A polygon editor.  Here, the vertices of the polygons being edited

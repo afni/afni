@@ -14,8 +14,9 @@ from datetime import datetime
 #version = '1.3'   # can read in previous peaks/troughs
 #version = '1.4'   # separate sli/vol regr; implement RVTRRF, too
 #version = '1.5'   # control on/off of all regressors with the -regress_types*
-#version = '1.6'   # refactor opts processing to be more AFNI-like
-version = '1.61'  # more refactoring and AFNI-izing, and setting new defaults
+#version = '2.0'   # refactor opts processing to be more AFNI-like
+#version = '2.01'  # more refactoring and AFNI-izing, and setting new defaults
+version = '2.02'  # more help updates and cleaning
 
 # threshold values for some floating point comparisons
 EPS_TH = 1.e-3
