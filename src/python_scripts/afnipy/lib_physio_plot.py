@@ -18,7 +18,37 @@ DEF_ms    = 1.50                     # def marker size in plot
 DEF_grayp = '0.90'                   # def color for graypatch
 
 def interval_band_specs(x):
-    """Return (start, width, color) for successive marker intervals."""
+    """Describe the colored intervals between consecutive peaks or troughs.
+
+The input contains marker positions along the plot's x-axis, not
+indices into the marker array.  For physio_calc plots, these are
+peak or trough times in seconds.  Positions are sorted before
+calculating each successive interval; peak and trough collections
+are passed separately.
+
+Colors indicate interval length relative to the median and standard
+deviation of all intervals in x.  Shorter intervals trend blue,
+longer intervals trend red, and intervals near the median are white.
+The colormap coordinate is 0.5 + 0.1*(width-median)/std, clipped to
+[0, 0.999].  If std is zero, all intervals are colored white.
+
+Parameters
+----------
+x : array-like
+    1D collection of numeric peak or trough x-axis positions (time
+    in seconds for physio_calc plots).  Positions need not be sorted.
+
+Returns
+-------
+specs : list of tuples
+    One (start, width, color) tuple per pair of consecutive marker
+    positions.  start is the earlier x-axis position, width is the
+    difference to the next position (both in the units of x), and
+    color is an RGBA tuple from Matplotlib's 'bwr' colormap.  Returns
+    an empty list if x contains fewer than two positions.
+
+    """
+
     try:
         cmap = mplcm.get_cmap('bwr')
     except AttributeError:
