@@ -512,14 +512,19 @@ User interaction for peak/trough editing ~1~
 Reload peaks/troughs from earlier physio_calc.py run ~1~
 
   It is possible to save estimated peak and trough values to a text file
-  with this program, using '-save_proc_peaks' and '-save_proc_troughs',
-  respectively.  These options tell the program to write *.1D files that
-  contain the integer indices of the peaks or troughts within the
-  processed time series.
+  with this program, using:
 
-  It is now possible to re-load those text files of integer indices back
-  into the program, which might be useful when further editing of
-  peaks/troughs is necessary, for example, via '-do_interact Yes'.  
+     -save_proc_peaks
+     -save_proc_troughs
+
+  respectively.  These options tell the program to write *.1D files
+  that contain the integer indices of the peaks or troughts within the
+  processed time series. The output files are automatically named in
+  the output directory.
+
+  It is also possible to re-load those text files of integer indices
+  back into the program, which might be useful when further editing of
+  peaks/troughs is necessary, for example, via '-do_interact Yes'.
 
   To do this, you should basically run the same physio_calc.py command
   you initially ran to create the time points (same inputs, same
@@ -572,63 +577,71 @@ Notes on scanner-related peculiarities ~1~
 
 {ddashline}
 
-Output files and supplemental subdirectories ~1~
+Outputs overview ~1~
 
   The following are possible outputs to running this program. The
   number of images created varies based on user-controlled options. The
   *resp* files are only output if respiratory signal information were
   input, and similarly for *card* files with cardiac input.
 
+
 Outputs in: OUT_DIR/ ~2~
 
   The main output files are the following text files, which contain
   regressors that can be provided to afni_proc.py for FMRI processing:
 
-    PREFIX_physio_regress_slice.1D : slice-based regressor file, which
-                                can be made up of any of the following
-                                card and/or resp regressors: retro.
-                                This can be provided to afni_proc.py
-                                via '-ricor_regs ..'.
+    PREFIX_physio_regress_slice.1D 
+      :slice-based regressor file, which can be made up of any of the
+       following card and/or resp regressors: retro.  This can be
+       provided to afni_proc.py via '-ricor_regs ..'.
 
-    PREFIX_physio_regress_volume.1D : volume-based regressor file,
-                                which can be made up of any of the
-                                following card and/or resp regressors:
-                                rvt, rvtrrf, hrcrf.  
-                                This can be provided to afni_proc.py
-                                via '-********** ..'.
+    PREFIX_physio_regress_volume.1D 
+      :volume-based regressor file, which can be made up of any of the
+       following card and/or resp regressors: rvt, rvtrrf, hrcrf.
+       This can be provided to afni_proc.py via '-********** ..'.
 
   The following subdirectories contain useful supplementary information:
 
-    PREFIX_physio_images/     : subdir holding QC images
-                                (see below for details)
+    PREFIX_physio_images/     
+      :subdir holding QC images (see below)
 
-    PREFIX_physio_extras/     : subdir holding additional text files of
-                                interest (see below for details)
+    PREFIX_physio_extras/
+      :subdir holding additional text files of interest (see below)
+
 
 Outputs in: OUT_DIR/PREFIX_physio_extras/ ~2~
 
   Supplementary text files that may be of user. These include recording
   input options, as well as QC summaries of peak/trough properties.
 
-    PREFIX_resp_review.txt    : summary statistics and info for resp proc
-    PREFIX_card_review.txt    : summary statistics and info for card proc
+    PREFIX_resp_review.txt
+      :summary statistics and info for resp proc
 
-    PREFIX_pc_cmd.tcsh        : log/copy of the command used
+    PREFIX_card_review.txt
+      :summary statistics and info for card proc
 
-    PREFIX_info.json          : reference dictionary of all command inputs 
-                                after interpreting user options and
-                                integrating default values
+    PREFIX_pc_cmd.tcsh
+      :log/copy of the command used
+
+    PREFIX_info.json 
+      :reference dictionary of all command inputs after interpreting
+       user options and integrating default values
 
   The following text files are only output when using the
-  '-save_proc_peaks' and/or '-save_proc_troughs' option flag(s):
+  '-save_proc_peaks' and/or '-save_proc_troughs' option(s):
 
-    PREFIX_card_peaks_00.1D   : 1D column file of peak indices for card data
-                                corresponding to card*final_peaks*svg image.
-    PREFIX_resp_peaks_00.1D   : 1D column file of peak indices for resp data
-                                corresponding to resp*final_peaks*svg image.
-    PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp 
-                                data, corresponding to resp*final_peaks*svg
-                                image.
+    PREFIX_card_peaks_00.1D
+      :1D column file of peak indices for card data corresponding to
+       card*final_peaks*svg image.
+
+    PREFIX_resp_peaks_00.1D
+      :1D column file of peak indices for resp data corresponding to
+       resp*final_peaks*svg image.
+
+    PREFIX_resp_troughs_00.1D
+      :1D column file of trough indices for resp data, corresponding
+       to resp*final_peaks*svg image.
+
 
 Outputs in: OUT_DIR/PREFIX_physio_images/ ~2~
 
@@ -638,35 +651,33 @@ Outputs in: OUT_DIR/PREFIX_physio_images/ ~2~
   processing.  The main output QC images are:
 
     PREFIX_the_regressors_*.svg
-                            : QC images of all regressors estimated by
-                              physio_calc.py
+      :QC images of all regressors estimated by physio_calc.py
 
     PREFIX_card_10_final*peaks*.svg
     PREFIX_resp_10_final*peaks*.svg
-                            : QC images of final peak estimation for
-                              card data processing.
-                              Colorbands highlight longer (red) and shorter
-                              (blue) intervals, compared to median (white).
-                              For more details, see 'How to interpret 
-                              coloration...', below.
+      :QC images of final peak estimation for card data processing.
+       Colorbands highlight longer (red) and shorter (blue) intervals,
+       compared to median (white). For more details, see 'How to
+       interpret coloration...', below.
 
   The following intermediate QC images are only output with '-img_verb 2'
   or higher:
 
     PREFIX_card_0*.svg
-    PREFIX_resp_0*.svg      : QC images of intermediate peak estimation for
-                              card and resp data processing
+    PREFIX_resp_0*.svg      
+      :QC images of intermediate peak estimation for card and resp
+       data processing
 
     PREFIX_card_bandpass*.svg
     PREFIX_resp_bandapss*.svg
-                            : QC images of intermediate peak/trough 
-                              estimation during an initial bandpass stage; 
-                              includes image of Fourier-transform spectrum,
-                              as well as bandpassed time series
+      :QC images of intermediate peak/trough estimation during an
+       initial bandpass stage; includes image of Fourier-transform
+       spectrum, as well as bandpassed time series
 
     PREFIX_card_20_*.svg
-    PREFIX_resp_20_*.svg    : QC images of intermediate stages in either
-                              RVT- or CRF-based estimations
+    PREFIX_resp_20_*.svg
+      :QC images of intermediate stages in either RVT- or CRF-based
+       estimations
 
 {ddashline}
 

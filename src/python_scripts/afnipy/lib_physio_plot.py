@@ -753,8 +753,9 @@ them.
                 all_ylim = pp.get_ylim()
                 max_abs_ylim = max([abs(x) for x in all_ylim])
                 if max_abs_ylim > 100 :
+                    # this one still uses floats bc tick values are floats
                     pp.yaxis.set_major_formatter(
-                        mpl.ticker.FormatStrFormatter('%6d')
+                        mpl.ticker.FormatStrFormatter('%6.0f')
                     )
                 elif max_abs_ylim > 10 :
                     pp.yaxis.set_major_formatter(
