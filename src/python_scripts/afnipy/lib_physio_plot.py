@@ -30,7 +30,7 @@ are passed separately.
 Colors indicate interval length relative to the median and standard
 deviation of all intervals in x.  Shorter intervals trend blue,
 longer intervals trend red, and intervals near the median are white.
-The colormap coordinate is 0.5 + 0.1*(width-median)/std, clipped to
+The colormap coordinate is 0.5 + (width-median)/MAD/16.0, clipped to
 [0, 0.999].  If std is zero, all intervals are colored white.
 
 Parameters
@@ -57,9 +57,19 @@ specs : list of tuples
     intervals = np.diff(x)
     if not len(intervals):
         return []
-    med, std = np.median(intervals), np.std(intervals)
-    ratios = (0.5 + 0.1*(intervals-med)/std if std else
-              np.full(len(intervals), 0.5))
+    ### [pt: 2026-10-07 this was original scaling, but bc std was
+    ### involved it was not very robust to point editing; hence we
+    ### have replaced with MAD-based one, for more sanity
+    #med, std = np.median(intervals), np.std(intervals)
+    #ratios = (0.5 + 0.1*(intervals-med)/std if std else
+    #          np.full(len(intervals), 0.5))
+    med = np.median(intervals)
+    is_fail, MAD = lpout.calc_MAD(intervals)
+    if MAD :
+        # scale interval colors in a way that seems reasonable, visually
+        ratios = 0.5 + (intervals-med)/MAD/4.0/2.0/2.0
+    else :
+        ratios = np.full(len(intervals), 0.5)
     return [(start, width, cmap(max(0, min(0.999, ratio))))
             for start, width, ratio in zip(x[:-1], intervals, ratios)]
 
