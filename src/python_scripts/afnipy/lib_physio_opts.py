@@ -815,7 +815,8 @@ Returns
 -------
 args_dict : dict
     dictionary whose keys are option names and values are the user-entered
-    values (which might still need separate interpreting later)
+    values (which might still need separate interpreting later).  Empty
+    on parsing failure.
 vol_dict : dict
     secondary dictionary of volume-related option values
 
@@ -2389,6 +2390,10 @@ args_dict : dict
     # dict of volume-related items, separately
     inopts = InOpts(prog=os.path.basename(argv[0]))
     args_dict, vol_dict = parser_to_dict(inopts, argv)
+    if not args_dict:
+        # process_options has already reported the invalid option/value.
+        # Do not pass its empty error result to the simple-option checks.
+        sys.exit(1)
 
     # check for simple-simple cases with a quick exit: ver, help, etc.
     have_simple_opt = check_simple_opts_to_exit(args_dict, inopts)
