@@ -204,7 +204,7 @@ all_coord : list of str or None, optional
     used.  Other accepted values are listed in LIST_mahala_coord.
 threshold : float, optional
     Intervals with a calc_mahala() output strictly greater than this
-    value are reported.  The default is 3.0.
+    value are reported.
 
 Returns
 -------
@@ -217,6 +217,7 @@ intervals : np.ndarray
     """
 
     BAD_RETURN = (-1, np.empty((0, 2), dtype=float))
+
     try:
         ax = np.asarray(list(ax), dtype=float)
         ay = None if ay is None else np.asarray(list(ay), dtype=float)
@@ -247,4 +248,5 @@ intervals : np.ndarray
 
     flagged = distances > threshold
     intervals = np.column_stack((ax[:-1][flagged], ax[1:][flagged]))
+
     return 0, intervals
