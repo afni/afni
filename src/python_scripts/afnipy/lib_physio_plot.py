@@ -17,6 +17,22 @@ DEF_lw    = 0.75                     # def linewidth in plot
 DEF_ms    = 1.50                     # def marker size in plot
 DEF_grayp = '0.90'                   # def color for graypatch
 
+def interval_band_specs(x):
+    """Return (start, width, color) for successive marker intervals."""
+    try:
+        cmap = mplcm.get_cmap('bwr')
+    except AttributeError:
+        cmap = mpl.colormaps['bwr']
+    x = np.sort(np.asarray(x))
+    intervals = np.diff(x)
+    if not len(intervals):
+        return []
+    med, std = np.median(intervals), np.std(intervals)
+    ratios = (0.5 + 0.1*(intervals-med)/std if std else
+              np.full(len(intervals), 0.5))
+    return [(start, width, cmap(max(0, min(0.999, ratio))))
+            for start, width, ratio in zip(x[:-1], intervals, ratios)]
+
 PY_VER    = sys.version_info.major   # Python major version
 MAT_VER   = mpl.__version_info__     # have some mpl ver dependence---sigh
 
@@ -104,27 +120,9 @@ plotting.
 
         """
 
-        # [PT: 2026-07-29] matplotlib v3.11 introduced a breaking
-        # change; the TRY branch works in mpl ver<3.11, and the EXCEPT
-        # for ver>=3.11.  Thanks, Dan Handwerker, for pointing this out.
-        try:
-            cmap = mplcm.get_cmap('bwr')  # faded red/wh/blue cmap for bands
-        except:
-            cmap = mpl.colormaps['bwr']   # faded red/wh/blue cmap for bands
-
-        all_ivals = np.array([j-i for i, j in zip(self.x[:-1], self.x[1:])])
-        med = np.median(all_ivals)
-        std = np.std(all_ivals)
-        if std :
-            rat = 0.5 + 0.1*(all_ivals - med)/std   # ~Zscore, scaled for cmap
-        else:
-            rat = np.full(len(all_ivals), 0.5, dtype=float)
-
-        # NB: through some Python cmap() quirk, max must be <1,
-        # apparently, otherwise it appears to loop around (?!?). So we
-        # cap these values at 0.999.
-        all_col = [cmap(max(min(0.999,val),0)) for val in rat]
-        all_xw  = [(i, j-i) for i, j in zip(self.x[:-1], self.x[1:])]
+        specs = interval_band_specs(self.x)
+        all_col = [color for _, _, color in specs]
+        all_xw  = [(start, width) for start, width, _ in specs]
 
         if loc == 'top' :
             self.col_ibandT = copy.deepcopy(all_col)
@@ -614,6 +612,7 @@ them.
                 # fig/subfig
                 if iinum>1 :  pp = subpl[iicount]
                 else:         pp = subpl
+                subplot_bands = {'p': [], 't': []}
 
                 # loop over all plobj and add them
                 for jj in range( self.n_plobj ):
@@ -700,11 +699,14 @@ them.
                                 if bstart < bxlim[0] : bstart = bxlim[0]
                                 if bstop > bxlim[1] :  bstop  = bxlim[1]
                                 bwidth = bstop - bstart
-                                pp.add_patch(mplp.Rectangle(
+                                rect = mplp.Rectangle(
                                     (bstart, y_iband),
                                     bwidth,
                                     h_iband,
-                                    color=plobj.col_ibandT[bb]))
+                                    color=plobj.col_ibandT[bb],
+                                    animated=do_interact)
+                                pp.add_patch(rect)
+                                if do_interact: subplot_bands['p'].append(rect)
 
                     if plobj.add_ibandB :
                         y_iband, h_iband = self.yh_ibandB    # from main obj
@@ -719,18 +721,31 @@ them.
                                 if bstart < bxlim[0] : bstart = bxlim[0]
                                 if bstop > bxlim[1] :  bstop  = bxlim[1]
                                 bwidth = bstop - bstart
-                                pp.add_patch(mplp.Rectangle(
+                                rect = mplp.Rectangle(
                                     (bstart, y_iband),
                                     bwidth,
                                     h_iband,
-                                    color=plobj.col_ibandB[bb]))
+                                    color=plobj.col_ibandB[bb],
+                                    animated=do_interact)
+                                pp.add_patch(rect)
+                                if do_interact: subplot_bands['t'].append(rect)
 
                     if not(iicount) and not(jj) :
                         pp.set_title(self.title, fontsize=self.fontsize)
 
                 # add in interactive subplot
                 if do_interact :
-                    all_inter.append(lpi.PolygonInteractor(pp))
+                    inter = lpi.PolygonInteractor(pp)
+                    inter.bands = subplot_bands
+                    inter.edit_xlim = self.all_sub_xwin[ii]
+                    inter.band_xlim = self.all_range_xlim[ii]
+                    inter.band_geometry = {
+                        'p': self.yh_ibandT if self.list_plobj[1].add_ibandT
+                             else None,
+                        't': self.yh_ibandB if self.n_plobj > 2 and
+                             self.list_plobj[2].add_ibandB else None,
+                    }
+                    all_inter.append(inter)
 
                 # make xlabel at bottom of subfig
                 if iicount == iinum - 1 :
@@ -816,6 +831,62 @@ them.
                 # thick lines for start/end, to help visualization
                 pp.spines['left'].set_linewidth(3)
                 pp.spines['right'].set_linewidth(3)
+
+            if do_interact:
+                # Rebuild only the animated bands when '5' is pressed.
+                # Keep markers outside this figure (including edits from
+                # earlier figures) for the original global color scale.
+                fig_inter = all_inter[-iinum:]
+
+                def refresh_bands(fig_inter=fig_inter):
+                    for lab, index in (('p', 1), ('t', 2)):
+                        if index >= self.n_plobj or not any(
+                                inter.band_geometry[lab] for inter in fig_inter):
+                            continue
+                        original = np.asarray(self.list_plobj[index].x)
+                        outside = np.ones(len(original), dtype=bool)
+                        for inter in all_inter:
+                            lo, hi = inter.edit_xlim
+                            outside &= (original < lo) | (original >= hi)
+                        edited = [inter.poly[lab].get_xy()[1:-1, 0]
+                                  for inter in all_inter if inter.poly[lab] is not None]
+                        coords = np.concatenate([original[outside]] + edited)
+                        specs = interval_band_specs(coords)
+                        for inter in fig_inter:
+                            if inter.band_geometry[lab] is None:
+                                continue
+                            lo, hi = inter.band_xlim
+                            y, height = inter.band_geometry[lab]
+                            new_bands = []
+                            for start, width, color in specs:
+                                stop = start + width
+                                if stop > lo and start < hi:
+                                    left, right = max(start, lo), min(stop, hi)
+                                    rect = mplp.Rectangle((left, y), right-left,
+                                                          height, color=color,
+                                                          animated=True)
+                                    inter.ax.add_patch(rect)
+                                    new_bands.append(rect)
+                            for rect in inter.bands[lab]:
+                                rect.remove()
+                            inter.bands[lab] = new_bands
+                    canvas = fig_inter[0].canvas
+                    if not canvas.supports_blit:
+                        # The native macOS backend, for example, cannot blit.
+                        # One deferred draw replaces the bands on that backend.
+                        canvas.draw_idle()
+                    else:
+                        if not hasattr(fig_inter[0], 'figure_background'):
+                            canvas.draw()  # first render only
+                        canvas.restore_region(fig_inter[0].figure_background)
+                        for inter in fig_inter:
+                            inter.draw_animated()
+                        # Present the completed figure in one update; separate
+                        # subplot blits can leave strips of the previous bands.
+                        canvas.blit(canvas.figure.bbox)
+
+                for inter in fig_inter:
+                    inter.refresh_bands = refresh_bands
 
             if 1 :
                 # first make layout tight, then place single-row

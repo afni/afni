@@ -16,7 +16,8 @@ from datetime import datetime
 #version = '1.5'   # control on/off of all regressors with the -regress_types*
 #version = '2.0'   # refactor opts processing to be more AFNI-like
 #version = '2.01'  # more refactoring and AFNI-izing, and setting new defaults
-version = '2.02'  # more help updates and cleaning
+#version = '2.02'  # more help updates and cleaning
+version = '2.1'  # add redraw to interactive mode
 
 # threshold values for some floating point comparisons
 EPS_TH = 1.e-3
@@ -57,6 +58,7 @@ DEF_prefilt_win_resp  = 0.25          # flt, window size (s) for median filter
 # key+mouse bindings for interactive peak/trough editing
 TEXT_interact_key_mouse = '''Key+mouse bindings being used:
 
+            5  : refresh peak/trough interval band colors after editing
             4  : delete the vertex (peak or trough) nearest to mouse point
             3  : add a peak vertex
             2  : add a trough vertex

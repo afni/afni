@@ -88,6 +88,8 @@ are just made up of 1D arrays of peak and trough locations.
 
 Key+mouse bindings being used:
 
+  '5' : refresh peak/trough interval bands after editing
+
   '4' : delete the vertex (peak or trough) nearest to mouse point
 
   '3' : add a peak vertex
@@ -165,6 +167,8 @@ There will always be at least one vertex left (which is, in fact, a
 
         # canvas obj
         self.canvas = None
+        self.bands = {'p': [], 't': []}  # animated interval rectangles
+        self.refresh_bands = None
 
         # ----- check input(s) and parse
 
@@ -276,14 +280,28 @@ There will always be at least one vertex left (which is, in fact, a
         else:                          return len(self.poly[label].xy)
 
     def on_draw(self, event):
+        # A draw_event is shared by all subplot editors in this figure.
+        # Capture the clean figure once, before the first editor paints any
+        # animated bands or markers into the renderer.
+        if not hasattr(event, '_physio_figure_background'):
+            event._physio_figure_background = self.canvas.copy_from_bbox(
+                self.ax.figure.bbox)
+        self.figure_background = event._physio_figure_background
         self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+        self.draw_animated()
+        # do not need to blit here, this will fire before the screen is
+        # updated
+
+    def draw_animated(self):
+        """Draw bands and markers over the cached static axes background."""
+        for lab in ('p', 't'):
+            for rect in self.bands[lab]:
+                self.ax.draw_artist(rect)
         self.ax.draw_artist(self.poly['p'])
         self.ax.draw_artist(self.line['p'])
         if self.HAVE_T :
             self.ax.draw_artist(self.poly['t'])
             self.ax.draw_artist(self.line['t'])
-        # do not need to blit here, this will fire before the screen is
-        # updated
 
     def poly_changedP(self, poly):
         """This method is called whenever the peak-related pathpatch object is
@@ -415,7 +433,10 @@ There will always be at least one vertex left (which is, in fact, a
         if event.inaxes != self.ax.axes :
             return
 
-        if event.key == '4':
+        if event.key == '5' and self.refresh_bands is not None:
+            self.refresh_bands()
+
+        elif event.key == '4':
             # delete either 'p' or 't' element
             lab, ind = self.get_ind_under_point(event)
             if ind is not None:
@@ -551,11 +572,7 @@ There will always be at least one vertex left (which is, in fact, a
 
         # updates in image (keep drawing both p and t each time)
         self.canvas.restore_region(self.background)
-        self.ax.draw_artist(self.poly['p'])
-        self.ax.draw_artist(self.line['p'])
-        if self.HAVE_T :
-            self.ax.draw_artist(self.poly['t'])
-            self.ax.draw_artist(self.line['t'])
+        self.draw_animated()
         self.canvas.blit(self.ax.bbox)
 
 
