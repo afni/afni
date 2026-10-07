@@ -88,7 +88,7 @@ are just made up of 1D arrays of peak and trough locations.
 
 Key+mouse bindings being used:
 
-  '5' : refresh peak/trough interval bands after editing
+  '5' : refresh interval bands, outlier regions and extrema outlines
 
   '4' : delete the vertex (peak or trough) nearest to mouse point
 
@@ -169,6 +169,7 @@ There will always be at least one vertex left (which is, in fact, a
         self.canvas = None
         self.bands = {'p': [], 't': []}  # animated interval rectangles
         self.highlights = {'p': [], 't': []}  # animated outlier regions
+        self.nonalt_pts = {'p': None, 't': None}  # larger magenta triangles
         self.refresh_bands = None
 
         # ----- check input(s) and parse
@@ -301,6 +302,9 @@ There will always be at least one vertex left (which is, in fact, a
         for lab in ('p', 't'):
             for rect in self.bands[lab]:
                 self.ax.draw_artist(rect)
+        for lab in ('p', 't'):
+            if self.nonalt_pts[lab] is not None:
+                self.ax.draw_artist(self.nonalt_pts[lab])
         self.ax.draw_artist(self.poly['p'])
         self.ax.draw_artist(self.line['p'])
         if self.HAVE_T :

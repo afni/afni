@@ -8,6 +8,7 @@ from   matplotlib.collections import PatchCollection as MPC
 import matplotlib.patches     as     mplp
 import matplotlib.cm          as     mplcm
 from   matplotlib.lines       import Line2D
+from   matplotlib.path        import Path as MplPath
 
 from   afnipy import lib_physio_interact as lpi
 from   afnipy import lib_physio_outliers as lpout
@@ -17,6 +18,16 @@ DEF_max_n = 1000                     # def npts per subplot (not used now)
 DEF_lw    = 0.75                     # def linewidth in plot
 DEF_ms    = 1.50                     # def marker size in plot
 DEF_grayp = '0.90'                   # def color for graypatch
+
+# Filled backdrops follow the peak/trough caret anchors and extend beyond
+# their tips, so the magenta remains visible around both small markers.
+NONALT_MARKERS = {
+    'p': MplPath([(0, -0.08), (-0.5, 0.5), (0.5, 0.5), (0, -0.08)],
+                 closed=True),
+    't': MplPath([(0, 0.2), (-0.5, -0.5), (0.5, -0.5), (0, 0.2)],
+                 closed=True),
+}
+NONALT_MARKER_SCALE = 2.25  # 8 pt interactive -> 18 pt backdrop
 
 def interval_band_specs(x):
     """Describe the colored intervals between consecutive peaks or troughs.
@@ -251,12 +262,14 @@ them.
                  max_n_per_line = DEF_max_n,
                  max_t_per_line = 30,
                  max_l_per_fig  = 6,
-                 verb=0):
+                 verb=0,
+                 mark_nonalt_pts=False):
         """Create object holding data to plot.
 
         """
 
         self.verb          = verb               # int, verbosity level
+        self.mark_nonalt_pts = mark_nonalt_pts  # show extrema order
         self.figname       = figname            # str, name of output fig
         self.title         = title              # str, title of plot
         self.xlabel        = xlabel             # str, label along x-axis
@@ -642,6 +655,22 @@ them.
 
         self.prep_plotvals()
 
+        # Only respiratory plots currently request this check.  Keep the
+        # calculation independent of signal type for future cardiac plots.
+        have_opposites = (self.mark_nonalt_pts and self.n_plobj > 2
+                          and self.list_plobj[1].label == 'peaks'
+                          and self.list_plobj[2].label == 'troughs')
+        nonalt_pts_xy = {}
+        if have_opposites:
+            peaks, troughs = self.list_plobj[1:3]
+            for lab, current, opposite in (('p', peaks, troughs),
+                                           ('t', troughs, peaks)):
+                is_fail, indices = lpout.find_nonalt_extrema(
+                    current.x, opposite.x)
+                if not is_fail:
+                    nonalt_pts_xy[lab] = np.column_stack(
+                        (current.x[indices], current.y[indices]))
+
         # start empy list to gather all updated points, in case we
         # have interactive mode on
         all_inter   = [] 
@@ -682,6 +711,7 @@ them.
                 else:         pp = subpl
                 subplot_bands = {'p': [], 't': []}
                 subplot_highlights = {'p': [], 't': []}
+                subplot_nonalt_pts = {'p': None, 't': None}
                 highlight_line = self.plot_midline
                 have_hline = False
 
@@ -814,11 +844,33 @@ them.
                     if not(iicount) and not(jj) :
                         pp.set_title(self.title, fontsize=self.fontsize)
 
+                if have_opposites:
+                    lo, hi = self.all_sub_xwin[ii]
+                    for lab in ('p', 't'):
+                        coords = nonalt_pts_xy[lab]
+                        coords = coords[(coords[:, 0] >= lo) &
+                                        (coords[:, 0] < hi)]
+                        if do_interact:
+                            base_ms = (lpi.dict_plotP if lab == 'p'
+                                       else lpi.dict_plotT)['ms']
+                        else:
+                            base_ms = self.list_plobj[1 if lab == 'p'
+                                                      else 2].ms
+                        subplot_nonalt_pts[lab], = pp.plot(
+                            coords[:, 0], coords[:, 1], linestyle='None',
+                            marker=NONALT_MARKERS[lab],
+                            markersize=NONALT_MARKER_SCALE * base_ms,
+                            markerfacecolor='magenta',
+                            markeredgecolor='magenta',
+                            zorder=1.9,
+                            animated=do_interact, label='_nolegend_')
+
                 # add in interactive subplot
                 if do_interact :
                     inter = lpi.PolygonInteractor(pp)
                     inter.bands = subplot_bands
                     inter.highlights = subplot_highlights
+                    inter.nonalt_pts = subplot_nonalt_pts
                     inter.edit_xlim = self.all_sub_xwin[ii]
                     inter.band_xlim = self.all_range_xlim[ii]
                     inter.band_geometry = {
@@ -928,18 +980,25 @@ them.
                 fig_inter = all_inter[-iinum:]
 
                 def refresh_bands(fig_inter=fig_inter):
+                    updated_xy = {}
                     for lab, index in (('p', 1), ('t', 2)):
-                        if index >= self.n_plobj or not any(
-                                inter.band_geometry[lab] for inter in fig_inter):
+                        if index >= self.n_plobj:
                             continue
-                        original = np.asarray(self.list_plobj[index].x)
-                        outside = np.ones(len(original), dtype=bool)
+                        plobj = self.list_plobj[index]
+                        original_xy = np.column_stack((plobj.x, plobj.y))
+                        outside = np.ones(len(original_xy), dtype=bool)
                         for inter in all_inter:
                             lo, hi = inter.edit_xlim
-                            outside &= (original < lo) | (original >= hi)
-                        edited = [inter.poly[lab].get_xy()[1:-1, 0]
+                            outside &= ((original_xy[:, 0] < lo) |
+                                        (original_xy[:, 0] >= hi))
+                        edited = [inter.poly[lab].get_xy()[1:-1, :]
                                   for inter in all_inter if inter.poly[lab] is not None]
-                        coords = np.concatenate([original[outside]] + edited)
+                        updated_xy[lab] = np.concatenate(
+                            [original_xy[outside]] + edited)
+                        if not any(inter.band_geometry[lab]
+                                   for inter in fig_inter):
+                            continue
+                        coords = updated_xy[lab][:, 0]
                         specs = interval_band_specs(coords)
                         is_fail, outliers = lpout.find_outliers(coords)
                         if is_fail:
@@ -969,6 +1028,22 @@ them.
                             for rect in inter.highlights[lab]:
                                 rect.remove()
                             inter.highlights[lab] = new_highlights
+                    if have_opposites and all(lab in updated_xy
+                                              for lab in ('p', 't')):
+                        for lab, other in (('p', 't'), ('t', 'p')):
+                            xy = updated_xy[lab]
+                            is_fail, indices = lpout.find_nonalt_extrema(
+                                xy[:, 0], updated_xy[other][:, 0])
+                            if is_fail:
+                                continue
+                            selected = xy[indices]
+                            for inter in fig_inter:
+                                marker = inter.nonalt_pts[lab]
+                                if marker is not None:
+                                    lo, hi = inter.edit_xlim
+                                    visible = selected[(selected[:, 0] >= lo) &
+                                                       (selected[:, 0] < hi)]
+                                    marker.set_data(visible[:, 0], visible[:, 1])
                     canvas = fig_inter[0].canvas
                     if not canvas.supports_blit:
                         # The native macOS backend, for example, cannot blit.
@@ -1117,6 +1192,7 @@ Returns
                         max_t_per_line = pcobj.img_line_time,
                         max_l_per_fig  = pcobj.img_fig_line,
                         ylabel         = fig_ylabel,
+                        mark_nonalt_pts = (tsobj.label == 'resp'),
                         verb           = verb,
         )
     else: 
@@ -1124,6 +1200,7 @@ Returns
         fff = PcalcFig( figname        = fname,
                         max_n_per_line = 5000,
                         title          = title,
+                        mark_nonalt_pts = (tsobj.label == 'resp'),
                         verb           = verb )
 
     # control alpha of ts and peaks/troughs like this

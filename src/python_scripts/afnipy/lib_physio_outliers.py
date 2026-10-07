@@ -250,3 +250,58 @@ intervals : np.ndarray
     intervals = np.column_stack((ax[:-1][flagged], ax[1:][flagged]))
 
     return 0, intervals
+
+
+def find_nonalt_extrema(ax, bx):
+    """Find extrema in ax that have no bx extremum between neighbors.
+
+For respiratory peaks, pass peak times as ax and trough times as bx;
+reverse the inputs to check troughs.  Both endpoints of every pair
+with no intervening opposite extremum are returned, so a run of
+three peaks (or troughs) flags all three.  Extrema at exactly the
+same time do not count as alternating.  The calculation itself is
+independent of signal type and can also be used for cardiac data.
+
+Parameters
+----------
+ax : array-like
+    1D numeric x-coordinates of the extrema being checked.
+bx : array-like
+    1D numeric x-coordinates of the opposite extrema.
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure.
+indices : np.ndarray
+    Sorted integer indices into the original ax array of extrema in
+    nonalternating runs.  Empty if ax has fewer than two points or
+    alternates with bx throughout.
+
+    """
+
+    BAD_RETURN = (-1, np.array([], dtype=int))
+    try:
+        ax = np.asarray(list(ax), dtype=float)
+        bx = np.asarray(list(bx), dtype=float)
+    except (TypeError, ValueError):
+        ab.EP1('ax and bx must be numeric 1D collections')
+        return BAD_RETURN
+    if ax.ndim != 1 or bx.ndim != 1 or not np.all(np.isfinite(ax)) \
+            or not np.all(np.isfinite(bx)):
+        ab.EP1('ax and bx must contain finite 1D coordinates')
+        return BAD_RETURN
+    if len(ax) < 2:
+        return 0, np.array([], dtype=int)
+
+    order = np.argsort(ax, kind='stable')
+    sorted_ax = ax[order]
+    sorted_bx = np.sort(bx)
+    # A bx value separates adjacent ax values only when strictly between.
+    between = (np.searchsorted(sorted_bx, sorted_ax[1:], side='left') -
+               np.searchsorted(sorted_bx, sorted_ax[:-1], side='right'))
+    same_run = between <= 0
+    flagged = np.zeros(len(ax), dtype=bool)
+    flagged[:-1] |= same_run
+    flagged[1:] |= same_run
+    return 0, np.sort(order[flagged])
