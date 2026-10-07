@@ -749,6 +749,11 @@ them.
                 else:
                     pp.set_ylim(self.range_ylim)
 
+                # keep y-axis tick label widths reasonably uniform
+                pp.yaxis.set_major_formatter(
+                    mpl.ticker.FormatStrFormatter('%5.2f')
+                )
+
                 # now that we know xlim and ylim values, we can check
                 # for graypatches to add (in the bkgd, using zorder)
                 if self.n_graypatch > 0 :
