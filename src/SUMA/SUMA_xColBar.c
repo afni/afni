@@ -2475,23 +2475,24 @@ void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data, XtPointer cli
     SO = (SUMA_SurfaceObject *)ado;    
     BoxOutlineThresh = XmToggleButtonGetState(w);
 
-    // 1. Get the currently active color plane from the surface object
-    SUMA_OVERLAYS *curColPlane = SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO);  
+    /* Get currently active overlay */
+        // 1. Get the currently active color plane from the surface object
+        SUMA_OVERLAYS *curColPlane = SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO);  
 
-    // 2. Fetch the corresponding overlay pointer using the color plane's name
-    if (curColPlane && SO->Overlays) {      
-        over2 = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, curColPlane->Name, &OverInd);
-    }  
+        // 2. Fetch the corresponding overlay pointer using the color plane's name
+        if (curColPlane && SO->Overlays) {      
+            over2 = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, curColPlane->Name, &OverInd);
+        }  
 
-    // 3. Fallback to the last overlay if the active one wasn't found
-    if (!over2 && SO->N_Overlays > 0) {
-        over2 = SO->Overlays[SO->N_Overlays - 1];
-    }
+        // 3. Fallback to the last overlay if the active one wasn't found
+        if (!over2 && SO->N_Overlays > 0) {
+            over2 = SO->Overlays[SO->N_Overlays - 1];
+        }
 
-    if (!over2) {
-        XmToggleButtonSetState(w, FALSE, FALSE);
-        SUMA_RETURNe;
-    }
+        if (!over2) {
+            XmToggleButtonSetState(w, FALSE, FALSE);
+            SUMA_RETURNe;
+        }
 
     over2->BoxOutlineThresh = BoxOutlineThresh;
     over2->makeContours = YUP;    
