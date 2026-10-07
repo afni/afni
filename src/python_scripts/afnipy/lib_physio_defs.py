@@ -36,13 +36,13 @@ DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
 DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
 DEF_regress_types_card = 'retro'
-DEF_regress_types_resp = 'retro'
+DEF_regress_types_resp = 'retro rvt'
 
 # some QC image plotting options that the user can change
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
 DEF_img_line_time = 120              # units = seconds, ergo def: 2mins/line
-DEF_img_fig_line  = 5                # max num lines per fig
+DEF_img_fig_line  = 8                # max num lines per fig
 DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
@@ -203,9 +203,9 @@ DOPTS = {
     'start_time'        : None,      # (float) leave none, bc can be set in json
     'out_dir'           : odir_def,  # (str) output dir name
     'prefix'            : 'physio',  # (str) output filename prefix
-    'do_fix_nan'        : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
-    'do_fix_null'       : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
-    'do_fix_outliers'   : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
+    'do_fix_nan'        : 'No',      # (str) Yes/1, No/0 -> bool after parsing
+    'do_fix_null'       : 'No',      # (str) Yes/1, No/0 -> bool after parsing
+    'do_fix_outliers'   : 'No',      # (str) Yes/1, No/0 -> bool after parsing
     'extra_fix_list'    : [],        # (list) extra values to fix
     'remove_val_list'   : [],        # (list) purge some values from ts
     'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
@@ -213,8 +213,8 @@ DOPTS = {
     'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
     'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
     'verb'              : 0,         # (int) verbosity level
-    'disp_all_slice_patterns' : 'No', # (str) Yes/1 or No/0 -> bool after parsing
-    'disp_all_opts'     : 'No',      # (str) Yes/1 or No/0 -> bool after parsing
+    'disp_all_slice_patterns' : 'No', # (str) Yes/1, No/0 -> bool after parsing
+    'disp_all_opts'     : 'No',      # (str) Yes/1, No/0 -> bool after parsing
     'ver'               : False,     # (bool) do show ver num?
     'help'              : False,     # (bool) do show help in term?
     'hview'             : False,     # (bool) do show help in text ed?
