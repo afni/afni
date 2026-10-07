@@ -11,10 +11,10 @@ from afnipy import afni_base as ab
 # ==========================================================================
 
 # All possible metrics for Mahalanobis scoring of intervals
-LIST_malaha_matric = ['mad']
+LIST_mahala_metric = ['mad']
 
 # All possible coordinate dimensions for Mahalanobis scoring of intervals
-LIST_malaha_coord = ['del_x_same', 'del_y_same']
+LIST_mahala_coord = ['del_x_same', 'del_y_same']
 
 # ==========================================================================
 
@@ -130,12 +130,16 @@ mahala : np.ndarray
 
     # check input kwargs
 
+    if metric not in LIST_mahala_metric :
+        ab.EP1('metric must be selected from LIST_mahala_metric')
+        return BAD_RETURN
+
     if not isinstance(all_coord, (list, tuple)):
         ab.EP1('all_coord must be a list of strings')
         return BAD_RETURN
 
-    if any(coord not in LIST_malaha_coord for coord in all_coord):
-        ab.EP1('all_coord must be selected from LIST_malaha_coord')
+    if any(coord not in LIST_mahala_coord for coord in all_coord):
+        ab.EP1('all_coord must be selected from LIST_mahala_coord')
         return BAD_RETURN
 
     if len(set(all_coord)) != len(all_coord) :
@@ -197,7 +201,7 @@ ay : array-like or None, optional
     Corresponding y-coordinates, required for 'del_y_same'.
 all_coord : list of str or None, optional
     Coordinate differences to test.  By default only 'del_x_same' is
-    used.  Other accepted values are listed in LIST_malaha_coord.
+    used.  Other accepted values are listed in LIST_mahala_coord.
 threshold : float, optional
     Intervals with a calc_mahala() output strictly greater than this
     value are reported.  The default is 3.0.
