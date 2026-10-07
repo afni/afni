@@ -1,224 +1,36 @@
 #!/usr/bin/env python
 
-# Read in and parse options for the new retroicorLauren.py program.
+# Read in and parse options for physio_calc.py
 # 
 # ==========================================================================
 
-#version = '1.0'
-#version = '1.1'   # add remove_val_list, for some vals to get replaced
-#version = '1.2'   # better bandpassing and tapering, no 'add missing' for now
-version = '1.3'   # can read in previous peaks/troughs
-
-# ==========================================================================
+# Version/default settings are stored separately, in the same style as
+# the other arch_* programs.  Use those definitions directly here, rather
+# than creating a second alias layer in this option-processing library.
 
 import sys
 import os
 import copy
 import json
-import textwrap
-import subprocess as     SP
-import argparse   as     argp
-from   datetime   import datetime
-from   platform   import python_version_tuple
+import math
+import subprocess as SP
+from platform import python_version_tuple
 
-from   afnipy     import afni_base as BASE
-from   afnipy     import afni_util as UTIL
+from afnipy import afni_base          as ab
+from afnipy import afni_util          as UTIL
+from afnipy import option_list        as OL
+from afnipy import lib_physio_defs    as DEF
 
 # ==========================================================================
 
-# threshold values for some floating point comparisons
-EPS_TH = 1.e-3
 
-# min beats or breaths per minute
-DEF_min_bpm_card = 25.0
-DEF_min_bpm_resp = 6.0   
-
-# max beats or breaths per minute
-DEF_max_bpm_card = 250.0
-DEF_max_bpm_resp = 60.0   
-
-# RVT shifts: either no RVT, direct list, or linspace set of pars
-# (units: sec)
-all_rvt_opt = ['rvt_off', 'rvt_shift_list', 'rvt_shift_linspace']
-DEF_rvt_off            = False
-DEF_rvt_shift_list     = '0 1 2 3 4'  # split+listified, below, if used
-DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
-
-# some QC image plotting options that the user can change
-DEF_img_figsize   = []
-DEF_img_fontsize  = 10
-DEF_img_line_time = 60               # units = seconds
-DEF_img_fig_line  = 6                # max num lines per fig
-DEF_img_dot_freq  = 50               # points per sec
-DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
-
-# some init proc options for phys time series
-DEF_prefilt_max_freq  = -1           # Hz, for init filter to reduce ts
-all_prefilt_mode = ['none', 'median'] # list of possible downsamp types
-DEF_prefilt_mode = 'none'            # str, keyword for filtering in downsamp
-DEF_prefilt_win_card  = 0.10         # flt, window size (s) for median filter
-DEF_prefilt_win_resp  = 0.25         # flt, window size (s) for median filter
-
-# ===========================================================================
-
-TEXT_interact_key_mouse = '''Key+mouse bindings being used:
-
-            4  : delete the vertex (peak or trough) nearest to mouse point
-            3  : add a peak vertex
-            2  : add a trough vertex
-            1  : toggle vertex visibility+editability on and off
-   Left-click  : select closest vertex, which can then be dragged along
-                the reference line.
-
-   Some additional Matplotlib keyboard shortcuts:
-            f  : toggle fullscreen view of panel
-            o  : toggle zoom-to-rectangle mode
-            p  : toggle pan/zoom mode
-            r  : reset panel view (not point edits, but zoom/scroll/etc.)
-            q  : quit/close viewer (also Ctrl+w), when done editing
-'''
 
 # ===========================================================================
 # PART_01: default parameter settings
-
-# default outdir name
-now      = datetime.now() # current date and time
-now_str  = now.strftime("%Y-%m-%d-%H-%M-%S")
-odir_def = 'retro_' + now_str
-
-# Each key in DEF should have an opt listing below in argparse, and
-# vice versa. 
-
-DEF = {
-    'resp_file'         : None,      # (str) fname for resp data
-    'card_file'         : None,      # (str) fname for card data
-    'phys_file'         : None,      # (str) fname of physio input data
-    'phys_json'         : None,      # (str) fname of json file
-    'prefilt_max_freq'  : DEF_prefilt_max_freq,  # (num) init phys ts downsample
-    'prefilt_mode'      : DEF_prefilt_mode,      # (str) kind of downsamp
-    'prefilt_win_card'  : DEF_prefilt_win_card,  # (num) window size for dnsmpl
-    'prefilt_win_resp'  : DEF_prefilt_win_resp,  # (num) window size for dnsmpl
-    'do_interact'       : False,     # (bool) turn on interactive mode
-    'dset_epi'          : None,      # (str) name of MRI dset, for vol pars
-    'dset_tr'           : None,      # (float) TR of MRI
-    'dset_nslice'       : None,      # (int) number of MRI vol slices
-    'dset_nt'           : None,      # (int) Ntpts (e.g., len MRI time series)
-    'dset_slice_times'  : None,      # (list) FMRI dset slice times
-    'dset_slice_pattern' : None,     # (str) code or file for slice timing
-    'freq'              : None,      # (float) freq, in Hz
-    'start_time'        : None,      # (float) leave none, bc can be set in json
-    'out_dir'           : odir_def,  # (str) output dir name
-    'prefix'            : 'physio',  # (str) output filename prefix
-    'do_fix_nan'        : False,     # (str) fix/interp NaN in physio
-    'do_fix_null'       : False,     # (str) fix/interp null/missing in physio
-    'do_fix_outliers'   : False,     # (list) fix/interp outliers
-    'extra_fix_list'    : [],        # (list) extra values to fix
-    'remove_val_list'   : [],        # (list) purge some values from ts
-    'no_card_out'       : False,     # (bool) do not output card info
-    'no_resp_out'       : False,     # (bool) do not output resp info
-    'min_bpm_resp'      : DEF_min_bpm_resp, # (float) min breaths per min
-    'min_bpm_card'      : DEF_min_bpm_card, # (float) min beats per min
-    'max_bpm_resp'      : DEF_max_bpm_resp, # (float) max breaths per min
-    'max_bpm_card'      : DEF_max_bpm_card, # (float) max beats per min
-    'do_extend_bp_resp' : False,     # (bool) don't extend resp bp
-    'verb'              : 0,         # (int) verbosity level
-    'disp_all_slice_patterns' : False, # (bool) display known sli patterns
-    'disp_all_opts'     : False,     # (bool) display opts for this prog
-    'ver'               : False,     # (bool) do show ver num?
-    'help'              : False,     # (bool) do show help in term?
-    'hview'             : False,     # (bool) do show help in text ed?
-    'rvt_off'           : DEF_rvt_off, # (bool) turn off RVT output
-    'rvt_shift_list'    : None,      # (str) space sep list of nums
-    'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift 
-    'img_verb'          : 1,         # (int) amount of graphs to save
-    'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
-    'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs 
-    'img_line_time'     : DEF_img_line_time, # (float) time per line in QC imgs
-    'img_fig_line'      : DEF_img_fig_line,  # (int) lines per fig in QC imgs
-    'img_dot_freq'      : DEF_img_dot_freq,  # (float) max dots per sec in img
-    'img_bp_max_f'      : DEF_img_bp_max_f,  # (float) xaxis max for bp plot
-    'save_proc_peaks'   : False,     # (bool) dump peaks to text file
-    'save_proc_troughs' : False,     # (bool) dump troughs to text file
-    'load_proc_peaks_card'   : None,        # (str) file of troughs to read in 
-    'load_proc_peaks_resp'   : None,        # (str) file of peaks to read in 
-    'load_proc_troughs_resp' : None,        # (str) file of peaks to read in 
-}
-
-# list of keys for volume-related items, that will get parsed
-# separately so we peel them off when parsing initial opts
-vol_key_list = [
-    'dset_epi',
-    'dset_tr',
-    'dset_nslice',
-    'dset_nt',
-    'dset_slice_times',
-    'dset_slice_pattern',
-]
-
-# ---- sublists to check for properties ----
-
-# list of lists of corresponding args_dict and phys_json entries,
-# respectively; for each, there is also an EPS value for how to
-# compare them if needing to reconcile command line opt values with a
-# read-in value; more can be added over time
-ALL_AJ_MATCH = [
-    ['freq', 'SamplingFrequency', EPS_TH],
-    ['start_time', 'StartTime', EPS_TH],
-]
-
-AJM_str = "    {:15s}   {:20s}   {:9s}\n".format('ARG/OPT', 'JSON KEY', 
-                                                 'EPS VAL')
-for ii in range(len(ALL_AJ_MATCH)):
-    sss = "    {:15s}   {:20s}   {:.3e}\n".format(ALL_AJ_MATCH[ii][0],
-                                                  ALL_AJ_MATCH[ii][1],
-                                                  ALL_AJ_MATCH[ii][2])
-    AJM_str+= sss
-
-# for dset_epi matching; following style of aj_match, but key names
-# don't differ and some things are integer.
-ALL_EPIM_MATCH = [
-    ['dset_tr',  EPS_TH],
-    ['dset_nt', EPS_TH],
-    ['dset_nslice', EPS_TH],
-]
-# extension of the above if the tested object is a list; the items in
-# the list will be looped over and compared at the given eps
-ALL_EPIM_MATCH_LISTS = [
-    ['dset_slice_times', EPS_TH ],
-]
-
-EPIM_str = "    {:15s}   {:9s}\n".format('ITEM', 'EPS VAL')
-for ii in range(len(ALL_EPIM_MATCH)):
-    sss  = "    {:15s}   {:.3e}\n".format(ALL_EPIM_MATCH[ii][0],
-                                          ALL_EPIM_MATCH[ii][1])
-    EPIM_str+= sss
-for ii in range(len(ALL_EPIM_MATCH_LISTS)):
-    sss  = "    {:15s}   {:.3e}\n".format(ALL_EPIM_MATCH_LISTS[ii][0],
-                                          ALL_EPIM_MATCH_LISTS[ii][1])
-    EPIM_str+= sss
-
-# quantities that must be strictly > 0
-all_quant_gt_zero = [
-    'freq',
-    'dset_nslice',
-    'dset_nt',
-    'dset_tr',
-    'img_line_time',
-    'img_fig_line',
-    'img_fontsize',
-    'img_dot_freq',
-    'img_bp_max_f',
-    'prefilt_win_card',
-    'prefilt_win_resp',
-]
-
-# quantities that must be >= 0
-all_quant_ge_zero = [
-    'min_bpm_card',
-    'min_bpm_resp',
-    'max_bpm_card',
-    'max_bpm_resp',
-]
+#
+# Defaults and static option-definition structures live in
+# lib_physio_defs.py and are referenced directly through DEF throughout
+# this option-processing library.
 
 # --------------------------------------------------------------------------
 # sundry other items
@@ -227,73 +39,799 @@ verb = 0
 
 dent = '\n' + 5*' '
 
-help_dict = {
-    'ddashline' : '='*76,
-    'ver'       : version,
-    'AJM_str'   : AJM_str,
-    'tikd'      : TEXT_interact_key_mouse,
+g_help_dict = {
+    **DEF.DOPTS,
+    'ddashline'          : '='*76,
+    'ver'                : DEF.version,
+    'AJM_str'            : DEF.AJM_str,
+    'tikm'               : DEF.TEXT_interact_key_mouse,
+    'all_prefilt_mode'   : ', '.join(DEF.all_prefilt_mode),
+    'all_volbase_resp'   : DEF.all_volbase_resp,
+    'all_volbase_card'   : DEF.all_volbase_card,
+    'DEF_rvt_shift_list' : DEF.DEF_rvt_shift_list,
 }
+
+g_help_string = """
+Overview ~1~
+
+This program creates slice-based regressors for regressing out
+components of estimated cardiac and respiratory signals, as well as
+the respiration volume per time (RVT), RVTRRF and HRCRF.
+
+Much of the calculations are based on the following papers about
+estimating physiological regressors to be applied in FMRI analysis:
+
+  Glover GH, Li TQ, Ress D (2000). Image-based method for
+  retrospective correction of physiological motion effects in fMRI:
+  RETROICOR. Magn Reson Med 44(1):162-7.
+
+  Birn RM, Diamond JB, Smith MA, Bandettini PA (2006). Separating
+  respiratory-variation-related fluctuations from
+  neuronal-activity-related fluctuations in fMRI. Neuroimage
+  31(4):1536-48.
+
+  Birn RM, Smith MA, Jones TB, Bandettini PA (2008). The respiration
+  response function: the temporal dynamics of fMRI signal fluctuations
+  related to changes in respiration. Neuroimage 40(2):644-654.
+
+  Chang C, Glover GH (2009). Relationship between respiration,
+  end-tidal CO2, and BOLD signals in resting-state fMRI. Neuroimage
+  47(4):1381-1393.
+
+This code has been informed by earlier programs that estimated
+RETROICOR and RVT regressors, namely 3dretroicor by Fred Tam,
+RetroTS.m by Ziad Saad and RetroTS.py by J Zosky.  That being said, the
+current code's implementation was written separately, to understand
+the underlying processes and algorithms afresh, to modularize several
+pieces, to refactorize others, and to produce more QC outputs and logs
+of information.  Several steps in the eventual regressor estimation
+depend on processes like peak- (and trough-) finding and outlier
+rejection, which can be reasonably implemented in many ways.  We do
+not expect exact matching of outcomes between this and the previous
+versions.
+
+Below, we use the following abbreviations a lot:
+* "resp" refers to respiratory (breathing) input and results
+* "card" refers to cardiac (heart rate) input and results
+
+{ddashline}
+
+Options ~1~
+
+The options are organized by category here. The general expectation is
+for the user to use one or more options from the "Main ..."
+categories, and the remaining options are available for additional
+control, if needed. For example, the '-do_fix_* ..' options might be
+very useful if there are weird features in the input physio data.
+
+Note that some prefiltering and other processing parameters are _on_
+by default, since they seem generally useful. But they could be turned
+off, if preferable.
+
+
+* Main input, physio datasets and parameters: at least one card or resp
+  time series must be provided, along with timing information:
+
+  -resp_file RF       :Path to one respiration data file
+
+  -card_file CF       :Path to one cardiac data file
+
+  -phys_file PF       :BIDS-formatted physio file in tab-separated format.
+                       May be gzipped
+
+  -phys_json PJ       :BIDS-formatted physio metadata JSON file. This is
+                       required whenever -phys_file is used
+
+  -freq F             :Physiological signal sampling frequency (in Hz)
+
+  -start_time ST      :The start time for the physio time series, relative to
+                       the initial MRI volume (in s) 
+                       (def: {start_time})
+
+
+* Main EPI/FMRI dataset info, which can be provided in various ways
+  (easiest: provide an EPI dataset via '-dset_epi ..'):
+
+  -dset_epi DE        :Accompanying EPI/FMRI dset to which the physio
+                       regressors will be applied, for obtaining the
+                       volumetric parameters (namely, dset_tr, dset_nslice,
+                       dset_nt)
+
+  -dset_tr TR         :FMRI dataset's repetition time (TR), which defines the
+                       time interval between consecutive volumes (in s)
+
+  -dset_nt NT         :Integer number of time points to have in the output
+                       (should likely match FMRI dataset's number of volumes)
+
+  -dset_nslice NS     :Integer number of slices in FMRI dataset
+
+  -dset_slice_times DST  :Slice time values (space separated list of numbers)
+
+  -dset_slice_pattern SP  :Slice timing pattern code. 
+                       Use '-disp_all_slice_patterns Yes' to see all allowed
+                       patterns. Alternatively, one can enter the filename of
+                       a file containing a single column of slice times.
+                       (def: {dset_slice_pattern})
+
+
+* Main output options like directory and file naming:
+
+  -out_dir OD         :Output directory name (can include path)
+
+  -prefix P           :Prefix of output filenames, without path
+                       (def: {prefix})
+
+
+* Main choice of output regressor types, related control options, and formats:
+
+  -regress_types_resp RTR
+                      :Provide a list of one or more types of regressors
+                       derived from the input respiratory physio data. This is
+                       done by listing one or more codes from among the
+                       following list: {all_volbase_resp} 
+                       (def: {regress_types_resp})
+
+  -regress_types_card RTC
+                      :Provide a list of one or more types of regressors
+                       derived from the input cardiac physio data. This is
+                       done by listing one or more codes from among the
+                       following list:   {all_volbase_card} 
+                       (def: {regress_types_card})
+
+  -rvt_shift_list RSL :Provide one or more values to specify how many and what
+                       kinds of shifted copies of RVT are output as
+                       regressors. Units are seconds, and including 0 may be
+                       useful. Shifts could also be entered via
+                       '-rvt_shift_linspace ..' 
+                       (def: {DEF_rvt_shift_list})
+
+  -rvt_shift_linspace A B N
+                      :Alternative to '-rvt_shift_list ..'. Provide three
+                       space-separated values (start stop N) used to determine
+                       how many and what kinds of shifted copies of RVT are
+                       output as regressors, according to the Python-Numpy
+                       function linspace(start, stop, N). Both start and stop
+                       (units of seconds) can be negative, zero or positive.
+                       Including 0 may be useful.  Example params: 0 4 5,
+                       which lead to shifts of 0, 1, 2, 3 and 4 sec 
+                       (def: {rvt_shift_linspace}, use '-rvt_shift_list')
+
+  -do_slibase_out DSO: Output the older style of physio output from the
+                       RetroTS.py days, namely where all regressors are output
+                       in a single slice-based regressor file, *slibase.1D;
+                       NB: this is _not_ recommended, and only existing for 
+                       comparisons to older formats.
+                       Allowed values are: Yes, 1, No, 0
+                       (def: '{do_slibase_out}')
+
+
+* Prefiltering: these options control input physio time series pre-processing
+  (NB: some of these are now ON by default, because they seem generally
+  useful, but they could be turned off):
+
+  -do_fix_nan DFN     :Fix (= replace with interpolation) any NaN values in
+                       the physio time series.
+                       Allowed values are: Yes, 1, No, 0 
+                       (def: '{do_fix_nan}')
+
+  -do_fix_null DFN    :Fix (= replace with interpolation) any null or missing
+                       values in the physio time series.
+                       Allowed values are: Yes, 1, No, 0 
+                       (def: '{do_fix_null}')
+
+  -do_fix_outliers DFO  :Fix (= replace with interpolation) any outliers in
+                       the physio time series. 
+                       Allowed values are: Yes, 1, No, 0
+                       (def: '{do_fix_outliers}')
+
+  -extra_fix_list EFL: List of one or more values that will also be considered
+                       'bad' if they appear in the physio time series, and
+                       replaced with interpolated values
+
+  -remove_val_list RVL  :List of one or more values that will removed (not
+                       interpolated: the time series will be shorter, if any
+                       are found) if they appear in the physio time series;
+                       this is necessary with some manufacturers' outputs, see
+                       "Notes of input peculiarities," below
+
+  -prefilt_max_freq PMF  :Allow for downsampling of the input physio time
+                       series, by providing a maximum sampling frequency
+                       (in Hz). This is applied just after badness checks.
+                       Values <=0 mean that no downsampling will occur 
+                       (def: {prefilt_max_freq})
+
+  -prefilt_mode PM    :Filter input physio time series (after badness checks),
+                       likely aiming at reducing noise; can be combined
+                       usefully with prefilt_max_freq. Allowed modes:
+                       {all_prefilt_mode} 
+                       (def: {prefilt_mode})
+
+  -prefilt_win_card PWC  :Window size (in s) for card time series, if
+                       prefiltering input physio time series with
+                       '-prefilt_mode ..'; value must be >0
+                       (def: {prefilt_win_card}, only used with prefiltering)
+
+  -prefilt_win_resp PWR  :Window size (in s) for resp time series, if
+                       prefiltering input physio time series with
+                       '-prefilt_mode ..'; value must be >0 
+                       (def: {prefilt_win_resp}, only used with prefiltering)
+
+
+* Processing parameters during some intermediate filtering stages:
+
+  -min_bpm_resp MNR   :Set the minimum breaths per minute for respiratory proc
+                       (def: {min_bpm_resp})
+
+  -max_bpm_resp MXR   :Set the maximum breaths per minute for respiratory proc
+                       (def: {max_bpm_resp})
+
+  -min_bpm_card MNC   :Set the minimum beats per minute for cardiac proc
+                       (def: {min_bpm_card})
+
+  -max_bpm_card MXC   :Set the maximum beats per minute for cardiac proc
+                       (def:{max_bpm_card})
+
+
+* User interaction: users can fix/check/update peak and trough estimates:
+
+  -do_interact DI     :Enter into interactive mode as the last stage of
+                       peak/trough estimation for the physio time series.
+                       Allowed values are: Yes, 1, No, 0
+                       (def: '{do_interact}')
+
+
+* QC images properties, which can be adjusted if needed/desired:
+
+  -img_verb IV        :Verbosity level for saving QC images during processing,
+                       by choosing one integer: 0 - Do not save graphs 1 -
+                       Save end results (card and resp peaks, final RVT) 2 -
+                       Save end results and intermediate steps (bandpassing,
+                       peak refinement, etc.) 
+                       (def: {img_verb})
+
+  -img_figsize W H    :Figure dimensions used for QC images 
+                       (def: depends on length of physio time series)
+
+  -img_fontsize FS    :Font size used for QC images
+                       (def: {img_fontsize})
+
+  -img_line_time LT   :Maximum time duration per line in the QC images, in
+                       units of sec
+                       (def: {img_line_time})
+
+  -img_fig_line NL    :Maximum number of lines per fig in the QC images
+                       (def: {img_fig_line})
+
+  -img_dot_freq DF    :Maximum number of dots per line in the QC images (to
+                       save filesize and plot time), in units of dots per sec
+                       (def: {img_dot_freq})
+
+  -img_bp_max_f MF    :Maximum frequency in the bandpass QC images (i.e.,
+                       upper value of x-axis), in units of Hz
+                       (def: {img_bp_max_f})
+
+
+* Save current peaks to a separate file:
+
+  -save_proc_peaks    :Write out the final set of peaks indices to a text file
+                       called PREFIX_LABEL_proc_peaks_00.1D ('LABEL' is
+                       'card', 'resp', etc.), which is a single column of the
+                       integer values
+                       (def: don't write them out)
+
+  -save_proc_troughs  :Write out the final set of trough indices to a text
+                       file called PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is
+                       'card', 'resp', etc.), which is a single column of the
+                       integer values. The file is only output for LABEL 
+                       types where troughs were estimated (e.g., resp).
+                       (def: don't write them out)
+
+
+* Load/read in previous peaks and troughs to use:
+
+  -load_proc_peaks_resp LPR
+                      :Load in a file of resp data peaks that have been saved
+                       via '-save_proc_peaks'. This file is a single column of
+                       integer values, which are indices of the peak locations
+                       in the processed time series
+
+  -load_proc_troughs_resp LTR
+                      :Load in a file of resp data troughs that have been
+                       saved via '-save_proc_troughs'. This file is a single
+                       column of integer values, which are indices of the
+                       trough locations in the processed time series
+
+  -load_proc_peaks_card LPC
+                      :Load in a file of card data peaks that have been saved
+                       via '-save_proc_peaks'. This file is a single column of
+                       integer values, which are indices of the peak locations
+                       in the processed time series
+
+
+* Sundry displays of help or further text display:
+
+  -verb V             :Integer values to control verbosity level
+                       (def: {verb})
+
+  -disp_all_slice_patterns DSP
+                      :Display all allowed slice pattern names?
+                       Allowed values are: Yes, 1, No, 0
+                       (def: '{disp_all_slice_patterns}')
+
+  -disp_all_opts DAO  :Display all options for this program?
+                       Allowed values are: Yes, 1, No, 0 
+                       (def: '{disp_all_opts}')
+
+  -ver                :Display program version number
+
+  -help               :Display help text in terminal
+
+  -hview              :Display help text in a text editor (AFNI functionality)
+
+{ddashline}
+
+Notes on usage ~1~
+
+Physio data inputs ~2~
+
+  At least one of the following sets of input option sets (shown one per
+  line) must be used to provide input physio data (i.e., card, resp or 
+  both time series):
+
+    -card_file CF
+    -resp_file RF
+    -card_file CF  -resp_file RF
+    -phys_file PF  -phys_json PJ
+
+  If the sampling frequency (units: Hz) of the physio data is not
+  provided by -phys_json, then it must be provided with this opt:
+
+    -freq F
+
+  Additionally, the starting time of the physio data relative to the
+  start of the EPI data will be assumed to be 0.0 unless another value
+  is provided by the user (units: sec; any value provided by the
+  user/file should be <=0); this info can be provided either via the
+  -phys_json file, or by this opt:
+
+    -start_time ST
+
+  The following table lists the relevant sampling and starting
+  parameters that could be provided from _either_ a command line
+  option (ARG/OPT) or a '-phys_json ..' file's keys (JSON KEY):
+
+{AJM_str}
+  It is possible that these items could be provided by *both* the JSON
+  file and the command line opt (e.g., due to JSON heterogeneity
+  across a study).  In such events, this program checks to make sure
+  any dually-provided values are consistent to within EPS VAL.
+
+EPI/FMRI inputs and information ~2~
+
+  EPI-related information is required to build regressors: TR, number
+  of slices, number of time points, and slice timing info.  It is
+  easiest to provide these items by just providing the EPI/FMRI dset
+  directly with:
+
+    -dset_epi DE
+
+  But users could also provide that info separately, with:
+
+    -dset_tr           TR
+    -dset_nslice       NS
+    -dset_nt           NT
+    -dset_slice_times  DST    _or_   -dset_slice_pattern  SP
+
+{ddashline}
+
+Prefiltering options for the physio time series ~1~
+
+  Many physio time series contain noisy spikes or occasional blips.
+  Since most physio processing algorithms rely on peak-/trough-finding,
+  such spikes can be highly problematic. The effects of these can be
+  reduced during processing with some "prefiltering".  At present, this
+  includes using a moving median filter along the time series, to try to
+  remove spiky things that are likely nonphysiological. This can be
+  implemented by using this opt+arg:
+
+      -prefilt_mode median
+
+  An additional decision to make then becomes what width of filter to
+  apply. That is, over how many points should the median be
+  calculated?  The choice should balance being large enough to be
+  stable with being small enough to not remove useful features (like
+  real peaks, troughs or other time series changes). Users can specify
+  a time interval for the card and resp data separately, because each
+  has a different expected time scale of variability (and experimental
+  design can affect this choice, as well).  So, the user can use:
+
+      -prefilt_win_card  PWC
+      -prefilt_win_resp  PWR
+
+  ... providing PW? values in units of seconds. Because this seems
+  generally useful to use, at present prefiltering is _on_ by default
+  (with default parameters listed above in the options section). To
+  turn these off, one could use:  '-prefilt_mode none'.
+
+  Finally, physio time series are acquired with a variety of sampling
+  frequencies.  These can easily range from 50 Hz to 2000 Hz (or more).
+  That means 50 (or 2000) point estimates per second---which is a lot
+  for most applications.  Consider that typical FMRI sampling intervals
+  are TR = 1-2 sec or so, meaning that they have 0.5 or 1 point estimates
+  per sec.  Additionally, many (human) cardiac cycles are roughly of
+  order 1 per sec or so, and (human) respiration is at a much slower
+  rate.  All this is to say, having a highly sampled physio time series
+  can be unnecessary for most practical applications and analyses.  We
+  can reduce computational cost and processing time by downsampling it
+  near the beginning of processing. This would be done by specifying a
+  max sampling frequency MAX_F for the input data, to downsample to (or 
+  near to), via: 
+
+      -prefilt_max_freq  PMF
+
+  In general, at least for human applications, it seems hard to see
+  why one would need more than 50 physio measures per
+  second. Therefore, this sampling-related prefiltering is also on by
+  default. To turn this off, one could use: '-prefilt_max_freq -1'.
+
+  NB: The above prefiltering actions are all be applied _after_ any
+  steps performed with '-do_fix_* ..' options, which help to find (and
+  hopefully remove) other kinds of problematic, non-phyiosological
+  features in the input time series.
+ 
+{ddashline}
+
+User interaction for peak/trough editing ~1~
+
+  This program includes functionality whereby the user can directly
+  edit the peaks and troughs that have estimated. This includes
+  adding, deleting or moving the points around, with the built-in
+  constraint of keeping the points on the displayed physio time series
+  line. It's actually kind of fun.
+
+  To enter interactive mode during the runtime of the program, add this
+  option:
+
+    -do_interact Yes
+
+  Then, at some stage during the processing, a Matplotlib panel will pop
+  up, showing estimated troughs and/or peaks, which the user can edit if
+  desired. Upon closing the pop-up panel, the final locations of
+  peaks/troughs are kept and used for the remainder of the code's run.
+
+  {tikm}
+
+  For more on the Matplotlib panel navigation keypresses and tips, see:
+  https://matplotlib.org/3.2.2/users/navigation_toolbar.html
+
+  At present, there is no "undo" functionality. If you accidentally
+  delete a point, you can add one back, or vice versa.
+
+{ddashline}
+
+Reload peaks/troughs from earlier physio_calc.py run ~1~
+
+  It is possible to save estimated peak and trough values to a text file
+  with this program, using:
+
+     -save_proc_peaks
+     -save_proc_troughs
+
+  respectively.  These options tell the program to write *.1D files
+  that contain the integer indices of the peaks or troughts within the
+  processed time series. The output files are automatically named in
+  the output directory.
+
+  It is also possible to re-load those text files of integer indices
+  back into the program, which might be useful when further editing of
+  peaks/troughs is necessary, for example, via '-do_interact Yes'.
+
+  To do this, you should basically run the same physio_calc.py command
+  you initially ran to create the time points (same inputs, same
+  '-prefilt_* ..' opts, etc.)  but perhaps with different output
+  directory and/or prefix, and add the one or more of the following
+  options:
+
+     -load_proc_peaks_resp    LPR
+     -load_proc_troughs_resp  LTR
+     -load_proc_peaks_card    LPC
+
+  Each of these takes a single argument, which is the appropriate file
+  name to read in.
+
+  **Note 1: it is important to keep all the same processing options
+    from the original command even when reading in already-generated
+    peaks and troughs. This is because prefiltering and start_time
+    options can affect how the read-in indices are interpreted. It is
+    important to maintain consistency. To facilitate recalling the
+    earlier options, there should be a 'PREFIX_pc_cmd.tcsh' file that is
+    saved among the outputs of a given physio_calc.py run.
+
+  **Note 2: while reusing the same processing options is advised when
+    loading in earlier outputs to use, it might help reduce confusion
+    between those prior physio_calc.py outputs and the new results by
+    changing the '-out_dir ..' and '-prefix ..'.
+
+{ddashline}
+
+Notes on scanner-related peculiarities ~1~
+
+  With Siemens physiological monitoring, values of 5000, 5003 and 6000
+  can be used as trigger events to mark the beginning or end of
+  something, like the beginning of a TR.  Based on the Siemens Matlab
+  programs, the encoded meanings are:
+
+      5000 = cardiac pulse on
+      5003 = cardiac pulse off
+      6000 = cardiac pulse off
+      6002 = phys recording on
+      6003 = phys recording off
+
+  Moreover, it appears that these numbers are *inserted* into the
+  series, in which case, the specified 500? and 600? values should be
+  *removed* rather than replaced by an interpolation of the two adjacent
+  values.  To do this, you can use something like the following option
+  syntax:
+
+      -remove_val_list 5000 5003 6000 6002 6003
+
+{ddashline}
+
+Outputs overview ~1~
+
+  The following are possible outputs to running this program. The
+  number of images created varies based on user-controlled options. The
+  *resp* files are only output if respiratory signal information were
+  input, and similarly for *card* files with cardiac input.
+
+
+Outputs in: OUT_DIR/ ~2~
+
+  The main output files are the following text files, which contain
+  regressors that can be provided to afni_proc.py for FMRI processing:
+
+    PREFIX_physio_regress_slice.1D 
+      :slice-based regressor file, which can be made up of any of the
+       following card and/or resp regressors: retro.  This can be
+       provided to afni_proc.py via '-ricor_regs ..'.
+
+    PREFIX_physio_regress_volume.1D 
+      :volume-based regressor file, which can be made up of any of the
+       following card and/or resp regressors: rvt, rvtrrf, hrcrf.
+       This can be provided to afni_proc.py via '-********** ..'.
+
+  The following subdirectories contain useful supplementary information:
+
+    PREFIX_physio_images/     
+      :subdir holding QC images (see below)
+
+    PREFIX_physio_extras/
+      :subdir holding additional text files of interest (see below)
+
+
+Outputs in: OUT_DIR/PREFIX_physio_extras/ ~2~
+
+  Supplementary text files that may be of user. These include recording
+  input options, as well as QC summaries of peak/trough properties.
+
+    PREFIX_resp_review.txt
+      :summary statistics and info for resp proc
+
+    PREFIX_card_review.txt
+      :summary statistics and info for card proc
+
+    PREFIX_pc_cmd.tcsh
+      :log/copy of the command used
+
+    PREFIX_info.json 
+      :reference dictionary of all command inputs after interpreting
+       user options and integrating default values
+
+  The following text files are only output when using the
+  '-save_proc_peaks' and/or '-save_proc_troughs' option(s):
+
+    PREFIX_card_peaks_00.1D
+      :1D column file of peak indices for card data corresponding to
+       card*final_peaks*svg image.
+
+    PREFIX_resp_peaks_00.1D
+      :1D column file of peak indices for resp data corresponding to
+       resp*final_peaks*svg image.
+
+    PREFIX_resp_troughs_00.1D
+      :1D column file of trough indices for resp data, corresponding
+       to resp*final_peaks*svg image.
+
+
+Outputs in: OUT_DIR/PREFIX_physio_images/ ~2~
+
+  QC images related to finding peaks and troughs, phase estimation,
+  and regressor creation.  The number of files here will vary based on
+  input data, regressors created, and verbosity of intermediate
+  processing.  The main output QC images are:
+
+    PREFIX_the_regressors_*.svg
+      :QC images of all regressors estimated by physio_calc.py
+
+    PREFIX_card_10_final*peaks*.svg
+    PREFIX_resp_10_final*peaks*.svg
+      :QC images of final peak estimation for card data processing.
+       Colorbands highlight longer (red) and shorter (blue) intervals,
+       compared to median (white). For more details, see 'How to
+       interpret coloration...', below.
+
+  The following intermediate QC images are only output with '-img_verb 2'
+  or higher:
+
+    PREFIX_card_0*.svg
+    PREFIX_resp_0*.svg      
+      :QC images of intermediate peak estimation for card and resp
+       data processing
+
+    PREFIX_card_bandpass*.svg
+    PREFIX_resp_bandapss*.svg
+      :QC images of intermediate peak/trough estimation during an
+       initial bandpass stage; includes image of Fourier-transform
+       spectrum, as well as bandpassed time series
+
+    PREFIX_card_20_*.svg
+    PREFIX_resp_20_*.svg
+      :QC images of intermediate stages in either RVT- or CRF-based
+       estimations
+
+{ddashline}
+
+How to interpret coloration in *final_peaks* images ~1~
+
+  The QC images contain images that are supposed to be helpful in
+  interpreting the data.  Here are some notes on various aspects.
+
+  When viewing physio time series, the interval that overlaps the FMRI
+  dataset in time has a white background, while any parts that do not
+  have a light gray background.  Essentially, only the overlap regions
+  should affect regressor estimation---the parts in gray are useful to
+  have as realistic boundary conditions, though.
+
+  Peaks are always shown as downward pointing triangles, and troughs are
+  upward pointing triangles.
+
+  When viewing "final" peak and trough images, there will be color bands
+  made of red/white/blue rectangles shown in the subplots.  These
+  highlight the relative duration of a given interpeak interval (top
+  band in the subplot) and/or intertrough interval (bottom intervals),
+  relative to their median values across the entire time series.
+  Namely:
+
+     white : interval matches median
+     blue  : interval is shorter than median (darker blue -> much shorter)
+     red   : interval is longer than median (darker red -> much longer)
+
+  The more intense colors mean that the interval is further than the median,
+  counting in standard deviations of the interpeak or intertrough intervals.  
+  This coloration is meant to help point out variability across time: this
+  might reflect natural variability of the physio time series, or possibly
+  draw attention to a QC issue like an out-of-place or missing extremum 
+  (which could be edited in "interactive mode").
+
+A note on previous physio estimation with RetroTS.py ~1~
+
+  Note that the older RetroTS.py program for deriving physio-based
+  regressors in AFNI output only a single slice-based file, the
+  "*slibase.1D" file.  This contained even the non-slicewise defined
+  regressors, simply entered in a slicewise format.  But the slicewise
+  regression must be done before any other processing, rather than as
+  part of the main regress block processing.  So, the present program
+  outputs separate files for slice-based and volume-wise regressors, so
+  that as many as possible volumetric regressors can be applied more
+  appropriately in the regress block stage.
+
+  *If* you would like the older format of all-physio-regressors-in-a-single-
+  slicewise-file, you can add an option here for that:
+
+     -do_slibase_out Yes 
+
+  ... but this is not recommended and primarily exists just for testing
+  purposes.  If you do want the older *_slibase.1D file output, it
+  should _not_ be simultaneously included with the other
+  *physio_regress*.1D files estimated here.
+
+{ddashline}
+
+Examples ~1~
+
+  1. Basic input example, only cardiac data
+    
+    physio_calc.py                                                     \\
+        -card_file           physiopy/test000c                         \\
+        -freq                400                                       \\
+        -dset_epi            DSET_MRI                                  \\
+        -out_dir             OUT_DIR                                   \\
+        -prefix              PREFIX
+
+  2. Input of file+json pair; no EPI data input, so those parameters are
+     provided separately; some badness checks are also added:
+    
+    physio_calc.py                                                     \\
+        -phys_file           physiopy/test003c.tsv.gz                  \\
+        -phys_json           physiopy/test003c.json                    \\
+        -dset_tr             2.2                                       \\
+        -dset_nt             34                                        \\
+        -dset_nslice         34                                        \\
+        -dset_slice_pattern  alt+z                                     \\
+        -do_fix_nan          Yes                                       \\
+        -extra_fix_list      5000                                      \\
+        -out_dir             OUT_DIR                                   \\
+        -prefix              PREFIX
+
+  3. Another example, with both card and resp input; the types of regressors
+     to estimate are also specified:
+
+    physio_calc.py                                                     \\
+        -card_file           sub-005_ses-01_task-rest_physio-ECG.txt   \\
+        -resp_file           sub-005_ses-01_task-rest_physio-Resp.txt  \\
+        -freq                50                                        \\
+        -dset_tr             2.2                                       \\
+        -dset_nt             220                                       \\
+        -dset_nslice         33                                        \\
+        -dset_slice_pattern  alt+z                                     \\
+        -regress_types_resp  retro rvt                                 \\
+        -regress_types_card  retro hrcrf                               \\
+        -out_dir             OUT_DIR                                   \\
+        -prefix              PREFIX
+    
+{ddashline}
+
+written by: Peter Lauren, Richard Reynolds, Daniel Glen, and Paul 
+            Taylor (SSCC, NIMH, NIH, USA)
+
+additional input: Josh Dean and Dan Handwerker (SFIM, NIMH, NIH, USA)
+
+{ddashline}
+""".format(**g_help_dict)
+
 
 # ========================================================================== 
 # PART_02: helper functions
 
-def parser_to_dict(parser, argv, verb=0):
-    """Convert an argparse parser object to a dictionary of key (=opt) and
-value pairs.  Also store the argv as a value of returned dict (key =
-'argv').  There is an intermediate dictionary of volumetric-related
-items that is output first, because parsing it is complicated.  That
-will later get merged with the main args_dict
-    
+def parser_to_dict(inopts, argv, verb=0):
+    """Convert AFNI OptionList parsing to dictionaries of key (=opt) and
+value pairs.  There is an intermediate dictionary of volumetric-related
+items that is output first, because parsing it is complicated.  That will
+later get merged with the main args_dict.
+
+This preserves the dictionary interface used by the rest of physio_calc.py;
+only the front-end option parser has changed.
+
 Parameters
 ----------
-parser : argparse.ArgumentParser
-    object from parsing program options
+inopts : InOpts
+    object that defines and parses the valid AFNI-style options
+argv : list
+    full command line, including program name
 verb : int
     verbosity level whilst working
 
 Returns
 -------
 args_dict : dict
-    dictionary whose keys are option names and values are the
-    user-entered values (which might still need separate interpreting
-    later)
+    dictionary whose keys are option names and values are the user-entered
+    values (which might still need separate interpreting later)
 vol_dict : dict
-    secondary dictionary whose keys are option names and values are
-    the user-entered values (which might still need separate
-    interpreting later) specifically related to the volume, which will
-    get parsed separately and merged into the main dir later
+    secondary dictionary of volume-related option values
 
     """
 
-    # get args obj, and make a dict out of it
-    args      = parser.parse_args(argv[1:])
-    args_dict = vars(args)
+    is_bad = inopts.process_options(argv)
+    if is_bad :
+        return {}, {}
 
-    # each value in the args_dict is a list of something---extract that
-    # something.  NB: this affects the type we read things in as, above.
-    # We can parse below on a per-opt basis (e.g., turn a string into a
-    # list of float)
-    for key in args_dict.keys():
-        # this condition is needed bc when a boolean flag is used, its
-        # value will NOT be a list, magically, but everything else
-        # appears to be
-        if type(args_dict[key]) == list :
-            if len(args_dict[key]) == 1 :
-                args_dict[key] = args_dict[key][0]
-            else:
-                # list-> str with space sep, to be split later
-                args_dict[key] = ' '.join(args_dict[key])
-        else:
-            if verb:
-                print("++ non-list option key -> value: ", 
-                      key, '->', args_dict[key])
-
+    args_dict = copy.deepcopy(inopts.args_dict)
     args_dict['argv'] = copy.deepcopy(argv)
 
     # pop out the volumetric-related items, to parse separately, and
     # return later
     vol_dict = {}
-    for key in vol_key_list:
+    for key in DEF.vol_key_list:
         if key in args_dict :
             val = args_dict.pop(key)
             vol_dict[key] = copy.deepcopy(val)
@@ -323,12 +861,12 @@ DIFF_KEYS : int
       0 -> no difference
       1 -> difference
 
-    """
+"""
 
     DIFF_KEYS = 0
 
     if not(nameA) :    nameA = 'A'
-    if not(nameB) :    nameA = 'B'
+    if not(nameB) :    nameB = 'B'
 
     # simple count
     na = len(A)
@@ -336,10 +874,10 @@ DIFF_KEYS : int
 
     if na != nb :
         DIFF_KEYS = 1
-        print("** ERROR: number of keys in {} '{}' and in {} '{}' "
-              "do not match.\n"
-              "          This is a programming/dev issue."
-              "".format(nameA, na, nameB, nb))
+        msg = "number of keys in {} '{}' ".format(nameA, na)
+        msg+= "and in {} '{}' do not match.\n".format(nameB, nb)
+        msg+= "This is a programming/dev issue."
+        ab.EP1(msg)
 
     # detailed check per opt class
     setA = set(A.keys())
@@ -352,28 +890,30 @@ DIFF_KEYS : int
         DIFF_KEYS = 1
         missA.sort()
         str_missA = ', '.join(missA)
-        print("** ERROR: keys in {} that are missing in {}:\n"
-              "          {}".format(nameB, nameA, str_missA))
+        msg = "keys in {} that are missing in {}:\n".format(nameB, nameA)
+        msg+= "{}".format(str_missA)
+        ab.EP1(msg)
 
     if len(missB) :
         DIFF_KEYS = 1
         missB.sort()
         str_missB = ', '.join(missB)
-        print("** ERROR: keys in {} that are missing in {}:\n"
-              "          {}".format(nameA, nameB, str_missB))
+        msg = "keys in {} that are missing in {}:\n".format(nameA, nameB)
+        msg+= "{}".format(str_missB)
+        ab.EP1(msg)
 
     return DIFF_KEYS
 
-def check_simple_opts_to_exit(args_dict, parser):
+def check_simple_opts_to_exit(args_dict, inopts):
     """Check for simple options, after which to exit, such as help/hview,
-ver, disp all slice patterns, etc.  The parser is an included arg
-because it has the help info to display, if called for.
+ver, disp all slice patterns, etc.  The inopts object is an included
+arg because it has the help info to display, if called for.
 
 Parameters
 ----------
 args_dict : dict
     a dictionary of input options (=keys) and their values
-parser : argparse.ArgumentParser
+inopts : InOpts
     object from parsing program options
 
 Returns
@@ -386,12 +926,12 @@ int : int
 
     # if nothing or help opt, show help
     if args_dict['help'] :
-        parser.print_help()
+        inopts.print_help()
         return 1
 
     # hview functionality
     if args_dict['hview'] :
-        prog = parser.prog 
+        prog = inopts.prog 
         acmd = 'apsearch -view_prog_help {}'.format( prog )
         check_info = SP.Popen(acmd, shell=True, 
                               stdout=SP.PIPE, stderr=SP.PIPE,
@@ -399,15 +939,15 @@ int : int
         so, se = check_info.communicate() 
 
         if se :
-            print("-- no hview--")
+            ab.WP("no hview?")
             # act like simple help disp
-            parser.print_help()
+            inopts.print_help()
 
         return 1
 
     # display program version
     if args_dict['ver'] :
-        print(version)
+        print(DEF.version, flush=True)
         return 1
 
     # slice patterns, from list somewhere
@@ -419,7 +959,7 @@ int : int
 
     # all opts for this program, via DEF list
     if args_dict['disp_all_opts'] :
-        tmp = disp_keys_sorted(DEF, pref='-')
+        tmp = disp_keys_sorted(DEF.DOPTS, pref='-')
         if not(tmp) :
             return 1
 
@@ -444,8 +984,7 @@ SF : int
     """
 
     if type(D) != dict :
-        print("** ERROR: input D must be dict")
-        sys.exit(13)
+        ab.EP("input D must be dict")
     
     all_key = [pref+str(x) for x in get_keys_sorted(D)]
     print('{}'.format('\n'.join(all_key)))
@@ -465,11 +1004,10 @@ Returns
 L : list
     a sorted list (of keys from D)
 
-    """
+"""
 
     if type(D) != dict :
-        print("** ERROR: input D must be dict")
-        sys.exit(13)
+        ab.EP("input D must be dict")
 
     L = list(D.keys())
     L.sort()
@@ -491,13 +1029,12 @@ Returns
 all_sli : list (of floats)
     a list of floats, the slice times
 
-    """
+"""
 
     BAD_RETURN = []
 
     if not(os.path.isfile(fname)) :
-        print("** ERROR: {} is not a file (to read for slice timing)"
-              "".format(fname))
+        ab.EP1("{} is not a file (to read for slice timing)".format(fname))
         return BAD_RETURN
 
     try:
@@ -505,8 +1042,7 @@ all_sli : list (of floats)
         X   = fff.readlines()
         fff.close()
     except:
-        print("** ERROR opening {} (to read for slice timing)"
-              "".format(fname))
+        ab.EP1("opening {} (to read for slice timing)".format(fname))
         return BAD_RETURN
 
     # get list of floats, and length of each row when reading
@@ -523,25 +1059,26 @@ all_sli : list (of floats)
                 all_sli.extend([float(rr) for rr in rlist])
                 all_len.append(len(rlist))
             except:
-                print("** ERROR: badness in float conversion within "
-                      "slice timing file {}".format(fname))
-                print("   Bad line {} is: '{}'".format(ii+1, row))
+                msg = "badness in float conversion within "
+                msg+= "slice timing file {}\n".format(fname)
+                msg+= "Bad line {} is: '{}'".format(ii+1, row)
+                ab.EP1(msg)
                 return BAD_RETURN
     
     if not(N) :
-        print("** ERROR: no data in slice timing file {}?".format(fname))
+        ab.EP1("no data in slice timing file {}?".format(fname))
         return BAD_RETURN
 
     M = max(all_len)  # (max) number of cols
 
     if verb :
-        print("++ Slice timing file {} has {} rows and {} columns"
+        ab.IP("Slice timing file {} has {} rows and {} columns"
               "".format(fname, N, M))
 
     if not(N==1 or M==1) :
-        print("** ERROR: dset_slice_pattern file {} is not Nx1 or 1xN.\n"
-              "   Its dims of data are: nrow={},  max_ncol={}"
-              .format(fname, N, M))
+        msg = "dset_slice_pattern file {} is not Nx1 or 1xN.\n".format(fname)
+        msg+= "Its dims of data are: nrow={}, max_ncol={}".format(N, M)
+        ab.EP1(msg)
         return BAD_RETURN
 
     # finally, after more work than we thought...
@@ -561,12 +1098,12 @@ Returns
 jdict : dict
     dictionary form of the JSON
 
-    """
+"""
     
     BAD_RETURN = {}
 
     if not(os.path.isfile(fname)) :
-        print("** ERROR: cannot read file: {}".format(fname))
+        ab.EP1("cannot read file: {}".format(fname))
         return BAD_RETURN
 
     with open(fname, 'rt') as fff:
@@ -588,12 +1125,12 @@ Returns
 epi_dict : dict
     dictionary of necessary EPI info
 
-    """
+"""
     
     BAD_RETURN = {}
 
     if not(os.path.isfile(fname)) :
-        print("** ERROR: cannot read file: {}".format(fname))
+        ab.EP1("cannot read file: {}".format(fname))
         return BAD_RETURN
 
     # initialize, and store dset name
@@ -602,7 +1139,7 @@ epi_dict : dict
 
     # get simple dset info, which should/must exist
     cmd = '''3dinfo -n4 -tr {}'''.format(fname)
-    com = BASE.shell_com(cmd, capture=1, save_hist=0)
+    com = ab.shell_com(cmd, capture=1, save_hist=0)
     stat = com.run()
     lll = com.so[0].split()
     try:
@@ -614,21 +1151,20 @@ epi_dict : dict
         epi_dict['dset_nt']      = int(lll[3])
         epi_dict['dset_tr']      = float(lll[4])
     except:
-        print("+* WARN: problem extracting info from dset_epi")
+        ab.WP("problem extracting info from dset_epi")
         return BAD_RETURN 
 
     # try getting timing info from this dset, which might not exist
-    cmd = '''3dinfo -slice_timing {}'''.format(fname)
-    com = BASE.shell_com(cmd, capture=1, save_hist=0)
+    cmd  = '''3dinfo -slice_timing {}'''.format(fname)
+    com  = ab.shell_com(cmd, capture=1, save_hist=0)
     stat = com.run()
-    lll = [float(x) for x in com.so[0].strip().split('|')]
+    lll  = [float(x) for x in com.so[0].strip().split('|')]
     
     nslice = len(lll)
     if nk != nslice :
-        print("** ERROR: number of dset_slice_times in header ({}) "
-              "does not match slice count in k-direction ({})"
-              "".format(nslice, nk))
-        sys.exit(10)
+        msg = "number of dset_slice_times in header ({}) ".format(nslice)
+        msg+= "does not match slice count in k-direction ({})".format(nk)
+        ab.EP(msg)
 
     epi_dict['dset_slice_times'] = copy.deepcopy(lll)
 
@@ -662,7 +1198,7 @@ BAD_RECON : int
 args_dict2 : dict
     copy of input args_dict, that may be augmented with other info.
 
-    """ 
+"""
 
     BAD_RETURN = 1, {}
 
@@ -671,7 +1207,7 @@ args_dict2 : dict
     args_dict2 = copy.deepcopy(args_dict)
 
     # add known items that might be present
-    for aj_match in ALL_AJ_MATCH:
+    for aj_match in DEF.ALL_AJ_MATCH:
         aname   = aj_match[0]
         jname   = aj_match[1]
         eps_val = aj_match[2]
@@ -680,16 +1216,18 @@ args_dict2 : dict
             val_args = args_dict2[aname]
             if val_args != None :
                 if abs(val_json - val_args) > eps_val :
-                    print("** ERROR: inconsistent JSON '{}' = {} and "
-                          " input arg '{}' = {}"
-                          "".format(jname, val_json, aname, val_args))
+                    msg = "inconsistent JSON '{}' ".format(jname)
+                    msg+= "= {} and ".format(val_json)
+                    msg+= "input arg '{}' = {}".format(aname, val_args)
+                    ab.EP1(msg)
                     return BAD_RETURN
                 else:
-                    print("++ Reconciled: input info provided in two ways, "
-                          "which is OK because they are consistent (at "
-                          "eps={}):\n"
-                          "   JSON '{}' = {} and input arg '{}' = {}"
-                          "".format(eps_val, jname, val_json, aname, val_args))
+                    msg = "Reconciled: input info provided in two ways, "
+                    msg+= "which is OK because they are consistent (at "
+                    msg+= "eps={}):\n".format(eps_val)
+                    msg+= "   JSON '{}' = {} and ".format(jname, val_json)
+                    msg+= "input arg '{}' = {}".format(aname, val_args)
+                    ab.IP(msg)
             else:
                 args_dict2[aname] = val_json
 
@@ -701,7 +1239,7 @@ args_dict2 : dict
 
 # ... and needed with the above to insert a variable into the docstring
 reconcile_phys_json_with_args.__doc__ = \
-    reconcile_phys_json_with_args.__doc__.format(AJM_str=AJM_str)
+    reconcile_phys_json_with_args.__doc__.format(AJM_str=DEF.AJM_str)
 
 def interpret_rvt_shift_linspace_opts(A, B, C):
     """Three numbers are used to determine the shifts for RVT when
@@ -724,7 +1262,7 @@ is_fail : bool
 shift_list : list
     1D list of (floating point) shift values
 
-    """
+"""
 
     try :
         shift_list = imitation_linspace_mini(A, B, C)
@@ -750,11 +1288,17 @@ Returns
 -------
 L : list
     list of (float) values
-    """
+
+"""
+
+    if not(C > 0) :
+        raise ValueError("C must be positive")
+    if C == 1 :
+        return [A]
+
+    # at this point, we know C>1 ...
 
     denom = C - 1
-    if not(C > 0) :
-        raise ValueError("(C-1) is not positive")
     delta = (B - A)/denom
 
     L = [A+delta*ii for ii in range(C)]
@@ -762,830 +1306,270 @@ L : list
     return L
 
 
+# ========================================================================== 
+# PART_03: setup AFNI-style help and arguments/options
+
+
 
 # ========================================================================== 
-# PART_03: setup argparse help and arguments/options
+# setup AFNI-style option parser
 
-help_str_top = '''
-Overview ~1~
-
-This program creates slice-based regressors for regressing out
-components of cardiac and respiratory rates, as well as the
-respiration volume per time (RVT).
-
-Much of the calculations are based on the following papers:
-
-  Glover GH, Li TQ, Ress D (2000). Image-based method for
-  retrospective correction of physiological motion effects in fMRI:
-  RETROICOR. Magn Reson Med 44(1):162-7.
-
-  Birn RM, Diamond JB, Smith MA, Bandettini PA (2006). Separating
-  respiratory-variation-related fluctuations from
-  neuronal-activity-related fluctuations in fMRI. Neuroimage
-  31(4):1536-48.
-
-This code has been informed by earlier programs that estimated
-RETROICOR and RVT regressors, namely the RetroTS.py code by J Zosky,
-which itself follows on from the original RetroTS.m code by ZS Saad.
-That being said, the current code's implementation was written
-separately, to understand the underlying processes and algorithms
-afresh, to modularize several pieces, to refactorize others, and to
-produce more QC outputs and logs of information.  Several steps in the
-eventual regressor estimation depend on processes like peak- (and
-trough-) finding and outlier rejection, which can be reasonably
-implemented in many ways.  We do not expect exact matching of outcomes
-between this and the previous versions.
-
-Below, "resp" refers to respiratory input and results, and "card"
-refers to the same for cardiac data.
-
-{ddashline}
-
-Options ~1~
-
-'''.format(**help_dict)
-
-help_str_epi = '''
-{ddashline}
-
-Notes on usage and inputs ~1~
-
-* Physio data input: 
-  At least one of the following input option sets must be used:
-    -card_file 
-    -resp_file 
-    -card_file  and  -resp_file 
-    -phys_file  and  -phys_json
-
-* FMRI information input:
-  It is preferable to use:
-    -dset_epi
-  to provide EPI dset for which regressors will be made, to provide
-  the volumetric information that would otherwise be provided with:
-    -dset_tr
-    -dset_nslice
-    -dset_nt
-  ... and the slice timing information
-
-* Slice timing input:
-  If '-dset_epi ..' is not used to provide the slice timing (and other
-  useful) volumetric information, then exactly one of the following
-  input option must be used:
-    -dset_slice_times
-    -dset_slice_pattern
-
-* Physio information input: 
-  Each of the following input options must be provided through some
-  combination of phys_json file, dset_epi file, or the command line
-  opts themselves:
-    -freq
-    -dset_tr
-    -dset_nslice
-    -dset_nt
-
-* The following table shows which keys from 'phys_json' can be used to
-  set (= replace) certain command line argument/option usage:
-{AJM_str}
-  The 'EPS VAL' shows the maximum difference tolerated between a
-  JSON-provided key and an option-provided one, in case both exist in
-  a command line call.  It would be better to avoid such dual-calling.
-
-{ddashline}
-
-Notes on input peculiarities ~1~
-
-With Siemens physiological monitoring, values of 5000, 5003 and 6000 can be 
-used as trigger events to mark the beginning or end of something, like the 
-beginning of a TR.  The meanings, from the Siemens Matlab code are:
-    5000 = cardiac pulse on
-    5003 = cardiac pulse off
-    6000 = cardiac pulse off
-    6002 = phys recording on
-    6003 = phys recording off
-
-It appears that the number is inserted into the series, in which case,
-5000 values could simply be removed rather than replaced by an
-interpolation of the two adjacent values, using the option
-'remove_val_list ..'.
-
-{ddashline}
-
-Notes on prefiltering physio time series ~1~
-
-Many physio time series contain noisy spikes or occasional blips.  The
-effects of these can be reduced during processing with some
-"prefiltering".  At present, this includes using a moving median
-filter along the time series, to try to remove spiky things that are
-likely nonphysiological.  This can be implemented by using this opt+arg:
-    -prefilt_mode median
-
-An additional decision to make then becomes what width of filter to
-apply.  That is, over how many points should the median be calculated?
-One wants to balance making it large enough to be stable/useful with
-small enough to not remove real features (like real peaks, troughs or
-other time series changes).  This is done by choosing a time interval,
-and this interval is specified separately for each of the card and
-resp time series, because each has a different expected time scale of
-variability (and experimental design can affect this choice, as well).  
-So, the user can use:
-    -prefilt_win_card  TIME_C
-    -prefilt_win_resp  TIME_R
-... and replace TIME_* with real time values, in using of seconds.  There
-are default time values in place, when '-prefilt_mode ..' is used; see
-above.
-
-Finally, physio time series are acquired with a variety of sampling
-frequencies.  These can easily range from 50 Hz to 2000 Hz (or more).
-That means 50 (or 2000) point estimates per second---which is a lot
-for most applications.  Consider that typical FMRI sampling rates are
-TR = 1-2 sec or so, meaning that they have 0.5 or 1 point estimates
-per sec.  Additionally, many (human) cardiac cycles are roughly of
-order 1 per sec or so, and (human) respiration is at a much slower
-rate.  All this is to say, having a highly sampled physio time series
-can be unnecessary for most practical applications and analyses.  We
-can reduce computational cost and processing time by downsampling it
-near the beginning of processing. This would be done by specifying a
-max sampling frequency MAX_F for the input data, to downsample to (or 
-near to), via: 
-    -prefilt_max_freq  MAX_F
-
-All of the above prefiltering is applied after initial 'badness'
-checks for outliers or missing values, so those processes can be a bit
-slow for densely acquired data.
-
-*Recommendation*
-In general, at least for human applications, it seems hard to see why
-one would need more than 50 physio measures per second.  It also seems
-like median filtering over even relatively small windows typically be
-useful.  So, perhaps consider adding these options to most processing 
-(but adjust as appropriate!):
-    -prefilt_max_freq   50 
-    -prefilt_mode       median
-
-If reasonable, the '-prefilt_win_card ..' and '-prefilt_win_resp ..'
-values could also be adjusted.
-
-
-{ddashline}
-
-User interaction for peak/trough editing ~1~
-
-This program includes functionality whereby the user can directly edit
-the peaks and troughs that have estimated.  This includes adding,
-deleting or moving the points around, with the built-in constraint of
-keeping the points on the displayed physio time series line.  It's
-kind of fun.
-
-To enter interactive mode during the runtime of the program, use the
-'-do_interact' option.  Then, at some stage during the processing, a
-Matplotlib panel will pop up, showing estimated troughs and/or peaks,
-which the user can edit if desired.  Upon closing the pop-up panel,
-the final locations of peaks/troughs are kept and used for the
-remainder of the code's run.
-
-{tikd}
-
-For more on the Matplotlib panel navigation keypresses and tips, see:
-https://matplotlib.org/3.2.2/users/navigation_toolbar.html
-
-At present, there is no "undo" functionality. If you accidentally
-delete a point, you can add one back, or vice versa.
-
-{ddashline}
-
-Loading in peaks/troughs from earlier physio_calc.py run ~1~
-
-It is possible to save estimated peak and trough values to a text file
-with this program, using '-save_proc_peaks' and '-save_proc_troughs',
-respectively.  These options tell the program to write *.1D files that
-contain the integer indices of the peaks or troughts within the
-processed time series.
-
-It is now possible to re-load those text files of integer indices back
-into the program, which might be useful when further editing of
-peaks/troughs is necessary, for example, via '-do_interact'.  
-
-To do this, you should basically run the same physio_calc.py command
-you initially ran to create the time points (same inputs, same
-'-prefilt_* ..' opts, etc.)  but perhaps with different output
-directory and/or prefix, and add the one or more of the following
-options:
-   -load_proc_peaks_resp  ..
-   -load_proc_troughs_resp  ..
-   -load_proc_peaks_card  ..
-Each of these takes a single argument, which is the appropriate file
-name to read in.
-
-**Note 1: it is important to keep all the same processing options
-  from the original command even when reading in already-generated
-  peaks and troughs. This is because prefiltering and start_time
-  options can affect how the read-in indices are interpreted. It is
-  important to maintain consistency. To facilitate recalling the
-  earlier options, there should be a 'PREFIX_pc_cmd.tcsh' file that is
-  saved among the outputs of a given physio_calc.py run.
-
-**Note 2: while reusing the same processing options is advised when
-  loading in earlier outputs to use, it might help reduce confusion
-  between those prior physio_calc.py outputs and the new results by
-  changing the '-out_dir ..' and '-prefix ..'.
-
-
-{ddashline}
-
-Output files ~1~
-
-The following files will/can be created in the output dir, with the
-chosen prefix PREFIX.  Some are primary output files (like the file of
-physio and RVT regressors), and some are helpful QC images.  The
-*resp* files are only output if respiratory signal information were
-input, and similarly for *card* files with cardiac input.  At present,
-RVT is only calculated from resp input.
-
-  PREFIX_slibase.1D         : slice-based regressor file, which can include
-                              card, resp and RVT regressors, and provided 
-                              to afni_proc.py for inclusion in FMRI processing
-
-  PREFIX_regressors_phys.svg: QC image of all physio regressors (including
-                              card and/or resp), corresponding to slice=0
-                              physio regressors in *slibase.1D
-  PREFIX_regressors_rvt_resp.svg: 
-                              QC image of all RVT regressors from resp data,
-                              corresponding to all shifted RVT regressors in
-                              in *slibase.1D
-
-  PREFIX_resp_review.txt    : summary statistics and information for resp proc
-  PREFIX_card_review.txt    : summary statistics and information for card proc
-
-  PREFIX_pc_cmd.tcsh        : log/copy of the command used
-  PREFIX_info.json          : reference dictionary of all command inputs after
-                              interpreting user options and integrating
-                              default values
-
-  PREFIX_card_*_final_peaks*.svg
-                            : QC image of final peak estimation for card data.
-                              Can be several files, depending on length of
-                              input data. Colorbands highlight longer (red)  
-                              and shorter (blue) intervals, compared to median 
-                              (white)
-  PREFIX_resp_10_final_peaks_troughs*.svg
-                            : same as above image but for resp data (so also
-                              includes troughs)
-
-The following text files are only output when using the
-'-save_proc_peaks' and/or '-save_proc_troughs' option flag(s):
-
-  PREFIX_card_peaks_00.1D   : 1D column file of peak indices for card data,
-                              corresponding to card*final_peaks*svg image.
-  PREFIX_resp_peaks_00.1D   : 1D column file of peak indices for resp data,
-                              corresponding to resp*final_peaks*svg image.
-  PREFIX_resp_troughs_00.1D : 1D column file of trough indices for resp data,
-                              corresponding to resp*final_peaks*svg image.
-
-The following intermediate QC images are only output when the value of
-'-img_verb' is 2 or more.  In each time series plotting case, there
-may be multiple images, depending on time series length:
-
-  PREFIX_card_*_peaks*.svg  : QC images showing intermediate stages of peak
-                              calculation for card data
-  PREFIX_resp_*_peaks*.svg  : same as above image but for resp data peaks
-  PREFIX_resp_*_troughs*.svg: same as above image but for resp data troughs
-
-  PREFIX_card_bandpass_spectrum.svg,
-  PREFIX_resp_bandpass_spectrum.svg
-                            : QC images showing intermediate stage of peak
-                              and/or trough estimation, namely the Fourier
-                              Transform frequency spectrum (magnitude only),
-                              both full and bandpassed.
-
-  PREFIX_card_bandpass_ts_peaks*.svg,
-  PREFIX_resp_bandpass_ts_peaks*.svg,
-  PREFIX_resp_bandpass_ts_troughs*.svg
-                            : QC images showing intermediate stage of peak
-                              and/or trough estimation, namely the initial
-                              peak/trough estimation on the bandpassed
-                              physio time series
-
-  PREFIX_card_20_est_phase*.svg, 
-  PREFIX_resp_20_est_phase*.svg
-                            : QC images showing intermediate stages of phase
-                              calculation for card and/or resp data
-
-  PREFIX_resp_21_rvt_env*.svg
-                            : QC images showing intermediate stages of RVT
-                              calculation, namely envelope estimation
-
-  PREFIX_resp_22_rvt_measure*.svg
-                            : QC images showing intermediate stages of RVT
-                              calculation, RVT per input time series point
-
-{ddashline}
-
-Interpreting coloration in images ~1~
-
-The QC images contain images that are supposed to be helpful in
-interpreting the data.  Here are some notes on various aspects.
-
-When viewing physio time series, the interval that overlaps the FMRI
-dataset in time has a white background, while any parts that do not
-have a light gray background.  Essentially, only the overlap regions
-should affect regressor estimation---the parts in gray are useful to
-have as realistic boundary conditions, though.
-
-Peaks are always shown as downward pointing triangles, and troughs are
-upward pointing triangles.
-
-When viewing "final" peak and trough images, there will be color bands
-made of red/white/blue rectangles shown in the subplots.  These
-highlight the relative duration of a given interpeak interval (top
-band in the subplot) and/or intertrough interval (bottom intervals),
-relative to their median values across the entire time series.
-Namely:
-   white : interval matches median
-   blue  : interval is shorter than median (darker blue -> much shorter)
-   red   : interval is longer than median (darker red -> much longer)
-The more intense colors mean that the interval is further than the median,
-counting in standard deviations of the interpeak or intertrough intervals.  
-This coloration is meant to help point out variability across time: this
-might reflect natural variability of the physio time series, or possibly
-draw attention to a QC issue like an out-of-place or missing extremum 
-(which could be edited in "interactive mode").
-
-
-
-{ddashline}
-
-Examples ~1~
-
-  Example 1
-    
-    physio_calc.py                                                           \\
-        -card_file           physiopy/test000c                               \\
-        -freq                400                                             \\
-        -dset_epi            DSET_MRI                                        \\
-        -dset_slice_pattern  alt+z                                           \\
-        -extra_fix_list      5000                                            \\
-        -do_fix_nan                                                          \\
-        -out_dir             OUT_DIR                                         \\
-        -prefix              PREFIX
-
-  Example 2
-    
-    physio_calc.py                                                           \\
-        -phys_file           physiopy/test003c.tsv.gz                        \\
-        -phys_json           physiopy/test003c.json                          \\
-        -dset_tr             2.2                                             \\
-        -dset_nt             34                                              \\
-        -dset_nslice         34                                              \\
-        -dset_slice_pattern  alt+z                                           \\
-        -do_fix_nan                                                          \\
-        -extra_fix_list      5000                                            \\
-        -out_dir             OUT_DIR                                         \\
-        -prefix              PREFIX
-
-  Example 3 
-
-    physio_calc.py                                                           \\
-        -card_file           sub-005_ses-01_task-rest_run-1_physio-ECG.txt   \\
-        -resp_file           sub-005_ses-01_task-rest_run-1_physio-Resp.txt  \\
-        -freq                50                                              \\
-        -dset_tr             2.2                                             \\
-        -dset_nt             220                                             \\
-        -dset_nslice         33                                              \\
-        -dset_slice_pattern  alt+z                                           \\
-        -do_fix_nan                                                          \\
-        -out_dir             OUT_DIR                                         \\
-        -prefix              PREFIX
-    
-{ddashline}
-written by: Peter Lauren, Paul Taylor, Richard Reynolds and 
-            Daniel Glen (SSCC, NIMH, NIH, USA)
-
-{ddashline}
-'''.format(**help_dict)
-
-# ========================================================================== 
 # ============================ the args/opts ===============================
 
-# keep track of all opts over time, make sure it matches default list 
-odict = {}
+class InOpts:
+    """Object for storing and parsing physio_calc.py command line inputs."""
 
-# unused right now, but could be used to control spacing
-formatter = lambda prog: argp.HelpFormatter(prog, 
-                                            indent_increment=2,
-                                            max_help_position=12,
-                                            width=80)
+    def __init__(self, prog=None):
 
-# get args
-parser = argp.ArgumentParser( prog=str(sys.argv[0]).split('/')[-1],
-                              usage=argp.SUPPRESS, # don't show ugly usage
-                              add_help=False,
-                              allow_abbrev=False,
-                              formatter_class=argp.RawDescriptionHelpFormatter,
-                              #formatter_class=argp.RawTextHelpFormatter,
-                              #formatter_class=formatter,
-                              description=textwrap.dedent(help_str_top),
-                              epilog=textwrap.dedent(help_str_epi) )
+        self.status     = 0
+        self.prog       = prog if prog else os.path.basename(sys.argv[0])
+        self.valid_opts = OL.OptionList('valid opts')
+        self.user_opts  = None
+        self.args_dict  = copy.deepcopy(DEF.DOPTS)
 
-opt = '''resp_file'''
-hlp = '''Path to one respiration data file'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        # Keep descriptions and simple parsing types together with each option.
+        self.odict      = {}
+        self.opt_kind   = {}
+        self.opt_npar   = {}
 
-opt = '''card_file'''
-hlp = '''Path to one cardiac data file'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.init_options()
 
-opt = '''phys_file'''
-hlp = '''BIDS-formatted physio file in tab-separated format. May be
-gzipped'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+    def add_opt(self, opt, npar, kind, helpstr):
+        """Add one option, and retain its help/parsing metadata."""
 
-opt = '''phys_json'''
-hlp = '''BIDS-formatted physio metadata JSON file. If not specified, the
-JSON corresponding to the '-phys_file ..'  will be loaded'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        name = '-' + opt
+        self.valid_opts.add_opt(name, npar, [], helpstr=helpstr)
+        self.odict[opt] = helpstr
+        self.opt_kind[opt] = kind
+        self.opt_npar[opt] = npar
 
-opt = '''freq'''
-hlp = '''Physiological signal sampling frequency (in Hz)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+    def init_options(self):
+        """Prepare the set of all options."""
 
-opt = '''start_time'''
-hlp = '''The start time for the physio time series, relative to the initial
-MRI volume (in s) (def: {dopt})'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('resp_file', 1, 'str',
+                     'respiration input file')
 
-opt = '''prefilt_max_freq'''
-hlp = '''Allow for downsampling of the input physio time series, by
-providing a maximum sampling frequency (in Hz). This is applied just
-after badness checks.  Values <=0 mean that no downsampling will occur
-(def: {dopt})'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('card_file', 1, 'str',
+                     'cardiac input file')
 
-opt = '''prefilt_mode'''
-hlp = '''Filter input physio time series (after badness checks), likely
-aiming at reducing noise; can be combined usefully with
-prefilt_max_freq. Allowed modes: {all_mode} '''.format(all_mode = 
-', '.join(all_prefilt_mode))
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('phys_file', 1, 'str',
+                     'BIDS physio input file')
 
-opt = '''prefilt_win_card'''
-hlp = '''Window size (in s) for card time series, if prefiltering input
-physio time series with '-prefilt_mode ..'; value must be >0 (def:
-{dopt}, only used if prefiltering is on)'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('phys_json', 1, 'str',
+                     'BIDS physio JSON file')
 
-opt = '''prefilt_win_resp'''
-hlp = '''Window size (in s) for resp time series, if prefiltering input
-physio time series with '-prefilt_mode ..'; value must be >0 (def:
-{dopt}, only used if prefiltering is on)'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('freq', 1, 'float',
+                     'physio sampling frequency')
 
-opt = '''do_interact'''
-hlp = '''Enter into interactive mode as the last stage of peak/trough
-estimation for the physio time series (def: only automatic peak/trough
-estimation)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('start_time', 1, 'float',
+                     'physio start time relative to MRI')
 
-opt = '''out_dir'''
-hlp = '''Output directory name (can include path)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('out_dir', 1, 'str',
+                     'output directory')
 
-opt = '''prefix'''
-hlp = '''Prefix of output filenames, without path (def: {dopt})
-'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('prefix', 1, 'str',
+                     'output filename prefix')
 
-opt = '''dset_epi'''
-hlp = '''Accompanying EPI/FMRI dset to which the physio regressors will be
-applied, for obtaining the volumetric parameters (namely, dset_tr,
-dset_nslice, dset_nt)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('dset_epi', 1, 'str',
+                     'EPI dataset for MRI timing info')
 
-opt = '''dset_tr'''
-hlp = '''FMRI dataset's repetition time (TR), which defines the time
-interval between consecutive volumes (in s)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('dset_tr', 1, 'float',
+                     'MRI repetition time')
 
-opt = '''dset_nt'''
-hlp = '''Integer number of time points to have in the output (should likely
-match FMRI dataset's number of volumes)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
+        self.add_opt('dset_nt', 1, 'int',
+                     'MRI number of time points')
 
-opt = '''dset_nslice'''
-hlp = '''Integer number of slices in FMRI dataset'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
+        self.add_opt('dset_nslice', 1, 'int',
+                     'MRI number of slices')
 
-opt = '''dset_slice_times'''
-hlp = '''Slice time values (space separated list of numbers)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('SLI_T1', 'STI_T2'),
-                    nargs='+', type=str) # parse later
+        self.add_opt('dset_slice_times', -1, 'list',
+                     'MRI slice timing values')
 
-opt = '''dset_slice_pattern'''
-hlp = '''Slice timing pattern code (def: {dopt}). Use
-'-disp_all_slice_patterns' to see all allowed patterns. Alternatively,
-one can enter the filename of a file containing a single column of
-slice times.'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('dset_slice_pattern', 1, 'str',
+                     'MRI slice timing pattern')
 
-opt = '''do_fix_nan'''
-hlp = '''Fix (= replace with interpolation) any NaN values in the physio
-time series (def: exit if any appears)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('prefilt_max_freq', 1, 'float',
+                     'maximum physio sampling frequency')
 
-opt = '''do_fix_null'''
-hlp = '''Fix (= replace with interpolation) any null or missing values in
-the physio time series (def: exit if any appears)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('prefilt_mode', 1, 'str',
+                     'physio prefiltering mode')
 
-opt = '''do_fix_outliers'''
-hlp = '''Fix (= replace with interpolation) any outliers in the physio time
-series (def: don't change them and continue)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('prefilt_win_card', 1, 'float',
+                     'cardiac prefilter window')
 
-opt = '''extra_fix_list'''
-hlp = '''List of one or more values that will also be considered 'bad' if
-they appear in the physio time series, and replaced with interpolated
-values'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('FVAL1', 'FVAL2'),
-                    nargs='+', type=str) # parse later
+        self.add_opt('prefilt_win_resp', 1, 'float',
+                     'respiration prefilter window')
 
-opt = '''remove_val_list'''
-hlp = '''List of one or more values that will removed (not interpolated: the
-time series will be shorter, if any are found) if they appear in the
-physio time series; this is necessary with some manufacturers'
-outputs, see "Notes of input peculiarities," below.'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('RVAL1', 'RVAL2'),
-                    nargs='+', type=str) # parse later
+        self.add_opt('do_fix_nan', 1, 'yesno',
+                     'interpolate NaN values')
 
-opt = '''rvt_shift_list'''
-hlp = '''Provide one or more values to specify how many and what kinds of
-shifted copies of RVT are output as regressors. Units are seconds, and
-including 0 may be useful. Shifts could also be entered via
-'-rvt_shift_linspace ..' (def: {}) '''.format(DEF_rvt_shift_list)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('SHIFT1', 'SHIFT2'),
-                    nargs='+', type=str) # parse later
+        self.add_opt('do_fix_null', 1, 'yesno',
+                     'interpolate null values')
 
-opt = '''rvt_shift_linspace'''
-hlp = '''Alternative to '-rvt_shift_list ..'. Provide three space-separated
-values (start stop N) used to determine how many and what kinds of
-shifted copies of RVT are output as regressors, according to the
-Python-Numpy function linspace(start, stop, N). Both start and stop
-(units of seconds) can be negative, zero or positive.  Including 0 may
-be useful.  Example params: 0 4 5, which lead to shifts of 0, 1, 2, 3
-and 4 sec (def: None, use '-rvt_shift_list')'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('START', 'STOP', 'N'),
-                    nargs=3, type=str) # parse later
+        self.add_opt('do_fix_outliers', 1, 'yesno',
+                     'interpolate outlier values')
 
-opt = '''rvt_off'''
-hlp = '''Turn off output of RVT regressors
-'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('extra_fix_list', -1, 'list',
+                     'additional values to interpolate')
 
-opt = '''no_card_out'''
-hlp = '''Turn off output of cardiac regressors'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('remove_val_list', -1, 'list',
+                     'values to remove from physio data')
 
-opt = '''no_resp_out'''
-hlp = '''Turn off output of respiratory regressors'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('do_interact', 1, 'yesno',
+                     'enable interactive peak/trough editing')
 
-opt = '''do_extend_bp_resp'''
-hlp = '''Use less strict initial bandpass for resp data'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('do_slibase_out', 1, 'yesno',
+                     'write old-style slibase regressors')
 
-opt = '''min_bpm_resp'''
-hlp = '''Set the minimum breaths per minute for respiratory proc (def: {})
-'''.format(DEF_min_bpm_resp)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('regress_types_resp', -1, 'list',
+                     'respiration regressor types')
 
-opt = '''max_bpm_resp'''
-hlp = '''Set the maximum breaths per minute for respiratory proc (def: {})
-'''.format(DEF_max_bpm_resp)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('regress_types_card', -1, 'list',
+                     'cardiac regressor types')
 
-opt = '''min_bpm_card'''
-hlp = '''Set the minimum beats per minute for cardiac proc (def: {})
-'''.format(DEF_min_bpm_card)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('rvt_shift_list', -1, 'list',
+                     'RVT shift values')
 
-opt = '''max_bpm_card'''
-hlp = '''Set the maximum beats per minute for cardiac proc (def: {})
-'''.format(DEF_max_bpm_card)
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('rvt_shift_linspace', 3, 'list',
+                     'RVT shift linspace parameters')
 
-opt = '''img_verb'''
-hlp = '''Verbosity level for saving QC images during processing, by choosing
-one integer:
-0 - Do not save graphs
-1 - Save end results (card and resp peaks, final RVT)
-2 - Save end results and intermediate steps (bandpassing, peak refinement, etc.)
-(def: {dopt})'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
+        self.add_opt('min_bpm_resp', 1, 'float',
+                     'minimum respiration rate')
 
-opt = '''img_figsize'''
-hlp = '''Figure dimensions used for QC images (def: depends on length of
-physio time series)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    metavar=('WID', 'LEN'),
-                    nargs=2, type=str) # parse later
+        self.add_opt('max_bpm_resp', 1, 'float',
+                     'maximum respiration rate')
 
-opt = '''img_fontsize'''
-hlp = '''Font size used for QC images (def: {dopt})
-'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('min_bpm_card', 1, 'float',
+                     'minimum cardiac rate')
 
-opt = '''img_line_time'''
-hlp = '''Maximum time duration per line in the QC images, in units of sec
-(def: {dopt}) '''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('max_bpm_card', 1, 'float',
+                     'maximum cardiac rate')
 
-opt = '''img_fig_line'''
-hlp = '''Maximum number of lines per fig in the QC images
-(def: {dopt}) '''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
+        self.add_opt('img_verb', 1, 'int',
+                     'QC image verbosity')
 
-opt = '''img_dot_freq'''
-hlp = '''Maximum number of dots per line in the QC images (to save filesize
-and plot time), in units of dots per sec (def: {dopt}) '''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('img_figsize', 2, 'list',
+                     'QC image dimensions')
 
-opt = '''img_bp_max_f'''
-hlp = '''Maximum frequency in the bandpass QC images (i.e., upper value of
-x-axis), in units of Hz (def: {dopt}) '''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=float)
+        self.add_opt('img_fontsize', 1, 'float',
+                     'QC image font size')
 
-opt = '''save_proc_peaks'''
-hlp = '''Write out the final set of peaks indices to a text file called
-PREFIX_LABEL_proc_peaks_00.1D ('LABEL' is 'card', 'resp', etc.), which is
-a single column of the integer values (def: don't write them out)'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('img_line_time', 1, 'float',
+                     'QC image time per line')
 
-opt = '''save_proc_troughs'''
-hlp = '''Write out the final set of trough indices to a text file called
-PREFIX_LABEL_proc_troughs_00.1D ('LABEL' is 'card', 'resp', etc.), which
-is a single column of the integer values (def: don't write them
-out). The file is only output for LABEL types where troughs were
-estimated (e.g., resp).'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('img_fig_line', 1, 'int',
+                     'QC image lines per figure')
 
-opt = '''load_proc_peaks_resp'''
-hlp = '''Load in a file of resp data peaks that have been saved via
-'-save_proc_peaks'. This file is a single column of integer values,
-which are indices of the peak locations in the processed time series.'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('img_dot_freq', 1, 'float',
+                     'QC image point density')
 
-opt = '''load_proc_troughs_resp'''
-hlp = '''Load in a file of resp data troughs that have been saved via
-'-save_proc_troughs'. This file is a single column of integer values,
-which are indices of the trough locations in the processed time series.'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('img_bp_max_f', 1, 'float',
+                     'QC bandpass maximum frequency')
 
-opt = '''load_proc_peaks_card'''
-hlp = '''Load in a file of card data peaks that have been saved via
-'-save_proc_peaks'. This file is a single column of integer values,
-which are indices of the peak locations in the processed time series.'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=str)
+        self.add_opt('save_proc_peaks', 0, 'flag',
+                     'save final peak indices')
 
-opt = '''verb'''
-hlp = '''Integer values to control verbosity level 
-(def: {dopt})'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    nargs=1, type=int)
+        self.add_opt('save_proc_troughs', 0, 'flag',
+                     'save final trough indices')
 
-# ---- help-y stuff
+        self.add_opt('load_proc_peaks_resp', 1, 'str',
+                     'load respiration peak indices')
 
-opt = '''disp_all_slice_patterns'''
-hlp = '''Display all allowed slice pattern names'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('load_proc_troughs_resp', 1, 'str',
+                     'load respiration trough indices')
 
-opt = '''disp_all_opts'''
-hlp = '''Display all options for this program'''
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('load_proc_peaks_card', 1, 'str',
+                     'load cardiac peak indices')
 
-opt = '''ver'''
-hlp = '''Display program version number'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('verb', 1, 'int',
+                     'verbosity level')
 
-opt = '''help'''
-hlp = '''Display help text in terminal'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('disp_all_slice_patterns', 1, 'yesno',
+                     'show valid slice timing patterns')
 
-opt = '''hview'''
-hlp = '''Display help text in a text editor (AFNI functionality)
-'''.format(dopt=DEF[opt])
-odict[opt] = hlp
-parser.add_argument('-'+opt, default=[DEF[opt]], help=hlp,
-                    action="store_true")
+        self.add_opt('disp_all_opts', 1, 'yesno',
+                     'show valid options')
 
-# --------------------------------------------------------------------------
-# programming check: are all opts and defaults accounted for?
+        self.add_opt('ver', 0, 'flag',
+                     'show program version')
 
-have_diff_keys = compare_keys_in_two_dicts( odict, DEF,
-                                            nameA = 'odict',
-                                            nameB = 'DEF' )
+        self.add_opt('help', 0, 'flag',
+                     'show full help')
 
-if have_diff_keys :
-    print("** ERROR: exiting because of opt name setup failure")
-    sys.exit(1)
+        self.add_opt('hview', 0, 'flag',
+                     'view full help in editor')
+
+        # programming check: are all opts and defaults accounted for?
+        have_diff_keys = compare_keys_in_two_dicts(
+            self.odict, DEF.DOPTS, nameA='odict', nameB='DEF.DOPTS')
+        if have_diff_keys :
+            ab.EP("exiting because of opt name setup failure")
+
+        return 0
+
+    def print_help(self):
+        """Display the full program help text."""
+
+        print(g_help_string)
+
+    def process_options(self, argv):
+        """Read command line options and populate args_dict."""
+
+        self.valid_opts.check_special_opts(argv)
+
+        self.user_opts = OL.read_options(argv, self.valid_opts)
+        uopts = self.user_opts
+        if not(uopts) :
+            return -1
+
+        err_base = "Problem interpreting use of opt: "
+
+        for opt in uopts.olist:
+            key  = opt.name.lstrip('-')
+            kind = self.opt_kind[key]
+
+            if kind == 'flag' :
+                self.args_dict[key] = True
+                continue
+
+            if kind == 'str' :
+                val, err = uopts.get_string_opt('', opt=opt)
+            elif kind == 'yesno' :
+                val, err = uopts.get_string_opt('', opt=opt)
+            elif kind == 'int' :
+                val, err = uopts.get_type_opt(int, '', opt=opt)
+            elif kind == 'float' :
+                val, err = uopts.get_type_opt(float, '', opt=opt)
+            elif kind == 'list' :
+                val, err = uopts.get_string_list('', opt=opt)
+                if val is not None :
+                    # Preserve the historical parser_to_dict behavior: the
+                    # downstream interpretation code receives a whitespace-
+                    # separated string for user-entered multi-value options.
+                    val = ' '.join(val)
+            else:
+                ab.EP1("Unknown parser type for option: {}".format(opt.name))
+                return -1
+
+            if val is None or err :
+                ab.EP(err_base + opt.name)
+                return -1
+
+            self.args_dict[key] = val
+
+        # As in the archimedes_* option processing, keep Yes/1 and No/0
+        # user-facing values for -do_* and -disp_* options, but convert them
+        # to Python bools before the rest of physio_calc.py uses args_dict.
+        for key in self.args_dict :
+            if key.startswith('do_') or key.startswith('disp_') :
+                val = UTIL.convert_to_bool_yn10(self.args_dict[key])
+                if val is None :
+                    ab.EP("option '-{}' requires one of: Yes, 1, No, 0"
+                          "".format(key))
+                    return -1
+                self.args_dict[key] = val
+
+        return 0
 
 # =========================================================================
 # PART_04: process opts slightly, checking if all required ones are
@@ -1628,10 +1612,22 @@ args_dict2 : dict
 
     if not(args_dict2['card_file'] or args_dict2['resp_file']) and \
        not(args_dict2['phys_file'] and args_dict2['phys_json']) :
-        print("** ERROR: no physio inputs provided. Allowed physio inputs:\n"
-              "   A) '-card_file ..', '-resp_file ..' or both."
-              "   B) '-phys_file ..' and '-phys_json ..'.")
-        sys.exit(4)
+        msg = "no physio inputs provided. Allowed physio inputs:\n"
+        msg+= "A) '-card_file ..', '-resp_file ..' or both.\n"
+        msg+= "B) '-phys_file ..' and '-phys_json ..'."
+        ab.EP(msg)
+
+    # Do not allow the two physio input styles to be mixed.  Individual
+    # card/resp files are one input mode; phys_file + phys_json is another.
+    have_solo_phys = bool(args_dict2['card_file'] or
+                          args_dict2['resp_file'])
+    have_bids_phys = bool(args_dict2['phys_file'] or
+                          args_dict2['phys_json'])
+    if have_solo_phys and have_bids_phys :
+        msg = "cannot mix physio input modes:\n"
+        msg+= "A) '-card_file ..' and/or '-resp_file ..'\n"
+        msg+= "B) '-phys_file ..' with '-phys_json ..'"
+        ab.EP(msg)
 
     # for any filename that was provided, check if it actually exists
     # (dset_slice_pattern possible filename checked below)
@@ -1641,8 +1637,7 @@ args_dict2 : dict
     for fopt in all_fopt:
         if args_dict2[fopt] != None :
             if not(os.path.isfile(args_dict2[fopt])) :
-                print("** ERROR: no {} '{}'".format(fopt, args_dict2[fopt]))
-                sys.exit(5)
+                ab.EP("no {} '{}'".format(fopt, args_dict2[fopt]))
 
     # deal with json for a couple facets: getting args_dict2 info, and
     # making sure there are no inconsistencies (in case both JSON and opt
@@ -1650,45 +1645,36 @@ args_dict2 : dict
     if args_dict2['phys_json'] :
         jdict = read_json_to_dict(args_dict2['phys_json'])
         if not(jdict) :
-            print("** ERROR: JSON unreadable or empty")
-            sys.exit(5)
+            ab.EP("JSON unreadable or empty")
 
         # jdict info can get added to args_dict; also want to make sure it
         # does not conflict, if items were entered with other opts
         check_fail, args_dict2 = reconcile_phys_json_with_args(jdict, 
                                                                args_dict2)
         if check_fail :
-            print("** ERROR: issue using the JSON")
-            sys.exit(5)
+            ab.EP("issue using the JSON")
 
      # different ways to provide volumetric EPI info, and ONE must be used
     if not( args_dict2['dset_tr'] ) :
-        print("** ERROR: must provide '-dset_tr ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-dset_tr ..' information")
 
     if not(args_dict2['dset_nslice']) :
-        print("** ERROR: must provide '-dset_nslice ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-dset_nslice ..' information")
 
     if not(args_dict2['dset_nt']) :
-        print("** ERROR: must provide '-dset_nt ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-dset_nt ..' information")
 
     if not(args_dict2['freq']) :
-        print("** ERROR: must provide '-freq ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-freq ..' information")
 
     if not(args_dict2['prefix']) :
-        print("** ERROR: must provide '-prefix ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-prefix ..' information")
 
     if not(args_dict2['out_dir']) :
-        print("** ERROR: must provide '-out_dir ..' information")
-        sys.exit(4)
+        ab.EP("must provide '-out_dir ..' information")
 
     if not(args_dict2['dset_slice_times']) :
-        print("** ERROR: must provide slice timing info in some way")
-        sys.exit(4)
+        ab.EP("must provide slice timing info in some way")
 
     return args_dict2
 
@@ -1726,28 +1712,34 @@ vol_dict2 : dict
     if 'dset_epi' in vol_dict and vol_dict['dset_epi'] :
         vol_dict2 = read_dset_epi_to_dict(vol_dict['dset_epi'], verb=verb)
         if not(vol_dict2) :
-            print("** ERROR: dset_epi unreadable or problematic")
-            sys.exit(5)
+            ab.EP("dset_epi unreadable or problematic")
     else:
         vol_dict2['dset_epi'] = None
+
+    # Make sure all expected volume-info keys exist, even if they were
+    # not supplied via -dset_epi or other command line options.
+    # This allows downstream reconciliation/checking to handle missing
+    # values explicitly rather than producing a KeyError.
+    for key in DEF.vol_key_list :
+        if key not in vol_dict2 :
+            vol_dict2[key] = None
 
     # then check scalar values about volume properties from simple
     # command line opts; try to reconcile or add each (and add to
     # output dict)
     ndiff, nmerge = compare_dict_nums_with_merge(vol_dict2, vol_dict, 
-                                                 L=ALL_EPIM_MATCH, 
+                                                 L=DEF.ALL_EPIM_MATCH, 
                                                  do_merge=True, verb=1)
     if ndiff :
-        print("** ERROR: inconsistent dset_epi and command line info")
-        sys.exit(5)
+        ab.EP("inconsistent dset_epi and command line info")
 
     # next/finally, check about slice timing specifically, which might
     # use existing scalar values (from dset or cmd line, which would
     # be in vol_dict2 now) 
     if vol_dict['dset_slice_times'] and vol_dict['dset_slice_pattern'] :
-        print("** ERROR: must use only one of either dset_slice_times or "
-              "dset_slice_pattern")
-        sys.exit(4)
+        msg = "must use only one of either dset_slice_times or "
+        msg+= "dset_slice_pattern"
+        ab.EP(msg)
 
     if vol_dict['dset_slice_times'] :
         # the input cmd line string has not been split yet; interpret
@@ -1761,8 +1753,8 @@ vol_dict2 : dict
             dset_slice_times = [float(ll) for ll in L]
             vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         except:
-            print("** ERROR interpreting dset_slice_times from cmd line")
-            sys.exit(1)
+            ab.EP("interpreting dset_slice_times from cmd line")
+
     elif vol_dict['dset_slice_pattern'] :
         # if pattern, check if it is allowed; elif it is a file, check
         # if it exists *and* use it to fill in
@@ -1772,28 +1764,25 @@ vol_dict2 : dict
 
         pat = vol_dict['dset_slice_pattern']
         if pat in UTIL.g_valid_slice_patterns :
-            print("++ Slice pattern from cmd line: '{}'".format(pat))
+            ab.IP("Slice pattern from cmd line: '{}'".format(pat))
             # check with vol info in vol_dict2 (not in vol_dict) bc
             # vol_dict2 should be the merged superset of info
             dset_slice_times = UTIL.slice_pattern_to_timing(pat, 
                                                        vol_dict2['dset_nslice'],
                                                        vol_dict2['dset_tr'])
             if not(dset_slice_times) :
-                print("** ERROR: could not convert slice pattern to timing")
-                sys.exit(8)
+                ab.EP("could not convert slice pattern to timing")
             vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         elif os.path.isfile(pat) :
-            print("++ Found dset_slice_pattern '{}' exists as a file"
-                  "".format(pat))
+            ab.IP("Found dset_slice_pattern '{}' exists as a file".format(pat))
             dset_slice_times = read_slice_pattern_file(pat, verb=verb)
             if not(dset_slice_times) :
-                print("** ERROR: translate slice pattern file to timing")
-                sys.exit(7)
+                ab.EP("translate slice pattern file to timing")
             vol_dict['dset_slice_times'] = copy.deepcopy(dset_slice_times)
         else:
-            print("** ERROR: could not match provided dset_slice_pattern "
-                  "'{}' as either a recognized pattern or file".format(pat))
-            sys.exit(3)
+            msg = "could not match provided dset_slice_pattern "
+            msg+= "'{}' as either a recognized pattern or file".format(pat)
+            ab.EP(msg)
 
     # ... and now that we might have explicit slice times in vol_dict,
     # reconcile any vol['dset_slice_times'] with vol_dict2['dset_slice_times']
@@ -1804,10 +1793,9 @@ vol_dict2 : dict
             # try to reconcile
             ndiff = compare_list_items( vol_dict['dset_slice_times'],
                                         vol_dict2['dset_slice_times'],
-                                        eps=EPS_TH )
+                                        eps=DEF.EPS_TH )
             if ndiff :
-                print("** ERROR: inconsistent slice times entered")
-                sys.exit(5)
+                ab.EP("inconsistent slice times entered")
         else:
             # nothing to reconcile, just copy over
             vol_dict2['dset_slice_times'] = \
@@ -1821,6 +1809,33 @@ vol_dict2 : dict
             # this is a boring one, which will probably lead to an
             # error exit in a downstream check
             vol_dict2['dset_slice_times'] = None
+
+    # If both quantities are available, the number of explicit slice
+    # times must match the number of slices.
+    if vol_dict2['dset_slice_times'] is not None and \
+       vol_dict2['dset_nslice'] is not None :
+
+        ntimes = len(vol_dict2['dset_slice_times'])
+        nslice = vol_dict2['dset_nslice']
+
+        if ntimes != nslice :
+            msg = "number of slice timing values ({}) ".format(ntimes)
+            msg+= "does not match dset_nslice ({})".format(nslice)
+            ab.EP(msg)
+
+    # Slice timing values should all be in the half-open interval: [0, TR)
+    if vol_dict2['dset_slice_times'] is not None and \
+       vol_dict2['dset_tr'] is not None :
+
+        sli_times = vol_dict2['dset_slice_times']
+        tr        = vol_dict2['dset_tr']
+
+        for ii, stime in enumerate(sli_times) :
+            if not(math.isfinite(stime)) or stime < 0.0 or stime >= tr :
+                msg = "slice timing value [{}] = {} ".format(ii, stime)
+                msg+= "is outside the allowed range [0, TR), "
+                msg+= "where TR = {}".format(tr)
+                ab.EP(msg)
 
     # copy this over just for informational purposes
     if 'dset_slice_pattern' in vol_dict :
@@ -1876,18 +1891,20 @@ nmerge : int
                 valB = B[ele]
                 if abs(A[ele] - B[ele]) > eps :
                     if verb :
-                        print("+* Difference in dictionary elements:")
-                        print('   eps = {}'.format(eps))
-                        print('   A[{}] = {}'.format(ele, A[ele]))
-                        print('   B[{}] = {}'.format(ele, B[ele]))
+                        msg = "Difference in dictionary elements:\n"
+                        msg+= "eps = {}\n".format(eps)
+                        msg+= "A[{}] = {}\n".format(ele, A[ele])
+                        msg+= "B[{}] = {}".format(ele, B[ele])
+                        ab.WP(msg)
                     ndiff+= 1
                     # ... and cannot merge
                 else:
                     if verb :
-                        print("++ Reconciled dictionary elements:")
-                        print('   eps = {}'.format(eps))
-                        print('   A[{}] = {}'.format(ele, A[ele]))
-                        print('   B[{}] = {}'.format(ele, B[ele]))
+                        msg = "Reconciled dictionary elements:\n"
+                        msg+= "eps = {}\n".format(eps)
+                        msg+= "A[{}] = {}\n".format(ele, A[ele])
+                        msg+= "B[{}] = {}".format(ele, B[ele])
+                        ab.IP(msg)
                     # ... and no need to merge
             else:
                 if do_merge :
@@ -1922,19 +1939,20 @@ ndiff : int
 
     N = len(A)
     if len(B) != N :
-        print("** ERROR: unequal length lists:")
-        print(    "len(A) =", N)
-        print(    "len(B) =", len(B))
-        sys.exit(3)
+        msg = "unequal length lists:\n"
+        msg+= "len(A) = {}\n".format(N)
+        msg+= "len(B) = {}".format(len(B))
+        ab.EP(msg)
 
     ndiff = 0
     for ii in range(N):
         if abs(A[ii] - B[ii]) > eps :
             ndiff+= 1
             if verb :
-                print("+* Difference in list elements:")
-                print(    "A[{}] = {}".format(ii, A[ii]))
-                print(    "B[{}] = {}".format(ii, B[ii]))
+                msg = "Difference in list elements:\n"
+                msg+= "A[{}] = {}\n".format(ii, A[ii])
+                msg+= "B[{}] = {}".format(ii, B[ii])
+                ab.WP(msg)
 
     return ndiff
 
@@ -1959,16 +1977,17 @@ is_bad : int
     lopt   = []
 
     # go through and check, building a list
-    for opt in all_rvt_opt :
+    for opt in DEF.all_rvt_opt :
         if args_dict[opt] :
             lopt.append('-' + opt)
             count+= 1
 
     # bad if more than one opt was used
     if count > 1 :
-        print("** ERROR: more than one '-rvt_shift_*' opt was used:\n"
-              "   {}\n"
-              "   ... but at most only one can be.".format(' '.join(lopt)))
+        msg = "more than one '-rvt_shift_*' opt was used:\n"
+        msg+= "{}\n".format(' '.join(lopt))
+        msg+= "... but at most only one can be."
+        ab.EP1(msg)
         is_bad = 1
 
     return is_bad
@@ -2006,8 +2025,13 @@ args_dict2 : dict
         args_dict2['out_dir'] = args_dict2['out_dir'].rstrip('/')
 
     if args_dict2['start_time'] == None :
-        print("++ No start time provided; will assume it is 0.0.")
+        ab.IP("No start time provided; will assume it is 0.0.")
         args_dict2['start_time'] = 0.0
+    elif not(math.isfinite(args_dict2['start_time'])) or \
+         args_dict2['start_time'] > 0.0 :
+        msg = "start_time must be <= 0.0, "
+        msg+= "not: {}".format(args_dict2['start_time'])
+        ab.EP(msg)
 
     if args_dict2['extra_fix_list'] :
         # Interpret string to be list of ints or floats. NB: written
@@ -2019,7 +2043,7 @@ args_dict2 : dict
             efl = [float(ll) for ll in L]
             args_dict2['extra_fix_list'] = copy.deepcopy(efl)
         except:
-            print("** ERROR interpreting extra_fix_list")
+            ab.EP1("interpreting extra_fix_list")
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
@@ -2034,8 +2058,111 @@ args_dict2 : dict
             lll = [float(ll) for ll in L]
             args_dict2['remove_val_list'] = copy.deepcopy(lll)
         except:
-            print("** ERROR interpreting remove_val_list")
+            ab.EP1("interpreting remove_val_list")
             IS_BAD = 1
+
+        if IS_BAD :  sys.exit(1)
+
+    # for card inputs, which volume-based regressors will be created? 
+    # There will always be at least one value in this list
+    if args_dict2['regress_types_card'] :
+        IS_BAD = 0
+
+        # defaults, which don't change if 'NONE' is in the list here
+        args_dict2['do_calc_retro-card'] = False
+        args_dict2['do_calc_hr']         = False
+        args_dict2['do_calc_hrcrf']      = False
+        args_dict2['do_out_retro-card']  = False
+        args_dict2['do_out_hr']          = False
+        args_dict2['do_out_hrcrf']       = False
+
+        L = args_dict2['regress_types_card'].split()
+
+        # check for non-allowed item
+        for val in L :
+            if val not in DEF.list_volbase_card :
+                msg = "unrecognized type in '-regress_types_card ..' args:\n"
+                msg+= "{}\n".format(val)
+                msg+= "Valid types: {}".format(DEF.all_volbase_card)
+                ab.EP1(msg)
+                IS_BAD = 1
+
+        if 'NONE' in L :
+            if len(L) > 1 :
+                msg = "with '-regress_types_card ..' args:\n"
+                msg+= "'{}'\n".format(args_dict2['regress_types_card'])
+                msg+= "Cannot mix 'NONE' with other types"
+                ab.EP1(msg)
+                IS_BAD = 1
+
+            #  NB: if here, no need to change def switch values above
+
+        if 'retro' in L :
+            args_dict2['do_calc_retro-card'] = True
+            args_dict2['do_out_retro-card']  = True
+
+        if 'hrcrf' in L :
+            # retro and hr calc needed here
+            args_dict2['do_calc_retro-card'] = True
+            args_dict2['do_calc_hr']         = True
+            args_dict2['do_calc_hrcrf']      = True
+            args_dict2['do_out_hrcrf']       = True
+
+        if IS_BAD :  sys.exit(1)
+
+    # for resp inputs, which volume-based regressors will be created? 
+    # There will always be at least one value in this list
+    # NB: check this BEFORE the RVT considerations are parsed; it will 
+    # control lots of switches for calculations and outputs 
+    if args_dict2['regress_types_resp'] :
+        IS_BAD = 0
+
+        # defaults, which don't change if 'NONE' is in the list here
+        args_dict2['do_calc_retro-resp'] = False
+        args_dict2['do_calc_rvt']        = False
+        args_dict2['do_calc_rvtrrf']     = False
+        args_dict2['do_out_retro-resp']  = False
+        args_dict2['do_out_rvt']         = False
+        args_dict2['do_out_rvtrrf']      = False
+
+        L = args_dict2['regress_types_resp'].split()
+
+        # check for non-allowed item
+        for val in L :
+            if val not in DEF.list_volbase_resp :
+                msg = "unrecognized type in '-regress_types_resp ..' args:\n"
+                msg+= "{}\n".format(val)
+                msg+= "Valid types: {}".format(DEF.all_volbase_resp)
+
+                ab.EP1(msg)
+                IS_BAD = 1
+
+        if 'NONE' in L :
+            if len(L) > 1 :
+                msg = "with '-regress_types_resp ..' args:\n"
+                msg+= "'{}'\n".format(args_dict2['regress_types_resp'])
+                msg+= "Cannot mix 'NONE' with other types"
+                ab.EP1(msg)
+                IS_BAD = 1
+
+            #  NB: if here, no need to change def switch values above
+
+        if 'retro' in L :
+            args_dict2['do_calc_retro-resp'] = True
+            args_dict2['do_out_retro-resp']  = True
+
+        if 'rvt' in L :
+            # retro calc needed here
+            args_dict2['do_calc_retro-resp'] = True
+            args_dict2['do_calc_rvt']        = True
+            args_dict2['do_out_rvt']         = True
+
+        if 'rvtrrf' in L :
+            # retro and RVT calc needed here
+            args_dict2['do_calc_retro-resp'] = True
+            args_dict2['do_calc_rvt']        = True
+            args_dict2['do_calc_rvtrrf']     = True
+            args_dict2['do_out_rvtrrf']      = True
 
         if IS_BAD :  sys.exit(1)
 
@@ -2044,11 +2171,17 @@ args_dict2 : dict
     # this full conditional is complete, we should have our shift
     # list, one way or another
     if check_multiple_rvt_shift_opts(args_dict2) :
-            sys.exit(1)
+        sys.exit(1)
     elif args_dict2['rvt_shift_list'] != None :
         # RVT branch A: direct list of shifts from user to make into array
 
         IS_BAD = 0
+
+        if not(args_dict2['do_out_rvt']) :
+            msg = "RVT calcs were turned off in opt proc; "
+            msg+= "you cannot then use -rvt_shift_list"
+            ab.EP1(msg)
+            IS_BAD = 1
 
         L = args_dict2['rvt_shift_list'].split()
 
@@ -2058,8 +2191,9 @@ args_dict2 : dict
             # and copy list of shifts
             args_dict2['rvt_shift_list'] = copy.deepcopy(shift_list) 
         except:
-            print("** ERROR interpreting '-rvt_shift_list ..' args: '{}'"
-                  "".format(args_dict2['rvt_shift_list']))
+            msg = "interpreting '-rvt_shift_list ..' args: "
+            msg+= "'{}'".format(args_dict2['rvt_shift_list'])
+            ab.EP1(msg)
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
@@ -2068,37 +2202,50 @@ args_dict2 : dict
 
         IS_BAD = 0
 
+        if not(args_dict2['do_out_rvt']) :
+            msg = "RVT calcs were turned off in opt proc; "
+            msg+= "you cannot then use -rvt_shift_linspace"
+            ab.EP1(msg)
+            IS_BAD = 1
+
         # make sure -rvt_shift_list had 3 entries
         L = args_dict2['rvt_shift_linspace'].split()
         if len(L) != 3 :
-            print("** ERROR, '-rvt_shift_linspace ..' takes exactly 3 values.")
+            ab.EP1("'-rvt_shift_linspace ..' takes exactly 3 values.")
             IS_BAD = 1
 
         try:
             # first 2 numbers can be int or float, but last must be int
             lll     = [float(ll) for ll in L]
+            # ... and check about lossyness in converting last val to int
+            if int(lll[-1]) != lll[-1] :
+                msg = "the 3rd number via '-rvt_shift_linspace ..' "
+                msg+= "must be an int: {}".format(L)
+                ab.EP1(msg)
+                IS_BAD = 1
+
             lll[-1] = int(lll[-1])
+
             # These 3 values get interpreted as (start, stop, N);
             # verify that this is a legit expression
-            IS_BAD, all_shift = \
+            is_fail, all_shift = \
                 interpret_rvt_shift_linspace_opts(lll[0], lll[1], lll[2])
+            IS_BAD+= is_fail
 
             # copy original params in place
             args_dict2['rvt_shift_linspace'] = copy.deepcopy(lll) 
             # and copy arr of shifts
             args_dict2['rvt_shift_list'] = copy.deepcopy(all_shift) 
         except:
-            print("** ERROR interpreting '-rvt_shift_linspace ..' args: '{}'"
-                  "".format(args_dict2['rvt_shift_linspace']))
+            msg = "interpreting '-rvt_shift_linspace ..' args: "
+            msg+= "'{}'".format(args_dict2['rvt_shift_linspace'])
+            ab.EP1(msg)
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
-    elif  args_dict2['rvt_off'] :
-        # RVT branch C: no shifts (simple), as per user
-        args_dict2['rvt_shift_list'] = []
     else:
         # RVT branch D: use default shifts
-        L   = DEF_rvt_shift_list.split()
+        L   = DEF.DEF_rvt_shift_list.split()
         args_dict2['rvt_shift_list'] = [float(ll) for ll in L]
 
     if args_dict2['img_figsize'] :
@@ -2110,52 +2257,54 @@ args_dict2 : dict
             aaa = [float(ll) for ll in L]
             args_dict2['img_figsize'] = copy.deepcopy(aaa)
         except:
-            print("** ERROR interpreting img_figsize")
+            ab.EP1("interpreting img_figsize")
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
 
     if '/' in args_dict2['prefix'] :
-        print("** ERROR: Cannot have path information in '-prefix ..'\n"
-              "   Use '-out_dir ..' for path info instead")
-        sys.exit(4)
+        msg = "Cannot have path information in '-prefix ..'\n"
+        msg+= "Use '-out_dir ..' for path info instead"
+        ab.EP(msg)
 
     if args_dict2['prefilt_mode'] :
         # there are only certain allowed values
         IS_BAD = 0
-        if args_dict2['prefilt_mode'] not in all_prefilt_mode :
+        if args_dict2['prefilt_mode'] not in DEF.all_prefilt_mode :
            IS_BAD = 1
         if IS_BAD :  sys.exit(1)
 
     # when loading in previous resp peaks/troughs, must use *both*
     if int(bool(args_dict2['load_proc_peaks_resp'])) + \
        int(bool(args_dict2['load_proc_troughs_resp'])) == 1 :
-        print("** ERROR: If you load in previously processed resp peaks or\n"
-              "   troughs, you must load in *both* files via:\n"
-              "   -load_proc_peaks_resp ..\n"
-              "   -load_proc_troughs_resp ..")
-        sys.exit(4)
+        msg = "If you load in previously processed resp peaks or\n"
+        msg+= "troughs, you must load in *both* files via:\n"
+        msg+= "-load_proc_peaks_resp ..\n"
+        msg+= "-load_proc_troughs_resp .."
+        ab.EP(msg)
 
     # check many numerical inputs for being >=0 or >0; probably leave this
     # one as last in this function
     IS_BAD = 0
-    for quant in all_quant_ge_zero:
+    for quant in DEF.all_quant_ge_zero:
         if args_dict2[quant] == None :
-            print("** ERROR: Must provide a value for '{}' via options.\n"
-                  "".format(quant, args_dict2[quant]))
+            msg = "Must provide a value for '{}' via options".format(quant)
+            ab.EP1(msg)
             IS_BAD+= 1
-        elif args_dict2[quant] < 0 :
-            print("** ERROR: Provided '{}' value ({}) not allowed to be <0.\n"
-                  "".format(quant, args_dict2[quant]))
+        elif not(math.isfinite(args_dict2[quant])) or args_dict2[quant] < 0 :
+            msg = "Provided '{}' value ".format(quant)
+            msg+= "({}) not allowed to be <0".format(args_dict2[quant])
+            ab.EP1(msg)
             IS_BAD+= 1
-    for quant in all_quant_gt_zero:
+    for quant in DEF.all_quant_gt_zero:
         if args_dict2[quant] == None :
-            print("** ERROR: Must provide a value for '{}' via options.\n"
-                  "".format(quant, args_dict2[quant]))
+            msg = "Must provide a value for '{}' via options.".format(quant)
+            ab.EP1(msg)
             IS_BAD+= 1
-        elif args_dict2[quant] <= 0 :
-            print("** ERROR: Provided '{}' value ({}) not allowed to be <=0.\n"
-                  "".format(quant, args_dict2[quant]))
+        elif not(math.isfinite(args_dict2[quant])) or args_dict2[quant] <= 0 :
+            msg = "Provided '{}' value ".format(quant)
+            msg+= "({}) not allowed to be <=0".format(args_dict2[quant])
+            ab.EP1(msg)
             IS_BAD+= 1
     if IS_BAD :
         sys.exit(4)
@@ -2229,7 +2378,8 @@ args_dict : dict
     # that differently.
 
     if len(argv) == 1 :
-        parser.print_help()
+        inopts = InOpts(prog=os.path.basename(argv[0]))
+        inopts.print_help()
         sys.exit(0)
 
     # ---------------------------------------------------------------------
@@ -2237,10 +2387,11 @@ args_dict : dict
 
     # get all opts and values as a main dict and secondary/temporary
     # dict of volume-related items, separately
-    args_dict, vol_dict = parser_to_dict( parser, argv )
+    inopts = InOpts(prog=os.path.basename(argv[0]))
+    args_dict, vol_dict = parser_to_dict(inopts, argv)
 
     # check for simple-simple cases with a quick exit: ver, help, etc.
-    have_simple_opt = check_simple_opts_to_exit(args_dict, parser)
+    have_simple_opt = check_simple_opts_to_exit(args_dict, inopts)
     if have_simple_opt :
         sys.exit(0)
 
@@ -2264,6 +2415,6 @@ args_dict : dict
 if __name__ == "__main__":
 
     args_dict = main_option_processing(sys.argv)
-    print("++ DONE.  Goodbye.")
+    ab.IP("DONE.  Goodbye.")
 
     sys.exit(0)

@@ -4,6 +4,8 @@ import os, sys
 import copy
 import numpy  as np
 from   scipy  import signal as sps
+
+from   afnipy import afni_base       as ab
 from   afnipy import lib_physio_plot as lpplt
 from   afnipy import lib_physio_util as lpu
 
@@ -43,8 +45,7 @@ y : np.ndarray
     # NB: no 1.0/np.sqrt(2*np.pi*sigma**2) term here, and sigma is
     # divisive in the exponent
     if delta==None :
-        print("** ERROR: user must provide delta value.")
-        sys.exit(3)
+        ab.EP("user must provide delta value.")
 
     y      = np.zeros(N, dtype=float)
     kmax   = int(np.floor(N/2))
@@ -100,8 +101,7 @@ y : np.ndarray
     """
 
     if delta==None :
-        print("** ERROR: user must provide delta value.")
-        sys.exit(3)
+        ab.EP("user must provide delta value.")
 
     y      = np.zeros(N, dtype=float)
     kmax   = int(np.floor(N/2))
@@ -144,9 +144,9 @@ y : np.ndarray
 
 def apply_bandpass_smooth(x, samp_freq,
                           min_bps, max_bps=None,
-                          label='', retobj=None,
+                          label='', pcobj=None,
                           win_shape='blackman_nuttall',
-                          extend_bp=False,
+                          bp_sig_fac=1.0,
                           my_sigma=None,
                           verb=0):
     """Bandpass filter raw data based on overall typical period of the
@@ -159,7 +159,7 @@ introduces ringing).  Parameters for the smooth shape are one of:
   'blackman_nuttall'
   'flat_gaussian'
 
-If retobj is included, then a plot of the FT frequencies can be
+If pcobj is included, then a plot of the FT frequencies can be
 created.
 
 Parameters
@@ -175,14 +175,15 @@ max_bps : int or float
     constrain with Nyquist estimate
 label : str
     label for the time series, like 'card' or 'resp'
-retobj : retro_obj class
+pcobj : pcalc_obj class
     object with all necessary input time series info; will also store
-    outputs from here; contains dictionary of phys_ts_objs
+    outputs from here; contains dictionary of ts_objs
 win_shape : str
     name of windowing shape function
-extend_bp : bool
-    opt to be more generous in bandpass (would only apply to resp data
-    at present, where there is more variability)
+bp_sig_fac : float
+    scale the sigma width, where larger values mean more generous
+    bandpassing, which might be preferred for data with more peak
+    variability; for starters, use 1.0 for card and 2.0 for resp
 my_sigma : int or float
     mainly for testing purposes: by default, this function determines
     its own filter window width. Using this parameter, though, the
@@ -201,10 +202,11 @@ idx_freq_peak : int
 
     """
 
+    BAD_RETURN = (np.array([]), 0)
+
     if (np.sum(np.isnan(x))) :
-        print('** ERROR in apply_bandpass_smooth(): ' 
-              'nan values in data')
-        return []
+        ab.EP1('in apply_bandpass_smooth(): nan values in data')
+        return BAD_RETURN
 
     # ------ Prep freq quants
 
@@ -229,6 +231,12 @@ idx_freq_peak : int
     else:
         idx_max = min(round(max_bps/delta_f), idx_ny)
 
+    if idx_min >= idx_max :
+        msg = "invalid frequency search interval: "
+        msg+= "idx_min = {}, idx_max = {}".format(idx_min, idx_max)
+        ab.EP1(msg)
+        return BAD_RETURN
+
     # actual peak location, as both index and phys value
     idx_freq_peak = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
@@ -240,8 +248,9 @@ idx_freq_peak : int
     else:
         highpass_freq = None
 
-    print('++ (' + label + ') Bandpass filter frequency peak: '
-          '{:.6f} Hz'.format(freq_peak))
+    msg = '({}) Bandpass filter frequency peak: '.format(label)
+    msg+= '{:.6f} Hz'.format(freq_peak)
+    ab.IP(msg)
 
     # magnitude at peak (and its half)
     val_peak    = Xabs[idx_freq_peak]
@@ -249,29 +258,21 @@ idx_freq_peak : int
 
     # ----- window/attenuation/'bandpass'
 
-    # do we want extended hp range?
-    if extend_bp :
-        sig_fac = 2.0
-    else:
-        sig_fac = 1.0
-
     # [PT: Nov 22, 2023] Don't use a simple step filter---that can
     # introduce ringing. Each of these filters is better, because of
     # the tapering.
     if win_shape == 'blackman_nuttall' :
-        sigma = sig_fac*freq_peak                         # scale width
+        sigma = bp_sig_fac*freq_peak                      # scale width
         if my_sigma != None : sigma = my_sigma            # use user test value
         filt  = func_blackman_nuttall(N, delta=delta_f, sigma=sigma,
                                       hp_freq = highpass_freq)
     elif win_shape == 'flat_gaussian' :
-        sigma = sig_fac*freq_peak                         # scale width
+        sigma = bp_sig_fac*freq_peak                      # scale width
         if my_sigma != None : sigma = my_sigma            # use user test value
         filt  = func_flatgauss(N, delta=delta_f, sigma=sigma,
                                hp_freq = highpass_freq)
     else:
-        print("** ERROR: '{}' is not an allowed win_shape"
-              "".format(win_shape))
-        sys.exit(5)
+        ab.EP("'{}' is not an allowed win_shape".format(win_shape))
 
     if verb :
         print("++ Report on Fourier peak filtering")
@@ -288,21 +289,22 @@ idx_freq_peak : int
     xfilt = np.real(np.fft.ifft(Xfilt))
 
     # ---- done with work, but can save also FT freq magn
-    if retobj != None and retobj.img_verb > 1 :
-        odir      = retobj.out_dir
-        prefix    = retobj.prefix
+    if pcobj != None and pcobj.img_verb > 1 :
+        odir      = pcobj.out_dir
+        imdir     = pcobj.images_dir
+        prefix    = pcobj.prefix
         lab_title = 'Frequency magnitude spectrum, with bandpassing'
         lab_short = 'bandpass_spectrum'
         
         fname, title = lpu.make_str_bandpass(label,
                                              lab_title, lab_short, 
-                                             prefix=prefix, odir=odir)
+                                             prefix=prefix, odir=imdir)
         lpplt.makefig_ft_bandpass_magn(X, Xfilt,
                                        delta_f, idx_ny,
                                        idx_freq_peak=idx_freq_peak,
                                        title=title, fname=fname,
                                        label=label,
-                                       retobj=retobj,
+                                       pcobj=pcobj,
                                        verb=verb)
 
     return xfilt, idx_freq_peak
@@ -312,13 +314,13 @@ idx_freq_peak : int
 # step function for filtering, but that introduced unwanted ringing
 def apply_bandpass_window(x, samp_freq,
                           min_bps, max_bps=None,
-                          label='', retobj=None,
+                          label='', pcobj=None,
                           verb=0):
     """Band pass filter raw data based on overall typical period of the
 time series, and also return the peak (mode) of freq between [1,
 Nyquist] in units of indices.
 
-If retobj is included, then a plot of the FT frequencies can be
+If pcobj is included, then a plot of the FT frequencies can be
 created.
 
 Parameters
@@ -334,9 +336,9 @@ max_bps : int or float
     constrain with Nyquist estimate
 label : str
     label for the time series, like 'card' or 'resp'
-retobj : retro_obj class
+pcobj : pcalc_obj class
     object with all necessary input time series info; will also store
-    outputs from here; contains dictionary of phys_ts_objs
+    outputs from here; contains dictionary of ts_objs
 
 Returns
 -------
@@ -350,8 +352,7 @@ idx_freq_peak : int
     """
 
     if (np.sum(np.isnan(x))) :
-        print('** ERROR in apply_bandpass_window(): ' 
-              'nan values in data')
+        ab.EP1('in apply_bandpass_window(): nan values in data')
         return []
 
     N = len(x)
@@ -379,8 +380,9 @@ idx_freq_peak : int
     idx_freq_peak  = np.argmax(Xabs[idx_min:idx_max]) + idx_min
     freq_peak = idx_freq_peak * delta_f
 
-    print('++ (' + label + ') Bandpass filter frequency peak: '
-          '{:.6f} Hz'.format(freq_peak))
+    msg = '({}) Bandpass filter frequency peak: '.format(label)
+    msg+= '{:.6f} Hz'.format(freq_peak)
+    ab.IP(msg)
 
     # Find bounds based on -3 dB limits (half peak)
     val_peak    = Xabs[idx_freq_peak]
@@ -424,9 +426,9 @@ idx_freq_peak : int
     xfilt = np.real(np.fft.ifft(Xfilt))
 
     # ---- done with work, but can save also FT freq magn
-    if retobj != None and retobj.img_verb > 1 :
-        odir      = retobj.out_dir
-        prefix    = retobj.prefix
+    if pcobj != None and pcobj.img_verb > 1 :
+        odir      = pcobj.out_dir
+        prefix    = pcobj.prefix
         lab_title = 'Frequency magnitude spectrum, with bandpassing'
         lab_short = 'bandpass_spectrum'
         
@@ -438,14 +440,14 @@ idx_freq_peak : int
                                        idx_freq_peak=idx_freq_peak,
                                        title=title, fname=fname,
                                        label=label,
-                                       retobj=retobj,
+                                       pcobj=pcobj,
                                        verb=verb)
 
     return xfilt, idx_freq_peak
 
 def get_peaks_from_bandpass(x, samp_freq, min_bps, max_bps=None, 
-                            width_fac=4, label='', retobj=None, 
-                            extend_bp=False, verb=0):
+                            width_fac=4, label='', pcobj=None, 
+                            bp_sig_fac=1.0, verb=0):
     """Use bandpassing to smooth out the time series, and then search for
 peaks in what remains as a first pass.  The art of this is picking a
 good band to apply.  Here, we look for a major peak above the
@@ -471,8 +473,10 @@ width_fac : int/float
     default was simply used in original program formulation
 label : str
     label for the time series, like 'card' or 'resp'
-extend_bp : bool
-    extend bandpass range? (likely only used for resp)
+bp_sig_fac : float
+    scale the sigma width, where larger values mean more generous
+    bandpassing, which might be preferred for data with more peak
+    variability; for starters, use 1.0 for card and 2.0 for resp
 
 Returns
 -------
@@ -488,6 +492,8 @@ xfilt : np.ndarray
 
     """
 
+    BAD_RETURN = ([], 0, np.array([]))
+
     # Bandpass filter raw data, and also get idx of peak freq mode
     # within range filtered
     xfilt, idx_freq_mode \
@@ -495,19 +501,19 @@ xfilt : np.ndarray
                                 min_bps, 
                                 max_bps=max_bps,
                                 label=label, 
-                                retobj=retobj,
-                                extend_bp=extend_bp,
+                                pcobj=pcobj,
+                                bp_sig_fac=bp_sig_fac,
                                 verb=0)
     if len(xfilt) == 0:
-       print("** ERROR: Failed to band-pass filter '{}' data".format(label))
-       return []
+       ab.EP1("Failed to band-pass filter '{}' data".format(label))
+       return BAD_RETURN
 
     # --- Get initial peaks of bandpassed time series
 
     # We *could* the mode of the bandpassed ts (idx_freq_mode) to put
     # a minimum-distance requirement on peaks, or use sampling
     # frequency to determine a min peak width
-    delta_f = retobj.data[label].ft_delta_f            # FT freq step, in Hz
+    delta_f = pcobj.data[label].ft_delta_f             # FT freq step, in Hz
     phys_freq_mode = idx_freq_mode * delta_f           # FT peak freq, in Hz
     min_dist_idx = int(0.5 * phys_freq_mode / delta_f) # min interval bt pks
     width = int(samp_freq / width_fac)                 # earlier approach
@@ -570,26 +576,36 @@ opeaks : list
 
     # check for min number of peaks
     if len(peaks) < 1 :
-        print("** No peaks to start with for refinement!")
+        ab.EP1("No peaks to start with for refinement!")
         return []
+
+    # ... and another special case, where no further calc are needed
+    if len(peaks) == 1 and window_size is None :
+        if verb :
+            ab.WP("Only one peak provided and no window_size; " + \
+                  "cannot estimate an interpeak interval for refinement.")
+        return list(peaks)
+
 
     N      = len(x)
     Npeaks = len(peaks)
     opeaks = []                # init output
 
-    # Determine half window width from distribution of intervals
+    # Determine half window width from distribution of intervals (has
+    # to be at least 1)
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
     if window_size :
-        halfWindowWidth = round(window_size * window_scale)
+        halfWindowWidth = max(1, round(window_size * window_scale))
     else:
-        halfWindowWidth = round(np.median(intervals)*window_scale)
+        halfWindowWidth = max(1, round(np.median(intervals)*window_scale))
 
     # adjust each peak by location of local max in original ts
     for ii in range(Npeaks):
-        # determine mini-window, and local extremum within the win
+        # determine mini-window, which is defined using a half-open
+        # interval [start,finish), and local extremum within the win
         idx     = peaks[ii]
         start   = max(0, idx - halfWindowWidth)
-        finish  = min(idx + halfWindowWidth, N-1)
+        finish  = min(idx + halfWindowWidth, N)
         if is_troughs:
             opeaks.append(start + np.argmin(x[start:finish]))
         else:
@@ -784,7 +800,7 @@ opeaks : list
     halfWindowWidth = round(period_idx * nbhd_idx / 2.0)
     for idx in peaks:
         min_idx = max(0, idx - halfWindowWidth)
-        max_idx = min(N-1, idx + halfWindowWidth)
+        max_idx = min(N, idx + halfWindowWidth) # first arg, bc half-open ival
         all_thr.append(np.percentile(x[min_idx:max_idx], perc_filt))
     all_thr = np.array(all_thr)
 
@@ -950,6 +966,10 @@ opeaks : list
     were estimated within x, starting from input set of peaks
 
     """
+
+    # guard against veeery rare case
+    if len(peaks) < 2 :
+        return list(peaks)
 
     # interpeak intervals
     intervals = [j-i for i, j in zip(peaks[:-1], peaks[1:])]

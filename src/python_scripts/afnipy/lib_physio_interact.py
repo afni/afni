@@ -18,7 +18,7 @@ from   matplotlib.lines   import Line2D
 from   matplotlib.patches import Polygon
 import matplotlib.pyplot  as     plt
 
-from   afnipy import lib_physio_opts as lpo 
+from   afnipy import lib_physio_defs as DEF 
 
 # -------------------------------------------------------------------------
 
@@ -78,9 +78,9 @@ all_x : list
 
 TEXT_interact_term_desc =  '''
 ++ User-interaction for peak/trough vertex updates is ON.
-   {tikd}
+   {tikm}
 
-'''.format(tikd=lpo.TEXT_interact_key_mouse)
+'''.format(tikm=DEF.TEXT_interact_key_mouse)
 
 class PolygonInteractor:
     """A polygon editor.  Here, the vertices of the polygons being edited
@@ -419,9 +419,15 @@ There will always be at least one vertex left (which is, in fact, a
             # delete either 'p' or 't' element
             lab, ind = self.get_ind_under_point(event)
             if ind is not None:
-                self.poly[lab].xy = np.delete(self.poly[lab].xy, ind, axis=0)
-                self.line[lab].set_data(zip(*self.poly[lab].xy))
-                all_lab.append(lab)
+                # we do not allow indices [0] and [-1] to be deleted;
+                # they are special polygon closure vertices
+
+                nvert = len(self.poly[lab].xy)
+                if ind != 0 and ind != nvert-1 :
+                    self.poly[lab].xy = np.delete(self.poly[lab].xy, 
+                                                  ind, axis=0)
+                    self.line[lab].set_data(zip(*self.poly[lab].xy))
+                    all_lab.append(lab)
 
         elif event.key == '3' :
             # add vertex to 'p'
@@ -529,10 +535,13 @@ There will always be at least one vertex left (which is, in fact, a
         rind, xval, yval, xdataval, ydataval \
                 = self.get_ind_under_point_REFLINE(event, eps_fac=2.0)
 
-        # constrained motion
-        if rind != None :
-            x, y = xdataval, ydataval
-            self.poly[self.act_lab].xy[self.act_ind] = x, y
+        # invalid reference point (point remains at last valid position)
+        if rind is None :
+            return
+
+        # constrained motion (occurs when: rind != None)
+        x, y = xdataval, ydataval
+        self.poly[self.act_lab].xy[self.act_ind] = x, y
 
         if self.act_ind == 0:
             self.poly[self.act_lab].xy[-1] = x, y
