@@ -19,7 +19,7 @@ LIST_malaha_coord = ['del_x_same', 'del_y_same']
 # ==========================================================================
 
 def calc_MAD(x, mid='median', scale_fac=1.4826):
-    """Calculate the mean absolute deviation of a 1D collection from a
+    """Calculate the median absolute deviation of a 1D collection from a
 chosen midpoint. The mid kwarg is the rule for calculating the
 midpoint.  Currently accepted values are: 'median' (def, for
 robustness to skew), 'mean'.
@@ -42,7 +42,7 @@ Returns
 is_fail : int
     0 for success, nonzero for failure
 mad : float
-    Mean of the absolute differences between the values in x and
+    Median of the absolute differences between the values in x and
     the chosen middle value (mid).  Has the same units as x.
 
     """
@@ -64,7 +64,7 @@ mad : float
         ab.EP1("value for mid must be one of: 'mean', 'median'")
         return BAD_RETURN
 
-    mad  = float(np.mean(np.abs(values - mid)))
+    mad  = float(np.median(np.abs(values - mid)))
 
     if scale_fac :
         mad*= scale_fac
