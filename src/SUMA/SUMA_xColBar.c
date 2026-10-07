@@ -2450,144 +2450,131 @@ void SUMA_cb_AlphaOpacityFalloff_tb_toggled (Widget w, XtPointer data,
    SUMA_RETURNe;
 }
 
-void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data,
-                                   XtPointer client_data)
-{
-   static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
-   SUMA_ALL_DO *ado=NULL;
-   SUMA_X_SurfCont *SurfCont=NULL;
-   static int BoxOutlineThresh = 0;  
-   SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
-   SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
-   int OverInd = -1;
-   static int savedShowMode;
+void SUMA_cb_BoxOutlineThresh_tb_toggled(Widget w, XtPointer data, XtPointer client_data) {
+    static char FuncName[]={"SUMA_cb_BoxOutlineThresh_tb_toggled"};
+    SUMA_ALL_DO *ado=NULL;
+    SUMA_X_SurfCont *SurfCont=NULL;
+    static int BoxOutlineThresh = 0;  
+    SUMA_SurfaceObject *SOC=NULL, *SO = NULL;
+    SUMA_OVERLAYS *over2 = NULL, *colpC=NULL;
+    int OverInd = -1;
+    SUMA_ENTRY;
 
-   SUMA_ENTRY;
-
-   ado = (SUMA_ALL_DO *)data;
-   if (!ado || !(SurfCont=SUMA_ADO_Cont(ado))
-            || !SurfCont->ColPlaneOpacity) SUMA_RETURNe;
-
-   if (!SUMA_AB_Ready(ado)){
-    SUMA_S_Warn("Threshold outline does not work for this object type."); 
-    SUMA_RETURNe;   
-   }
-
-   SO = (SUMA_SurfaceObject *)ado;   
-
-   // Get box outline threshold status from checkbox
-   BoxOutlineThresh = XmToggleButtonGetState(w);
-   /* rcr : this does not look correct, what is wrong with previous? */
-    // 1. Get the currently active color plane from the surface object
-    SUMA_OVERLAYS *curColPlane = SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO);
-
-    // 2. Fetch the corresponding overlay pointer using the color plane's name
-    if (curColPlane && SO->Overlays) {
-         over2 = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, curColPlane->Name, &OverInd);
+    ado = (SUMA_ALL_DO *)data;
+    if (!ado || !(SurfCont=SUMA_ADO_Cont(ado)) || !SurfCont->ColPlaneOpacity) {
+        SUMA_RETURNe;
     }
 
-    // 3. Fallback to the last overlay if the active one wasn't found (original behavior)
+    if (!SUMA_AB_Ready(ado)){
+        SUMA_S_Warn("Threshold outline does not work for this object type.");
+        // If it's not ready, force the toggle back to OFF visually
+        XmToggleButtonSetState(w, FALSE, FALSE);
+        SUMA_RETURNe;
+    }
+
+    SO = (SUMA_SurfaceObject *)ado;    
+    BoxOutlineThresh = XmToggleButtonGetState(w);
+
+    // 1. Get the currently active color plane from the surface object
+    SUMA_OVERLAYS *curColPlane = SUMA_ADO_CurColPlane((SUMA_ALL_DO *)SO);  
+
+    // 2. Fetch the corresponding overlay pointer using the color plane's name
+    if (curColPlane && SO->Overlays) {      
+        over2 = SUMA_Fetch_OverlayPointer((SUMA_ALL_DO *)SO, curColPlane->Name, &OverInd);
+    }  
+
+    // 3. Fallback to the last overlay if the active one wasn't found
     if (!over2 && SO->N_Overlays > 0) {
         over2 = SO->Overlays[SO->N_Overlays - 1];
     }
-   // over2 = SO->Overlays[SO->N_Overlays - 1];
-   // over2 = SUMA_ADO_CurColPlane(ado);
-   over2->BoxOutlineThresh = BoxOutlineThresh;
-   // Process for current hemisphere
-   over2->makeContours = YUP;
-   
-   /* Make sure box threshold outline true for only one colorplane/dataset */
-   /* rcr - SO is still with respect to other hemi, need SO for contr hemi */
-   if (over2->BoxOutlineThresh && SO->N_Overlays > 1){
-    int i;
-    
-    for (i=0; i<SO->N_Overlays; ++i){
-        if (SO->Overlays[i] != over2){
-            // Process current hemisphere
-            if (SO->Overlays[i]->BoxOutlineThresh){
-               SO->Overlays[i]->ShowMode =
-                  (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon) ?
-                    SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
-            }
-            SO->Overlays[i]->BoxOutlineThresh = NOPE; 
-            // Process contralateral hemisphere
-            colpC = SUMA_Contralateral_overlay(SO->Overlays[i], SO, &SOC);
-            if (colpC && SOC && colpC->BoxOutlineThresh){
-               colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
-                    SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
-            }
-        }
+
+    if (!over2) {
+        XmToggleButtonSetState(w, FALSE, FALSE);
+        SUMA_RETURNe;
     }
-   }
-   
-   // Set Dsp mode to C&C the appropriate mode
-   if (BoxOutlineThresh){
-       over2->ShowMode = (over2->ShowMode == SW_SurfCont_DsetViewCol)? 
-            SW_SurfCont_DsetViewCaC : SW_SurfCont_DsetViewCon;
-   } else {
-       over2->ShowMode = (over2->ShowMode == SW_SurfCont_DsetViewCon)? 
-            SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
-   }
-   SUMA_Set_Menu_Widget( SurfCont->DsetViewModeMenu,
-                           SUMA_ShowMode2ShowModeMenuItem(over2->ShowMode));
-                           
-   // Get contours
-   SUMA_ScaleToMap_Interactive(over2);
-    
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
-  
-   // Process for contralateral hemisphere
-   colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
-   if (colpC && SOC){
-       colpC->BoxOutlineThresh = BoxOutlineThresh;
-       XmToggleButtonSetState( SOC->SurfCont->BoxOutlineThresh_tb, 
-            colpC->BoxOutlineThresh, NOPE); // Set B checkbox to reflect box state
 
-       colpC->BoxOutlineThresh = BoxOutlineThresh;
-       colpC->makeContours = YUP;
+    over2->BoxOutlineThresh = BoxOutlineThresh;
+    over2->makeContours = YUP;    
 
-       // Set Dsp mode to C&C for contralateral hemisphere
-       if (BoxOutlineThresh){
-           colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewXXX)? 
-                SW_SurfCont_DsetViewCon : SW_SurfCont_DsetViewCaC;
-       } else {
-           colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
-                SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
-       }
-       SUMA_Set_Menu_Widget( SOC->SurfCont->DsetViewModeMenu,
-                               SUMA_ShowMode2ShowModeMenuItem(colpC->ShowMode));
-
-       // Get contours for contralateral hemisphere
-       SUMA_ScaleToMap_Interactive(colpC);
-   
-       /* Make sure box threshold outline true for only one colorplane/dataset */
-       if (colpC->BoxOutlineThresh && SOC->N_Overlays > 1){
-        int i;
-        
-       for (i=0; i<SOC->N_Overlays; ++i){
-            if (SOC->Overlays[i] != colpC){
+    /* Clean up other overlays on current hemisphere if turning ON */
+    if (over2->BoxOutlineThresh && SO->N_Overlays > 1){
+        int i;      
+        for (i=0; i<SO->N_Overlays; ++i){
+            if (SO->Overlays[i] != over2){
                 if (SO->Overlays[i]->BoxOutlineThresh){
-                   SO->Overlays[i]->ShowMode = (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon)? 
-                        SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+                    SO->Overlays[i]->ShowMode = (SO->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon) ? 
+                                                 SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
                 }
-                SOC->Overlays[i]->BoxOutlineThresh = NOPE; 
+                SO->Overlays[i]->BoxOutlineThresh = NOPE; 
+
+                // Process contralateral overlay relative to this specific overlay
+                colpC = SUMA_Contralateral_overlay(SO->Overlays[i], SO, &SOC);
+                if (colpC && SOC && colpC->BoxOutlineThresh){
+                    colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
+                                       SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+                    colpC->BoxOutlineThresh = NOPE;
+                }
             }
         }
-       }
-   
-       // Refresh display
-       ado = (SUMA_ALL_DO *)SOC;
-       SUMA_Remixedisplay(ado);
-       SUMA_UpdateNodeLblField(ado);
-   }
-   
-   // Refresh display
-   SUMA_Remixedisplay(ado);
-   SUMA_UpdateNodeLblField(ado);
+    }    
 
-   SUMA_RETURNe;
+    // Set Dsp mode for current hemisphere
+    if (BoxOutlineThresh){
+        over2->ShowMode = (over2->ShowMode == SW_SurfCont_DsetViewCol)? 
+                           SW_SurfCont_DsetViewCaC : SW_SurfCont_DsetViewCon;
+    } else {
+        over2->ShowMode = (over2->ShowMode == SW_SurfCont_DsetViewCon)? 
+                           SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+    }
+    SUMA_Set_Menu_Widget(SurfCont->DsetViewModeMenu, SUMA_ShowMode2ShowModeMenuItem(over2->ShowMode));                            
+
+    SUMA_ScaleToMap_Interactive(over2);     
+    SUMA_Remixedisplay((SUMA_ALL_DO *)SO);
+    SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SO);   
+
+    // Process for contralateral hemisphere
+    colpC = SUMA_Contralateral_overlay(over2, SO, &SOC);
+    if (colpC && SOC){
+        colpC->BoxOutlineThresh = BoxOutlineThresh;
+        colpC->makeContours = YUP;
+
+        // Sync the contralateral hemisphere checkbox GUI state
+        if (SOC->SurfCont && SOC->SurfCont->BoxOutlineThresh_tb) {
+            XmToggleButtonSetState(SOC->SurfCont->BoxOutlineThresh_tb, colpC->BoxOutlineThresh, FALSE);
+        }
+
+        // Set Dsp mode for contralateral hemisphere
+        if (BoxOutlineThresh){
+            colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewXXX)? 
+                               SW_SurfCont_DsetViewCon : SW_SurfCont_DsetViewCaC;
+        } else {
+            colpC->ShowMode = (colpC->ShowMode == SW_SurfCont_DsetViewCon)? 
+                               SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+        }
+        SUMA_Set_Menu_Widget(SOC->SurfCont->DsetViewModeMenu, SUMA_ShowMode2ShowModeMenuItem(colpC->ShowMode));
+
+        SUMA_ScaleToMap_Interactive(colpC);        
+
+        /* Clean up other overlays on contralateral hemisphere */
+        if (colpC->BoxOutlineThresh && SOC->N_Overlays > 1){
+            int i;             
+            for (i=0; i<SOC->N_Overlays; ++i){
+                if (SOC->Overlays[i] != colpC){
+                    // FIXED: Changed SO->Overlays to SOC->Overlays to avoid out-of-bounds cross-contamination
+                    if (SOC->Overlays[i]->BoxOutlineThresh){
+                        SOC->Overlays[i]->ShowMode = (SOC->Overlays[i]->ShowMode == SW_SurfCont_DsetViewCon)? 
+                                                      SW_SurfCont_DsetViewXXX : SW_SurfCont_DsetViewCol;
+                    }
+                    SOC->Overlays[i]->BoxOutlineThresh = NOPE; 
+                }
+            }
+        }        
+
+        SUMA_Remixedisplay((SUMA_ALL_DO *)SOC);
+        SUMA_UpdateNodeLblField((SUMA_ALL_DO *)SOC);
+    }
+
+    SUMA_RETURNe;
 }
 
 /* Toggles the use of the threshold pn/off when v button,
