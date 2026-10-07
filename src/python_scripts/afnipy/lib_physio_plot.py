@@ -750,9 +750,24 @@ them.
                     pp.set_ylim(self.range_ylim)
 
                 # keep y-axis tick label widths reasonably uniform
-                pp.yaxis.set_major_formatter(
-                    mpl.ticker.FormatStrFormatter('%5.2f')
-                )
+                all_ylim = pp.get_ylim()
+                max_abs_ylim = max([abs(x) for x in all_ylim])
+                if max_abs_ylim > 100 :
+                    pp.yaxis.set_major_formatter(
+                        mpl.ticker.FormatStrFormatter('%6d')
+                    )
+                elif max_abs_ylim > 10 :
+                    pp.yaxis.set_major_formatter(
+                        mpl.ticker.FormatStrFormatter('%6.1f')
+                    )
+                elif max_abs_ylim < 0.01 :
+                    pp.yaxis.set_major_formatter(
+                        mpl.ticker.FormatStrFormatter('%7.4f')
+                    )
+                else :
+                    pp.yaxis.set_major_formatter(
+                        mpl.ticker.FormatStrFormatter('%6.2d')
+                    )
 
                 # now that we know xlim and ylim values, we can check
                 # for graypatches to add (in the bkgd, using zorder)
