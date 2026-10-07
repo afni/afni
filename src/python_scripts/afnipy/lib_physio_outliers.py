@@ -75,17 +75,15 @@ mad : float
 
 def calc_mahala(ax, ay=None, all_coord=['del_x_same'], metric='mad',
                 mid='median'):
-    """Combine squared, MAD-scaled successive differences of time
-series ax and/or ay.
+    """Calculate a MAD-scaled distance for successive extrema coordinates.
 
 ax is a 1D array of x positions; the optional ay is a 1D array of y
 positions.
 
-Each selected difference series is divided by its mean absolute
-deviation about its midpoint (defined by the kwarg mid), then squared.
-The result sums these squared series pointwise.  This score does not
-include covariance terms or subtract the median from the differences
-before scaling.
+Each selected difference series is centered on its midpoint (defined
+by the kwarg mid), divided by its median absolute deviation, and
+squared.  The distance is the square root of their pointwise sum.
+It does not include covariance terms between coordinate dimensions.
 
 Parameters
 ----------
@@ -106,8 +104,8 @@ Returns
 is_fail : int
     0 for success, nonzero for failure
 mahala : np.ndarray
-    Float array of length N-1.  Each element is the sum of the
-    squared, MAD-scaled differences for the selected keywords.
+    Float array of length N-1.  Each element is the square root of the
+    sum of squared, MAD-scaled differences for the selected keywords.
 
     """
 
@@ -161,14 +159,88 @@ mahala : np.ndarray
         elif key == 'del_y_same' :
             all_diff = np.diff(ay)
 
-        # ... and get normalization (denom)
+        # ... and get center and normalization (denom)
+        if mid == 'median' :
+            center = np.median(all_diff)
+        elif mid == 'mean' :
+            center = np.mean(all_diff)
         is_fail, scale = calc_MAD(all_diff, mid=mid, scale_fac=1.4826)
         if is_fail :
             ab.EP1('could not calculate MAD for ' + key)
             return BAD_RETURN
+        deviation = all_diff - center
         if scale != 0 :
-            m[ii] = (all_diff / scale)**2
+            m[ii] = (deviation / scale)**2
+        else:
+            # With otherwise identical intervals, any nonzero deviation
+            # is an outlier even though the robust scale is zero.
+            m[ii, deviation != 0] = np.inf
 
-    mahala = np.sum(m, axis=0)
+    mahala = np.sqrt(np.sum(m, axis=0))
 
     return 0, mahala
+
+
+def find_outliers(ax, ay=None, all_coord=None, threshold=3.0):
+    """Find intervals whose MAD-scaled distance exceeds a threshold.
+
+    This first test uses successive x-coordinate differences by default.
+    Its returned intervals span the two extrema at either end of each
+    flagged interval.  Coordinates are sorted into x-axis order; when
+    y-values are supplied, they are reordered with their x-values.
+
+Parameters
+----------
+ax : array-like
+    1D x-coordinates of the extrema (times in seconds in physio plots).
+ay : array-like or None, optional
+    Corresponding y-coordinates, required for 'del_y_same'.
+all_coord : list of str or None, optional
+    Coordinate differences to test.  By default only 'del_x_same' is
+    used.  Other accepted values are listed in LIST_malaha_coord.
+threshold : float, optional
+    Intervals with a calc_mahala() output strictly greater than this
+    value are reported.  The default is 3.0.
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure.
+intervals : np.ndarray
+    Float array of shape (M, 2), holding the start and end x-coordinate
+    of each of the M flagged intervals.  An empty array has shape (0, 2).
+
+    """
+
+    BAD_RETURN = (-1, np.empty((0, 2), dtype=float))
+    try:
+        ax = np.asarray(list(ax), dtype=float)
+        ay = None if ay is None else np.asarray(list(ay), dtype=float)
+    except (TypeError, ValueError):
+        ab.EP1('ax and ay must be numeric 1D collections')
+        return BAD_RETURN
+
+    if ax.ndim != 1 or (ay is not None and
+                        (ay.ndim != 1 or len(ay) != len(ax))):
+        ab.EP1('ax and ay must be 1D collections of equal length')
+        return BAD_RETURN
+    if not np.isfinite(threshold):
+        ab.EP1('threshold must be finite')
+        return BAD_RETURN
+    if len(ax) < 2:
+        return 0, np.empty((0, 2), dtype=float)
+
+    order = np.argsort(ax)
+    ax = ax[order]
+    if ay is not None:
+        ay = ay[order]
+
+    if all_coord is None:
+        all_coord = ['del_x_same']
+    is_fail, distances = calc_mahala(ax, ay=ay, all_coord=all_coord)
+    if is_fail:
+        return BAD_RETURN
+
+    flagged = distances > threshold
+    intervals = np.column_stack((ax[:-1][flagged], ax[1:][flagged]))
+    return 0, intervals

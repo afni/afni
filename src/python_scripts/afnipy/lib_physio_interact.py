@@ -168,6 +168,7 @@ There will always be at least one vertex left (which is, in fact, a
         # canvas obj
         self.canvas = None
         self.bands = {'p': [], 't': []}  # animated interval rectangles
+        self.highlights = {'p': [], 't': []}  # animated outlier regions
         self.refresh_bands = None
 
         # ----- check input(s) and parse
@@ -293,7 +294,10 @@ There will always be at least one vertex left (which is, in fact, a
         # updated
 
     def draw_animated(self):
-        """Draw bands and markers over the cached static axes background."""
+        """Draw highlights, bands and markers over the static background."""
+        for lab in ('p', 't'):
+            for rect in self.highlights[lab]:
+                self.ax.draw_artist(rect)
         for lab in ('p', 't'):
             for rect in self.bands[lab]:
                 self.ax.draw_artist(rect)

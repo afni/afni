@@ -10,6 +10,7 @@ import matplotlib.cm          as     mplcm
 from   matplotlib.lines       import Line2D
 
 from   afnipy import lib_physio_interact as lpi
+from   afnipy import lib_physio_outliers as lpout
 from   afnipy import afni_base           as BASE
 
 DEF_max_n = 1000                     # def npts per subplot (not used now)
@@ -48,7 +49,6 @@ specs : list of tuples
     an empty list if x contains fewer than two positions.
 
     """
-
     try:
         cmap = mplcm.get_cmap('bwr')
     except AttributeError:
@@ -62,6 +62,21 @@ specs : list of tuples
               np.full(len(intervals), 0.5))
     return [(start, width, cmap(max(0, min(0.999, ratio))))
             for start, width, ratio in zip(x[:-1], intervals, ratios)]
+
+
+def add_outlier_patches(ax, intervals, xlim, y, height, animated=False):
+    """Draw clipped, translucent yellow rectangles for flagged intervals."""
+    patches = []
+    for start, stop in intervals:
+        if stop <= xlim[0] or start >= xlim[1]:
+            continue
+        left, right = max(start, xlim[0]), min(stop, xlim[1])
+        rect = mplp.Rectangle((left, y), right-left, height,
+                              facecolor='yellow', edgecolor='none',
+                              alpha=0.5, zorder=0.5, animated=animated)
+        ax.add_patch(rect)
+        patches.append(rect)
+    return patches
 
 PY_VER    = sys.version_info.major   # Python major version
 MAT_VER   = mpl.__version_info__     # have some mpl ver dependence---sigh
@@ -110,9 +125,11 @@ plotting.
         self.add_ibandT   = add_ibandT         # bool, top colorband on/off
         self.xw_ibandT    = []                 # list, iband: (xcoord, width)
         self.col_ibandT   = []                 # list, str of float 0-1
+        self.outliersT    = np.empty((0, 2), dtype=float)
         self.add_ibandB   = add_ibandB         # bool, bot colorband on/off
         self.xw_ibandB    = []                 # list, iband: (xcoord, width)
         self.col_ibandB   = []                 # list, str of float 0-1
+        self.outliersB    = np.empty((0, 2), dtype=float)
 
         self.img_axhline  = img_axhline        # flt/str, value or keyword
         # ----------------------------
@@ -153,13 +170,18 @@ plotting.
         specs = interval_band_specs(self.x)
         all_col = [color for _, _, color in specs]
         all_xw  = [(start, width) for start, width, _ in specs]
+        is_fail, outliers = lpout.find_outliers(self.x)
+        if is_fail:
+            return 1
 
         if loc == 'top' :
             self.col_ibandT = copy.deepcopy(all_col)
             self.xw_ibandT  = copy.deepcopy(all_xw)
+            self.outliersT  = outliers
         elif loc == 'bot' :
             self.col_ibandB = copy.deepcopy(all_col)
             self.xw_ibandB  = copy.deepcopy(all_xw)
+            self.outliersB  = outliers
         else :
             return 1
 
@@ -466,6 +488,12 @@ them.
         return np.array([minval-delta, maxval+delta])
 
     @property
+    def plot_midline(self):
+        """Fallback highlight boundary when no axhline is displayed."""
+        return np.mean(self.ylim_user if len(self.ylim_user)
+                       else self.range_ylim)
+
+    @property
     def yh_ibandT(self):
         """Get the ycoord and height for the top iband (interval band), if
         being used."""
@@ -643,6 +671,9 @@ them.
                 if iinum>1 :  pp = subpl[iicount]
                 else:         pp = subpl
                 subplot_bands = {'p': [], 't': []}
+                subplot_highlights = {'p': [], 't': []}
+                highlight_line = self.plot_midline
+                have_hline = False
 
                 # loop over all plobj and add them
                 for jj in range( self.n_plobj ):
@@ -660,6 +691,9 @@ them.
                             ylab = None
                         pp.axhline(y=yval, c='0.8', ls='-', lw=0.5, zorder=0,
                                    label=ylab)
+                        if not have_hline:
+                            highlight_line = yval
+                            have_hline = True
 
                     if do_interact :
                         # treat all plots as slices
@@ -737,6 +771,9 @@ them.
                                     animated=do_interact)
                                 pp.add_patch(rect)
                                 if do_interact: subplot_bands['p'].append(rect)
+                        subplot_highlights['p'].extend(add_outlier_patches(
+                            pp, plobj.outliersT, bxlim, highlight_line,
+                            y_iband-highlight_line, animated=do_interact))
 
                     if plobj.add_ibandB :
                         y_iband, h_iband = self.yh_ibandB    # from main obj
@@ -759,6 +796,10 @@ them.
                                     animated=do_interact)
                                 pp.add_patch(rect)
                                 if do_interact: subplot_bands['t'].append(rect)
+                        subplot_highlights['t'].extend(add_outlier_patches(
+                            pp, plobj.outliersB, bxlim, y_iband+h_iband,
+                            highlight_line-(y_iband+h_iband),
+                            animated=do_interact))
 
                     if not(iicount) and not(jj) :
                         pp.set_title(self.title, fontsize=self.fontsize)
@@ -767,6 +808,7 @@ them.
                 if do_interact :
                     inter = lpi.PolygonInteractor(pp)
                     inter.bands = subplot_bands
+                    inter.highlights = subplot_highlights
                     inter.edit_xlim = self.all_sub_xwin[ii]
                     inter.band_xlim = self.all_range_xlim[ii]
                     inter.band_geometry = {
@@ -774,6 +816,13 @@ them.
                              else None,
                         't': self.yh_ibandB if self.n_plobj > 2 and
                              self.list_plobj[2].add_ibandB else None,
+                    }
+                    inter.highlight_geometry = {
+                        'p': (highlight_line, self.yh_ibandT[0]-highlight_line)
+                             if inter.band_geometry['p'] is not None else None,
+                        't': (self.yh_ibandB[0]+self.yh_ibandB[1],
+                              highlight_line-sum(self.yh_ibandB))
+                             if inter.band_geometry['t'] is not None else None,
                     }
                     all_inter.append(inter)
 
@@ -882,6 +931,9 @@ them.
                                   for inter in all_inter if inter.poly[lab] is not None]
                         coords = np.concatenate([original[outside]] + edited)
                         specs = interval_band_specs(coords)
+                        is_fail, outliers = lpout.find_outliers(coords)
+                        if is_fail:
+                            continue
                         for inter in fig_inter:
                             if inter.band_geometry[lab] is None:
                                 continue
@@ -900,6 +952,13 @@ them.
                             for rect in inter.bands[lab]:
                                 rect.remove()
                             inter.bands[lab] = new_bands
+                            y_high, h_high = inter.highlight_geometry[lab]
+                            new_highlights = add_outlier_patches(
+                                inter.ax, outliers, inter.band_xlim,
+                                y_high, h_high, animated=True)
+                            for rect in inter.highlights[lab]:
+                                rect.remove()
+                            inter.highlights[lab] = new_highlights
                     canvas = fig_inter[0].canvas
                     if not canvas.supports_blit:
                         # The native macOS backend, for example, cannot blit.
