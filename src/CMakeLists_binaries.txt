@@ -292,6 +292,35 @@ target_compile_definitions(
     "$<IF:$<TARGET_EXISTS:OpenMP::OpenMP_C>,USE_OMP,>"
 )
 
+# Direct ISC estimation plus subject and temporal inference from aligned time
+# series.  Similarity, permutation, FFT, and map-inference modules are shared
+# with 3dRSA rather than duplicated here.
+add_afni_executable(
+  3dInSync
+  3dInSync.c
+  thd_insync.c
+  thd_datatable.c
+  thd_simmatrix.c
+  thd_permute.c
+  thd_mapinfer.c
+  thd_phasefft.c
+  thd_patterns.c
+)
+target_link_libraries(
+  3dInSync
+  PRIVATE
+    AFNI::mri
+    NIFTI::nifti2
+    NIFTI::nifticdf
+    $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C>
+    m
+)
+target_compile_definitions(
+  3dInSync
+  PRIVATE
+    "$<IF:$<TARGET_EXISTS:OpenMP::OpenMP_C>,USE_OMP,>"
+)
+
 # Temporal RDM companion: labeled observation files -> subject RDM movies.
 add_afni_executable(
   1dTrdm
