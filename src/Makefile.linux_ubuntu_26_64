@@ -109,11 +109,11 @@ EXPROGS = $(GSLPROGS)   # 3dQwarp gifti_tool $(GSLPROGS)
 ifeq ($(AFNI_WHOMADEIT), official)
 
 # copy libgsl.so.XX locally, similarly for cblas (trust symbolic links)
-EXTRA_INSTALL_FILES = /usr/lib/x86_64-linux-gnu/libgsl.so.27          \
+EXTRA_INSTALL_FILES = /usr/lib/x86_64-linux-gnu/libgsl.so.28          \
                       /usr/lib/x86_64-linux-gnu/libgslcblas.so.0
 
 EXTRA_INSTALL_COMMANDS = ( cd $(INSTALLDIR) ;                         \
-                           chmod 755 libgsl.so.27 ;                   \
+                           chmod 755 libgsl.so.28 ;                   \
                            chmod 755 libgslcblas.so.0 ;               \
                          )
 endif
