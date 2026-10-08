@@ -36,7 +36,7 @@ static char *insync_options[] = {
    "-temporal_null", "-nnull", "-min_shift", "-temporal_tail",
    "-condition_column", "-condition_contrast", "-ncondperm",
    "-condition_exact", "-condition_tail", "-save_pairwise",
-   "-correlation", "-censor", "-zcensor", "-zcensor_warn", "-missing", "-atlas", "-roi_sel",
+   "-correlation", "-censor", "-zcensor", "-zcensor_warn", "-missing", "-atlas", "-roi_sel", "-roi_only", "-float16",
    "-save_matrix", "-edges", "-edges_matrix", "-edges_rss", "-edges_events", "-edges_nnull",
    "-memory_limit", "-memory_override", "-quiet", "-progress",
    "-dataTable", "-dataTableFile", "-show_table", "-help", "-h", NULL
@@ -141,6 +141,37 @@ static void usage_3dInSync(void)
 "\n"
 "  -save_matrix FILE    With -atlas, save long-form ROI subject matrices with\n"
 "                       Condition, ROI, Subj1, Subj2, groups, and correlation.\n"
+"\n"
+"  -roi_only            Requires -atlas.  Run the ENTIRE analysis (bootstrap,\n"
+"                       permutation, temporal null, condition contrasts, pair\n"
+"                       maps) on the atlas-parcel mean time series, with one\n"
+"                       'voxel' per ROI, instead of on voxels.  Each ROI mean\n"
+"                       is formed as the datasets are read, so only\n"
+"                       subjects x ROIs x time points are held in memory\n"
+"                       (megabytes, not the full 4D grid) and FDR/FWE families\n"
+"                       are the ROIs.  -mask, when present, intersects the\n"
+"                       atlas first.  The bucket is painted back onto the\n"
+"                       input grid (every voxel of an ROI gets its ROI value)\n"
+"                       and PREFIX.roi.1D lists every statistic, one row per\n"
+"                       ROI.  Not combined with -save_matrix or -edges*.\n"
+"\n"
+"  -float16             Hold the subject data in memory as 16-bit floats, half\n"
+"                       the size of the default 32-bit.  Each voxel series is\n"
+"                       stored as a z-score, with its mean and SD kept in\n"
+"                       32 bits, so rounding error is relative to each voxel's\n"
+"                       own variability (about 1e-3 of its SD per sample; ISC\n"
+"                       differs from 32-bit storage by about 1e-4 or less).\n"
+"                       Use it when the default would not fit;\n"
+"                       do not mix results from the two storage modes within\n"
+"                       one analysis.  Without -mask this stores every grid\n"
+"                       voxel.\n"
+"\n"
+"  Memory.  Subject data are held in the smallest of: the datasets as stored\n"
+"  on disk (no -mask), only the in-mask voxels (with -mask, chosen\n"
+"  automatically when smaller), or -roi_only ROI series.  Datasets are read\n"
+"  one at a time, so peak memory while loading is the compact store plus a\n"
+"  single dataset.  The preflight estimate reports which representation was\n"
+"  chosen and its size, using the datatype actually stored.\n"
 "\n"
 "  -memory_limit G      Refuse an estimated peak above G GiB. Without this\n"
 "                       option the limit is 80%% of detected physical RAM.\n"
@@ -531,6 +562,216 @@ static void insync_progress_advance( INSYNC_progress *p )
    }
 }
 
+/*---------------------------------------------------------------------------*/
+/* Compact in-memory subject store.  The subject datasets are by far the
+   largest allocation.  Rather than keeping every dataset resident on the full
+   grid, a store holds only the work units the analysis needs: the in-mask
+   voxels, or one mean time series per atlas ROI (-roi_only), optionally in
+   16-bit floating point (-float16).  Each subject/condition array is
+   voxel-major, nwork x ntime_input, so one voxel's series is contiguous. */
+
+/*! IEEE-754 binary16 from float, round to nearest even.  Overflow becomes
+    infinity; NaN and infinity are preserved so nonfinite input is still seen. */
+static unsigned short insync_f2h( float f )
+{
+   union { float f ; unsigned u ; } v ;
+   unsigned x, sign, m, hm, rem, h ;
+   int e, ne ;
+   v.f=f ; x=v.u ; sign=(x>>16)&0x8000u ; e=(int)((x>>23)&0xffu) ; m=x&0x7fffffu ;
+   if( e==0xff ) return (unsigned short)(sign|0x7c00u|(m?0x200u:0u)) ;
+   ne=e-127+15 ;
+   if( ne>=0x1f ) return (unsigned short)(sign|0x7c00u) ;
+   if( ne<=0 ){                                   /* subnormal half, or zero */
+     int shift ; unsigned halfway ;
+     if( ne<-10 ) return (unsigned short)sign ;
+     m|=0x800000u ; shift=14-ne ;
+     hm=m>>shift ; rem=m&((1u<<shift)-1u) ; halfway=1u<<(shift-1) ;
+     if( rem>halfway || (rem==halfway && (hm&1u)) ) hm++ ;
+     return (unsigned short)(sign|hm) ;
+   }
+   hm=m>>13 ; rem=m&0x1fffu ;
+   h=sign|((unsigned)ne<<10)|hm ;
+   if( rem>0x1000u || (rem==0x1000u && (hm&1u)) ) h++ ;  /* carry may bump exponent */
+   return (unsigned short)h ;
+}
+
+/*! Float from IEEE-754 binary16. */
+static float insync_h2f( unsigned short h )
+{
+   union { float f ; unsigned u ; } v ;
+   unsigned sign=((unsigned)h&0x8000u)<<16, e=((unsigned)h>>10)&0x1fu, m=(unsigned)h&0x3ffu ;
+   if( e==0 ){
+     if( m==0 ) v.u=sign ;
+     else {
+       int s=0 ;
+       while( !(m&0x400u) ){ m<<=1 ; s++ ; }
+       m&=0x3ffu ; v.u=sign|((unsigned)(113-s)<<23)|(m<<13) ;
+     }
+   } else if( e==0x1f ) v.u=sign|0x7f800000u|(m<<13) ;
+   else v.u=sign|((e+112u)<<23)|(m<<13) ;
+   return v.f ;
+}
+
+typedef struct {
+   int ndset ;                 /* subject x condition arrays                */
+   int ntime_input ;           /* time points held per work unit            */
+   int nwork ;                 /* voxels (or ROIs) per array                */
+   int half ;                  /* 1 if stored as binary16                   */
+   float **fst ;               /* [ndset] -> nwork*ntime_input floats       */
+   unsigned short **hst ;      /* [ndset] -> nwork*ntime_input halves       */
+   float **hpar ;              /* [ndset] -> 2*nwork: mean, SD per work unit */
+   const int *vmap ;           /* grid voxel -> work unit, or -1; NULL=dense */
+   THD_3dim_dataset **dset ;   /* dense mode only                           */
+} INSYNC_src ;
+
+/*! One value from the compact store, by work-unit index.  A 16-bit value is
+    a z-score; its voxel's mean and SD (kept in 32 bits) restore the scale, so
+    the rounding error is relative to each voxel's own variability. */
+static inline float insync_store_get( const INSYNC_src *s, int dd, int w, int ot )
+{
+   size_t k=(size_t)w*s->ntime_input+ot ;
+   if( !s->half ) return s->fst[dd][k] ;
+   return insync_h2f(s->hst[dd][k])*s->hpar[dd][2*(size_t)w+1]+s->hpar[dd][2*(size_t)w] ;
+}
+
+/*! One value by full-grid voxel index, from whichever representation holds
+    the data.  Voxels outside the store read as zero; callers pass in-mask
+    voxels only. */
+static float insync_src_get( const INSYNC_src *s, int dd, int iv, int ot )
+{
+   if( s->vmap!=NULL ){
+     int w=s->vmap[iv] ;
+     return (w<0) ? 0.0f : insync_store_get(s,dd,w,ot) ;
+   }
+   return THD_get_voxel(s->dset[dd],iv,ot) ;
+}
+
+/*! Spread work-unit values onto the full grid.  Voxels without a work unit
+    receive outside (0, or 1 for p-value bricks, as when the analysis ran on
+    the whole grid); with an ROI map every voxel of an ROI gets its ROI value. */
+static float * insync_expand( const float *wv, const int *vmap, int nvox, float outside )
+{
+   float *full=(float *)malloc(sizeof(float)*(size_t)nvox) ;
+   int gv ;
+   if( full==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate a full-grid output map") ;
+   for( gv=0 ; gv<nvox ; gv++ ) full[gv]=(vmap[gv]>=0) ? wv[vmap[gv]] : outside ;
+   return full ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/*! Release the compact store. */
+static void insync_free_store( INSYNC_src *s )
+{
+   int dd ;
+   for( dd=0 ; dd<s->ndset ; dd++ ){
+     if( s->fst!=NULL ) free(s->fst[dd]) ;
+     if( s->hst!=NULL ) free(s->hst[dd]) ;
+     if( s->hpar!=NULL ) free(s->hpar[dd]) ;
+   }
+   free(s->fst) ; free(s->hst) ; free(s->hpar) ; s->fst=NULL ; s->hst=NULL ; s->hpar=NULL ;
+}
+
+/*! Reduce one loaded dataset to its work units and write them into the store
+    at array index dd.  rvox!=NULL builds one mean series per ROI (the first
+    nonfinite ROI input under MISSING_ERROR is reported through bad_w/bad_t,
+    earliest time then lowest ROI); otherwise the in-mask voxels widx[] are
+    copied.  With 16-bit storage each voxel series is stored as a z-score and
+    its mean and SD are kept in 32 bits, so every voxel gets the same relative
+    precision whatever its variance. */
+static void insync_fill_one( THD_3dim_dataset *ds, int dd, INSYNC_src *s,
+                             const int *widx, int **rvox, const int *rnv,
+                             int missing_policy, int *bad_w, int *bad_t )
+{
+   const int nti=s->ntime_input, nw=s->nwork ;
+   int tt ;
+   *bad_w=-1 ; *bad_t=-1 ;
+
+   if( rvox!=NULL ){                                   /* ROI mean series */
+     float *dst=(float *)malloc(sizeof(float)*(size_t)nw*nti) ;
+     if( dst==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate the ROI store") ;
+     s->fst[dd]=dst ;
+#ifdef USE_OMP
+#pragma omp parallel for schedule(dynamic,8)
+#endif
+     for( tt=0 ; tt<nti ; tt++ ){
+       int w ;
+       for( w=0 ; w<nw ; w++ ){
+         double sum=0.0 ; int bad=0, j ;
+         for( j=0 ; j<rnv[w] ; j++ ){
+           float x=THD_get_voxel(ds,rvox[w][j],tt) ;
+           if( !isfinite(x) ){ bad=1 ; break ; }
+           sum+=x ;
+         }
+         dst[(size_t)w*nti+tt]=bad ? NAN : (float)(sum/rnv[w]) ;
+         if( bad && missing_policy==MISSING_ERROR ){
+#ifdef USE_OMP
+#pragma omp critical(insync_fill_bad)
+#endif
+           { if( *bad_t<0 || tt<*bad_t || (tt==*bad_t && w<*bad_w) ){ *bad_t=tt ; *bad_w=w ; } }
+         }
+       }
+     }
+     return ;
+   }
+
+   if( !s->half ){                                     /* in-mask, float32 */
+     float *dst=(float *)malloc(sizeof(float)*(size_t)nw*nti) ;
+     if( dst==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate the voxel store") ;
+     s->fst[dd]=dst ;
+#ifdef USE_OMP
+#pragma omp parallel for schedule(static)
+#endif
+     for( tt=0 ; tt<nti ; tt++ ){
+       int w ;
+       for( w=0 ; w<nw ; w++ ) dst[(size_t)w*nti+tt]=THD_get_voxel(ds,widx[w],tt) ;
+     }
+     return ;
+   }
+
+   {                                                   /* in-mask, binary16 */
+     float *tmp=(float *)malloc(sizeof(float)*(size_t)nw*nti) ;
+     unsigned short *hd=(unsigned short *)malloc(sizeof(unsigned short)*(size_t)nw*nti) ;
+     float *par=(float *)malloc(sizeof(float)*2*(size_t)nw) ;
+     int bad16=0 ;
+     if( tmp==NULL || hd==NULL || par==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate the 16-bit voxel store") ;
+#ifdef USE_OMP
+#pragma omp parallel for schedule(static)
+#endif
+     for( tt=0 ; tt<nti ; tt++ ){
+       int w ;
+       for( w=0 ; w<nw ; w++ ) tmp[(size_t)w*nti+tt]=THD_get_voxel(ds,widx[w],tt) ;
+     }
+     /* Each voxel series becomes a z-score using its finite values; nonfinite
+        entries pass through unchanged so they are still seen downstream.  A
+        constant series stores zeros with unit scale. */
+#ifdef USE_OMP
+#pragma omp parallel for schedule(static) reduction(+:bad16)
+#endif
+     for( int w=0 ; w<nw ; w++ ){
+       float *row=tmp+(size_t)w*nti ;
+       unsigned short *hrow=hd+(size_t)w*nti ;
+       double m=0.0, ss=0.0, sd ; int nf=0, t2 ;
+       for( t2=0 ; t2<nti ; t2++ ) if( isfinite(row[t2]) ){ m+=row[t2] ; nf++ ; }
+       if( nf>0 ) m/=nf ;
+       for( t2=0 ; t2<nti ; t2++ ) if( isfinite(row[t2]) ){ double y=(double)row[t2]-m ; ss+=y*y ; }
+       sd=(nf>1) ? sqrt(ss/nf) : 0.0 ;
+       if( !(sd>0.0) ) sd=1.0 ;
+       par[2*(size_t)w]=(float)m ; par[2*(size_t)w+1]=(float)sd ;
+       for( t2=0 ; t2<nti ; t2++ ){
+         float x=row[t2], z=isfinite(x) ? (float)(((double)x-m)/sd) : x ;
+         hrow[t2]=insync_f2h(z) ;
+         if( isfinite(x) && !isfinite(insync_h2f(hrow[t2])) ) bad16++ ;
+       }
+     }
+     free(tmp) ;
+     if( bad16>0 )
+       ERROR_exit(PROGRAM_NAME ": -float16 cannot represent %d values of this dataset; "
+                  "omit -float16",bad16) ;
+     s->hst[dd]=hd ; s->hpar[dd]=par ;
+   }
+}
+
 /*! Average input data within each selected atlas parcel and write descriptive
     group ISC summaries plus, when requested, subject correlation matrices.
     Censoring, missing-data policy, correlation metric, and mask intersection
@@ -538,7 +779,7 @@ static void insync_progress_advance( INSYNC_progress *p )
 static void insync_write_roi_outputs(
    const char *atlas_name, const char *roi_sel, const char *prefix,
    const char *matrix_name, THD_3dim_dataset *first,
-   THD_3dim_dataset **dset, int nsub, int ncond,
+   const INSYNC_src *src, int nsub, int ncond,
    int ntime_input, int ntime, int *time_index, byte *mask,
    int missing_policy, int corr_metric, int method, int summary,
    int ngroup, int *group, int *gcount, int **gmember, char **glabel,
@@ -614,7 +855,7 @@ static void insync_write_roi_outputs(
          for( vv=0 ; vv<rl->vox[rr].nar ; vv++ ){
            int iv=rl->vox[rr].ar[vv] ; float x ;
            if( mask!=NULL && !mask[iv] ) continue ;
-           x=THD_get_voxel(dset[ss*ncond+cc],iv,ot) ;
+           x=insync_src_get(src,ss*ncond+cc,iv,ot) ;
            if( !isfinite(x) ){ bad=1 ; break ; }
            sum+=x ; nv++ ;
          }
@@ -929,7 +1170,7 @@ static void insync_write_netcc( const char *name, int nroi, int nmat, char **mla
     amplitude and event nulls shift each subject independently. */
 static void insync_write_edge_outputs(
    const char *atlas_name, const char *roi_sel, const char *prefix,
-   THD_3dim_dataset *first, THD_3dim_dataset **dset, int nsub, int ncond,
+   THD_3dim_dataset *first, const INSYNC_src *src, int nsub, int ncond,
    int ntime, int *time_index, byte *mask, int missing_policy, int corr_metric,
    int method, int summary, int ngroup, int *gcount, int **gmember,
    char **glabel, THD_datatable *tab, THD_datatable_index *cindex,
@@ -993,7 +1234,7 @@ static void insync_write_edge_outputs(
            for( v2=0 ; v2<rl->vox[r2].nar ; v2++ ){
              int iv=rl->vox[r2].ar[v2] ; float x ;
              if( mask!=NULL && !mask[iv] ) continue ;
-             x=THD_get_voxel(dset[s2*ncond+c2],iv,ot) ;
+             x=insync_src_get(src,s2*ncond+c2,iv,ot) ;
              if( !isfinite(x) ){ bad=1 ; break ; }
              sum+=x ; nv++ ;
            }
@@ -1456,6 +1697,8 @@ int main( int argc, char **argv )
    char *atlas_name=NULL ;
    char *roi_sel=NULL ;
    char *matrix_name=NULL ;
+   int roi_only=0 ;
+   int use_half=0 ;
    INSYNC_edge_opts eo ;
 
    /* Parsed table, dataset, and mask state. */
@@ -1515,6 +1758,8 @@ int main( int argc, char **argv )
    int condperm_slot=-1 ;
    int neffect=0 ;
    float **outval=NULL ;
+   float **outwork=NULL ;
+   int store_needed_late=0 ;
    float *qval=NULL ;
    float *temporal_qval=NULL ;
    float *condition_qval=NULL ;
@@ -1531,6 +1776,19 @@ int main( int argc, char **argv )
    int si ;
    int tt ;
    int nmask ;
+   int nwork ;                 /* voxels, or ROIs with -roi_only, analyzed */
+   int use_store=0 ;           /* 1: compact store; 0: datasets on full grid */
+   int native_bytes=0 ;
+   int *vmap=NULL ;            /* grid voxel -> work unit (-1 = none)      */
+   int *widx=NULL ;            /* work unit -> grid voxel (compact mode)   */
+   int nroi=0 ;
+   int **roi_vox=NULL ;
+   int *roi_nv=NULL ;
+   int *roi_val=NULL ;
+   char **roi_lab=NULL ;
+   INSYNC_src src ;
+   int *nzero=NULL ;
+   byte *zero_time=NULL ;
    long long invalid_total=0 ;
    long long boot_invalid_total=0 ;
    long long temporal_invalid_total=0 ;
@@ -1608,6 +1866,8 @@ int main( int argc, char **argv )
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a label list after -roi_sel") ;
        roi_sel=argv[nopt++] ; continue ;
      }
+     if( strcasecmp(argv[nopt],"-roi_only")==0 ){ roi_only=1 ; nopt++ ; continue ; }
+     if( strcasecmp(argv[nopt],"-float16")==0 ){ use_half=1 ; nopt++ ; continue ; }
      if( strcasecmp(argv[nopt],"-save_matrix")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a filename after -save_matrix") ;
        matrix_name=argv[nopt++] ; continue ;
@@ -1811,6 +2071,16 @@ int main( int argc, char **argv )
      ERROR_exit(PROGRAM_NAME ": -roi_sel requires -atlas") ;
    if( matrix_name!=NULL && atlas_name==NULL )
      ERROR_exit(PROGRAM_NAME ": -save_matrix requires -atlas") ;
+   if( roi_only && atlas_name==NULL )
+     ERROR_exit(PROGRAM_NAME ": -roi_only requires -atlas") ;
+   if( roi_only && (matrix_name!=NULL || eo.edges || eo.rss || eo.events) )
+     ERROR_exit(PROGRAM_NAME ": -roi_only cannot be combined with -save_matrix or -edges*; "
+                "run them without -roi_only") ;
+   if( roi_only && use_half ){
+     /* ROI series are a few megabytes at most; keep them in full precision. */
+     if( !quiet ) INFO_message(PROGRAM_NAME ": -float16 is not needed with -roi_only; storing ROI series as 32-bit") ;
+     use_half=0 ;
+   }
    if( (ncondperm>0 || condition_exact) && !have_contrast )
      ERROR_exit(PROGRAM_NAME ": -ncondperm/-condition_exact require -condition_contrast C1 C2") ;
    if( !THD_filename_ok(prefix) ) ERROR_exit(PROGRAM_NAME ": illegal -prefix '%s'",prefix) ;
@@ -2045,47 +2315,73 @@ int main( int argc, char **argv )
    }
    nmask=(mask!=NULL)?THD_countmask(nvox,mask):nvox ;
 
-   /* Generalize 3dTcorrelate's -zcensor rule to every input dataset.  A
-      time point must be usable by all subjects and conditions, so detect
-      all-zero volumes once and intersect them with any supplied -censor. */
-   if( do_zcensor ){
-     int *nzero=(int *)calloc((size_t)ndset,sizeof(int)) ;
-     int nzero_time=0, nremoved=0, nkeep=0 ;
-     if( nzero==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate -zcensor counts") ;
-     for( tt=0 ; tt<ntime_input ; tt++ ){
-       int anyzero=0 ;
-       for( si=0 ; si<nsub ; si++ ) for( ci=0 ; ci<ncond ; ci++ ){
-         int dd=si*ncond+ci ;
-         int nonzero=0 ;
-         for( vv=0 ; vv<nvox ; vv++ ) if( mask==NULL || mask[vv] ){
-           if( THD_get_voxel(dset[dd],vv,tt)!=0.0f ){ nonzero=1 ; break ; }
+   /* Choose how the subject data are held.  Dense mode keeps each dataset
+      resident on the full grid, exactly as stored on disk.  Compact mode
+      copies only the work units the analysis uses -- the in-mask voxels, or
+      with -roi_only one mean time series per atlas ROI -- into a voxel-major
+      store (optionally 16-bit) and releases each dataset after it is read.
+      Compact mode is chosen when it is requested or is the smaller of the
+      two.  -zcensor is applied after the data are read (see below). */
+   nwork=nvox ;
+   {
+     int nbytes_native=0 ;
+     double dense_bytes, compact_bytes ;
+     for( ii=0 ; ii<ndset ; ii++ ){
+       int nb=(int)mri_datum_size(DSET_BRICK_TYPE(dset[ii],0)) ;
+       if( nb>nbytes_native ) nbytes_native=nb ;
+     }
+     dense_bytes=(double)ndset*nvox*ntime_input*nbytes_native ;
+     compact_bytes=(double)ndset*nmask*ntime_input*(use_half?2.0:4.0) ;
+     use_store=(roi_only || use_half || (mask!=NULL && compact_bytes<dense_bytes)) ;
+     native_bytes=nbytes_native ;
+
+     if( roi_only ){
+       THD_3dim_dataset *aset=NULL ;
+       THD_roilist *rl=insync_open_atlas(atlas_name,roi_sel,first,&aset) ;
+       int rr, k ;
+       vmap=(int *)malloc(sizeof(int)*(size_t)nvox) ;
+       roi_vox=(int **)calloc((size_t)rl->nroi,sizeof(int *)) ;
+       roi_nv=(int *)calloc((size_t)rl->nroi,sizeof(int)) ;
+       roi_val=(int *)calloc((size_t)rl->nroi,sizeof(int)) ;
+       roi_lab=(char **)calloc((size_t)rl->nroi,sizeof(char *)) ;
+       if( vmap==NULL || roi_vox==NULL || roi_nv==NULL || roi_val==NULL || roi_lab==NULL )
+         ERROR_exit(PROGRAM_NAME ": cannot allocate ROI index") ;
+       for( vv=0 ; vv<nvox ; vv++ ) vmap[vv]=-1 ;
+       for( rr=0 ; rr<rl->nroi ; rr++ ){
+         int nrv=0 ;
+         char lab[128] ;
+         for( jj=0 ; jj<rl->vox[rr].nar ; jj++ ){
+           int iv=rl->vox[rr].ar[jj] ;
+           if( mask==NULL || mask[iv] ) nrv++ ;
          }
-         if( !nonzero ){ nzero[dd]++ ; anyzero=1 ; }
+         if( nrv<1 ) continue ;
+         k=nroi++ ;
+         roi_vox[k]=(int *)malloc(sizeof(int)*(size_t)nrv) ;
+         roi_nv[k]=nrv ; roi_val[k]=rl->val[rr] ;
+         if( rl->lab!=NULL && rl->lab[rr]!=NULL ) insync_safe_token(lab,sizeof(lab),rl->lab[rr]) ;
+         else snprintf(lab,sizeof(lab),"ROI%d",rl->val[rr]) ;
+         roi_lab[k]=strdup(lab) ;
+         nrv=0 ;
+         for( jj=0 ; jj<rl->vox[rr].nar ; jj++ ){
+           int iv=rl->vox[rr].ar[jj] ;
+           if( mask==NULL || mask[iv] ){ roi_vox[k][nrv++]=iv ; vmap[iv]=k ; }
+         }
        }
-       if( anyzero ){
-         nzero_time++ ;
-         if( censor_keep[tt] ){ censor_keep[tt]=0 ; nremoved++ ; }
+       if( nroi<1 ) ERROR_exit(PROGRAM_NAME ": no atlas ROI overlaps the analysis mask") ;
+       nwork=nroi ;
+       THD_roilist_free(rl) ; DSET_delete(aset) ;
+     } else if( use_store ){
+       vmap=(int *)malloc(sizeof(int)*(size_t)nvox) ;
+       widx=(int *)malloc(sizeof(int)*(size_t)nmask) ;
+       if( vmap==NULL || widx==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate voxel index") ;
+       for( vv=0,jj=0 ; vv<nvox ; vv++ ){
+         if( mask==NULL || mask[vv] ){ vmap[vv]=jj ; widx[jj++]=vv ; } else vmap[vv]=-1 ;
        }
+       nwork=nmask ;
      }
-     for( tt=0 ; tt<ntime_input ; tt++ ) if( censor_keep[tt] ) time_index[nkeep++]=tt ;
-     if( nkeep<3 ) ERROR_exit(PROGRAM_NAME ": -zcensor retains %d time points; need at least 3",nkeep) ;
-     ntime=nkeep ;
-     if( !quiet ) INFO_message(PROGRAM_NAME ": -zcensor found %d all-zero time points; "
-                               "removed %d and retained %d of %d common time points",
-                               nzero_time,nremoved,ntime,ntime_input) ;
-     for( si=0 ; si<nsub ; si++ ) for( ci=0 ; ci<ncond ; ci++ ){
-       int dd=si*ncond+ci ;
-       float pct=100.0f*(float)nzero[dd]/(float)ntime_input ;
-       if( pct>zcensor_warn ){
-         int rr=rowmap[dd] ;
-         const char *who=cindex?cindex->level[0][si]:tab->subj[si] ;
-         WARNING_message(PROGRAM_NAME ": -zcensor: Subj %s, condition %s, dataset '%s' "
-                         "has %d/%d all-zero volumes (%.1f%%; warning level %.1f%%)",
-                         who,clabel[ci],tab->fname[rr],nzero[dd],ntime_input,pct,zcensor_warn) ;
-       }
-     }
-     free(nzero) ;
    }
+   src.ndset=ndset ; src.ntime_input=ntime_input ; src.nwork=nwork ;
+   src.half=use_half ; src.vmap=vmap ; src.dset=dset ;
 
    /* Assign every optional output family a contiguous sub-brick range.  The
       same offsets are later used both for computation and AFNI labels. */
@@ -2118,17 +2414,21 @@ int main( int argc, char **argv )
      me.nthread=1 ;
 #endif
      if( me.nthread<1 ) me.nthread=1 ;
-     me.input=(double)ndset*nvox*ntime_input*FS ;
+     /* Resident subject data: the compact store, or the datasets themselves
+        at the datatype actually stored on disk (not assumed to be float). */
+     me.input=use_store ? (double)ndset*nwork*((double)ntime_input*(use_half?2.0:4.0)+(use_half?8.0:0.0))
+                        : (double)ndset*nvox*ntime_input*native_bytes ;
+     if( vmap!=NULL ) me.geometry+=(double)nvox*sizeof(int)+(widx?(double)nwork*sizeof(int):0.0) ;
      if( atlas_name!=NULL ){
        me.geometry+=(double)nvox*FS ;
        me.shared+=FS*((double)ndset*ntime+nsub*nsub+2.0*nsub+3.0*ntime) ;
      }
-     me.shared=(double)nsub*((bset?bset->nresample:0)*sizeof(int)
+     me.shared+=(double)nsub*((bset?bset->nresample:0)*sizeof(int)
               +(pset?pset->nperm:0)*(sizeof(int)+sizeof(signed char))
               +(cset?cset->nperm:0)*(sizeof(int)+sizeof(signed char))) ;
      if( pset!=NULL && tail==INSYNC_TAIL_BI )
        me.shared+=FS*pset->nperm ;
-     me.output=(double)nout*nvox*FS+(double)npairmap*nvox*FS ;
+     me.output=((double)nout+(double)npairmap)*((double)nwork+(vmap!=NULL?(double)nvox:0.0))*FS ;
      me.per_thread=FS*((double)ndset*ntime+2.0*nsub*nsub+
                        2.0*nsub*ntime+2.0*nsub+2.0*ntime+
                        (double)nedge*ntime) ;
@@ -2140,6 +2440,19 @@ int main( int argc, char **argv )
      me.limit=memory_limit_given?memory_limit_gib*GIB:
               ((me.system>0.0)?0.80*me.system:0.0) ;
      THD_memory_plan_finish(&me) ;
+     if( use_store ){
+       /* While loading, one full dataset (plus a float buffer for -float16) is
+          resident beside the growing store; take the larger of the two peaks. */
+       double load_peak=me.input+me.geometry
+                       +(double)nvox*ntime_input*native_bytes
+                       +(use_half?(double)nwork*ntime_input*FS:0.0) ;
+       if( load_peak>me.total ) me.total=load_peak ;
+       if( !quiet ) INFO_message(PROGRAM_NAME ": subject data held as %s: %d %s x %d time points "
+                                 "x %d arrays = %.3f GiB (full-grid datasets would need %.3f GiB)",
+                                 use_half?"16-bit floats":"32-bit floats",nwork,
+                                 roi_only?"ROIs":"in-mask voxels",ntime_input,ndset,
+                                 me.input/GIB,(double)ndset*nvox*ntime_input*native_bytes/GIB) ;
+     }
      warn=(me.system>0.0)?0.50*me.system:0.0 ;
      if( !quiet && (me.total>warn || memory_limit_given || pair_prefix!=NULL) ){
        if( me.limit>0.0 )
@@ -2163,19 +2476,97 @@ int main( int argc, char **argv )
    }
 
    /* The potentially dominant subject datasets are intentionally loaded only
-      after the memory contract has been checked. */
+      after the memory contract has been checked.  They are read one at a time:
+      in compact mode each is reduced to its work units and released, so peak
+      memory is the store plus a single dataset. */
+   if( use_store ){
+     src.fst=NULL ; src.hst=NULL ; src.hpar=NULL ;
+     if( use_half ){
+       src.hst=(unsigned short **)calloc((size_t)ndset,sizeof(unsigned short *)) ;
+       src.hpar=(float **)calloc((size_t)ndset,sizeof(float *)) ;
+     }
+     else           src.fst=(float **)calloc((size_t)ndset,sizeof(float *)) ;
+     if( (use_half?(void *)src.hst:(void *)src.fst)==NULL || (use_half && src.hpar==NULL) )
+       ERROR_exit(PROGRAM_NAME ": cannot allocate the subject store") ;
+   }
+   if( do_zcensor ){
+     nzero=(int *)calloc((size_t)ndset,sizeof(int)) ;
+     zero_time=(byte *)calloc((size_t)ntime_input,sizeof(byte)) ;
+     if( nzero==NULL || zero_time==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate -zcensor counts") ;
+   }
    for( ii=0 ; ii<ndset ; ii++ ){
      DSET_load(dset[ii]) ; CHECK_LOAD_ERROR(dset[ii]) ;
+
+     /* Generalize 3dTcorrelate's -zcensor rule to every input dataset: a
+        time point is unusable if any subject/condition volume is all zero in
+        the analysis mask.  Judged on the raw data, before any storage change. */
+     if( do_zcensor ){
+       byte *zflag=(byte *)calloc((size_t)ntime_input,sizeof(byte)) ;
+       if( zflag==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate -zcensor flags") ;
+#ifdef USE_OMP
+#pragma omp parallel for schedule(dynamic,16)
+#endif
+       for( tt=0 ; tt<ntime_input ; tt++ ){
+         int gv, nonzero=0 ;
+         for( gv=0 ; gv<nvox ; gv++ ) if( mask==NULL || mask[gv] ){
+           if( THD_get_voxel(dset[ii],gv,tt)!=0.0f ){ nonzero=1 ; break ; }
+         }
+         zflag[tt]=(byte)!nonzero ;
+       }
+       for( tt=0 ; tt<ntime_input ; tt++ ) if( zflag[tt] ){ nzero[ii]++ ; zero_time[tt]=1 ; }
+       free(zflag) ;
+     }
+
+     if( use_store ){
+       int bad_w=-1, bad_t=-1 ;
+       insync_fill_one(dset[ii],ii,&src,widx,roi_only?roi_vox:NULL,roi_nv,
+                       missing_policy,&bad_w,&bad_t) ;
+       if( bad_t>=0 ){
+         int si2=ii/ncond, ci2=ii%ncond ;
+         ERROR_exit(PROGRAM_NAME ": nonfinite atlas input for ROI %d, Subj %s, "
+                    "condition %s, time %d",roi_val[bad_w],
+                    cindex?cindex->level[0][si2]:tab->subj[si2],clabel[ci2],bad_t+1) ;
+       }
+       DSET_unload(dset[ii]) ;
+     }
+   }
+
+   /* Apply -zcensor now that every dataset has been judged: the retained
+      timeline is common to all subjects, conditions, voxels, and ROIs. */
+   if( do_zcensor ){
+     int nzero_time=0, nremoved=0, nkeep=0 ;
+     for( tt=0 ; tt<ntime_input ; tt++ ) if( zero_time[tt] ){
+       nzero_time++ ;
+       if( censor_keep[tt] ){ censor_keep[tt]=0 ; nremoved++ ; }
+     }
+     for( tt=0 ; tt<ntime_input ; tt++ ) if( censor_keep[tt] ) time_index[nkeep++]=tt ;
+     if( nkeep<3 ) ERROR_exit(PROGRAM_NAME ": -zcensor retains %d time points; need at least 3",nkeep) ;
+     ntime=nkeep ;
+     if( !quiet ) INFO_message(PROGRAM_NAME ": -zcensor found %d all-zero time points; "
+                               "removed %d and retained %d of %d common time points",
+                               nzero_time,nremoved,ntime,ntime_input) ;
+     for( si=0 ; si<nsub ; si++ ) for( ci=0 ; ci<ncond ; ci++ ){
+       int dd=si*ncond+ci ;
+       float pct=100.0f*(float)nzero[dd]/(float)ntime_input ;
+       if( pct>zcensor_warn ){
+         int rr=rowmap[dd] ;
+         const char *who=cindex?cindex->level[0][si]:tab->subj[si] ;
+         WARNING_message(PROGRAM_NAME ": -zcensor: Subj %s, condition %s, dataset '%s' "
+                         "has %d/%d all-zero volumes (%.1f%%; warning level %.1f%%)",
+                         who,clabel[ci],tab->fname[rr],nzero[dd],ntime_input,pct,zcensor_warn) ;
+       }
+     }
+     free(nzero) ; free(zero_time) ; nzero=NULL ; zero_time=NULL ;
    }
 
    /* Allocate shared output maps and empirical-null accumulators. */
    outval=(float **)calloc((size_t)nout,sizeof(float *)) ;
    for( kk=0 ; kk<nout ; kk++ ){
-     outval[kk]=(float *)calloc((size_t)nvox,sizeof(float)) ;
+     outval[kk]=(float *)calloc((size_t)nwork,sizeof(float)) ;
      if( outval[kk]==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate output map %d",kk) ;
    }
    if( pset!=NULL ){
-     int nelem=ncond*nvox ;
+     int nelem=ncond*nwork ;
      infer_valid=(byte *)calloc((size_t)nelem,sizeof(byte)) ;
      presult=THD_perm_result_new(nelem,pset->nperm) ;
      if( tail==INSYNC_TAIL_BI )
@@ -2189,13 +2580,13 @@ int main( int argc, char **argv )
        group_max_neg[ii]=-FLT_MAX ;
    }
    if( tset!=NULL || phset!=NULL ){
-     int nelem=ncond*ngroup*nvox ;
+     int nelem=ncond*ngroup*nwork ;
      temporal_valid=(byte *)calloc((size_t)nelem,sizeof(byte)) ;
      tresult=THD_perm_result_new(nelem,nnull) ; tresult->tail=temporal_tail ;
      for( ii=0 ; ii<nnull ; ii++ ) tresult->max_null[ii]=-FLT_MAX ;
    }
    if( cset!=NULL ){
-     int nelem=neffect*nvox ;
+     int nelem=neffect*nwork ;
      condition_valid=(byte *)calloc((size_t)nelem,sizeof(byte)) ;
      cresult=THD_perm_result_new(nelem,cset->nperm) ; cresult->tail=condition_tail ;
      for( ii=0 ; ii<cset->nperm ; ii++ ) cresult->max_null[ii]=-FLT_MAX ;
@@ -2204,11 +2595,11 @@ int main( int argc, char **argv )
      size_t total ;
      npairmap=(size_t)ncond*ncond*nedge ;
      if( npairmap>(size_t)INT_MAX ) ERROR_exit(PROGRAM_NAME ": too many pair-map bricks") ;
-     if( npairmap>0 && (size_t)nvox>((size_t)-1)/npairmap ) ERROR_exit(PROGRAM_NAME ": pair-map array is too large") ;
-     total=npairmap*(size_t)nvox ; pairval=(float *)calloc(total,sizeof(float)) ;
+     if( npairmap>0 && (size_t)nwork>((size_t)-1)/npairmap ) ERROR_exit(PROGRAM_NAME ": pair-map array is too large") ;
+     total=npairmap*(size_t)nwork ; pairval=(float *)calloc(total,sizeof(float)) ;
      if( pairval==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate %lu pair-map values",(unsigned long)total) ;
    }
-   insync_progress_init(&progress,progress_mode,quiet,nmask) ;
+   insync_progress_init(&progress,progress_mode,quiet,use_store?nwork:nmask) ;
 
 #ifdef USE_OMP
 #pragma omp parallel reduction(+:invalid_total,boot_invalid_total,temporal_invalid_total,condition_invalid_total) reduction(min:bad_data)
@@ -2276,10 +2667,10 @@ int main( int argc, char **argv )
 #ifdef USE_OMP
 #pragma omp for schedule(dynamic,32)
 #endif
-     for( vv=0 ; vv<nvox ; vv++ ){
+     for( vv=0 ; vv<nwork ; vv++ ){
        int nt=ntime ;
        int hasbad=0 ;
-       if( mask!=NULL && !mask[vv] ) continue ;
+       if( !use_store && mask!=NULL && !mask[vv] ) continue ;
 
        /* Materialize this voxel as condition-major, subject-major time
           series so all estimators and null models share one memory layout. */
@@ -2287,7 +2678,8 @@ int main( int argc, char **argv )
        {
          int dd=ci*nsub+si ;
          int ot=time_index[tt] ;
-         float x=THD_get_voxel(dset[si*ncond+ci],vv,ot) ;
+         float x=use_store ? insync_store_get(&src,si*ncond+ci,vv,ot)
+                           : THD_get_voxel(dset[si*ncond+ci],vv,ot) ;
          data[(size_t)dd*ntime+tt]=x ;
          if( missing_policy==MISSING_ERROR && !isfinite(x) ){
            long long code=((long long)vv*ndset+dd)*ntime_input+ot ;
@@ -2335,7 +2727,7 @@ int main( int argc, char **argv )
            for( ci=0 ; ci<ncond ; ci++ ) for( cc=0 ; cc<ncond ; cc++ ){
              size_t pm=((size_t)ci*ncond+cc)*nedge+pair ;
              float rr=pairsm->mat[((size_t)ci*nsub+aa)*ndset+(size_t)cc*nsub+bb] ;
-             pairval[pm*(size_t)nvox+vv]=insync_fisher_z(rr) ;
+             pairval[pm*(size_t)nwork+vv]=insync_fisher_z(rr) ;
            }
        }
 
@@ -2418,7 +2810,7 @@ int main( int argc, char **argv )
            }
            for( gg=0 ; gg<ngroup ; gg++ ){
              int good=prep_good ;
-             int e=(ci*ngroup+gg)*nvox+vv ;
+             int e=(ci*ngroup+gg)*nwork+vv ;
              float obs=tnull[(size_t)gg*nnull] ;
              if( !isfinite(obs) ) good=0 ;
              for( ss=1 ; good && ss<nnull ; ss++ ) if( !isfinite(tnull[(size_t)gg*nnull+ss]) ) good=0 ;
@@ -2437,7 +2829,7 @@ int main( int argc, char **argv )
          if( pset!=NULL && isfinite(gstat[0]) && isfinite(gstat[1]) ){
            int ip ;
            int good=1 ;
-           int e=ci*nvox+vv ;
+           int e=ci*nwork+vv ;
            float obs=gstat[0]-gstat[1] ;
 
            /* Relabel whole subjects, then reconstruct each group from the
@@ -2543,7 +2935,7 @@ int main( int argc, char **argv )
              }
              for( e=0 ; e<neffect ; e++ ){
                int good=allgood ;
-               int elem=e*nvox+vv ;
+               int elem=e*nwork+vv ;
                float obs=ceffect[e] ;
                if( !isfinite(obs) ) good=0 ;
                if( good ){
@@ -2601,18 +2993,24 @@ int main( int argc, char **argv )
      int si ;
      int rr ;
      q/=ntime_input ; dd=(int)(q%ndset) ; ci=dd/nsub ; si=dd%nsub ;
-     rr=rowmap[si*ncond+ci] ;
+     rr=rowmap[si*ncond+ci] ; q/=ndset ;
+     if( roi_only )
+       ERROR_exit(PROGRAM_NAME ": nonfinite retained input at ROI %d, time %d, "
+                  "Subj %s, condition %s, dataset '%s'; use -missing common only "
+                  "when a synchronized complete-case estimand is intended",
+                  roi_val[q],ot+1,cindex?cindex->level[0][si]:tab->subj[si],
+                  clabel[ci],tab->fname[rr]) ;
      ERROR_exit(PROGRAM_NAME ": nonfinite retained input at voxel %lld, time %d, "
                 "Subj %s, condition %s, dataset '%s'; use -missing common only "
                 "when a synchronized complete-case estimand is intended",
-                q/ndset,ot+1,cindex?cindex->level[0][si]:tab->subj[si],
+                widx?(long long)widx[q]:q,ot+1,cindex?cindex->level[0][si]:tab->subj[si],
                 clabel[ci],tab->fname[rr]) ;
    }
 
    /* Convert empirical exceedance counts and synchronized max-null arrays to
       uncorrected p, signed z, BH-FDR q, and max-FWE output maps. */
    if( presult!=NULL ){
-     int nelem=ncond*nvox ;
+     int nelem=ncond*nwork ;
      int nvalid=0 ;
      for( ii=0 ; ii<nelem ; ii++ ) if( infer_valid[ii] ) nvalid++ ;
      if( nvalid<1 ) ERROR_exit(PROGRAM_NAME ": no valid group-permutation cells") ;
@@ -2625,8 +3023,8 @@ int main( int argc, char **argv )
      qval=(float *)malloc(sizeof(float)*(size_t)nelem) ;
      THD_bh_fdr_masked(nelem,presult->p_unc,infer_valid,qval) ;
      for( cc=0 ; cc<ncond ; cc++ ){
-       size_t off=(size_t)cc*nvox ;
-       size_t nb=sizeof(float)*(size_t)nvox ;
+       size_t off=(size_t)cc*nwork ;
+       size_t nb=sizeof(float)*(size_t)nwork ;
        int bs=perm_slot+5*cc ;
        memcpy(outval[bs],presult->p_unc+off,nb); memcpy(outval[bs+1],presult->z_unc+off,nb);
        memcpy(outval[bs+2],qval+off,nb); memcpy(outval[bs+3],presult->p_fwe+off,nb); memcpy(outval[bs+4],presult->z_fwe+off,nb);
@@ -2635,7 +3033,7 @@ int main( int argc, char **argv )
                                "%d valid condition-by-voxel cells",nvalid) ;
    }
    if( tresult!=NULL ){
-     int nelem=ncond*ngroup*nvox ;
+     int nelem=ncond*ngroup*nwork ;
      int nvalid=0 ;
      for( ii=0 ; ii<nelem ; ii++ ) if( temporal_valid[ii] ) nvalid++ ;
      if( nvalid<1 ) ERROR_exit(PROGRAM_NAME ": no valid temporal-null cells") ;
@@ -2643,8 +3041,8 @@ int main( int argc, char **argv )
      THD_perm_result_finish(tresult,temporal_valid) ; temporal_qval=(float *)malloc(sizeof(float)*(size_t)nelem) ;
      THD_bh_fdr_masked(nelem,tresult->p_unc,temporal_valid,temporal_qval) ;
      for( cc=0 ; cc<ncond ; cc++ ) for( kk=0 ; kk<ngroup ; kk++ ){
-       size_t off=(size_t)(cc*ngroup+kk)*nvox ;
-       size_t nb=sizeof(float)*(size_t)nvox ;
+       size_t off=(size_t)(cc*ngroup+kk)*nwork ;
+       size_t nb=sizeof(float)*(size_t)nwork ;
        int bs=temporal_slot+5*(cc*ngroup+kk) ;
        memcpy(outval[bs],tresult->p_unc+off,nb); memcpy(outval[bs+1],tresult->z_unc+off,nb);
        memcpy(outval[bs+2],temporal_qval+off,nb); memcpy(outval[bs+3],tresult->p_fwe+off,nb); memcpy(outval[bs+4],tresult->z_fwe+off,nb);
@@ -2653,7 +3051,7 @@ int main( int argc, char **argv )
                                "condition-by-group-by-voxel cells",nvalid) ;
    }
    if( cresult!=NULL ){
-     int nelem=neffect*nvox ;
+     int nelem=neffect*nwork ;
      int nvalid=0 ;
      for( ii=0 ; ii<nelem ; ii++ ) if( condition_valid[ii] ) nvalid++ ;
      if( nvalid<1 ) ERROR_exit(PROGRAM_NAME ": no valid condition-swap cells") ;
@@ -2661,8 +3059,8 @@ int main( int argc, char **argv )
      THD_perm_result_finish(cresult,condition_valid) ; condition_qval=(float *)malloc(sizeof(float)*(size_t)nelem) ;
      THD_bh_fdr_masked(nelem,cresult->p_unc,condition_valid,condition_qval) ;
      for( kk=0 ; kk<neffect ; kk++ ){
-       size_t off=(size_t)kk*nvox ;
-       size_t nb=sizeof(float)*(size_t)nvox ;
+       size_t off=(size_t)kk*nwork ;
+       size_t nb=sizeof(float)*(size_t)nwork ;
        int bs=condperm_slot+5*kk ;
        memcpy(outval[bs],cresult->p_unc+off,nb); memcpy(outval[bs+1],cresult->z_unc+off,nb);
        memcpy(outval[bs+2],condition_qval+off,nb); memcpy(outval[bs+3],cresult->p_fwe+off,nb); memcpy(outval[bs+4],cresult->z_fwe+off,nb);
@@ -2671,8 +3069,28 @@ int main( int argc, char **argv )
                                "%d valid effect-by-voxel cells",nvalid) ;
    }
 
-   /* Assemble one AFNI bucket after all parallel work is complete.  Z-like
-      bricks get FIZT metadata so AFNI can display their p-value thresholds. */
+   /* The subject data are no longer needed; release them before the output
+      maps are spread back onto the full grid. */
+   store_needed_late=(use_store && !roi_only && (atlas_name!=NULL || eo.edges || eo.rss || eo.events)) ;
+   if( use_store && !store_needed_late ) insync_free_store(&src) ;
+   /* Results so far live in work-unit space (in-mask voxels, or ROIs).  Paint
+      them onto the input grid; everything below assembles full-grid bricks.
+      The work-space copies are kept for the -roi_only table. */
+   outwork=outval ;
+   if( vmap!=NULL ){
+     float *outside=(float *)calloc((size_t)nout,sizeof(float)) ;
+     /* P, Q and FWE-P bricks read 1 (not 0) where no test was run. */
+     if( pset!=NULL ) for( cc=0 ; cc<ncond ; cc++ )
+       { outside[perm_slot+5*cc]=outside[perm_slot+5*cc+2]=outside[perm_slot+5*cc+3]=1.0f ; }
+     if( tresult!=NULL ) for( cc=0 ; cc<ncond*ngroup ; cc++ )
+       { outside[temporal_slot+5*cc]=outside[temporal_slot+5*cc+2]=outside[temporal_slot+5*cc+3]=1.0f ; }
+     if( cset!=NULL ) for( cc=0 ; cc<neffect ; cc++ )
+       { outside[condperm_slot+5*cc]=outside[condperm_slot+5*cc+2]=outside[condperm_slot+5*cc+3]=1.0f ; }
+     outval=(float **)calloc((size_t)nout,sizeof(float *)) ;
+     for( kk=0 ; kk<nout ; kk++ ) outval[kk]=insync_expand(outwork[kk],vmap,nvox,outside[kk]) ;
+     free(outside) ;
+     if( !roi_only ){ for( kk=0 ; kk<nout ; kk++ ){ free(outwork[kk]) ; outwork[kk]=NULL ; } }
+   }
    out=EDIT_empty_copy(first) ;
    EDIT_dset_items(out,ADN_prefix,prefix,ADN_nvals,nout,ADN_ntt,0,ADN_brick_fac,NULL,
                    ADN_type,HEAD_FUNC_TYPE,ADN_func_type,FUNC_BUCK_TYPE,ADN_datum_all,MRI_float,ADN_none) ;
@@ -2744,6 +3162,19 @@ int main( int argc, char **argv )
      char dataset_name[THD_MAX_NAME] ;
      size_t pm=0 ;
 
+     if( vmap!=NULL ){
+       /* Paint each pair map onto the full grid, one brick at a time. */
+       float *pfull=(float *)calloc(npairmap*(size_t)nvox,sizeof(float)) ;
+       size_t pb ;
+       if( pfull==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate %lu full-grid pair-map values",
+                                    (unsigned long)(npairmap*(size_t)nvox)) ;
+       for( pb=0 ; pb<npairmap ; pb++ ){
+         const float *wv=pairval+pb*(size_t)nwork ;
+         float *dv=pfull+pb*(size_t)nvox ;
+         for( vv=0 ; vv<nvox ; vv++ ) if( vmap[vv]>=0 ) dv[vv]=wv[vmap[vv]] ;
+       }
+       free(pairval) ; pairval=pfull ;
+     }
      /* Pair maps are stored in condition-pair-major, subject-edge-minor
         order.  The emitted tables point directly to those brick selectors. */
      pairout=EDIT_empty_copy(first) ;
@@ -2818,16 +3249,38 @@ int main( int argc, char **argv )
                                "one ready-to-run 3dISC table per condition pairing") ;
    }
 
-   if( atlas_name!=NULL )
-     insync_write_roi_outputs(atlas_name,roi_sel,prefix,matrix_name,first,dset,
+   if( roi_only ){
+     /* One row per ROI with every statistic in the bucket, in brick order. */
+     char sname[THD_MAX_NAME] ;
+     FILE *sfp ;
+     int bk, r ;
+     snprintf(sname,sizeof(sname),"%s.roi.1D",prefix) ;
+     sfp=insync_open_text(sname) ;
+     fprintf(sfp,"ROI ROI_Label NVoxel") ;
+     for( bk=0 ; bk<nout ; bk++ ) fprintf(sfp," %s",DSET_BRICK_LABEL(out,bk)) ;
+     fprintf(sfp,"\n") ;
+     for( r=0 ; r<nroi ; r++ ){
+       fprintf(sfp,"%d %s %d",roi_val[r],roi_lab[r],roi_nv[r]) ;
+       for( bk=0 ; bk<nout ; bk++ ) fprintf(sfp," %.9g",outwork[bk][r]) ;
+       fprintf(sfp,"\n") ;
+     }
+     fclose(sfp) ;
+     if( !quiet ) INFO_message(PROGRAM_NAME ": wrote %d ROI rows of %d statistics to %s",nroi,nout,sname) ;
+     for( bk=0 ; bk<nout ; bk++ ) free(outwork[bk]) ;
+   }
+
+   if( atlas_name!=NULL && !roi_only )
+     insync_write_roi_outputs(atlas_name,roi_sel,prefix,matrix_name,first,&src,
        nsub,ncond,ntime_input,ntime,time_index,mask,missing_policy,corr_metric,
        method,summary,ngroup,group,gcount,gmember,glabel,tab,cindex,rowmap,
        clabel,quiet) ;
 
    if( eo.edges || eo.rss || eo.events )
-     insync_write_edge_outputs(atlas_name,roi_sel,prefix,first,dset,nsub,ncond,
+     insync_write_edge_outputs(atlas_name,roi_sel,prefix,first,&src,nsub,ncond,
        ntime,time_index,mask,missing_policy,corr_metric,method,summary,ngroup,
        gcount,gmember,glabel,tab,cindex,clabel,&eo,quiet) ;
+
+   if( store_needed_late ) insync_free_store(&src) ;
 
    if( !quiet ) INFO_message(PROGRAM_NAME ": estimator=%s correlation=%s "
                 "summary=%s, %d subjects, %d condition%s, %d retained time points",

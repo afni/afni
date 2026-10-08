@@ -52,6 +52,23 @@ if(TARGET 3dInSync)
       set_tests_properties(3dInSync:integration PROPERTIES LABELS "3dInSync;integration")
     endif()
   endif()
+
+  # Memory-reduction options: compact in-mask store, -roi_only, -float16, and
+  # -zcensor through those paths, on small synthetic data.
+  if(TARGET 3dUndump AND TARGET 3dTcat AND TARGET 3dcalc AND TARGET 3dBrickStat
+     AND TARGET 3dROIstats AND TARGET 1dtranspose)
+    find_program(BASH_PROGRAM bash)
+    if(BASH_PROGRAM)
+      add_test(
+        NAME 3dInSync:memory
+        COMMAND
+          ${BASH_PROGRAM}
+          ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_insync_memory.sh
+          $<TARGET_FILE:3dInSync>
+      )
+      set_tests_properties(3dInSync:memory PROPERTIES LABELS "3dInSync;integration")
+    endif()
+  endif()
 endif()
 
 if(TARGET 3dRSA)
