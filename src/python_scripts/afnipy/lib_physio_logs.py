@@ -5,6 +5,7 @@ import copy
 import json
 from   afnipy  import lib_physio_defs    as DEF
 from   afnipy  import lib_physio_util    as lpu
+from   afnipy  import lib_physio_outliers as lpout
 from   afnipy  import lib_format_cmd_str as lfcs
 from   afnipy  import afni_base          as ab
 
@@ -169,6 +170,33 @@ is_ok : int
 
     return 0
 
+def _review_ival_outliers(times):
+    """Return the count and fraction of flagged successive intervals.
+
+Parameters
+----------
+times : array-like
+    Peak or trough times in the interval being reported.
+
+Returns
+-------
+count, fraction : tuple of str
+    Count of flagged intervals and its fraction of len(times) - 1,
+    formatted to six decimals.  The fraction is 'NA' if there are no
+    intervals; both values are 'NA' if outlier detection fails.
+
+    """
+    is_fail, intervals = lpout.find_outliers(times)
+    if is_fail:
+        return 'NA', 'NA'
+    n_ivals = max(len(times) - 1, 0)
+    if n_ivals:
+        fraction = '{:.6f}'.format(len(intervals) / n_ivals)
+    else:
+        fraction = 'NA'
+    return str(len(intervals)), fraction
+
+
 def get_ts_obj_review_info(tsobj):
     """What info do we want from the ts_obj class tsobj?  That is defined
 here."""
@@ -222,6 +250,21 @@ here."""
                                                                       q50, 
                                                                       q75))
 
+    peak_times = tsobj.tvalues[tsobj.peaks]
+    num, frac = _review_ival_outliers(peak_times)
+    D['peak ival outlier num total'] = num
+    D['peak ival outlier frac total'] = frac
+    if tsobj.n_troughs:
+        trough_times = tsobj.tvalues[tsobj.troughs]
+        is_fail, indices = lpout.find_nonalt_extrema(peak_times, trough_times)
+        if not is_fail:
+            D['peak nonalt num total'] = str(len(indices))
+        else:
+            D['peak nonalt num total'] = 'NA'
+    else:
+        # Without opposite extrema, alternation cannot be assessed.
+        D['peak nonalt num total'] = 'NA'
+
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
     # extra check: having <2 peaks is _very_ unexpected, but would cause crash
@@ -248,6 +291,23 @@ here."""
                                              q50, 
                                              q75))
 
+    peak_dset_times = tsobj.tvalues[tsobj.adjunct_get_list(
+        kind='peaks', min_idx=idxA, max_idx=idxB)]
+    num, frac = _review_ival_outliers(peak_dset_times)
+    D['peak ival outlier num over dset'] = num
+    D['peak ival outlier frac over dset'] = frac
+    if tsobj.n_troughs:
+        trough_dset_times = tsobj.tvalues[tsobj.adjunct_get_list(
+            kind='troughs', min_idx=idxA, max_idx=idxB)]
+        is_fail, indices = lpout.find_nonalt_extrema(
+            peak_dset_times, trough_dset_times)
+        if not is_fail:
+            D['peak nonalt num over dset'] = str(len(indices))
+        else:
+            D['peak nonalt num over dset'] = 'NA'
+    else:
+        D['peak nonalt num over dset'] = 'NA'
+
 
     if tsobj.n_troughs :
         D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
@@ -263,6 +323,15 @@ here."""
             str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
                                                  q50, 
                                                  q75))
+
+        num, frac = _review_ival_outliers(trough_times)
+        D['trough ival outlier num total'] = num
+        D['trough ival outlier frac total'] = frac
+        is_fail, indices = lpout.find_nonalt_extrema(trough_times, peak_times)
+        if not is_fail :
+            D['trough nonalt num total'] = str(len(indices))
+        else:
+            D['trough nonalt num total'] = 'NA'
 
         D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
@@ -294,6 +363,16 @@ here."""
                 str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
                                                      q50, 
                                                      q75))
+
+            num, frac = _review_ival_outliers(trough_dset_times)
+            D['trough ival outlier num over dset'] = num
+            D['trough ival outlier frac over dset'] = frac
+            is_fail, indices = lpout.find_nonalt_extrema(
+                trough_dset_times, peak_dset_times)
+            if not is_fail:
+                D['trough nonalt num over dset'] = str(len(indices))
+            else:
+                D['trough nonalt num over dset'] = 'NA'
 
     return D
 
