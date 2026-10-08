@@ -52,6 +52,7 @@ inobj : InOpts object
         # main data variables
         self.inset            = DEF.DOPTS['inset']
         self.prefix           = DEF.DOPTS['prefix']
+        self.prefix_ss        = DEF.DOPTS['prefix_ss']
 
         self.comp_mask        = DEF.DOPTS['comp_mask']
         self.comp_opts        = DEF.DOPTS['comp_opts']
@@ -123,6 +124,10 @@ inobj : InOpts object
             tmp = self.write_out_prefix()
             if tmp : return
 
+            if self.prefix_ss :
+                tmp = self.write_out_prefix_ss()
+                if tmp : return
+
             tmp = self.single_mask_image()
             if tmp : return
 
@@ -188,8 +193,8 @@ inobj : InOpts object
         return 0
         
     def write_out_prefix(self):
-        """Copy final dset out. Should be last step. **Add in history**
-        """
+        """Copy final dset out (with history added). Should be last proc 
+        step."""
 
         if self.verb : ab.IP("final copy: {}".format(self.prefix))
 
@@ -229,6 +234,26 @@ inobj : InOpts object
             return BAD_RETURN
 
         return 0
+
+    def write_out_prefix_ss(self):
+        """Output skullstripped version of inset, using new mask dset."""
+
+        if self.verb : ab.IP("write prefix_ss: {}".format(self.prefix_ss))
+
+        BAD_RETURN = -8
+        
+        # make skullstripped inset with 3dcalc
+        cmd  = '3dcalc -overwrite '
+        cmd += '-a {} '.format(self.inset)
+        cmd += '-b {} '.format(self.prefix) # the mask dset
+        cmd += '-expr "a*step(b)" '
+        cmd += '-prefix {}'.format(self.prefix_ss)
+        com  = ab.shell_com(cmd, capture=1)
+        stat = com.run()
+
+        if stat : 
+            ab.EP1("Failed in writing skullstripped input: prefix_ss")
+            return BAD_RETURN
 
     def afterproc_reverse_all(self):
         """Undo any of the preproc_forward_all() steps that were done in
@@ -724,6 +749,8 @@ inobj : InOpts object
         if io.prefix is not None :
             self.prefix = io.prefix
 
+        if io.prefix_ss is not None :
+            self.prefix_ss = io.prefix_ss
         if io.comp_mask is not None :
             self.comp_mask = io.comp_mask
         if io.comp_opts is not None :
@@ -828,6 +855,17 @@ inobj : InOpts object
             msg = "The prefix '{}' dset exists already, ".format(self.prefix)
             msg+= "and you must either (re)move it or use '-overwrite'"
             ab.EP(msg)
+
+        # (opt) prefix_ss: check for existence/overwriting, and its ext
+        if self.prefix_ss :
+            if not(self.prefix_ss.endswith('.nii')) and \
+               not(self.prefix_ss.endswith('.nii.gz')) :
+                self.prefix_ss += '.nii.gz'
+            if os.path.isfile(self.prefix_ss) and not(self.overwrite) :
+                msg = "The prefix_ss dset "
+                msg+= "'{}' exists already, ".format(self.prefix_ss)
+                msg+= "and you must either (re)move it or use '-overwrite'"
+                ab.EP(msg)
 
         if self.device not in DEF.LIST_all_device :
             msg = "Unrecognized device '{}'. ".format(self.device)

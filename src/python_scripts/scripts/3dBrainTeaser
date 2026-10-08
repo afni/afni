@@ -44,10 +44,13 @@ Usage ~1~
 
 -inset INSET   :(req) name of the input dataset
 
--prefix PREFIX :(req) name of output dset
+-prefix PREFIX :(req) name of output mask dset
 
 -checkpoint CP :this option specifies which V-net model should be used
                 (def: '{checkpoint}')
+
+-prefix_ss PSS :name out output dataset, the skullstripped anatomical;
+                that is, the result of multiplying the inset and new mask
 
 -workdir WD    :working directory name, without path; the working dir
                 will be subdirectory of the output location
@@ -194,6 +197,7 @@ g_history = """
 
   0.1   May  20, 2026 :: started this command line interface 
   1.0   June 25, 2026 :: functionality seems pretty full and tested 
+  1.1   Oct   8, 2026 :: add -prefix_ss (-> output skullstripped inset)
 """
 
 g_prog    = g_history.split()[0]
@@ -223,6 +227,7 @@ checks happen in a subsequent object.
         # main data variables
         self.inset           = None
         self.prefix          = None
+        self.prefix_ss       = None
 
         self.comp_mask       = None
         self.comp_opts       = None
@@ -267,9 +272,12 @@ checks happen in a subsequent object.
                         helpstr='name of input dataset')
 
         self.valid_opts.add_opt('-prefix', 1, [], 
-                        helpstr='name of output dataset')
+                        helpstr='name of output mask dataset')
 
         # optional parameters
+
+        self.valid_opts.add_opt('-prefix_ss', 1, [], 
+                        helpstr='name of output skullstripped inset')
 
         self.valid_opts.add_opt('-comp_mask', 1, [], 
                         helpstr='add a mask for comparisons (like testing/QC)')
@@ -381,6 +389,12 @@ checks happen in a subsequent object.
                 self.prefix = val
 
             # general options
+
+            elif opt.name == '-prefix_ss':
+                val, err = uopts.get_string_opt('', opt=opt)
+                if val is None or err:
+                    BASE.EP(err_base + opt.name)
+                self.prefix_ss = val
 
             elif opt.name == '-comp_mask':
                 val, err = uopts.get_string_opt('', opt=opt)

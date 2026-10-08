@@ -37,6 +37,7 @@ DOPTS = {
     'comp_opts'       : [],
     'checkpoint'      : '',
     'prefix'          : '',
+    'prefix_ss'       : '',
     'device'          : 'auto',
     'num_cpu'         : -1,
     'outdir'          : None,
