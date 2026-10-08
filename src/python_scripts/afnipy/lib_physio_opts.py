@@ -529,17 +529,21 @@ QC coloration in plots ~1~
     bottom band of red-blue : the same interpretation as the top band,
                               but for troughs
 
-    yellow background    : potential outlier interpeak/intertrough interval;
-                           highlights where an omnibus measure of relative
-                           height+width between successive extrema is large,
-                           relative to the distribution of all intervals
+    yellow background    : (outlier ival) outlier interpeak/intertrough 
+                           interval; highlights where an omnibus measure
+                           of relative height+width between successive
+                           extrema is large, relative to the distribution
+                           of all intervals---but might only be a
+                           _statistical_ outlier, not something
+                           non-physiological
 
-    magenta triangle     : highlights nonalternating peaks; that is, where
-                           there are 2 or more peaks without an intervening
-                           trough. Suggests either extra peak(s) or missing
-                           trough(s)
+    magenta triangle     : (nonalt p) highlights nonalternating peaks; 
+                           that is, where there are 2 or more peaks
+                           without an intervening trough. Suggests
+                           either extra peak(s) or missing trough(s)
                 
-    cyan triangle        : equivalent to magenta triangle but for troughs
+    cyan triangle        : (nonalt t) equivalent to magenta triangle but 
+                           for nonalternating troughs
 
     gray background      : not a QC issue at all, but just highlights
                            regions of physio data/plot that are outside of
