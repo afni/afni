@@ -169,7 +169,7 @@ There will always be at least one vertex left (which is, in fact, a
         self.canvas = None
         self.bands = {'p': [], 't': []}  # animated interval rectangles
         self.highlights = {'p': [], 't': []}  # animated outlier regions
-        self.nonalt_pts = {'p': None, 't': None}  # larger magenta triangles
+        self.nonalt_pts = {'p': None, 't': None}  # larger colored triangles
         self.refresh_bands = None
 
         # ----- check input(s) and parse

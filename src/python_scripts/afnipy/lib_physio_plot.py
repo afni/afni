@@ -20,13 +20,14 @@ DEF_ms    = 1.50                     # def marker size in plot
 DEF_grayp = '0.90'                   # def color for graypatch
 
 # Filled backdrops follow the peak/trough caret anchors and extend beyond
-# their tips, so the magenta remains visible around both small markers.
+# their tips, so the highlight remains visible around both small markers.
 NONALT_MARKERS = {
-    'p': MplPath([(0, -0.08), (-0.5, 0.5), (0.5, 0.5), (0, -0.08)],
+    'p': MplPath([(0, -1/6), (-0.36, 0.5), (0.36, 0.5), (0, -1/6)],
                  closed=True),
-    't': MplPath([(0, 0.2), (-0.5, -0.5), (0.5, -0.5), (0, 0.2)],
+    't': MplPath([(0, 1/6), (-0.36, -0.5), (0.36, -0.5), (0, 1/6)],
                  closed=True),
 }
+NONALT_MARKER_COLORS = {'p': 'magenta', 't': 'cyan'}
 NONALT_MARKER_SCALE = 2.25  # 8 pt interactive -> 18 pt backdrop
 
 def interval_band_specs(x):
@@ -860,8 +861,8 @@ them.
                             coords[:, 0], coords[:, 1], linestyle='None',
                             marker=NONALT_MARKERS[lab],
                             markersize=NONALT_MARKER_SCALE * base_ms,
-                            markerfacecolor='magenta',
-                            markeredgecolor='magenta',
+                            markerfacecolor=NONALT_MARKER_COLORS[lab],
+                            markeredgecolor=NONALT_MARKER_COLORS[lab],
                             zorder=1.9,
                             animated=do_interact, label='_nolegend_')
 
@@ -1066,6 +1067,24 @@ them.
                 # first make layout tight, then place single-row
                 # legend, that should now fit nicely
                 plt.tight_layout()
+                if do_interact:
+                    handles, labels = pp.get_legend_handles_labels()
+                    for jj, label in enumerate(labels):
+                        if label == 'refline':
+                            labels[jj] = 'physio data'
+                        elif label in ('p', 't'):
+                            style = (lpi.dict_plotP if label == 'p'
+                                     else lpi.dict_plotT)
+                            handles[jj] = Line2D(
+                                [], [], linestyle='None',
+                                marker=style['marker'],
+                                markersize=style['ms'],
+                                markerfacecolor=style['mfc'],
+                                markeredgecolor=style['mec'],
+                                alpha=style['alpha'])
+                    legend_kw = {'handles': handles, 'labels': labels}
+                else:
+                    legend_kw = {}
                 plt.legend(ncol=self.n_plobj,
                            fontsize=self.fontsize,
                            #loc='upper right', 
@@ -1075,7 +1094,8 @@ them.
                            bbox_transform=plt.gcf().transFigure,
                            shadow=True, borderpad=0.4, columnspacing=1.5,
                            borderaxespad=0.1, handletextpad=0.5,
-                           handlelength=0.75)
+                           handlelength=0.75,
+                           **legend_kw)
 
             # because of interactive, do this later
             if do_save :

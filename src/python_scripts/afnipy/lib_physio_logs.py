@@ -190,7 +190,10 @@ count, fraction : tuple of str
     if is_fail:
         return 'NA', 'NA'
     n_ivals = max(len(times) - 1, 0)
-    fraction = '{:.6f}'.format(len(intervals) / n_ivals) if n_ivals else 'NA'
+    if n_ivals:
+        fraction = '{:.6f}'.format(len(intervals) / n_ivals)
+    else:
+        fraction = 'NA'
     return str(len(intervals)), fraction
 
 
@@ -254,7 +257,10 @@ here."""
     if tsobj.n_troughs:
         trough_times = tsobj.tvalues[tsobj.troughs]
         is_fail, indices = lpout.find_nonalt_extrema(peak_times, trough_times)
-        D['peak nonalt num total'] = str(len(indices)) if not is_fail else 'NA'
+        if not is_fail:
+            D['peak nonalt num total'] = str(len(indices))
+        else:
+            D['peak nonalt num total'] = 'NA'
     else:
         # Without opposite extrema, alternation cannot be assessed.
         D['peak nonalt num total'] = 'NA'
@@ -295,8 +301,10 @@ here."""
             kind='troughs', min_idx=idxA, max_idx=idxB)]
         is_fail, indices = lpout.find_nonalt_extrema(
             peak_dset_times, trough_dset_times)
-        D['peak nonalt num over dset'] = \
-            str(len(indices)) if not is_fail else 'NA'
+        if not is_fail:
+            D['peak nonalt num over dset'] = str(len(indices))
+        else:
+            D['peak nonalt num over dset'] = 'NA'
     else:
         D['peak nonalt num over dset'] = 'NA'
 
@@ -361,8 +369,10 @@ here."""
             D['trough ival outlier frac over dset'] = frac
             is_fail, indices = lpout.find_nonalt_extrema(
                 trough_dset_times, peak_dset_times)
-            D['trough nonalt num over dset'] = \
-                str(len(indices)) if not is_fail else 'NA'
+            if not is_fail:
+                D['trough nonalt num over dset'] = str(len(indices))
+            else:
+                D['trough nonalt num over dset'] = 'NA'
 
     return D
 
