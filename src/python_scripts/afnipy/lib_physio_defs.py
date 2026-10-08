@@ -19,6 +19,8 @@ from datetime import datetime
 #version = '2.02'  # more help updates and cleaning
 version = '2.1'  # add redraw to interactive mode
 
+# ============================================================================
+
 # threshold values for some floating point comparisons
 EPS_TH = 1.e-3
 
@@ -39,7 +41,18 @@ DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 DEF_regress_types_card = 'retro'
 DEF_regress_types_resp = 'retro rvt'
 
-# some QC image plotting options that the user can change
+# ---------------------------------------------------------------------------
+
+# some init proc options for phys time series
+DEF_prefilt_max_freq = 50             # Hz, for init filter to reduce ts
+all_prefilt_mode = ['none', 'median'] # list of possible downsamp types
+DEF_prefilt_mode = 'median'           # str, keyword for filtering in downsamp
+DEF_prefilt_win_card = 0.10           # flt, window size (s) for median filter
+DEF_prefilt_win_resp = 0.25           # flt, window size (s) for median filter
+
+# ---------------------------------------------------------------------------
+
+# QC image plotting options that the user can change
 DEF_img_figsize   = []
 DEF_img_fontsize  = 10
 DEF_img_line_time = 120              # units = seconds, ergo def: 2mins/line
@@ -47,13 +60,14 @@ DEF_img_fig_line  = 8                # max num lines per fig
 DEF_img_dot_freq  = 50               # points per sec
 DEF_img_bp_max_f  = 5.0              # Hz, for bandpass plot
 
-# some init proc options for phys time series
-DEF_prefilt_max_freq  = 50            # Hz, for init filter to reduce ts
-all_prefilt_mode = ['none', 'median'] # list of possible downsamp types
-DEF_prefilt_mode = 'median'           # str, keyword for filtering in downsamp
-DEF_prefilt_win_card  = 0.10          # flt, window size (s) for median filter
-DEF_prefilt_win_resp  = 0.25          # flt, window size (s) for median filter
+# QC image plotting options without user opt (yet...)
+DEF_img_max_n_per_line = 1000        # def npts per subplot (not used now)
+DEF_img_lw        = 0.75             # def basic linewidth in plot
+DEF_img_ms        = 1.50             # def marker size in plot
+DEF_img_col_grayp = '0.90'           # def color for graypatch
+DEF_img_col_out   = '#fff96d'        # def color for outliers (yellowpatch)
 
+# ---------------------------------------------------------------------------
 
 # key+mouse bindings for interactive peak/trough editing
 TEXT_interact_key_mouse = '''Key+mouse bindings being used:
@@ -73,7 +87,6 @@ TEXT_interact_key_mouse = '''Key+mouse bindings being used:
             r  : reset panel view (not point edits, but zoom/scroll/etc.)
             q  : quit/close viewer (also Ctrl+w), when done editing
 '''
-
 
 # ============================================================================
 # option grouping, reconciliation and validation definitions

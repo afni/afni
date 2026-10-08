@@ -509,6 +509,50 @@ User interaction for peak/trough editing ~1~
 
 {ddashline}
 
+QC coloration in plots ~1~
+
+  In several plots that estimated peaks/troughs, there is some
+  automatic coloration to help guide the eye toward where there might
+  be potential outliers in interval (ival) properties, extra
+  peaks/troughs, missing peaks/troughs, etc.
+
+  Note that because the heterogeneity of breathing and heartrate can
+  be quite large, many of these are rough approximations and not
+  necessarily signs of a problem---the user can+should decide that!
+
+  Some QC items in plots:
+
+    top band of red-blue : shows where interpeak intervals are relatively
+                           large (redder) or smaller (bluer) compared to
+                           the median (white) across the full range
+
+    bottom band of red-blue : the same interpretation as the top band,
+                              but for troughs
+
+    yellow background    : potential outlier interpeak/intertrough interval;
+                           highlights where an omnibus measure of relative
+                           height+width between successive extrema is large,
+                           relative to the distribution of all intervals
+
+    magenta triangle     : highlights nonalternating peaks; that is, where
+                           there are 2 or more peaks without an intervening
+                           trough. Suggests either extra peak(s) or missing
+                           trough(s)
+                
+    cyan triangle        : equivalent to magenta triangle but for troughs
+
+    gray background      : not a QC issue at all, but just highlights
+                           regions of physio data/plot that are outside of
+                           where the EPI dataset occurs
+  
+  In the interactive mode, when the user hits the '5' key, all of the above
+  QC properties are recalculated and updated in the plot.
+
+  Several of these properties are also reported as counts and fractions 
+  in the *review.txt file in the "extras/" output subdirectory.
+
+{ddashline}
+
 Reload peaks/troughs from earlier physio_calc.py run ~1~
 
   It is possible to save estimated peak and trough values to a text file

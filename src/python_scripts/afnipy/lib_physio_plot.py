@@ -10,14 +10,12 @@ import matplotlib.cm          as     mplcm
 from   matplotlib.lines       import Line2D
 from   matplotlib.path        import Path as MplPath
 
+from   afnipy import lib_physio_defs     as DEF
 from   afnipy import lib_physio_interact as lpi
 from   afnipy import lib_physio_outliers as lpout
-from   afnipy import afni_base           as BASE
+from   afnipy import afni_base           as ab
 
-DEF_max_n = 1000                     # def npts per subplot (not used now)
-DEF_lw    = 0.75                     # def linewidth in plot
-DEF_ms    = 1.50                     # def marker size in plot
-DEF_grayp = '0.90'                   # def color for graypatch
+# ---------------------------------------------------------------------------
 
 # Filled backdrops follow the peak/trough caret anchors and extend beyond
 # their tips, so the highlight remains visible around both small markers.
@@ -27,8 +25,11 @@ NONALT_MARKERS = {
     't': MplPath([(0, 1/6), (-0.36, -0.5), (0.36, -0.5), (0, 1/6)],
                  closed=True),
 }
+
 NONALT_MARKER_COLORS = {'p': 'magenta', 't': 'cyan'}
 NONALT_MARKER_SCALE = 2.25  # 8 pt interactive -> 18 pt backdrop
+
+# ---------------------------------------------------------------------------
 
 def interval_band_specs(x):
     """Describe the colored intervals between consecutive peaks or troughs.
@@ -94,8 +95,11 @@ def add_outlier_patches(ax, intervals, xlim, y, height, animated=False):
             continue
         left, right = max(start, xlim[0]), min(stop, xlim[1])
         rect = mplp.Rectangle((left, y), right-left, height,
-                              facecolor='yellow', edgecolor='none',
-                              alpha=0.5, zorder=0.5, animated=animated)
+                              facecolor = DEF.DEF_img_col_out, 
+                              edgecolor = 'none',
+                              alpha     = 0.5, 
+                              zorder    = 0.5, 
+                              animated  = animated)
         ax.add_patch(rect)
         patches.append(rect)
     return patches
@@ -171,8 +175,9 @@ plotting.
         NBAD = 0
 
         if self.n_pts != len(self.y) :
-            print("** Error: different number of points:")
-            print("   len(x) = {}, len(y) = {}".format(self.n_pts, len(self.y)))
+            msg = "different number of points:\n"
+            msg+= "len(x) = {}, len(y) = {}".format(self.n_pts, len(self.y))
+            ab.EP1(msg)
             NBAD+= 1
 
         return NBAD
@@ -260,7 +265,7 @@ them.
                  figsize = [],
                  dpi     = 300,
                  fontsize= 10,
-                 max_n_per_line = DEF_max_n,
+                 max_n_per_line = DEF.DEF_img_max_n_per_line,
                  max_t_per_line = 30,
                  max_l_per_fig  = 6,
                  verb=0,
@@ -576,13 +581,13 @@ them.
         upper bound."""
 
         if len(endpts) != 2 :
-            print("** ERROR: endpts arg must be a collection of exactly 2 "
-                  "items, namely 2 numbers (or each item could be None)")
-            sys.exit(7)
+            msg = "endpts arg must be a collection of exactly 2 "
+            msg+= "items, namely 2 numbers (or each item could be None)"
+            ab.EP(msg)
         elif endpts[0] == None and endpts[1] == None :
-            print("** ERROR: cannot have both values of the endpts 2-list "
-                  "be None.  Only one (or neither) of them can be so.")
-            sys.exit(8)
+            msg = "cannot have both values of the endpts 2-list "
+            msg+= "be None.  Only one (or neither) of them can be so."
+            ab.EP(msg)
 
         self.list_graypatch.append(endpts)
 
@@ -594,9 +599,9 @@ them.
         for ii in range(self.n_plobj):
             self.list_plobj[ii]
             if self.list_plobj[ii].ms == None :
-                self.list_plobj[ii].ms = DEF_ms # !!!!!! come back to this
+                self.list_plobj[ii].ms = DEF.DEF_img_ms 
             if self.list_plobj[ii].lw == None :
-                self.list_plobj[ii].lw = DEF_lw # !!!!!! come back to this
+                self.list_plobj[ii].lw = DEF.DEF_img_lw 
             if self.list_plobj[ii].color == None :
                 for jj in range(self.n_plobj):
                     color = 'C{}'.format(jj) 
@@ -648,8 +653,9 @@ them.
                                         self.figsize_use])
 
         if len(self.list_fig_props) != self.n_figs :
-            print("+* WARN: mismatch, n_figs ({}) != len(list_fig_props ({})"
-                  "".format(self.n_figs, len(self.list_fig_props)))
+            msg = "mismatch, n_figs ({}) != ".format(self.n_figs)
+            msg+= "len(list_fig_props ({})".format(len(self.list_fig_props))
+            ab.WP(msg)
 
     def make_plot(self, do_show = False, do_interact = False, do_save = True):
         """Create the plot"""
@@ -858,22 +864,25 @@ them.
                             base_ms = self.list_plobj[1 if lab == 'p'
                                                       else 2].ms
                         subplot_nonalt_pts[lab], = pp.plot(
-                            coords[:, 0], coords[:, 1], linestyle='None',
-                            marker=NONALT_MARKERS[lab],
-                            markersize=NONALT_MARKER_SCALE * base_ms,
-                            markerfacecolor=NONALT_MARKER_COLORS[lab],
-                            markeredgecolor=NONALT_MARKER_COLORS[lab],
-                            zorder=1.9,
-                            animated=do_interact, label='_nolegend_')
+                            coords[:, 0], coords[:, 1], 
+                            linestyle  = 'None',
+                            marker     = NONALT_MARKERS[lab],
+                            markersize = NONALT_MARKER_SCALE * base_ms,
+                            mfc        = NONALT_MARKER_COLORS[lab],
+                            mec        = NONALT_MARKER_COLORS[lab],
+                            zorder     = 1.9,
+                            animated   = do_interact, 
+                            label      = '_nolegend_'
+                        )
 
                 # add in interactive subplot
                 if do_interact :
                     inter = lpi.PolygonInteractor(pp)
-                    inter.bands = subplot_bands
+                    inter.bands      = subplot_bands
                     inter.highlights = subplot_highlights
                     inter.nonalt_pts = subplot_nonalt_pts
-                    inter.edit_xlim = self.all_sub_xwin[ii]
-                    inter.band_xlim = self.all_range_xlim[ii]
+                    inter.edit_xlim  = self.all_sub_xwin[ii]
+                    inter.band_xlim  = self.all_range_xlim[ii]
                     inter.band_geometry = {
                         'p': self.yh_ibandT if self.list_plobj[1].add_ibandT
                              else None,
@@ -891,8 +900,10 @@ them.
 
                 # make xlabel at bottom of subfig
                 if iicount == iinum - 1 :
-                    xlbl = pp.set_xlabel(self.xlabel, fontsize=self.fontsize,
-                                  loc='left', labelpad=4)
+                    xlbl = pp.set_xlabel(self.xlabel, 
+                                         fontsize = self.fontsize,
+                                         loc      = 'left', 
+                                         labelpad = 4)
 
                 # put a plot-wide ylabel at the top
                 if PY_VER > 2 and self.ylabel and MAT_VER >= (3, 4) :
@@ -938,8 +949,9 @@ them.
 
                         # decision tree (NB: only one endpt can be None)
                         if gstart == None and gstop == None :
-                            print("+* WARN: should never have both gstart and "
-                                  "gstop be None!")
+                            msg = "should never have both gstart "
+                            msg+= "and gstop be None!"
+                            ab.WP(msg)
                         elif gstart == None :
                             if gstop > gxlim[0] :
                                 PATCH_YES = True
@@ -959,15 +971,17 @@ them.
                             # ... and in ydir
                             gylim = pp.get_ylim()
                             pp.add_patch(
-                                mplp.Rectangle( ( gstart, 
-                                                  gylim[0] ),
-                                                width=gstop-gstart,
-                                                height=(gylim[1] - gylim[0]),
-                                                facecolor=DEF_grayp,
-                                                lw=0, 
-                                                edgecolor=None, 
-                                                alpha=None,
-                                                zorder=-1) ) 
+                                mplp.Rectangle( 
+                                    ( gstart, gylim[0] ),
+                                    width     = gstop-gstart,
+                                    height    = (gylim[1] - gylim[0]),
+                                    facecolor = DEF.DEF_img_col_grayp,
+                                    lw        = 0, 
+                                    edgecolor = None, 
+                                    alpha     = None,
+                                    zorder    = -1
+                                ) 
+                            ) 
 
 
                 # thick lines for start/end, to help visualization
@@ -1067,8 +1081,8 @@ them.
                 # first make layout tight, then place single-row
                 # legend, that should now fit nicely
                 plt.tight_layout()
+                handles, labels = pp.get_legend_handles_labels()
                 if do_interact:
-                    handles, labels = pp.get_legend_handles_labels()
                     for jj, label in enumerate(labels):
                         if label == 'refline':
                             labels[jj] = 'physio data'
@@ -1082,10 +1096,40 @@ them.
                                 markerfacecolor=style['mfc'],
                                 markeredgecolor=style['mec'],
                                 alpha=style['alpha'])
-                    legend_kw = {'handles': handles, 'labels': labels}
-                else:
-                    legend_kw = {}
-                plt.legend(ncol=self.n_plobj,
+
+                # Show peak annotations whenever peaks are plotted, including
+                # peak-only cardiac plots.  Trough annotations need troughs.
+                for lab, index, name in (('p', 1, 'peaks'),
+                                         ('t', 2, 'troughs')):
+                    if (self.n_plobj > index and
+                            self.list_plobj[index].label == name):
+                        color = NONALT_MARKER_COLORS[lab]
+                        handles.append(Line2D(
+                            [], [], 
+                            linestyle  = 'None',
+                            marker     = NONALT_MARKERS[lab],
+                            markersize = 8,
+                            mfc        = mpl.colors.to_rgba(color, 0.5),
+                            mec        = mpl.colors.to_rgba(color, 1),
+                            markeredgewidth = 1.2))
+                        labels.append('nonalt ' + lab)
+
+                if any(plobj.add_ibandT or plobj.add_ibandB
+                       for plobj in self.list_plobj):
+                    handles.append(Line2D(
+                        [], [], linestyle='None', marker='s',
+                        markersize=8,
+                        markerfacecolor=mpl.colors.to_rgba(
+                            DEF.DEF_img_col_out, 0.3
+                        ),
+                        markeredgecolor=mpl.colors.to_rgba(
+                            DEF.DEF_img_col_out, 1
+                        ),
+                        markeredgewidth=1.2))
+                    labels.append('outlier ival')
+
+                plt.legend(handles=handles, labels=labels,
+                           ncol=len(handles),
                            fontsize=self.fontsize,
                            #loc='upper right', 
                            #bbox_to_anchor=(1.0, -0.5 - 0.2*(iinum/6.0)),
@@ -1094,8 +1138,7 @@ them.
                            bbox_transform=plt.gcf().transFigure,
                            shadow=True, borderpad=0.4, columnspacing=1.5,
                            borderaxespad=0.1, handletextpad=0.5,
-                           handlelength=0.75,
-                           **legend_kw)
+                           handlelength=0.75)
 
             # because of interactive, do this later
             if do_save :
@@ -1297,7 +1340,7 @@ Returns
         ret_plobj4 = PcalcPlobj(tsobj.tvalues[::istep], scale_ph[::istep], 
                                 label='phase (scaled)',
                                 alpha=1.0,
-                                lw=DEF_lw*1.5,
+                                lw=DEF.DEF_img_lw*1.5,
                                 color='green')
         fff.add_plobj(ret_plobj4)
 
@@ -1307,13 +1350,13 @@ Returns
                                   np.ones(len(tsobj.tvalues[::istep]))*maxts,
                                   #label='$\pm\pi$',
                                   alpha=0.5,
-                                  lw=DEF_lw*0.5,
+                                  lw=DEF.DEF_img_lw*0.5,
                                   color='green')
             fff.add_plobj(ret_plobj4a)
             ret_plobj4b = PcalcPlobj(tsobj.tvalues[::istep], 
                                   np.ones(len(tsobj.tvalues[::istep]))*mints,
                                   alpha=0.5,
-                                  lw=DEF_lw*0.5,
+                                  lw=DEF.DEF_img_lw*0.5,
                                   color='green')
             fff.add_plobj(ret_plobj4b)
 
@@ -1321,7 +1364,7 @@ Returns
         ret_plobj5 = PcalcPlobj(tsobj.tvalues[::istep], upper_env[::istep], 
                                 label='upper env',
                                 alpha=1.0,
-                                lw=DEF_lw*2,
+                                lw=DEF.DEF_img_lw*2,
                                 color='blue')
         fff.add_plobj(ret_plobj5)
 
@@ -1329,7 +1372,7 @@ Returns
         ret_plobj5 = PcalcPlobj(tsobj.tvalues[::istep], lower_env[::istep], 
                                 label='lower env',
                                 alpha=1.0,
-                                lw=DEF_lw*2,
+                                lw=DEF.DEF_img_lw*2,
                                 color='red')
         fff.add_plobj(ret_plobj5)
 
@@ -1350,7 +1393,7 @@ Returns
         ret_plobj6 = PcalcPlobj(tsobj.tvalues[::istep], scale_rvt[::istep], 
                                 label='RVT (scaled: {:0.2e}; offset)'.format(scl),
                                 alpha=1.0,
-                                lw=DEF_lw*1.5,
+                                lw=DEF.DEF_img_lw*1.5,
                                 color='green')
         fff.add_plobj(ret_plobj6)
 
@@ -1372,7 +1415,7 @@ Returns
         ret_plobj7 = PcalcPlobj(tsobj.tvalues[all_idx], scale_hr, 
                                 label='ave HR (scaled: {:0.2e}; offset)'.format(scl),
                                 alpha=1.0,
-                                lw=DEF_lw*1.5,
+                                lw=DEF.DEF_img_lw*1.5,
                                 color='lightcoral')
         fff.add_plobj(ret_plobj7)
 
@@ -1385,7 +1428,7 @@ Returns
 
     # update tsobj peak/trough lists, if possible
     if do_interact :
-        print("++ ({}) Update from interactive mode".format(tsobj.label))
+        ab.IP("({}) Update from interactive mode".format(tsobj.label))
         if len(new_peaks_x) :
             # convert to indices; the initial ratios should essentially be int
             tmp1 = np.round( (np.array(new_peaks_x) - 
@@ -1462,8 +1505,7 @@ Returns
 """
 
     if not(pcobj) :
-        print("** ERROR: need pcobj in this function (bandpass plot)")
-        sys.exit(7)
+        ab.EP("need pcobj in this function (bandpass plot)")
 
     if not(fname) :
         fname = 'physio_calc_plot_FT.pdf'
@@ -1595,17 +1637,16 @@ def plot_regressors_rvt(pcobj, label, ext='svg'):
         -title          "{title}"                                        \
         -prefix         "{fname}"
     '''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
     # --------------- clean up tmp file
     cmd    = '''\\rm {ftmp}'''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based RVT regressors:\n   "
-          "{}".format(label, fname))
-
+    msg = "Made plot of {}-based RVT regressors:\n{}".format(label, fname)
+    ab.IP(msg)
 
     return 0
 
@@ -1685,17 +1726,16 @@ def plot_regressors_rvtrrf(pcobj, label, ext='svg'):
         -title          "{title}"                                        \
         -prefix         "{fname}"
     '''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
     # --------------- clean up tmp file
     cmd    = '''\\rm {ftmp}'''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based RVTRRF regressors:\n   "
-          "{}".format(label, fname))
-
+    msg = "Made plot of {}-based RVTRRF regressors:\n{}".format(label, fname)
+    ab.IP(msg)
 
     return 0
 
@@ -1775,17 +1815,16 @@ def plot_regressors_hrcrf(pcobj, label, ext='svg'):
         -title          "{title}"                                        \
         -prefix         "{fname}"
     '''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
     # --------------- clean up tmp file
     cmd    = '''\\rm {ftmp}'''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based HRCRF regressors:\n   "
-          "{}".format(label, fname))
-
+    msg = "Made plot of {}-based HRCRF regressors:\n{}".format(label, fname)
+    ab.IP(msg)
 
     return 0
 
@@ -1841,7 +1880,7 @@ def plot_regressors_retro(pcobj, ext='svg'):
 
     if nreg == 0 :
         if verb :
-            print("++ No phys-based retro regressors to plot")
+            ab.IP("No phys-based retro regressors to plot")
         return 0
 
     # put data+labels into simple forms for writing; initialize objs
@@ -1897,17 +1936,16 @@ def plot_regressors_retro(pcobj, ext='svg'):
         -title          "{title}"                                        \
         -prefix         "{fname}"
     '''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
     # --------------- clean up tmp file
     cmd    = '''\\rm {ftmp}'''.format(**par_dict)
-    com    = BASE.shell_com(cmd, capture=1)
+    com    = ab.shell_com(cmd, capture=1)
     stat   = com.run()
 
-    print("++ Made plot of {}-based retro regressors:\n   "
-          "{}".format(label, fname))
-
+    msg = "Made plot of {}-based retro regressors:\n{}".format(label, fname)
+    ab.IP(msg)
 
     return 0
 
@@ -1916,7 +1954,7 @@ def plot_regressors_retro(pcobj, ext='svg'):
 
 if __name__ == "__main__" :
 
-    print("plot")
+    ab.IP("plot")
 
     b = np.random.random(2000)
     a = np.arange(len(b))
