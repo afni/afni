@@ -37,7 +37,8 @@ static char *insync_options[] = {
    "-condition_column", "-condition_contrast", "-ncondperm",
    "-condition_exact", "-condition_tail", "-save_pairwise",
    "-correlation", "-censor", "-zcensor", "-zcensor_warn", "-missing", "-atlas", "-roi_sel",
-   "-save_matrix", "-memory_limit", "-memory_override", "-quiet", "-progress",
+   "-save_matrix", "-edges", "-edges_matrix", "-edges_rss", "-edges_events", "-edges_nnull",
+   "-memory_limit", "-memory_override", "-quiet", "-progress",
    "-dataTable", "-dataTableFile", "-show_table", "-help", "-h", NULL
 } ;
 
@@ -248,6 +249,108 @@ static void usage_3dInSync(void)
 "  same seeded surrogate set is reused everywhere.  Timeshift preserves each\n"
 "  complete time series; phase preserves its mean and power spectrum.\n"
 "\n"
+"Edge (cofluctuation) ISC:                                  ~1~\n"
+"\n"
+"  An edge time series is the moment-by-moment product of two ROI signals,\n"
+"  z_i(t)*z_j(t), where each ROI series is z-scored within subject (sample\n"
+"  SD). Its mean over time is the ordinary Pearson r of the pair. These\n"
+"  options ask whether subjects share those moment-to-moment cofluctuations.\n"
+"  All need -atlas. The ROI series for every subject and condition are\n"
+"  reduced to one common retained timeline (see -censor, -zcensor, -missing).\n"
+"\n"
+"  -edges               ISC of the edge series of every ROI pair, with the\n"
+"                       -isc_method, -summary, -correlation and group settings\n"
+"                       used elsewhere. Writes PREFIX.edge.1D: one row per\n"
+"                       condition, group and ROI pair, with the pair's ISC and\n"
+"                       the ISC of each of its two ROIs (Node1ISC, Node2ISC)\n"
+"                       side by side so edge synchrony can be read against\n"
+"                       node synchrony.\n"
+"\n"
+"  -edges_matrix        With -edges, also write one square matrix file per\n"
+"                       condition and group, PREFIX_edge_[COND_]GROUP.netcc, in\n"
+"                       the 3dNetCorr .netcc layout for tools that read it. CC\n"
+"                       is edge ISC (r) and FZ its Fisher z. The DIAGONAL holds\n"
+"                       NODE ISC, not 1.0. With -edges_nnull it adds EX (Excess),\n"
+"                       P and PFWE matrices. The tables carry the same numbers.\n"
+"\n"
+"  -edges_rss           ISC of the global cofluctuation amplitude, RSS(t) =\n"
+"                       sqrt(sum over pairs of (z_i z_j)^2): do subjects'\n"
+"                       whole-brain cofluctuation rise and fall together?\n"
+"                       Adds RSS_ISC and RSS_N columns to PREFIX.frames.1D.\n"
+"\n"
+"  -edges_events FRAC   In each subject, call the FRAC fraction of frames with\n"
+"                       the highest RSS(t) 'events' [FRAC in (0,0.5]]. For each\n"
+"                       frame count how many subjects of a group have an event\n"
+"                       there. Adds NHigh, NSubj and Frac to PREFIX.frames.1D.\n"
+"\n"
+"  PREFIX.frames.1D has one row per condition, group and retained frame, with\n"
+"  MeanRSS (the subject-mean amplitude) and the columns for the options given.\n"
+"  The group-level RSS values repeat down each condition/group block.\n"
+"\n"
+"  -edges_nnull N       Surrogate sets (at least 20, identity set included) for\n"
+"                       the nulls below. -min_shift and -seed apply. Cost grows\n"
+"                       with N times the number of edges times the number of\n"
+"                       subject pairs: use -roi_sel or a coarse atlas first.\n"
+"                         -edges       : ROI j of each pair is circularly\n"
+"                                        shifted by ONE offset common to all\n"
+"                                        subjects, so each ROI's own ISC is\n"
+"                                        unchanged while the within-subject\n"
+"                                        i-j coupling is broken. Adds NullMean,\n"
+"                                        Excess (= ISC - NullMean), P, Z, Q,\n"
+"                                        PFWE and ZFWE to PREFIX.edge.1D. P and\n"
+"                                        PFWE cover condition x group x edge.\n"
+"                         -edges_rss,\n"
+"                         -edges_events: each subject is shifted independently.\n"
+"                                        Adds RSS_NullMean and RSS_P, and the\n"
+"                                        per-frame EvNullMean, EvP, EvZ, EvQ,\n"
+"                                        EvPFWE and EvZFWE (max over frames,\n"
+"                                        conditions and groups), to the frames\n"
+"                                        table.\n"
+"\n"
+"  Cautions for edge ISC:\n"
+"    * Edge ISC is largely inherited from node ISC. If ROIs i and j are each\n"
+"      synchronized across subjects, their product is too, even when their\n"
+"      coupling is not shared. Always read edge ISC next to Node1ISC and\n"
+"      Node2ISC. 'Excess' under -edges_nnull is the quantity that\n"
+"      speaks to shared coupling beyond the nodes.\n"
+"    * Edge series are products, so they are heavy-tailed and dominated by\n"
+"      high-amplitude frames. That is often the point; -correlation spearman\n"
+"      gives a robust alternative.\n"
+"    * These are stimulus-locked measures. They need subjects aligned in\n"
+"      stimulus time and are not meaningful for unlocked data such as rest.\n"
+"    * ROI series are z-scored over the retained frames only, so edge values\n"
+"      depend on censoring. A constant ROI series gives a zero edge.\n"
+"    * Group-label permutation and condition contrasts are not yet applied to\n"
+"      edges, and edge analyses do not yet support the 3dISC bridge\n"
+"      (-save_pairwise applies to the voxelwise maps only).\n"
+"\n"
+"  Reading edge ISC against the node ISCs (Excess = ISC - NullMean):\n"
+"    * A rough expectation for edge ISC from the nodes alone is the PRODUCT of\n"
+"      the two node ISCs when their shared drivers are independent; NullMean is\n"
+"      the empirical version of that. An edge ISC below either node ISC is\n"
+"      therefore normal.\n"
+"    * One node high, the other near zero, edge near zero: expected. The\n"
+"      product of a shared signal and an idiosyncratic one is idiosyncratic.\n"
+"    * Both nodes high, Excess near zero: both regions follow the stimulus, each\n"
+"      by its own driver, and the drivers are not time-locked to each other.\n"
+"      This is shared activity, not shared coupling. A clearly negative Excess\n"
+"      is unusual: look at timing or polarity differences across subjects.\n"
+"    * Edge high, nodes low or negative: the regions cofluctuate at the same\n"
+"      moments in everyone though each region's own course differs. Possible\n"
+"      causes are response polarity or latency differing across subjects (sign\n"
+"      cancels in the product), stimulus-locked changes in coupling strength, or\n"
+"      a shared artifact. Check -correlation spearman and the frames table.\n"
+"    * Excess clearly positive (small P, PFWE): the relationship between the\n"
+"      regions is time-locked across subjects beyond what their separate\n"
+"      synchrony gives. Read this as time-locked coupling, not as proof of\n"
+"      functional connectivity. Rule out shared nuisance signals (motion,\n"
+"      respiration, global signal, arousal), spatial blur between neighboring\n"
+"      ROIs, and a few extreme frames. The null breaks only i-j timing.\n"
+"    * Edge high and Excess near zero: the edge only passes along the nodes'\n"
+"      synchrony. Report the nodes, not the edge.\n"
+"    * With a median over pairs, negative node ISC can simply mean the sample's\n"
+"      majority polarity is opposite. Do not read it as anti-synchrony.\n"
+"\n"
 "Example:                                                    ~1~\n"
 "\n"
 "  3dInSync -prefix movie_isc -mask brain+tlrc \134\n"
@@ -274,9 +377,10 @@ static void usage_3dInSync(void)
 "\n"
 "Scope boundary:                                            ~1~\n"
 "\n"
-"  This program's analysis is static ISC. Dynamic/windowed ISC, ISFC, and ISPS\n"
-"  require distinct estimands, outputs, and null models and are not accepted as\n"
-"  aliases here. They remain candidates for explicit future modes.\n"
+"  This program's analysis is static ISC, plus the explicit edge modes above.\n"
+"  Dynamic/windowed ISC, ISFC, and ISPS require distinct estimands, outputs,\n"
+"  and null models and are not accepted as aliases here. They remain\n"
+"  candidates for explicit future modes.\n"
 "\n") ;
    PRINT_AFNI_OMP_USAGE(PROGRAM_NAME,NULL) ;
    PRINT_COMPILE_DATE ;
@@ -668,6 +772,637 @@ static void insync_finish_bisided( PERM_result *pr, byte *valid,
    }
 }
 
+/*----------------------------------------------------------------------------
+  Edge (cofluctuation) ISC.  Each subject's atlas-ROI series are z-scored
+  (sample SD, T-1) so the mean of the edge series z_i(t)*z_j(t) is exactly the
+  Pearson r of the pair.  The ordinary ISC estimators are then applied to the
+  edge series, to their root-sum-of-squares amplitude, and to the frames in
+  which that amplitude is highest.
+------------------------------------------------------------------------------*/
+
+typedef struct {
+   int edges ;         /* -edges: ISC of every ROI-pair edge series           */
+   int rss ;           /* -edges_rss: ISC of global cofluctuation amplitude   */
+   int events ;        /* -edges_events: shared high-amplitude frames         */
+   int matrix ;        /* -edges_matrix: also write .netcc matrices           */
+   float event_frac ;  /* fraction of frames called "high" in each subject    */
+   int nnull ;         /* -edges_nnull: surrogate sets, identity slot included */
+   int min_shift ;     /* minimum circular distance of a null shift           */
+   long seed ;
+} INSYNC_edge_opts ;
+
+typedef struct { float v ; int t ; } INSYNC_vt ;
+
+/*! Descending amplitude, earliest frame first among ties. */
+static int insync_vt_compare( const void *a, const void *b )
+{
+   const INSYNC_vt *x=(const INSYNC_vt *)a,*y=(const INSYNC_vt *)b ;
+   if( x->v>y->v ) return -1 ;
+   if( x->v<y->v ) return 1 ;
+   return (x->t>y->t)-(x->t<y->t) ;
+}
+
+/*! Per-worker scratch for the group ISC estimators. */
+typedef struct {
+   THD_simmat *sm ;
+   float *scratch,*ref,*values,*rank1,*rank2 ;
+} INSYNC_ws ;
+
+static int insync_ws_init( INSYNC_ws *w, int nsub, int nt, int spearman )
+{
+   size_t nedge=(size_t)nsub*(nsub-1)/2,nscratch=(nedge>(size_t)nsub)?nedge:(size_t)nsub ;
+   memset(w,0,sizeof(*w)) ;
+   w->sm=THD_simmat_new(nsub) ;
+   w->scratch=(float *)malloc(sizeof(float)*nscratch) ;
+   w->ref=(float *)malloc(sizeof(float)*(size_t)nt) ;
+   w->values=(float *)malloc(sizeof(float)*(size_t)nsub) ;
+   if( spearman ){
+     w->rank1=(float *)malloc(sizeof(float)*(size_t)nt) ;
+     w->rank2=(float *)malloc(sizeof(float)*(size_t)nt) ;
+   }
+   return !(w->sm && w->scratch && w->ref && w->values &&
+            (!spearman || (w->rank1 && w->rank2))) ;
+}
+
+static void insync_ws_free( INSYNC_ws *w )
+{
+   THD_simmat_free(w->sm) ; free(w->scratch) ; free(w->ref) ; free(w->values) ;
+   free(w->rank1) ; free(w->rank2) ;
+}
+
+/*! Group ISC of one subject-major block (nsub series of nt points), by the
+    same pairwise or leave-one-out estimator used voxelwise.  stat[g] is NaN
+    when the group estimate is invalid. */
+static void insync_block_stats( float *block, int nsub, int nt, int corr_metric,
+                                int method, int summary, int ngroup,
+                                const int *gcount, int **gmember, INSYNC_ws *w,
+                                float *stat, int *nv )
+{
+   int gg ;
+   for( gg=0 ; gg<ngroup ; gg++ ){ stat[gg]=NAN ; nv[gg]=0 ; }
+   if( nt<3 ) return ;
+   if( method==METHOD_PAIRWISE ){
+     if( THD_simmat_fill_from_features(w->sm,nt,block,corr_metric,w->rank1,w->rank2) ) return ;
+     for( gg=0 ; gg<ngroup ; gg++ )
+       stat[gg]=INSYNC_pairwise_indexed(nsub,w->sm->mat,gcount[gg],gmember[gg],
+                                        summary,w->scratch,&nv[gg]) ;
+   } else for( gg=0 ; gg<ngroup ; gg++ )
+       stat[gg]=INSYNC_loo_indexed_metric(nsub,nt,block,gcount[gg],gmember[gg],
+                  summary,corr_metric,w->ref,w->values,w->rank1,w->rank2,&nv[gg]) ;
+}
+
+/*! Open the atlas, check that positive labels are integers, and select ROIs. */
+static THD_roilist * insync_open_atlas( const char *atlas_name, const char *roi_sel,
+                                        THD_3dim_dataset *first,
+                                        THD_3dim_dataset **aset_out )
+{
+   THD_3dim_dataset *aset ; THD_roilist *rl ; int vv,nvox ;
+   aset=THD_open_dataset((char *)atlas_name) ; CHECK_OPEN_ERROR(aset,atlas_name) ;
+   DSET_load(aset) ; CHECK_LOAD_ERROR(aset) ;
+   if( !EQUIV_GRIDS(first,aset) )
+     ERROR_exit(PROGRAM_NAME ": -atlas is not on the input grid") ;
+   nvox=DSET_NVOX(aset) ;
+   for( vv=0 ; vv<nvox ; vv++ ){
+     float x=THD_get_voxel(aset,vv,0) ;
+     if( !isfinite(x) || (x>0.0f && x!=floorf(x)) )
+       ERROR_exit(PROGRAM_NAME ": atlas '%s' has invalid label %.7g at voxel %d; "
+                  "positive labels must be finite integers",atlas_name,x,vv) ;
+   }
+   rl=THD_roilist_from_dset(aset,(char *)roi_sel) ;
+   if( rl==NULL ) ERROR_exit(PROGRAM_NAME ": -atlas/-roi_sel selected no positive ROIs") ;
+   *aset_out=aset ; return rl ;
+}
+
+/*! Name of one edge output.  kind is edge or frames for the PREFIX.kind.1D
+    tables, or netcc for one per-condition/group matrix. */
+static void insync_edge_fname( char *dst, size_t ndst, const char *prefix,
+                               const char *kind, const char *cond,
+                               const char *group )
+{
+   char c[128],g[128] ;
+   if( strcmp(kind,"netcc")!=0 ){ snprintf(dst,ndst,"%s.%s.1D",prefix,kind) ; return ; }
+   insync_safe_token(g,sizeof(g),group) ;
+   if( cond!=NULL ){
+     insync_safe_token(c,sizeof(c),cond) ;
+     snprintf(dst,ndst,"%s_edge_%s_%s.netcc",prefix,c,g) ;
+   } else snprintf(dst,ndst,"%s_edge_%s.netcc",prefix,g) ;
+}
+
+static FILE * insync_open_text( const char *name )
+{
+   FILE *fp ;
+   if( !THD_ok_overwrite() && THD_is_file((char *)name) )
+     ERROR_exit(PROGRAM_NAME ": output '%s' already exists",name) ;
+   fp=fopen(name,"w") ;
+   if( fp==NULL ) ERROR_exit(PROGRAM_NAME ": cannot write '%s'",name) ;
+   return fp ;
+}
+
+/*! Write one square ROI matrix in 3dNetCorr's .netcc layout. */
+static void insync_write_netcc( const char *name, int nroi, int nmat, char **mlabel,
+                                float **mat, char **rlab, const int *rval )
+{
+   FILE *fp=insync_open_text(name) ;
+   int mm,ii,jj ;
+   fprintf(fp,"# %d  # Number of network ROIs\n",nroi) ;
+   fprintf(fp,"# %d  # Number of netcc matrices\n",nmat) ;
+   fprintf(fp,"# WITH_ROI_LABELS\n") ;
+   for( ii=0 ; ii<nroi-1 ; ii++ ) fprintf(fp," %10s \t",rlab[ii]) ;
+   fprintf(fp,"  %10s\n",rlab[nroi-1]) ;
+   for( ii=0 ; ii<nroi-1 ; ii++ ) fprintf(fp," %10d \t",rval[ii]) ;
+   fprintf(fp,"  %10d\n",rval[nroi-1]) ;
+   for( mm=0 ; mm<nmat ; mm++ ){
+     fprintf(fp,"# %s\n",mlabel[mm]) ;
+     for( ii=0 ; ii<nroi ; ii++ ){
+       for( jj=0 ; jj<nroi-1 ; jj++ ) fprintf(fp,"%12.4f\t",mat[mm][(size_t)ii*nroi+jj]) ;
+       fprintf(fp,"%12.4f\n",mat[mm][(size_t)ii*nroi+jj]) ;
+     }
+   }
+   fclose(fp) ;
+}
+
+/*! Edge ISC, cofluctuation-amplitude ISC, and shared-event outputs from atlas
+    ROI series.  All ROIs share one retained timeline.  The edge null shifts
+    ROI j of every pair by one offset common to all subjects, so each node's
+    own ISC is untouched while the within-subject i-j coupling is broken; edge
+    ISC beyond that null is synchrony the nodes alone do not explain.  The
+    amplitude and event nulls shift each subject independently. */
+static void insync_write_edge_outputs(
+   const char *atlas_name, const char *roi_sel, const char *prefix,
+   THD_3dim_dataset *first, THD_3dim_dataset **dset, int nsub, int ncond,
+   int ntime, int *time_index, byte *mask, int missing_policy, int corr_metric,
+   int method, int summary, int ngroup, int *gcount, int **gmember,
+   char **glabel, THD_datatable *tab, THD_datatable_index *cindex,
+   char **clabel, INSYNC_edge_opts *eo, int quiet )
+{
+   THD_3dim_dataset *aset=NULL ; THD_roilist *rl ;
+   THD_timeshift_set *eset=NULL,*sset=NULL ;
+   PERM_result *eres=NULL,*vres=NULL ;
+   byte *evalid=NULL,*vvalid=NULL ;
+   int nroi=0,rr,cc,ss,tt,gg,k,nt=ntime,ngood,spear=(corr_metric==SIM_SPEARMAN) ;
+   int *ridx,*rval,*ei=NULL,*ej=NULL,*tmap ;
+   char **rlab ;
+   size_t E,nser,e,zsize ;
+   float *zdat,*rss=NULL,*eisc=NULL,*en=NULL,*enullsum=NULL,*node_isc,*node_n ;
+   long long ninvalid=0 ;
+   byte *goodtime ;
+   int usenull=(eo->nnull>0) ;
+
+   rl=insync_open_atlas(atlas_name,roi_sel,first,&aset) ;
+   ridx=(int *)malloc(sizeof(int)*(size_t)rl->nroi) ;
+   rval=(int *)malloc(sizeof(int)*(size_t)rl->nroi) ;
+   rlab=(char **)calloc((size_t)rl->nroi,sizeof(char *)) ;
+   for( rr=0 ; rr<rl->nroi ; rr++ ){
+     int vv,nrv=0 ; char lab[128] ;
+     for( vv=0 ; vv<rl->vox[rr].nar ; vv++ ){
+       int iv=rl->vox[rr].ar[vv] ;
+       if( mask==NULL || mask[iv] ) nrv++ ;
+     }
+     if( nrv<1 ) continue ;
+     if( rl->lab!=NULL && rl->lab[rr]!=NULL ) insync_safe_token(lab,sizeof(lab),rl->lab[rr]) ;
+     else snprintf(lab,sizeof(lab),"ROI%d",rl->val[rr]) ;
+     ridx[nroi]=rr ; rval[nroi]=rl->val[rr] ; rlab[nroi]=strdup(lab) ; nroi++ ;
+   }
+   if( nroi<2 ) ERROR_exit(PROGRAM_NAME ": edge analysis needs at least 2 ROIs; found %d",nroi) ;
+   E=(size_t)nroi*(nroi-1)/2 ; nser=(size_t)ncond*nroi*nsub ;
+   zsize=nser*(size_t)ntime ;
+   if( usenull && (size_t)ncond*ngroup*E>(size_t)INT_MAX )
+     ERROR_exit(PROGRAM_NAME ": too many edges (%lu) for a null family",(unsigned long)E) ;
+   zdat=(float *)malloc(sizeof(float)*zsize) ;
+   if( zdat==NULL )
+     ERROR_exit(PROGRAM_NAME ": cannot allocate %.2f GiB for ROI series; restrict "
+                "with -roi_sel",(double)zsize*sizeof(float)/1073741824.0) ;
+   if( !quiet ) INFO_message(PROGRAM_NAME ": edge analysis: %d ROIs, %lu edges, %.2f GiB of ROI series",
+                  nroi,(unsigned long)E,(double)zsize*sizeof(float)/1073741824.0) ;
+
+   /* ROI-mean series for every subject and condition. */
+   {
+     int *bad_c=(int *)malloc(sizeof(int)*(size_t)nroi) ;
+     int *bad_s=(int *)malloc(sizeof(int)*(size_t)nroi) ;
+     int *bad_t=(int *)malloc(sizeof(int)*(size_t)nroi) ;
+     for( k=0 ; k<nroi ; k++ ) bad_t[k]=-1 ;
+#ifdef USE_OMP
+#pragma omp parallel for schedule(dynamic)
+#endif
+     for( k=0 ; k<nroi ; k++ ){
+       int c2,s2,t2,v2,r2=ridx[k] ;
+       for( c2=0 ; c2<ncond ; c2++ ) for( s2=0 ; s2<nsub ; s2++ ){
+         float *dst=zdat+(((size_t)c2*nroi+k)*nsub+s2)*ntime ;
+         for( t2=0 ; t2<ntime ; t2++ ){
+           double sum=0.0 ; int bad=0,nv=0,ot=time_index[t2] ;
+           for( v2=0 ; v2<rl->vox[r2].nar ; v2++ ){
+             int iv=rl->vox[r2].ar[v2] ; float x ;
+             if( mask!=NULL && !mask[iv] ) continue ;
+             x=THD_get_voxel(dset[s2*ncond+c2],iv,ot) ;
+             if( !isfinite(x) ){ bad=1 ; break ; }
+             sum+=x ; nv++ ;
+           }
+           if( bad && missing_policy==MISSING_ERROR && bad_t[k]<0 ){
+             bad_c[k]=c2 ; bad_s[k]=s2 ; bad_t[k]=ot ;
+           }
+           dst[t2]=(bad || nv<1)?NAN:(float)(sum/nv) ;
+         }
+       }
+     }
+     for( k=0 ; k<nroi ; k++ ) if( bad_t[k]>=0 )
+       ERROR_exit(PROGRAM_NAME ": nonfinite atlas input for ROI %d, Subj %s, "
+                  "condition %s, time %d",rval[k],
+                  cindex?cindex->level[0][bad_s[k]]:tab->subj[bad_s[k]],
+                  clabel[bad_c[k]],bad_t[k]+1) ;
+     free(bad_c) ; free(bad_s) ; free(bad_t) ;
+   }
+
+   /* One retained timeline for every ROI, subject, and condition, so each
+      product z_i(t)z_j(t) is defined on the same frames everywhere. */
+   goodtime=(byte *)malloc((size_t)ntime) ; tmap=(int *)malloc(sizeof(int)*(size_t)ntime) ;
+   ngood=0 ;
+   for( tt=0 ; tt<ntime ; tt++ ){
+     int good=1 ; size_t q ;
+     for( q=0 ; q<nser && good ; q++ )
+       if( !isfinite(zdat[q*ntime+tt]) ) good=0 ;
+     goodtime[tt]=(byte)good ; if( good ){ tmap[ngood]=time_index[tt] ; ngood++ ; }
+   }
+   if( ngood<3 ) ERROR_exit(PROGRAM_NAME ": edge analysis retains %d common time points; need at least 3",ngood) ;
+   if( ngood<ntime ){
+     size_t q ;
+     for( q=0 ; q<nser ; q++ ){
+       int pos=0 ; float *src=zdat+q*ntime,*dst=zdat+q*ngood ;
+       for( tt=0 ; tt<ntime ; tt++ ) if( goodtime[tt] ) dst[pos++]=src[tt] ;
+     }
+     if( !quiet ) INFO_message(PROGRAM_NAME ": edge analysis keeps %d of %d time points common to all ROIs",ngood,ntime) ;
+   }
+   nt=ngood ; free(goodtime) ;
+
+   /* z-score with the sample SD, so mean(z_i z_j) is Pearson r.  A constant
+      series becomes all zero and gives a zero edge, never a NaN. */
+#ifdef USE_OMP
+#pragma omp parallel for schedule(static)
+#endif
+   for( k=0 ; k<(int)nser ; k++ ){
+     float *z=zdat+(size_t)k*nt ; double m=0.0,v=0.0 ; int t2 ;
+     for( t2=0 ; t2<nt ; t2++ ) m+=z[t2] ;
+     m/=nt ;
+     for( t2=0 ; t2<nt ; t2++ ){ double d=z[t2]-m ; v+=d*d ; }
+     v=sqrt(v/(nt-1)) ;
+     for( t2=0 ; t2<nt ; t2++ ) z[t2]=(v>0.0)?(float)((z[t2]-m)/v):0.0f ;
+   }
+
+   if( usenull ){
+     eset=THD_timeshift_set_build(2,nt,eo->nnull,eo->min_shift,eo->seed) ;  /* 2 slots: the builder needs >=2; slot 0 is used */
+     sset=THD_timeshift_set_build(nsub,nt,eo->nnull,eo->min_shift,eo->seed+7919L) ;
+     if( eset==NULL || sset==NULL )
+       ERROR_exit(PROGRAM_NAME ": cannot build edge null shifts; -min_shift %d is too large for %d time points",
+                  eo->min_shift,nt) ;
+   }
+
+   /* ---------------- node ISC and edge ISC ---------------- */
+   if( eo->edges ){
+     FILE *efp ;
+     char name[THD_MAX_NAME] ;
+     int *vcount=NULL ;
+     float *qval=NULL ;
+     size_t nelem=(size_t)ncond*ngroup*E ;
+
+     node_isc=(float *)calloc((size_t)ncond*ngroup*nroi,sizeof(float)) ;
+     node_n=(float *)calloc((size_t)ncond*ngroup*nroi,sizeof(float)) ;
+     eisc=(float *)calloc(nelem,sizeof(float)) ; en=(float *)calloc(nelem,sizeof(float)) ;
+     ei=(int *)malloc(sizeof(int)*E) ; ej=(int *)malloc(sizeof(int)*E) ;
+     if( node_isc==NULL || node_n==NULL || eisc==NULL || en==NULL || ei==NULL || ej==NULL )
+       ERROR_exit(PROGRAM_NAME ": cannot allocate edge output arrays") ;
+     { int a,b ; e=0 ; for( a=0 ; a<nroi ; a++ ) for( b=a+1 ; b<nroi ; b++,e++ ){ ei[e]=a ; ej[e]=b ; } }
+     if( usenull ){
+       evalid=(byte *)calloc(nelem,sizeof(byte)) ; enullsum=(float *)calloc(nelem,sizeof(float)) ;
+       eres=THD_perm_result_new((int)nelem,eo->nnull) ;
+       if( evalid==NULL || enullsum==NULL || eres==NULL )
+         ERROR_exit(PROGRAM_NAME ": cannot allocate edge null results") ;
+       eres->tail=PERM_TAIL_ONE ;
+       for( ss=0 ; ss<eo->nnull ; ss++ ) eres->max_null[ss]=-FLT_MAX ;
+     }
+     (void)vcount ;
+
+#ifdef USE_OMP
+#pragma omp parallel reduction(+:ninvalid)
+#endif
+     {
+       INSYNC_ws ws ;
+       float *eblock=(float *)malloc(sizeof(float)*(size_t)nsub*nt) ;
+       float *tnull=usenull?(float *)malloc(sizeof(float)*(size_t)ngroup*eo->nnull):NULL ;
+       float *mymax=usenull?(float *)malloc(sizeof(float)*(size_t)eo->nnull):NULL ;
+       float stat[64] ; int nv[64] ;
+       int s3,t3,ss,cc,gg ;
+       if( insync_ws_init(&ws,nsub,nt,spear) || eblock==NULL ||
+           (usenull && (tnull==NULL || mymax==NULL)) || ngroup>64 )
+         ERROR_exit(PROGRAM_NAME ": cannot allocate edge workers (or more than 64 groups)") ;
+       if( usenull ) for( ss=0 ; ss<eo->nnull ; ss++ ) mymax[ss]=-FLT_MAX ;
+
+       /* node ISC: same estimator on the ROI series themselves */
+#ifdef USE_OMP
+#pragma omp for schedule(dynamic)
+#endif
+       for( k=0 ; k<nroi ; k++ ) for( cc=0 ; cc<ncond ; cc++ ){
+         float *blk=zdat+(((size_t)cc*nroi+k)*nsub)*nt ;
+         insync_block_stats(blk,nsub,nt,corr_metric,method,summary,ngroup,gcount,
+                            gmember,&ws,stat,nv) ;
+         for( gg=0 ; gg<ngroup ; gg++ ){
+           size_t o=((size_t)cc*ngroup+gg)*nroi+k ;
+           if( isfinite(stat[gg]) ){ node_isc[o]=stat[gg] ; node_n[o]=(float)nv[gg] ; }
+         }
+       }
+
+#ifdef USE_OMP
+#pragma omp for schedule(dynamic,16)
+#endif
+       for( k=0 ; k<(int)E ; k++ ){
+         int a=ei[k],b=ej[k] ;
+         for( cc=0 ; cc<ncond ; cc++ ){
+           float *zi=zdat+(((size_t)cc*nroi+a)*nsub)*nt ;
+           float *zj=zdat+(((size_t)cc*nroi+b)*nsub)*nt ;
+           int nrun=usenull?eo->nnull:1 ;
+           int good[64] ;
+           for( ss=0 ; ss<nrun ; ss++ ){
+             int off=(ss==0)?0:eset->offset[(size_t)ss*2] ;
+             for( s3=0 ; s3<nsub ; s3++ ){
+               float *pi=zi+(size_t)s3*nt,*pj=zj+(size_t)s3*nt,*po=eblock+(size_t)s3*nt ;
+               for( t3=0 ; t3<nt ; t3++ ){
+                 int u=t3+off ; if( u>=nt ) u-=nt ;
+                 po[t3]=pi[t3]*pj[u] ;
+               }
+             }
+             insync_block_stats(eblock,nsub,nt,corr_metric,method,summary,ngroup,
+                                gcount,gmember,&ws,stat,nv) ;
+             if( ss==0 ){
+               for( gg=0 ; gg<ngroup ; gg++ ){
+                 size_t o=((size_t)cc*ngroup+gg)*E+k ;
+                 good[gg]=isfinite(stat[gg]) ;
+                 if( good[gg] ){ eisc[o]=stat[gg] ; en[o]=(float)nv[gg] ; }
+                 else ninvalid++ ;
+               }
+             }
+             if( usenull ) for( gg=0 ; gg<ngroup ; gg++ ){
+               if( !isfinite(stat[gg]) ) good[gg]=0 ;
+               tnull[(size_t)gg*eo->nnull+ss]=stat[gg] ;
+             }
+             if( ss==0 ){   /* nothing valid to test: skip the surrogates */
+               int any=0 ; for( gg=0 ; gg<ngroup ; gg++ ) any|=good[gg] ;
+               if( !any ) break ;
+             }
+           }
+           if( usenull ) for( gg=0 ; gg<ngroup ; gg++ ){
+             size_t o=((size_t)cc*ngroup+gg)*E+k ;
+             float obs=tnull[(size_t)gg*eo->nnull],sum=0.0f ;
+             if( !good[gg] ) continue ;
+             evalid[o]=1 ; eres->stat[o]=obs ;
+             for( ss=0 ; ss<eo->nnull ; ss++ ){
+               float st=tnull[(size_t)gg*eo->nnull+ss] ;
+               if( st>=obs ) eres->cnt_unc[o]++ ;
+               if( st>mymax[ss] ) mymax[ss]=st ;
+               if( ss>0 ) sum+=st ;
+             }
+             enullsum[o]=sum/(float)(eo->nnull-1) ;
+           }
+         }
+       }
+       if( usenull ){
+#ifdef USE_OMP
+#pragma omp critical(insync_edge_max)
+#endif
+         { for( ss=0 ; ss<eo->nnull ; ss++ )
+             if( mymax[ss]>eres->max_null[ss] ) eres->max_null[ss]=mymax[ss] ; }
+       }
+       insync_ws_free(&ws) ; free(eblock) ; free(tnull) ; free(mymax) ;
+     }
+
+     if( usenull ){
+       size_t nvalid=0 ;
+       for( e=0 ; e<nelem ; e++ ) if( evalid[e] ) nvalid++ ;
+       if( nvalid<1 ) ERROR_exit(PROGRAM_NAME ": no valid edge-null cells") ;
+       for( ss=0 ; ss<eo->nnull ; ss++ )
+         if( eres->max_null[ss]==-FLT_MAX ) eres->max_null[ss]=0.0f ;
+       THD_perm_result_finish(eres,evalid) ;
+       qval=(float *)malloc(sizeof(float)*nelem) ;
+       THD_bh_fdr_masked((int)nelem,eres->p_unc,evalid,qval) ;
+       if( !quiet ) INFO_message(PROGRAM_NAME ": edge-null family contains %lu valid "
+                                 "condition-by-group-by-edge cells",(unsigned long)nvalid) ;
+     }
+
+     /* one long table: each edge row also carries the ISC of its two nodes */
+     snprintf(name,sizeof(name),"%s.edge.1D",prefix) ;
+     efp=insync_open_text(name) ;
+     fprintf(efp,"Condition Group ROI1 ROI2 ROI1_Label ROI2_Label ISC N Node1ISC Node2ISC") ;
+     if( usenull ) fprintf(efp," NullMean Excess P Z Q PFWE ZFWE") ;
+     fprintf(efp,"\n") ;
+     for( cc=0 ; cc<ncond ; cc++ ) for( gg=0 ; gg<ngroup ; gg++ ) for( e=0 ; e<E ; e++ ){
+       size_t o=((size_t)cc*ngroup+gg)*E+e ;
+       size_t no=((size_t)cc*ngroup+gg)*nroi ;
+       fprintf(efp,"%s %s %d %d %s %s %.9g %d %.9g %.9g",clabel[cc],glabel[gg],rval[ei[e]],
+               rval[ej[e]],rlab[ei[e]],rlab[ej[e]],eisc[o],(int)en[o],
+               node_isc[no+ei[e]],node_isc[no+ej[e]]) ;
+       if( usenull ){
+         if( evalid[o] )
+           fprintf(efp," %.9g %.9g %.9g %.9g %.9g %.9g %.9g",enullsum[o],eisc[o]-enullsum[o],
+                   eres->p_unc[o],eres->z_unc[o],qval[o],eres->p_fwe[o],eres->z_fwe[o]) ;
+         else fprintf(efp," 0 0 1 0 1 1 0") ;
+       }
+       fprintf(efp,"\n") ;
+     }
+     fclose(efp) ;
+
+     /* optional .netcc matrices: node ISC on the diagonal, edge ISC off it */
+     if( eo->matrix ) for( cc=0 ; cc<ncond ; cc++ ) for( gg=0 ; gg<ngroup ; gg++ ){
+       int nmat=usenull?5:2,mm,a,b ;
+       char *mlab[5]={"CC","FZ","EX","P","PFWE"} ;
+       float *mat[5] ;
+       size_t eo2=((size_t)cc*ngroup+gg)*E,no=((size_t)cc*ngroup+gg)*nroi ;
+       for( mm=0 ; mm<nmat ; mm++ ){
+         mat[mm]=(float *)calloc((size_t)nroi*nroi,sizeof(float)) ;
+         if( mat[mm]==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate edge matrix") ;
+       }
+       for( a=0 ; a<nroi ; a++ ){
+         mat[0][(size_t)a*nroi+a]=node_isc[no+a] ;
+         mat[1][(size_t)a*nroi+a]=insync_fisher_z(node_isc[no+a]) ;
+         if( usenull ) mat[3][(size_t)a*nroi+a]=mat[4][(size_t)a*nroi+a]=1.0f ;
+       }
+       for( e=0 ; e<E ; e++ ){
+         size_t o=eo2+e ;
+         a=ei[e] ; b=ej[e] ;
+         mat[0][(size_t)a*nroi+b]=mat[0][(size_t)b*nroi+a]=eisc[o] ;
+         mat[1][(size_t)a*nroi+b]=mat[1][(size_t)b*nroi+a]=insync_fisher_z(eisc[o]) ;
+         if( usenull ){
+           float ex=evalid[o]?eisc[o]-enullsum[o]:0.0f ;
+           float pu=evalid[o]?eres->p_unc[o]:1.0f,pf=evalid[o]?eres->p_fwe[o]:1.0f ;
+           mat[2][(size_t)a*nroi+b]=mat[2][(size_t)b*nroi+a]=ex ;
+           mat[3][(size_t)a*nroi+b]=mat[3][(size_t)b*nroi+a]=pu ;
+           mat[4][(size_t)a*nroi+b]=mat[4][(size_t)b*nroi+a]=pf ;
+         }
+       }
+       insync_edge_fname(name,sizeof(name),prefix,"netcc",ncond>1?clabel[cc]:NULL,glabel[gg]) ;
+       insync_write_netcc(name,nroi,nmat,mlab,mat,rlab,rval) ;
+       for( mm=0 ; mm<nmat ; mm++ ) free(mat[mm]) ;
+     }
+     if( !quiet ){
+       if( eo->matrix )
+         INFO_message(PROGRAM_NAME ": wrote edge ISC for %lu edges to %s.edge.1D and %d .netcc matri%s",
+                      (unsigned long)E,prefix,ncond*ngroup,(ncond*ngroup==1)?"x":"ces") ;
+       else INFO_message(PROGRAM_NAME ": wrote edge ISC for %lu edges to %s.edge.1D",(unsigned long)E,prefix) ;
+     }
+     free(node_isc) ; free(node_n) ; free(eisc) ; free(en) ; free(qval) ;
+     free(evalid) ; free(enullsum) ; THD_perm_result_free(eres) ;
+   }
+
+   /* ---------------- amplitude and shared events ---------------- */
+   if( eo->rss || eo->events ){
+     size_t rsz=(size_t)ncond*nsub*nt ;
+     double *s2=(double *)calloc(rsz,sizeof(double)),*s4=(double *)calloc(rsz,sizeof(double)) ;
+     INSYNC_ws ws ;
+     float stat[64] ; int nv[64] ;
+     float *r_obs=NULL,*r_nmean=NULL,*r_p=NULL,*v_q=NULL,*v_nmean=NULL ;
+     int *r_n=NULL,K=0 ;
+     FILE *ffp ; char name[THD_MAX_NAME] ;
+     rss=(float *)malloc(sizeof(float)*rsz) ;
+     if( s2==NULL || s4==NULL || rss==NULL || ngroup>64 || insync_ws_init(&ws,nsub,nt,spear) )
+       ERROR_exit(PROGRAM_NAME ": cannot allocate amplitude arrays") ;
+
+     /* RSS^2 = sum_{i<j} (z_i z_j)^2 = ((sum z^2)^2 - sum z^4)/2 */
+     for( cc=0 ; cc<ncond ; cc++ ) for( k=0 ; k<nroi ; k++ ) for( ss=0 ; ss<nsub ; ss++ ){
+       float *z=zdat+(((size_t)cc*nroi+k)*nsub+ss)*nt ;
+       size_t o=((size_t)cc*nsub+ss)*nt ;
+       for( tt=0 ; tt<nt ; tt++ ){ double q=(double)z[tt]*z[tt] ; s2[o+tt]+=q ; s4[o+tt]+=q*q ; }
+     }
+     { size_t q ; for( q=0 ; q<rsz ; q++ ){
+         double v=0.5*(s2[q]*s2[q]-s4[q]) ; rss[q]=(float)sqrt(v>0.0?v:0.0) ; } }
+     free(s2) ; free(s4) ;
+
+     if( eo->rss ){
+       size_t nel=(size_t)ncond*ngroup ;
+       float *obs,*nmean,*pval,*sur=(float *)malloc(sizeof(float)*(size_t)nsub*nt) ;
+       int *nn,*cnt=(int *)calloc(nel,sizeof(int)) ;
+       obs=r_obs=(float *)calloc(nel,sizeof(float)) ; nmean=r_nmean=(float *)calloc(nel,sizeof(float)) ;
+       pval=r_p=(float *)calloc(nel,sizeof(float)) ; nn=r_n=(int *)calloc(nel,sizeof(int)) ;
+       if( obs==NULL || nmean==NULL || pval==NULL || sur==NULL || nn==NULL || cnt==NULL )
+         ERROR_exit(PROGRAM_NAME ": cannot allocate amplitude results") ;
+       for( cc=0 ; cc<ncond ; cc++ ){
+         float *blk=rss+(size_t)cc*nsub*nt ;
+         insync_block_stats(blk,nsub,nt,corr_metric,method,summary,ngroup,gcount,gmember,&ws,stat,nv) ;
+         for( gg=0 ; gg<ngroup ; gg++ ){
+           size_t o=(size_t)cc*ngroup+gg ;
+           if( isfinite(stat[gg]) ){ obs[o]=stat[gg] ; nn[o]=nv[gg] ; }
+         }
+         if( usenull ){
+           for( gg=0 ; gg<ngroup ; gg++ ) cnt[(size_t)cc*ngroup+gg]=1 ;  /* identity slot */
+           for( ss=1 ; ss<eo->nnull ; ss++ ){
+             insync_shift_draw(nsub,nt,blk,sset->offset+(size_t)ss*nsub,sur) ;
+             insync_block_stats(sur,nsub,nt,corr_metric,method,summary,ngroup,gcount,gmember,&ws,stat,nv) ;
+             for( gg=0 ; gg<ngroup ; gg++ ){
+               size_t o=(size_t)cc*ngroup+gg ;
+               if( isfinite(stat[gg]) ){
+                 nmean[o]+=stat[gg]/(float)(eo->nnull-1) ;
+                 if( stat[gg]>=obs[o] ) cnt[o]++ ;
+               }
+             }
+           }
+           for( gg=0 ; gg<ngroup ; gg++ ){
+             size_t o=(size_t)cc*ngroup+gg ; pval[o]=(float)cnt[o]/(float)eo->nnull ;
+           }
+         }
+       }
+       free(sur) ; free(cnt) ;
+     }
+
+     if( eo->events ){
+       size_t nel=(size_t)ncond*ngroup*nt ;
+       byte *hi=(byte *)calloc((size_t)ncond*nsub*nt,sizeof(byte)) ;
+       INSYNC_vt *vt=(INSYNC_vt *)malloc(sizeof(INSYNC_vt)*(size_t)nt) ;
+       K=(int)ceil((double)eo->event_frac*nt-1.0e-9) ;
+       if( K<1 ) K=1 ;
+       if( K>nt-1 ) K=nt-1 ;
+       if( hi==NULL || vt==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate event arrays") ;
+       for( cc=0 ; cc<ncond ; cc++ ) for( ss=0 ; ss<nsub ; ss++ ){
+         float *r0=rss+((size_t)cc*nsub+ss)*nt ; byte *h0=hi+((size_t)cc*nsub+ss)*nt ;
+         for( tt=0 ; tt<nt ; tt++ ){ vt[tt].v=r0[tt] ; vt[tt].t=tt ; }
+         qsort(vt,(size_t)nt,sizeof(INSYNC_vt),insync_vt_compare) ;
+         for( k=0 ; k<K ; k++ ) h0[vt[k].t]=1 ;
+       }
+       vres=THD_perm_result_new((int)nel,usenull?eo->nnull:20) ;
+       vvalid=(byte *)malloc(nel) ; v_q=(float *)malloc(sizeof(float)*nel) ;
+       v_nmean=(float *)calloc(nel,sizeof(float)) ;
+       if( vres==NULL || vvalid==NULL || v_q==NULL || v_nmean==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate event results") ;
+       memset(vvalid,1,nel) ; vres->tail=PERM_TAIL_ONE ;
+       for( ss=0 ; ss<vres->nperm ; ss++ ) vres->max_null[ss]=-FLT_MAX ;
+       for( cc=0 ; cc<ncond ; cc++ ){
+         for( gg=0 ; gg<ngroup ; gg++ ) for( tt=0 ; tt<nt ; tt++ ){
+           int c2=0,j2 ;
+           for( j2=0 ; j2<gcount[gg] ; j2++ ) c2+=hi[((size_t)cc*nsub+gmember[gg][j2])*nt+tt] ;
+           vres->stat[((size_t)cc*ngroup+gg)*nt+tt]=(float)c2 ;
+         }
+         if( usenull ) for( ss=0 ; ss<eo->nnull ; ss++ ){
+           int *off=sset->offset+(size_t)ss*nsub ;
+           float mx=-FLT_MAX ;
+           for( gg=0 ; gg<ngroup ; gg++ ) for( tt=0 ; tt<nt ; tt++ ){
+             int c2=0,j2 ; size_t o=((size_t)cc*ngroup+gg)*nt+tt ;
+             for( j2=0 ; j2<gcount[gg] ; j2++ ){
+               int sj=gmember[gg][j2],u=tt+off[sj] ;
+               if( u>=nt ) u-=nt ;
+               c2+=hi[((size_t)cc*nsub+sj)*nt+u] ;
+             }
+             if( (float)c2>=vres->stat[o] ) vres->cnt_unc[o]++ ;
+             if( ss>0 ) v_nmean[o]+=(float)c2/(float)(eo->nnull-1) ;
+             if( (float)c2>mx ) mx=(float)c2 ;
+           }
+           if( mx>vres->max_null[ss] ) vres->max_null[ss]=mx ;
+         }
+       }
+       if( usenull ){
+         THD_perm_result_finish(vres,vvalid) ;
+         THD_bh_fdr_masked((int)nel,vres->p_unc,vvalid,v_q) ;
+       }
+       free(hi) ; free(vt) ;
+     }
+
+     /* One per-frame table: subject-mean amplitude, then whichever amplitude-ISC
+        and shared-event columns were requested.  Group-level ISC values repeat
+        down each condition/group so the file stays one tidy table. */
+     snprintf(name,sizeof(name),"%s.frames.1D",prefix) ; ffp=insync_open_text(name) ;
+     fprintf(ffp,"Condition Group TR OrigTR MeanRSS") ;
+     if( eo->rss ){ fprintf(ffp," RSS_ISC RSS_N") ; if( usenull ) fprintf(ffp," RSS_NullMean RSS_P") ; }
+     if( eo->events ){
+       fprintf(ffp," NHigh NSubj Frac") ;
+       if( usenull ) fprintf(ffp," EvNullMean EvP EvZ EvQ EvPFWE EvZFWE") ;
+     }
+     fprintf(ffp,"\n") ;
+     for( cc=0 ; cc<ncond ; cc++ ) for( gg=0 ; gg<ngroup ; gg++ ) for( tt=0 ; tt<nt ; tt++ ){
+       size_t og=(size_t)cc*ngroup+gg,qq=og*nt+tt ;
+       double m=0.0 ; int j2 ;
+       for( j2=0 ; j2<gcount[gg] ; j2++ ) m+=rss[((size_t)cc*nsub+gmember[gg][j2])*nt+tt] ;
+       fprintf(ffp,"%s %s %d %d %.9g",clabel[cc],glabel[gg],tt,tmap[tt],m/gcount[gg]) ;
+       if( eo->rss ){
+         fprintf(ffp," %.9g %d",r_obs[og],r_n[og]) ;
+         if( usenull ) fprintf(ffp," %.9g %.9g",r_nmean[og],r_p[og]) ;
+       }
+       if( eo->events ){
+         fprintf(ffp," %d %d %.6g",(int)vres->stat[qq],gcount[gg],vres->stat[qq]/gcount[gg]) ;
+         if( usenull ) fprintf(ffp," %.9g %.9g %.9g %.9g %.9g %.9g",v_nmean[qq],vres->p_unc[qq],
+                 vres->z_unc[qq],v_q[qq],vres->p_fwe[qq],vres->z_fwe[qq]) ;
+       }
+       fprintf(ffp,"\n") ;
+     }
+     fclose(ffp) ;
+     if( !quiet ){
+       INFO_message(PROGRAM_NAME ": wrote per-frame table to %s",name) ;
+       if( eo->events )
+         INFO_message(PROGRAM_NAME ": events are the top %d of %d frames in each subject",K,nt) ;
+     }
+     free(r_obs) ; free(r_nmean) ; free(r_p) ; free(r_n) ; free(v_q) ; free(v_nmean) ;
+     if( eo->events ){ free(vvalid) ; THD_perm_result_free(vres) ; }
+     insync_ws_free(&ws) ; free(rss) ;
+   }
+
+   if( ninvalid>0 ) WARNING_message(PROGRAM_NAME ": %lld edge group estimates were invalid and stored as zero",ninvalid) ;
+   for( k=0 ; k<nroi ; k++ ) free(rlab[k]) ;
+   free(rlab) ; free(ridx) ; free(rval) ; free(ei) ; free(ej) ; free(tmap) ; free(zdat) ;
+   THD_timeshift_set_free(eset) ; THD_timeshift_set_free(sset) ;
+   THD_roilist_free(rl) ; DSET_delete(aset) ;
+}
+
 /*! Parse the command line, organize subjects and conditions, run voxelwise
     ISC and requested null models, then write image, ROI, and 3dISC outputs. */
 int main( int argc, char **argv )
@@ -721,6 +1456,7 @@ int main( int argc, char **argv )
    char *atlas_name=NULL ;
    char *roi_sel=NULL ;
    char *matrix_name=NULL ;
+   INSYNC_edge_opts eo ;
 
    /* Parsed table, dataset, and mask state. */
    THD_datatable *tab=NULL ;
@@ -802,6 +1538,7 @@ int main( int argc, char **argv )
    long long bad_data=LLONG_MAX ;
    INSYNC_progress progress ;
 
+   memset(&eo,0,sizeof(eo)) ; eo.event_frac=0.10f ; eo.min_shift=1 ;
    if( argc<2 ){ usage_3dInSync() ; return 0 ; }
    mainENTRY(PROGRAM_NAME " main") ; machdep() ; AFNI_SETUP_OMP(0) ;
    AFNI_logger(PROGRAM_NAME,argc,argv) ; PRINT_VERSION(PROGRAM_NAME) ;
@@ -874,6 +1611,24 @@ int main( int argc, char **argv )
      if( strcasecmp(argv[nopt],"-save_matrix")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a filename after -save_matrix") ;
        matrix_name=argv[nopt++] ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-edges")==0 ){ eo.edges=1 ; nopt++ ; continue ; }
+     if( strcasecmp(argv[nopt],"-edges_matrix")==0 ){ eo.matrix=1 ; nopt++ ; continue ; }
+     if( strcasecmp(argv[nopt],"-edges_rss")==0 ){ eo.rss=1 ; nopt++ ; continue ; }
+     if( strcasecmp(argv[nopt],"-edges_events")==0 ){
+       char *ep ;
+       double x ;
+       if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a fraction after -edges_events") ;
+       x=strtod(argv[nopt++],&ep) ;
+       if( ep==argv[nopt-1] || *ep!='\0' || !(x>0.0 && x<=0.5) )
+         ERROR_exit(PROGRAM_NAME ": -edges_events FRAC must be in (0,0.5]") ;
+       eo.events=1 ; eo.event_frac=(float)x ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-edges_nnull")==0 ){
+       if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need an integer after -edges_nnull") ;
+       eo.nnull=(int)strtol(argv[nopt++],NULL,10) ;
+       if( eo.nnull<20 ) ERROR_exit(PROGRAM_NAME ": -edges_nnull must be at least 20") ;
+       continue ;
      }
      if( strcasecmp(argv[nopt],"-memory_limit")==0 ){
        char *ep ;
@@ -1031,7 +1786,17 @@ int main( int argc, char **argv )
    if( nopt<argc ) ERROR_exit(PROGRAM_NAME ": unexpected argument '%s'",argv[nopt]) ;
    if( temporal_mode==TNULL_NONE && nnull>0 ) ERROR_exit(PROGRAM_NAME ": -nnull requires -temporal_null") ;
    if( temporal_mode!=TNULL_NONE && nnull<20 ) ERROR_exit(PROGRAM_NAME ": -temporal_null requires -nnull >= 20") ;
-   if( temporal_mode!=TNULL_TIMESHIFT && min_shift_given ) ERROR_exit(PROGRAM_NAME ": -min_shift applies only to timeshift") ;
+   if( temporal_mode!=TNULL_TIMESHIFT && min_shift_given && eo.nnull==0 ) ERROR_exit(PROGRAM_NAME ": -min_shift applies only to timeshift") ;
+   if( (eo.edges || eo.rss || eo.events) && atlas_name==NULL )
+     ERROR_exit(PROGRAM_NAME ": -edges/-edges_rss/-edges_events require -atlas") ;
+   if( eo.matrix && !eo.edges ) ERROR_exit(PROGRAM_NAME ": -edges_matrix requires -edges") ;
+   if( eo.nnull>0 && !(eo.edges || eo.rss || eo.events) )
+     ERROR_exit(PROGRAM_NAME ": -edges_nnull requires -edges, -edges_rss, or -edges_events") ;
+   if( eo.nnull>0 && (censor_name!=NULL || do_zcensor || missing_policy==MISSING_COMMON) )
+     ERROR_exit(PROGRAM_NAME ": -censor/-zcensor/-missing common cannot be combined with "
+                "-edges_nnull; circular shifts require an intact timeline") ;
+   if( min_shift_given ) eo.min_shift=min_shift ;
+   eo.seed=seed ;
    if( temporal_mode==TNULL_NONE && temporal_tail_given ) ERROR_exit(PROGRAM_NAME ": -temporal_tail requires -temporal_null") ;
    if( temporal_mode!=TNULL_NONE && (censor_name!=NULL || do_zcensor) )
      ERROR_exit(PROGRAM_NAME ": -censor/-zcensor cannot be combined with a temporal null; "
@@ -1111,6 +1876,16 @@ int main( int argc, char **argv )
        if( matrix_name!=NULL && THD_is_file(matrix_name) )
          ERROR_exit(PROGRAM_NAME ": ROI matrix '%s' already exists",matrix_name) ;
      }
+     if( eo.edges || eo.rss || eo.events ){
+       if( eo.edges ){
+         insync_edge_fname(fname,sizeof(fname),prefix,"edge",NULL,NULL) ;
+         if( THD_is_file(fname) ) ERROR_exit(PROGRAM_NAME ": edge output '%s' already exists",fname) ;
+       }
+       if( eo.rss || eo.events ){
+         insync_edge_fname(fname,sizeof(fname),prefix,"frames",NULL,NULL) ;
+         if( THD_is_file(fname) ) ERROR_exit(PROGRAM_NAME ": edge output '%s' already exists",fname) ;
+       }
+     }
      if( pair_prefix!=NULL ){
        snprintf(fname,sizeof(fname),ncond==1?"%s.3dISC.txt":"%s.3dISC.all.txt",
                 pair_prefix) ;
@@ -1147,6 +1922,12 @@ int main( int argc, char **argv )
                                kk+1,glabel[kk],gcount[kk]) ;
    }
    if( (nperm>0 || do_exact) && ngroup!=2 ) ERROR_exit(PROGRAM_NAME ": group permutation requires exactly two groups") ;
+   if( eo.edges && eo.matrix && !THD_ok_overwrite() ) for( cc=0 ; cc<ncond ; cc++ ) for( kk=0 ; kk<ngroup ; kk++ ){
+     char fname[THD_MAX_NAME] ;
+     insync_edge_fname(fname,sizeof(fname),prefix,"netcc",ncond>1?clabel[cc]:NULL,glabel[kk]) ;
+     if( THD_is_file(fname) )
+       ERROR_exit(PROGRAM_NAME ": edge matrix '%s' already exists",fname) ;
+   }
    gmember=(int **)calloc((size_t)ngroup,sizeof(int *)) ;
    for( kk=0 ; kk<ngroup ; kk++ ){
      int pos=0 ;
@@ -1224,6 +2005,10 @@ int main( int argc, char **argv )
    } else {
      for( ii=0 ; ii<ntime_input ; ii++ ){ censor_keep[ii]=1 ; time_index[ii]=ii ; }
    }
+
+   if( eo.nnull>0 && ntime-2*eo.min_shift+1<2 )
+     ERROR_exit(PROGRAM_NAME ": -min_shift %d is too large for %d time points",
+                eo.min_shift,ntime) ;
 
    /* Temporal null sets preserve each subject as the exchangeable unit.  For
       pairwise timeshifts, pre-index only lags that a requested draw uses. */
@@ -2038,6 +2823,11 @@ int main( int argc, char **argv )
        nsub,ncond,ntime_input,ntime,time_index,mask,missing_policy,corr_metric,
        method,summary,ngroup,group,gcount,gmember,glabel,tab,cindex,rowmap,
        clabel,quiet) ;
+
+   if( eo.edges || eo.rss || eo.events )
+     insync_write_edge_outputs(atlas_name,roi_sel,prefix,first,dset,nsub,ncond,
+       ntime,time_index,mask,missing_policy,corr_metric,method,summary,ngroup,
+       gcount,gmember,glabel,tab,cindex,clabel,&eo,quiet) ;
 
    if( !quiet ) INFO_message(PROGRAM_NAME ": estimator=%s correlation=%s "
                 "summary=%s, %d subjects, %d condition%s, %d retained time points",

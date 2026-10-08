@@ -26,6 +26,34 @@ add_test(
 )
 set_tests_properties(do.examples PROPERTIES LABELS GLX)
 
+if(TARGET 3dInSync)
+  add_test(
+    NAME 3dInSync:edges-oracle
+    COMMAND
+      ${Python_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/run_insync_edges.py
+      --bin $<TARGET_FILE:3dInSync>
+  )
+  set_tests_properties(3dInSync:edges-oracle PROPERTIES LABELS "3dInSync;numeric;unit")
+
+  # Integration smoke tests: repeated conditions, the 3dISC pair-map bridge,
+  # tail options, -missing, -memory_limit, and -zcensor. The script uses 3dinfo
+  # and 1dcat from the same directory as 3dInSync, and bash process substitution.
+  if(TARGET 3dinfo AND TARGET 1dcat)
+    find_program(BASH_PROGRAM bash)
+    if(BASH_PROGRAM)
+      add_test(
+        NAME 3dInSync:integration
+        COMMAND
+          ${BASH_PROGRAM}
+          ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_insync_integration.sh
+          $<TARGET_FILE:3dInSync>
+      )
+      set_tests_properties(3dInSync:integration PROPERTIES LABELS "3dInSync;integration")
+    endif()
+  endif()
+endif()
+
 if(TARGET 3dRSA)
   add_test(
     NAME 3dRSA:1d-oracle
@@ -61,6 +89,17 @@ if(TARGET 1dTrdm AND TARGET 3dRSA)
 endif()
 
 if(ENABLE_TESTS)
+  # Direct unit gate for the dataset-agnostic ISC summaries behind 3dInSync.
+  add_executable(
+    thd_insync_unit
+    ${CMAKE_SOURCE_DIR}/src/thd_insync.c
+    ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_insync.c
+  )
+  target_include_directories(thd_insync_unit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+  target_link_libraries(thd_insync_unit PRIVATE m)
+  add_test(NAME thd_insync:unit COMMAND thd_insync_unit)
+  set_tests_properties(thd_insync:unit PROPERTIES LABELS "3dInSync;numeric;unit")
+
   # M1b/M1d's dataset-agnostic inference and memory-ledger primitives have a
   # tiny direct unit gate in addition to their end-to-end consumers above.
   add_executable(

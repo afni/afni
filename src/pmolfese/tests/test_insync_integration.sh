@@ -7,6 +7,8 @@
 set -euo pipefail
 
 prog=${1:-./3dInSync}
+# 3dinfo and 1dcat are taken from the directory of the program under test.
+PATH="$(cd "$(dirname "$prog")" && pwd):$PATH"
 tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/insync-phase4.XXXXXX")
 trap 'rm -rf "$tmpdir"' EXIT
 
