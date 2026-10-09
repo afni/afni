@@ -3333,7 +3333,156 @@ def egs_demo():
        ],
      ))
 
+   examples.append( APExample('AP demo 2a',
+     source='jello',
+     descrip='basic rest - motion and censoring',
+     moddate='2026.10.09',
+     keywords=['complete', 'rest'],
+     header="""
+              (recommended?  yes, as a simple resting state example)
+
+         This is a sample rest processing command, including:
+
+            - QC options:
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style
+
+            - non-linear template alignment (precomputed warp is provided)
+
+            - noise removal of:
+                - motion and derivatives, per run
+                - censoring for both motion and outliers
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005.d2a']],
+        ['-dsets',                   ['func/sub-005_rest_run-1_bold.nii.gz',
+                                      'func/sub-005_rest_run-2_bold.nii.gz']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'ssw/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-blocks',                  ['tshift', 'align', 'tlrc',
+                                      'volreg', 'mask', 'blur', 'scale',
+                                      'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-large_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
+        ['-volreg_compute_tsnr',     ['yes']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-blur_size',               ['5']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_make_corr_vols',  ['aeseg']],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
+        ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
    examples.append( APExample('AP demo 2c',
+     source='jello',
+     descrip='basic rest - motion, censoring, physio regression',
+     moddate='2026.10.09',
+     keywords=['complete', 'rest'],
+     header="""
+              (recommended?  yes, as a simple resting state example)
+
+         This is a sample rest processing command, including:
+
+            - QC options:
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -regress_compute_tsnr_stats, -html_review_style
+
+            - non-linear template alignment (precomputed warp is provided)
+
+            - noise removal of:
+                - physio regresstion (cardio and respiration)
+                - motion and derivatives, per run
+                - censoring for both motion and outliers
+
+         This is the same as demo 2a, but with:
+            physio regression   : processing physio_calc.py results
+            despiking           : include 'despike' processing block
+            compute_tsnr_stats  : get some QC measure for our ROIs of focus
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005.d2c']],
+        ['-dsets',                   ['func/sub-005_rest_run-1_bold.nii.gz',
+                                      'func/sub-005_rest_run-2_bold.nii.gz']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'ssw/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-blocks',                  ['despike', 'ricor', 'tshift', 'align',
+                                      'tlrc', 'volreg', 'mask', 'blur',
+                                      'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-ricor_regs_nfirst',       ['4']],
+        ['-ricor_regs',              ['physio/sub-005_r1_physio_slice.1D',
+                                      'physio/sub-005_r2_physio_slice.1D']],
+        ['-ricor_regress_method',    ['per-run']],
+        ['-regress_per_run_ortvec',  ['physio_vol',
+                                      'physio/sub-005_r1_physio_volume.1D',
+                                      'physio/sub-005_r2_physio_volume.1D']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-large_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
+        ['-volreg_compute_tsnr',     ['yes']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-blur_size',               ['5']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_make_corr_vols',  ['aeseg']],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
+        ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP demo 2d',
      source='APMULTI_Demo1_rest/scripts_desktop/do_44_ap_me_bTs.tcsh',
      descrip='do_44_ap_me_bTs.tcsh - ME surface rest with tedana',
      moddate='2026.10.09',
@@ -3374,7 +3523,7 @@ def egs_demo():
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',                 ['sub-005']],
+        ['-subj_id',                 ['sub-005.d2d']],
         ['-dsets_me_run',            ['func/sub-005_rest_echo-1_bold.nii.gz',
                                       'func/sub-005_rest_echo-2_bold.nii.gz',
                                       'func/sub-005_rest_echo-3_bold.nii.gz']],
@@ -3400,7 +3549,7 @@ def egs_demo():
         ['-tcat_remove_first_trs',   ['4']],
         ['-tshift_interp',           ['-wsinc9']],
         ['-align_unifize_epi',       ['local']],
-        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-large_move',
                                       '-check_flip']],
         ['-volreg_align_to',         ['MIN_OUTLIER']],
         ['-volreg_align_e2a',        []],
@@ -3421,7 +3570,7 @@ def egs_demo():
        ],
      ))
 
-   examples.append( APExample('AP demo 2d',
+   examples.append( APExample('AP demo 2e',
      source='APMULTI_Demo1_rest/scripts_desktop/do_20_ap_se.tcsh',
      descrip='do_20_ap_se.tcsh - rest with ANATICOR and PCs',
      moddate='2026.10.09',
@@ -3456,7 +3605,7 @@ def egs_demo():
             """,
      trailer=""" """,
      olist = [
-        ['-subj_id',                 ['sub-005']],
+        ['-subj_id',                 ['sub-005.d2e']],
         ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
         ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
         ['-anat_has_skull',          ['no']],
@@ -3475,7 +3624,7 @@ def egs_demo():
                                       'regress']],
         ['-radial_correlate_blocks', ['tcat', 'volreg']],
         ['-tcat_remove_first_trs',   ['4']],
-        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-large_move',
                                       '-check_flip']],
         ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
         ['-tlrc_NL_warp',            []],
