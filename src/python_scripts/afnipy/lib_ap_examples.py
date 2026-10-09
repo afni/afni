@@ -3505,7 +3505,7 @@ def egs_demo():
             - non-linear template alignment (precomputed warp is provided)
 
             - noise removal of:
-                - physio regresstion (cardio and respiration)
+                - physio regression (cardio and respiration)
                 - motion and derivatives, per run
                 - censoring for both motion and outliers
 
