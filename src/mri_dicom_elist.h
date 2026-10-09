@@ -42,28 +42,37 @@ static char *elist[] = {
  "0002 0010" ,  /* Transfer Syntax [RWC - 05 Jul 2006] */
 
  /*--- GE multi-echo EPI sequences [RCR - Aug 2014] ---*/
- "0008 0018" ,  /* SOP (service object pair) Instance UID - unique to DICOM file*/
- "0018 0081" ,  /* ACQ Echo Time    (new GE field) [RCR - 24 Mar 2022] */
- "0018 0086" ,  /* ACQ Echo Number  (new GE field) [RCR - 24 Mar 2022] */
- "0019 10a2" ,  /* GE multi-echo index   */
+
+ "0008 0018" ,  /* SOP Instance UID */
+ "0018 0081" ,  /* Echo Time */
+ "0018 0086" ,  /* Echo Number */
+ "0019 10a2" ,  /* GE multi-echo index */
  "0020 1002" ,  /* Images in Acquisition */
 
  /*--- Siemens 3D mosaic images [RCR/DRG 1 Jun 2016] --*/
 
- "0018 0023" ,  /* ACQ MR Acquisition Type */
- "0019 100a" ,  /* unnamed MR header num mosaic slices */
+ "0018 0023" ,  /* MR Acquisition Type */
+ "0019 100a" ,  /* Number of mosaic slices */
 
  /*--- multi-frame DICOM files [RWC - 02 May 2008] ---*/
 
  "0020 0105" ,  /* Number of temporal positions */
- "0020 0010" ,  /* study number  */
- "0020 0011" ,  /* series number */
- "0020 0013" ,  /* Instance (image) number */
+ "0020 0010" ,  /* Study number */
+ "0020 0011" ,  /* Series number */
+ "0020 0013" ,  /* Instance number */
  "0020 0100" ,  /* Temporal position index identifier */
  "0020 9128" ,  /* Temporal position index */
  "0020 9057" ,  /* Stack position index */
 
- "0054 1330" ,  /* image index  */
+ "0054 1330" ,  /* Image index */
+
+ /*--- Siemens Enhanced MR DICOM support [JB 2025] ---*/
+
+ "0008 0016" ,  /* SOP Class UID */
+ "5200 9230" ,  /* Per-frame Functional Groups Sequence */
+ "0018 9074" ,  /* Frame Acquisition DateTime */
+ "0018 9082" ,  /* Effective Echo Time */
+ "0008 002a" ,  /* Acquisition DateTime */
 
 
 NULL } ;
@@ -128,6 +137,11 @@ NULL } ;
 
 #define E_RS_IMAGE_INDEX             44    /* 06 May 2010: for PET [rickr] */
 
+#define E_ENHANCED               45  /* Enhanced MR Image Storage SOP Class UID for Siemens XA scanners*/
+#define E_GROUP_SEQUENCE         46  /* Per-frame Functional Groups Sequence */
+#define E_FRAME_ACQ_TIME         47  /* Frame Acquisition DateTime */
+#define E_EFFECTIVE_ECHO_TIME    48  /* Effective Echo Time */
+#define E_ACQUISITION_DATE_TIME  49  /* Acquisition DateTime */
 
 /*----------------------------------------------------------------------------*/
 
