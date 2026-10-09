@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Oct, 2026, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add and reorder rest examples under demo 2",
+   "Add examples demo 2a: basic rest, 2b: ROI analysis, 2c: physio.\n"
+   "Rename previous examples demo 2a and 2b to demo 2e and 2d."
+ } ,
+
  {  6, Oct, 2026, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add examples of use with fMRIPrep outputs - AP demo 3a,b,c",
    NULL

@@ -833,9 +833,12 @@ g_history = """
        - if results dir already exists, properly report any -out_dir
     8.09 Sep 21, 2026: minor cleanup
     8.10 Oct  6, 2026: add fMRIPrep examples, demo 3a, 3b, 3c
+    8.11 Oct  9, 2026:
+       - add rest examples demo 2a, 2b, 2c
+       - rename old (and less basic) rest examples demo 2a,2b to 2e,2d
 """
 
-g_version = "version 8.10, October 6, 2026"
+g_version = "version 8.11, October 9, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
