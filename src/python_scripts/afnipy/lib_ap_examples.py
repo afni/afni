@@ -3333,93 +3333,10 @@ def egs_demo():
        ],
      ))
 
-   examples.append( APExample('AP demo 2a',
-     source='APMULTI_Demo1_rest/scripts_desktop/do_20_ap_se.tcsh',
-     descrip='do_20_ap_se.tcsh - one way to process rest data',
-     moddate='2023.04.19',
-     keywords=['complete', 'rest'],
-     header="""
-              (recommended?  somewhat, includes tissue-based regression)
-
-         This example is part of the APMULTI_Demo1_rest tree, installable by
-         running :
-
-            @Install_APMULTI_Demo1_rest
-
-         This is a sample rest processing command, including:
-
-            - despike block for high motion subjects
-
-            - QC options:
-                -radial_correlate_blocks, (-align_opts_aea) -check_flip
-                -volreg_compute_tsnr, -regress_make_corr_vols,
-                -html_review_style, -anat_follower_ROI (some are for QC)
-
-            - non-linear template alignment (precomputed warp is provided)
-
-            - noise removal of:
-                - motion and derivatives, per run
-                - ventricle principal components (top 3 per run)
-                - fast ANATICOR
-                - censoring for both motion and outliers
-
-         * input dataset names have been shortened to protect the margins
-
-            """,
-     trailer=""" """,
-     olist = [
-        ['-subj_id',                 ['sub-005']],
-        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
-        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
-        ['-anat_has_skull',          ['no']],
-        ['-anat_follower',           ['anat_w_skull', 'anat',
-                                      'ssw/anatU.sub-005.nii']],
-        ['-anat_follower_ROI',       ['aaseg', 'anat',
-                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
-        ['-anat_follower_ROI',       ['aeseg', 'epi',
-                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
-        ['-anat_follower_ROI',       ['FSvent', 'epi',
-                                      'SUMA/fs_ap_latvent.nii.gz']],
-        ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
-        ['-anat_follower_erode',     ['FSvent', 'FSWe']],
-        ['-blocks',                  ['despike', 'tshift', 'align', 'tlrc',
-                                      'volreg', 'mask', 'blur', 'scale',
-                                      'regress']],
-        ['-radial_correlate_blocks', ['tcat', 'volreg']],
-        ['-tcat_remove_first_trs',   ['4']],
-        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
-                                      '-check_flip']],
-        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
-        ['-tlrc_NL_warp',            []],
-        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
-                                      'ssw/anatQQ.sub-005.aff12.1D',
-                                      'ssw/anatQQ.sub-005_WARP.nii']],
-        ['-volreg_align_to',         ['MIN_OUTLIER']],
-        ['-volreg_align_e2a',        []],
-        ['-volreg_tlrc_warp',        []],
-        ['-volreg_warp_dxyz',        ['3']],
-        ['-volreg_compute_tsnr',     ['yes']],
-        ['-mask_epi_anat',           ['yes']],
-        ['-blur_size',               ['5']],
-        ['-regress_apply_mot_types', ['demean', 'deriv']],
-        ['-regress_motion_per_run',  []],
-        ['-regress_anaticor_fast',   []],
-        ['-regress_anaticor_label',  ['FSWe']],
-        ['-regress_ROI_PC',          ['FSvent', '3']],
-        ['-regress_ROI_PC_per_run',  ['FSvent']],
-        ['-regress_censor_motion',   ['0.2']],
-        ['-regress_censor_outliers', ['0.05']],
-        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
-        ['-regress_est_blur_epits',  []],
-        ['-regress_est_blur_errts',  []],
-        ['-html_review_style',       ['pythonic']],
-       ],
-     ))
-
-   examples.append( APExample('AP demo 2b',
+   examples.append( APExample('AP demo 2c',
      source='APMULTI_Demo1_rest/scripts_desktop/do_44_ap_me_bTs.tcsh',
      descrip='do_44_ap_me_bTs.tcsh - ME surface rest with tedana',
-     moddate='2024.01.04',
+     moddate='2026.10.09',
      keywords=['complete', 'blip', 'ME', 'rest', 'surface', 'tedana'],
      header="""
               (recommended?  yes)
@@ -3500,6 +3417,89 @@ def egs_demo():
         ['-regress_censor_motion',   ['0.2']],
         ['-regress_censor_outliers', ['0.05']],
         ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
+        ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
+   examples.append( APExample('AP demo 2d',
+     source='APMULTI_Demo1_rest/scripts_desktop/do_20_ap_se.tcsh',
+     descrip='do_20_ap_se.tcsh - rest with ANATICOR and PCs',
+     moddate='2026.10.09',
+     keywords=['complete', 'rest'],
+     header="""
+              (recommended?  somewhat, includes tissue-based regression)
+
+         This example is part of the APMULTI_Demo1_rest tree, installable by
+         running :
+
+            @Install_APMULTI_Demo1_rest
+
+         This is a sample rest processing command, including:
+
+            - despike block for high motion subjects
+
+            - QC options:
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -html_review_style, -anat_follower_ROI (some are for QC)
+
+            - non-linear template alignment (precomputed warp is provided)
+
+            - noise removal of:
+                - motion and derivatives, per run
+                - ventricle principal components (top 3 per run)
+                - fast ANATICOR
+                - censoring for both motion and outliers
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005']],
+        ['-dsets',                   ['func/sub-005_rest_echo-2_bold.nii.gz']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'ssw/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['FSvent', 'epi',
+                                      'SUMA/fs_ap_latvent.nii.gz']],
+        ['-anat_follower_ROI',       ['FSWe', 'epi', 'SUMA/fs_ap_wm.nii.gz']],
+        ['-anat_follower_erode',     ['FSvent', 'FSWe']],
+        ['-blocks',                  ['despike', 'tshift', 'align', 'tlrc',
+                                      'volreg', 'mask', 'blur', 'scale',
+                                      'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-giant_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
+        ['-volreg_compute_tsnr',     ['yes']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-blur_size',               ['5']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_anaticor_fast',   []],
+        ['-regress_anaticor_label',  ['FSWe']],
+        ['-regress_ROI_PC',          ['FSvent', '3']],
+        ['-regress_ROI_PC_per_run',  ['FSvent']],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_make_corr_vols',  ['aeseg', 'FSvent']],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
         ['-html_review_style',       ['pythonic']],
        ],
      ))
