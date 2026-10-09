@@ -2803,7 +2803,7 @@ def egs_publish():
      source='AP_paper/scripts_rest/do_37_ap_ex7_roi.tcsh',
      descrip='do_37_ap_ex7_roi.tcsh - rest analysis.',
      moddate='2024.08.29',
-     keywords=['complete', 'noshow', 'physio', 'publish', 'rest'],
+     keywords=['complete', 'noshow', 'physio', 'publish', 'rest', 'roi'],
      header="""
               (recommended?  yes, an example of resting state analysis)
 
@@ -3334,7 +3334,7 @@ def egs_demo():
      ))
 
    examples.append( APExample('AP demo 2a',
-     source='jello',
+     source='none yet',
      descrip='basic rest - motion and censoring',
      moddate='2026.10.09',
      keywords=['complete', 'rest'],
@@ -3401,8 +3401,94 @@ def egs_demo():
        ],
      ))
 
+   examples.append( APExample('AP demo 2b',
+     source='none yet',
+     descrip='basic rest - motion and censoring, ROI analysis',
+     moddate='2026.10.09',
+     keywords=['complete', 'rest', 'roi'],
+     header="""
+              (recommended?  yes, simple resting ROI analysis example)
+
+         This example is the same as demo 2a, but is meant for an ROI analysis.
+         This means:
+
+            - exclude the blur block and any corresponding options
+            - preferably include the ROIs of study focus for QC (TSNR, etc.)
+              - import via -ROI_import or -anat_follower_ROI
+              - specify list of ROIs to evaluate for QC
+                via -regress_compute_tsnr_stats
+                (here we list 6 ROI integers for QC stats)
+
+                * of course, we recommend this for basically any analysis
+
+         Processing:
+
+            - QC options:
+                (-ROI_import : not used since -anat_follower_ROI imports our
+                               desired FreeSurfer parcellation
+                             - assuming that is the basis of our study)
+                -radial_correlate_blocks, (-align_opts_aea) -check_flip,
+                -volreg_compute_tsnr, -regress_make_corr_vols,
+                -regress_compute_tsnr_stats, -html_review_style
+
+            - no blur processing block:
+                - ROI averaging _is_ the blur operation, done later
+                - try not to pollute or dilute the contents of an ROI
+
+            - non-linear template alignment (precomputed warp is provided)
+
+            - noise removal of:
+                - motion and derivatives, per run
+                - censoring for both motion and outliers
+
+         * input dataset names have been shortened to protect the margins
+
+            """,
+     trailer=""" """,
+     olist = [
+        ['-subj_id',                 ['sub-005.d2b']],
+        ['-dsets',                   ['func/sub-005_rest_run-1_bold.nii.gz',
+                                      'func/sub-005_rest_run-2_bold.nii.gz']],
+        ['-copy_anat',               ['ssw/anatSS.sub-005.nii']],
+        ['-anat_has_skull',          ['no']],
+        ['-anat_follower',           ['anat_w_skull', 'anat',
+                                      'ssw/anatU.sub-005.nii']],
+        ['-anat_follower_ROI',       ['aaseg', 'anat',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-anat_follower_ROI',       ['aeseg', 'epi',
+                                      'SUMA/aparc.a2009s+aseg_REN_all.nii.gz']],
+        ['-blocks',                  ['tshift', 'align', 'tlrc',
+                                      'volreg', 'mask', 'scale', 'regress']],
+        ['-radial_correlate_blocks', ['tcat', 'volreg', 'regress']],
+        ['-tcat_remove_first_trs',   ['4']],
+        ['-align_unifize_epi',       ['local']],
+        ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-large_move',
+                                      '-check_flip']],
+        ['-tlrc_base',               ['MNI152_2009_template_SSW.nii.gz']],
+        ['-tlrc_NL_warp',            []],
+        ['-tlrc_NL_warped_dsets',    ['ssw/anatQQ.sub-005.nii',
+                                      'ssw/anatQQ.sub-005.aff12.1D',
+                                      'ssw/anatQQ.sub-005_WARP.nii']],
+        ['-volreg_align_to',         ['MIN_OUTLIER']],
+        ['-volreg_align_e2a',        []],
+        ['-volreg_tlrc_warp',        []],
+        ['-volreg_warp_dxyz',        ['3']],
+        ['-volreg_compute_tsnr',     ['yes']],
+        ['-mask_epi_anat',           ['yes']],
+        ['-regress_apply_mot_types', ['demean', 'deriv']],
+        ['-regress_motion_per_run',  []],
+        ['-regress_censor_motion',   ['0.2']],
+        ['-regress_censor_outliers', ['0.05']],
+        ['-regress_make_corr_vols',  ['aeseg']],
+        ['-regress_est_blur_epits',  []],
+        ['-regress_est_blur_errts',  []],
+        ['-regress_compute_tsnr_stats', ['aeseg', '7 27 15 32 91 166']],
+        ['-html_review_style',       ['pythonic']],
+       ],
+     ))
+
    examples.append( APExample('AP demo 2c',
-     source='jello',
+     source='none yet',
      descrip='basic rest - motion, censoring, physio regression',
      moddate='2026.10.09',
      keywords=['complete', 'rest'],
