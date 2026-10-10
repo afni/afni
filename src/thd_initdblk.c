@@ -1172,6 +1172,22 @@ ENTRY("THD_datablock_apply_atr") ;
        dset->taxis->dz_sl   = 0.0 ;
      }
 
+     /* The number of sub-bricks actually present (blk->nvals, from the
+      * NIFTI header) is authoritative.  If the AFNI extension's TAXIS_NUMS
+      * disagrees, the dataset was sliced by some other program that kept
+      * the old extension (nibabel does this).  Keep the time axis, but
+      * limit it to the sub-bricks that exist; otherwise DSET_NUM_TIMES
+      * and DSET_NVALS differ, and e.g. writing the dataset back out as
+      * NIFTI fails with "NBL does not match nim".
+      *                                     [issue #73]   3 Sep 2026 */
+     if( dset->taxis->ntt != blk->nvals ){
+       WARNING_message("AFNI extension of %s claims %d time points, but the"
+                       " dataset has %d sub-bricks; using %d",
+                       DSET_HEADNAME(dset), dset->taxis->ntt,
+                       blk->nvals, blk->nvals) ;
+       dset->taxis->ntt = blk->nvals ;
+     }
+
    }
 
    /* get template space for dataset */
