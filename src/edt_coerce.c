@@ -52,7 +52,10 @@ ENTRY("EDIT_coerce_type") ;
         bin  = (byte  *)ivol ;
         frgb = (float *)malloc(sizeof(float)*nxyz) ;
         for( ii=0 ; ii < nxyz ; ii++ )
-          frgb[ii] = 255.0f*(0.299f*bin[3*ii]+0.587f*bin[3*ii+1]+0.144f*bin[3*ii+2]) ;
+          frgb[ii] = 0.299f*bin[3*ii]+0.587f*bin[3*ii+1]+0.114f*bin[3*ii+2] ;
+          /* was 255*(...) with blue weight 0.144: inputs are already 0-255,
+             so values came out up to ~65790 and hue-skewed; 0.299/0.587/0.114
+             matches the RGB->gray conversions elsewhere (thd_bstats.c etc.) */
       }
       break ;
    }

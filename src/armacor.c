@@ -144,7 +144,9 @@ doublevec * arma31_correlations( double a , double r1 , double t1 ,
 
      /* check to see if we've shrunk as far as needed */
 
-     if( abs(cnew) < ccut ){
+     if( fabs(cnew) < ccut ){  /* abs() truncated the double to int, so this
+                                  was true for every |cnew| < 1 and the
+                                  sequence always stopped after 3 lags */
        nzz++ ;                /* how many undersized in a row? */
        if( nzz > 2 ) break ;  /* 3 strikes and you are OUT! */
      } else {
@@ -340,7 +342,9 @@ doublevec * arma51_correlations( double a , double r1 , double t1 ,
 
      /* check to see if we've shrunk as far as needed */
 
-     if( abs(cnew) < ccut ){
+     if( fabs(cnew) < ccut ){  /* abs() truncated the double to int, so this
+                                  was true for every |cnew| < 1 and the
+                                  sequence always stopped after 3 lags */
        nzz++ ;                /* how many undersized in a row? */
        if( nzz > 2 ) break ;  /* 3 strikes and you are OUT! */
      } else {
