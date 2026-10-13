@@ -1724,9 +1724,9 @@ int main( int argc, char **argv )
    int ngroup=0 ;
    int ncond=1 ;
    int ndset ;
-   int ntime ;
+   int ntime=0 ;
    int ntime_input ;
-   int nvox ;
+   int nvox=0 ;
    int icol_group ;
    size_t nedge=0 ;
 
