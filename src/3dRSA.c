@@ -1401,7 +1401,9 @@ static void rsa_searchlight_memory_preflight(
    this 40+ KB literal, but -Wpedantic warns because ISO C only guarantees 4095
    characters.  Scope that implementation-limit warning to the help text; do
    not hide it (or any other warning) from the analysis code. */
-#if defined(__GNUC__)
+#if defined(__clang__) || \
+    (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
+# define RSA_HAVE_DIAGNOSTIC_PUSH 1
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Woverlength-strings"
 #endif
@@ -2928,8 +2930,9 @@ void usage_3dRSA(int detail)
    return ;
 }
 
-#if defined(__GNUC__)
+#ifdef RSA_HAVE_DIAGNOSTIC_PUSH
 # pragma GCC diagnostic pop
+# undef RSA_HAVE_DIAGNOSTIC_PUSH
 #endif
 
 /*============================================================================*/
