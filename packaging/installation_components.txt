@@ -124,6 +124,7 @@ track_tools, suma
 3dGrayplot, corebinaries
 3dGroupInCorr, corebinaries
 3dIntracranial, corebinaries
+3dInSync, corebinaries
 3dInvFMRI, corebinaries
 3dKruskalWallis, corebinaries
 3dLFCD, corebinaries
