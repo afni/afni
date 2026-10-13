@@ -83,9 +83,11 @@ Usage ~1~
                 allowed values are:  Yes, 1, No, 0
                 (def: '{do_qc}')
 
--do_cp_nii_json DJ :copy any JSON sidecar accompanying a NIFTI inset or
-                child dataset, using the corresponding output name and
-                directory; allowed values are: Yes, 1, True, No, 0, False
+-do_cp_nii_json DJ :copy any JSON sidecar accompanying an input NIFTI inset
+                or child dataset, using the corresponding output name and
+                directory; if the output is BRIK/HEAD, the JSON should still
+                copy over (so, PREFIX+orig.HEAD will have PREFIX.JSON, too)
+                allowed values are: Yes, 1, No, 0
                 (def: '{do_cp_nii_json}')
 
 -workdir WD    : working directory name, without path; the working dir

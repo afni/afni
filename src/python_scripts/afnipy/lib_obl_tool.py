@@ -30,8 +30,8 @@ DOPTS = {
     'purge_obliquity' : True,
     'purge_obl_meth'  : 'keep_origin_raw',     # just name of a def val
     'overwrite'       : '',
-    'do_qc'           : 'Yes',                 # below, Yes|No -> True|False
-    'do_cp_nii_json'  : 'Yes',
+    'do_qc'           : 'No',                  # below, Yes|No -> True|False
+    'do_cp_nii_json'  : 'No',
     'do_clean'        : 'Yes',
     'do_log'          : False,
     'verb'            : 1,
