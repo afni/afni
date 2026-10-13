@@ -516,8 +516,8 @@ static void rsa_progress_advance( RSA_progress *p )
    int done,bucket ; double now,elapsed,rate,eta ; char ebuf[32],tbuf[32] ;
    if( !p->enabled ) return ;
 #ifdef USE_OMP
-#pragma omp atomic capture
-   done = ++p->done ;
+#pragma omp critical(rsa_progress_count)
+   { done = ++p->done ; }
 #else
    done = ++p->done ;
 #endif
@@ -1082,16 +1082,28 @@ static void rsa_validate_dset_domain( THD_3dim_dataset *ds, THD_roilist *rl,
      if( rl->vox[kk].ar[ii]>=0 && rl->vox[kk].ar[ii]<nvox ) use[rl->vox[kk].ar[ii]]=1 ;
    nval=DSET_NVALS(ds) ; ntot=(long long)nval*nvox ;
    /* The arrays are fully resident and read-only here.  Record the earliest
-      invalid brick/voxel in a reduction, then issue any AFNI error outside the
-      parallel region.  This preserves deterministic diagnostics. */
+      invalid brick/voxel per thread, merge those values in a critical section,
+      then issue any AFNI error outside the parallel region.  This preserves
+      deterministic diagnostics and works with OpenMP 2.5 compilers. */
    AFNI_OMP_START ;
 #ifdef USE_OMP
-#pragma omp parallel for if(ntot >= 1000000LL) schedule(static) reduction(min:bad)
-#endif
+#pragma omp parallel if(ntot >= 1000000LL)
+   {
+     long long local_bad=LLONG_MAX ;
+#pragma omp for schedule(static)
+     for( qq=0 ; qq<ntot ; qq++ ){
+       int iv=(int)(qq%nvox), bv=(int)(qq/nvox) ;
+       if( use[iv] && !isfinite(THD_get_voxel(ds,iv,bv)) && qq<local_bad ) local_bad=qq ;
+     }
+#pragma omp critical(rsa_validate_bad)
+     { if( local_bad<bad ) bad=local_bad ; }
+   }
+#else
    for( qq=0 ; qq<ntot ; qq++ ){
      int iv=(int)(qq%nvox), bv=(int)(qq/nvox) ;
      if( use[iv] && !isfinite(THD_get_voxel(ds,iv,bv)) && qq<bad ) bad=qq ;
    }
+#endif
    AFNI_OMP_END ;
    if( bad!=LLONG_MAX ){
      const char *lab ; bb=(int)(bad/nvox) ; ii=(int)(bad%nvox) ;
