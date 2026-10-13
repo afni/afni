@@ -456,7 +456,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.valid_opts.add_opt('-child_dsets', -1, [], 
                       helpstr='dset(s) to inherit obliquity removed from inset')
 
-      self.valid_opts.add_opt('-child_prefixes', 1, [], 
+      self.valid_opts.add_opt('-child_prefixes', -1, [], 
                       helpstr='child output method: direct prefix for each')
 
       self.valid_opts.add_opt('-child_outdir', 1, [], 
