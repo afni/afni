@@ -733,7 +733,7 @@ static void insync_fill_one( THD_3dim_dataset *ds, int dd, INSYNC_src *s,
      float *tmp=(float *)malloc(sizeof(float)*(size_t)nw*nti) ;
      unsigned short *hd=(unsigned short *)malloc(sizeof(unsigned short)*(size_t)nw*nti) ;
      float *par=(float *)malloc(sizeof(float)*2*(size_t)nw) ;
-     int bad16=0 ;
+     int bad16=0,w ;
      if( tmp==NULL || hd==NULL || par==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate the 16-bit voxel store") ;
 #ifdef USE_OMP
 #pragma omp parallel for schedule(static)
@@ -748,7 +748,7 @@ static void insync_fill_one( THD_3dim_dataset *ds, int dd, INSYNC_src *s,
 #ifdef USE_OMP
 #pragma omp parallel for schedule(static) reduction(+:bad16)
 #endif
-     for( int w=0 ; w<nw ; w++ ){
+     for( w=0 ; w<nw ; w++ ){
        float *row=tmp+(size_t)w*nti ;
        unsigned short *hrow=hd+(size_t)w*nti ;
        double m=0.0, ss=0.0, sd ; int nf=0, t2 ;
