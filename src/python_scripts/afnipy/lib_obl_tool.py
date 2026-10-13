@@ -7,7 +7,7 @@
 # ver 1.0 : wrap around basic 3drefit and 3dWarp functionality
 # ============================================================================
 
-import sys, os, copy, glob
+import sys, os, copy, glob, shlex
 
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
@@ -30,7 +30,8 @@ DOPTS = {
     'purge_obliquity' : True,
     'purge_obl_meth'  : 'keep_origin_raw',     # just name of a def val
     'overwrite'       : '',
-    'do_qc'           : 'Yes',                 # below, Yes|No -> True|False
+    'do_qc'           : 'No',                  # below, Yes|No -> True|False
+    'do_cp_nii_json'  : 'No',
     'do_clean'        : 'Yes',
     'do_log'          : False,
     'verb'            : 1,
@@ -96,6 +97,7 @@ inobj : InOpts object
         self.workdir         = DOPTS['workdir']
         self.do_purge_obl    = DOPTS['purge_obliquity']
         self.do_qc           = DOPTS['do_qc']
+        self.do_cp_nii_json  = DOPTS['do_cp_nii_json']
 
         # ----- take action(s)
 
@@ -117,6 +119,12 @@ inobj : InOpts object
             if tmp3 :
                 ab.EP("Error when dealing with (=removing) obliquity in inset")
 
+            if self.do_cp_nii_json:
+                copy_nifti_json_sidecar(self.inset,
+                                        self.prefix_nobj.name_full_noext,
+                                        overwrite = self.overwrite,
+                                        verb      = self.verb )
+
             # add a note to the main output dset header about this cmd
             tmp4 = self.attach_history_to_prefix()
 
@@ -124,6 +132,8 @@ inobj : InOpts object
             if self.nchild :
                 tmp4 = self.construct_child_prefixes()
                 tmp5 = self.distribute_obliquity_to_all_childs()
+                if tmp5:
+                    ab.EP("Error while processing child datasets")
 
 
     # ----- methods
@@ -254,6 +264,8 @@ inobj : InOpts object
             opref = self.child_prefixes[nn]
 
             tmp1  = self.distribute_obliquity_to_child(dset_full, opref)
+            if tmp1:
+                return tmp1
 
         return 0
 
@@ -286,7 +298,15 @@ inobj : InOpts object
                                 do_clean=self.do_clean, verb=self.verb )
 
         # ... and actually do the proc (make wdir, generate outputs, etc.)
-        child_obj.proc_child()
+        stat = child_obj.proc_child()
+        if stat:
+            return stat
+
+        if self.do_cp_nii_json:
+            copy_nifti_json_sidecar(dset,
+                                    child_obj.child_nobj.name_full_noext,
+                                    overwrite = self.overwrite,
+                                    verb      = self.verb )
 
         return 0
 
@@ -340,6 +360,8 @@ inobj : InOpts object
             self.workdir = io.workdir
         if io.do_qc is not None :
             self.do_qc = io.do_qc
+        if io.do_cp_nii_json is not None :
+            self.do_cp_nii_json = io.do_cp_nii_json
 
         return 0
 
@@ -397,6 +419,14 @@ inobj : InOpts object
         # convert bool-ish opts to bools
         self.do_clean       = au.convert_to_bool_yn10(self.do_clean)
         self.do_qc          = au.convert_to_bool_yn10(self.do_qc)
+        if isinstance(self.do_cp_nii_json, str):
+            value = self.do_cp_nii_json.strip().lower()
+            if value in ['yes', '1', 'true'] :
+                self.do_cp_nii_json = True
+            elif value in ['no', '0', 'false'] :
+                self.do_cp_nii_json = False
+            else:
+                ab.EP("Invalid -do_cp_nii_json value: " + self.do_cp_nii_json)
 
         return 0
 
@@ -415,6 +445,47 @@ inobj : InOpts object
             return ' '.join(self.argv)
         else:
             return ''
+
+# -----------------------------------------------------------------------
+
+def copy_nifti_json_sidecar(inset, output_noext, overwrite='', verb = 1):
+    """Copy a NIFTI input's JSON sidecar beside its processed output.
+
+    output_noext is the full output path with any dataset extension removed.
+    AFNI outputs can also receive a JSON with their output basename.
+    """
+
+    # AFNI sub-brick selectors may be appended to a NIFTI input path.
+    input_name = inset.split('[', 1)[0]
+    if input_name.endswith('.nii.gz'):
+        input_json = input_name[:-7] + '.json'
+    elif input_name.endswith('.nii'):
+        input_json = input_name[:-4] + '.json'
+    else:
+        return 0
+
+    if not os.path.isfile(input_json):
+        return 0
+
+    output_json = output_noext + '.json'
+    if os.path.abspath(input_json) == os.path.abspath(output_json):
+        return 0
+    if os.path.exists(output_json) and overwrite != '-overwrite':
+        ab.EP("JSON sidecar already exists: " + output_json)
+
+    # Use shell_com so the copy is included in AFNI command logs.
+    fin  = os.path.abspath(input_json)
+    fout = os.path.abspath(output_json)
+    cmd  = '\\cp -p "{}" "{}"'.format(fin, fout)
+    com  = ab.shell_com(cmd, capture=1)
+    stat = com.run()
+    if stat:
+        ab.EP("Failed to copy JSON sidecar: {} -> {}".format(input_json,
+                                                              output_json))
+
+    if verb :
+        ab.IP("Copied JSON sidecar")
+    return 0
 
 # -----------------------------------------------------------------------
 

@@ -83,6 +83,13 @@ Usage ~1~
                 allowed values are:  Yes, 1, No, 0
                 (def: '{do_qc}')
 
+-do_cp_nii_json DJ :copy any JSON sidecar accompanying an input NIFTI inset
+                or child dataset, using the corresponding output name and
+                directory; if the output is BRIK/HEAD, the JSON should still
+                copy over (so, PREFIX+orig.HEAD will have PREFIX.JSON, too)
+                allowed values are: Yes, 1, No, 0
+                (def: '{do_cp_nii_json}')
+
 -workdir WD    : working directory name, without path; the working dir
                 will be subdirectory of the output location
                 (def: name with random chars)
@@ -417,6 +424,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.workdir         = None
       self.remove_obl      = None
       self.do_qc           = None
+      self.do_cp_nii_json  = None
       self.do_purge_obl    = True                    # now const
 
       # initialize valid_opts
@@ -456,7 +464,7 @@ See lct.CbarPbar() for the set of things that are populated for the actual
       self.valid_opts.add_opt('-child_dsets', -1, [], 
                       helpstr='dset(s) to inherit obliquity removed from inset')
 
-      self.valid_opts.add_opt('-child_prefixes', 1, [], 
+      self.valid_opts.add_opt('-child_prefixes', -1, [], 
                       helpstr='child output method: direct prefix for each')
 
       self.valid_opts.add_opt('-child_outdir', 1, [], 
@@ -467,6 +475,8 @@ See lct.CbarPbar() for the set of things that are populated for the actual
 
       self.valid_opts.add_opt('-do_qc', 1, [], 
                       helpstr="turn on/off QC images for child dsets")
+      self.valid_opts.add_opt('-do_cp_nii_json', 1, [],
+                      helpstr="copy NIFTI JSON sidecars to output locations")
 
       self.valid_opts.add_opt('-workdir', 1, [], 
                       helpstr='name of workdir (no path)')
@@ -582,6 +592,12 @@ See lct.CbarPbar() for the set of things that are populated for the actual
             if val is None or err:
                 BASE.EP(err_base + opt.name)
             self.do_qc = val
+
+         elif opt.name == '-do_cp_nii_json':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if val is None or err:
+                BASE.EP(err_base + opt.name)
+            self.do_cp_nii_json = val
 
          elif opt.name == '-workdir':
             val, err = uopts.get_string_opt('', opt=opt)
