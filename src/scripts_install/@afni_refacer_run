@@ -809,11 +809,11 @@ EXAMPLES ~1~
 
 # ==================================================================== #
 #    ** Note that an updated version of this program now exists,       #
-#       called refacer_run2.  The results should be very similar,      #
+#       called afni_refacer2.  The results should be very similar,      #
 #       but the program itself is more efficient under the hood.       # 
 #       The default de/refacing will also be more anonymizing,         #
 #       which is preferable.  This version will not get updates.       #
-#       Please switch over to using the newer refacer_run2.      **    # 
+#       Please switch over to using the newer afni_refacer2.      **    # 
 # ==================================================================== #
 
 
