@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2026, RCR, "afni_open", MINOR, TYPE_ENHANCE,
+   "also search pub/dist/edu/data/sample; make repeated tries more clear",
+   NULL
+ } ,
+
  {  9, Oct, 2026, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "add and reorder rest examples under demo 2",
    "Add examples demo 2a: basic rest, 2b: ROI analysis, 2c: physio.\n"

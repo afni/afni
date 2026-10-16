@@ -268,15 +268,18 @@ int ao_with_pdf_viewer(char *fname)
 int ao_with_afniweb(char *fname)
 {
    char ww[1024];
-   int s=-3;
+   char *distroot   = "https://afni.nimh.nih.gov/pub/dist";
+   char *distdirs[] = { "tgz", "data",
+                        "edu/data", "edu/data/CD", "edu/data/sample" };
+   int s=-3, cn, nddir;
+
    if (!fname) return(-2);
    if (is_url(fname) ) return(ao_with_downloader(fname, 0));
    
    /* Try different locations */
    if (is_pdf(fname)) {
-      snprintf(ww,1023*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/"
-               "edu/data/CD.expanded/afni_handouts/%s",fname);
+      snprintf(ww,1023*sizeof(char), "%s/%s/%s",
+               distroot, "edu/data/CD.expanded/afni_handouts", fname);
       if (!(s = ao_with_downloader(ww, 0))) return(ao_with_pdf_viewer(fname));
       else {
          fprintf(stderr,"Status %d on %s\n", s, ww);
@@ -284,33 +287,25 @@ int ao_with_afniweb(char *fname)
       /* repeat for other locations, maybe papers? (Nothing for now...) */
       return(s);   
    }
+
    if (is_archive(fname)) {
-      snprintf(ww,1023*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/"
-               "tgz/%s",fname);
-      if ((s = ao_with_downloader(ww, 0))) {
-         /* try class material */
-         snprintf(ww,1023*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/edu/"
-               "data/%s",fname);
-         if ((s = ao_with_downloader(ww, 0))) {
-            snprintf(ww,1023*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/edu/"
-               "data/CD/%s",fname);
-            if ((s = ao_with_downloader(ww, 0))) {
-               snprintf(ww,1023*sizeof(char),
-               "https://afni.nimh.nih.gov/pub/dist/"
-               "data/%s",fname);
-               if ((s = ao_with_downloader(ww, 0))) {
-                  fprintf(stderr,"Status %d on %s\n Search also failed under\n"
-                                 "https://afni.nimh.nih.gov/pub/dist/tgz\n"
-                                 "https://afni.nimh.nih.gov/pub/dist/edu/data/\n"
-                                 "https://afni.nimh.nih.gov/pub/dist/data/\n"
-                                 , s, ww);
-               }
-            }
-         }
-      }   
+      /* try a few locations */
+      nddir = (int)(sizeof(distdirs)/sizeof(char *));
+
+      for( cn=0; cn < nddir; cn++ ) {
+         snprintf(ww,1023*sizeof(char), "%s/%s/%s",
+                  distroot, distdirs[cn], fname);
+         s = ao_with_downloader(ww, 0);
+         if( !s ) break;
+      }
+
+      if (s) { /* if not found, give up and whine */
+         fprintf(stderr,"Status %d on %s/%s/%s\n",
+                 s, distroot, distdirs[0], fname);
+         fprintf(stderr,"** search also failed under:\n");
+         for( cn=1; cn < nddir; cn++ )
+            fprintf(stderr,"    %s/%s\n", distroot, distdirs[cn]);
+      }
    }
    return(s);
 }
