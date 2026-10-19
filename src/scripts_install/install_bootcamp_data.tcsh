@@ -200,13 +200,14 @@ SHOW_HIST:
   history:
      0.1   8 Jan 2026 - initial revision
      0.2  14 Jan 2026 - handle install_root as a relative path
+     0.3  19 Oct 2026 - if no download, allow install from above root dir
 
 EOF
 exit
 SKIP_HIST:
 
 # ----- corresponding version
-set VERSION = "0.2 January 14, 2026"
+set VERSION = "0.3 Octover 19, 2026"
 
 
 # ===========================================================================
@@ -497,6 +498,12 @@ endif
 echo "-- installing all data packages under:"
 echo "   $install_root"
 echo ""
+
+# allow for being in the parent dir, if downloading is not requested
+if ( -d $topdir ) then
+   echo "-- entering $topdir"
+   cd $topdir
+endif
 
 # just verify that we have the hash file
 if ( ! -f $hash_file ) then
