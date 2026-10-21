@@ -10550,7 +10550,7 @@ EXAMPLES (options can be provided in any order): ~1~
 
           - apply -check_flip in align_epi_anat.py, to monitor consistency
           - apply non-linear registration to MNI template, using output
-            from @SSwarper:
+            from sswarper2:
               o apply skull-stripped anat in -copy_anat
               o apply original anat as -anat_follower (QC, for comparison)
               o pass warped anat and transforms via -tlrc_NL_warped_dsets,
@@ -10934,10 +10934,10 @@ EXAMPLES (options can be provided in any order): ~1~
           fraction (so hopefully the least motion).
      o Use non-linear registration to MNI template (non-linear 2009_template).
        * This adds a lot of processing time.
-       * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz.
+       * Let sswarper2 align to template MNI152_2009_template_SSW.nii.gz.
          Then use the resulting datasets in the afni_proc.py command below
          via -tlrc_NL_warped_dsets.
-              @SSwarper -input FT_anat.nii         \\
+              sswarper2 -input FT_anat.nii         \\
                         -subid FT                  \\
                         -odir  FT_anat_warped      \\
                         -base  MNI152_2009_template_SSW.nii.gz
@@ -12005,7 +12005,7 @@ FREESURFER NOTE: ~2~
 FreeSurfer output can be used for a few things in afni_proc.py:
 
     - simple skull stripping (i.e. instead of 3dSkullStrip)
-         *** we now prefer @SSwarper ***
+         *** we now prefer sswarper2 ***
     - running a surface-based analysis
     - using parcellation datasets for:
        - tissue-based regression
