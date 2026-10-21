@@ -248,10 +248,9 @@ int main( int argc , char *argv[] )
        if ( DSET_write(cset) != True )  exit(1) ;
        else exit (0);
      } else if ( non_afni_out ) { /* fail */
-       fprintf(stderr,"** failed to open input '%s' on non-AFNI write\n"
-                "Try including the view of the input dataset %s\n"
-                "or use its fullname. That might take care of the error.\n",
-               old_prefix, old_name);
+       fprintf(stderr,"** failed to open input (non-AFNI write): %s\n"
+               "If the input exists, try including the view or full path.\n",
+               old_name);
        exit(1);
      }
    }
