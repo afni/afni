@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Oct, 2026, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
+   "add option -post_elist_merge, to finally merge one condition into another",
+   "Added for C Walsh."
+ } ,
+
  { 18, Oct, 2026, RCR, "install_bootcamp_data.tcsh", MICRO, TYPE_ENHANCE,
    "when not downloading, allow install from above afni_boot_packages",
    NULL

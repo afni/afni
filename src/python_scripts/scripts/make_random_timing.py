@@ -1227,6 +1227,23 @@ options (specific to the advanced usage): ~2~
          See also the examples in option -add_timing_class, above.
          See "Examples of -add_timing_class", above.
 
+    -post_elist_merge SOURCE DEST : merge SOURCE events into DEST
+
+         In some cases, one might want to initially create event extra
+         conditions that later get merged into other.  This is akin to using
+            timing_tool.py -extend ... -sort ...,
+         after make_random_timing.py.  But having it done here gives a proper
+         3dDeconvolve command via -save_3dd_cmd.
+
+         For example, if one uses:
+            -post_elist_merge cond_A1 cond_A
+         then all cond_A1 events will be replaced with cond_A events, merging
+         the two classes.  Then only cond_A will remain.  There can be only one.
+
+         This option may be used multiple times.
+
+         See also "timing_tool.py -extend".
+
     -rand_post_stim_rest yes/no : allow random rest after final stimulus
 
          To some degree, it might make sense to have a fixed amount of rest at
@@ -1528,9 +1545,10 @@ g_history = """
     3.7  Jan 27, 2020: add basis=BASIS parameter when defining timing class
     3.8  Jun 25, 2021: add -rand_post_elist_partition for S Haller
     3.9  Feb 19, 2026: add -tr_locked to g_style_opts_old
+    3.10 Oct 23, 2026: add -post_elist_merge
 """
 
-g_version = "version 3.8 June 25, 2021"
+g_version = "version 3.10 October 23, 2026"
 
 g_todo = """
    - specify basis function in stim class (can now do it in timing class)
@@ -4043,6 +4061,7 @@ class RandTiming:
             - remove from stimdict
             - remove from sclasses (matches sind)
             - remove from labels
+            - decrement num_stim
 
           - reindex full_event_list
             - if any >  sind, decrement
@@ -4065,6 +4084,7 @@ class RandTiming:
               index = self.stimdict[key]
               if index > sind:
                  self.stimdict[key] = index-1
+           self.num_stim -= 1
        except:
            print("** failed to remove stim class index %d" % sind)
            return 1
