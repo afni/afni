@@ -425,9 +425,6 @@ add_afni_executable(gwarp mri_gwarp.c)
 add_afni_executable(3dttest 3dttest.c)
 target_link_libraries(3dttest AFNI::mri m)
 
-add_afni_executable(3dretroicor 3dretroicor.c retroicor.c)
-target_link_libraries(3dretroicor PRIVATE AFNI::mri m)
-
 foreach(target 3dfim 3dTfitter fim2 gwarp)
   target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
 endforeach(target)
