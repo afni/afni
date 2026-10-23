@@ -254,7 +254,6 @@ track_tools, suma
 3drefit, corebinaries
 3drename, corebinaries
 3dresample, corebinaries
-3dretroicor, corebinaries
 3drotate, corebinaries
 3dsvm_linpredict, corebinaries
 3dtoXdataset, corebinaries
