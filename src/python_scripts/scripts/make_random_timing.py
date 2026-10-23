@@ -1227,6 +1227,23 @@ options (specific to the advanced usage): ~2~
          See also the examples in option -add_timing_class, above.
          See "Examples of -add_timing_class", above.
 
+    -post_elist_merge SOURCE DEST : merge SOURCE events into DEST
+
+         In some cases, one might want to initially create event extra
+         conditions that later get merged into other.  This is akin to using
+            timing_tool.py -extend ... -sort ...,
+         after make_random_timing.py.  But having it done here gives a proper
+         3dDeconvolve command via -save_3dd_cmd.
+
+         For example, if one uses:
+            -post_elist_merge cond_A1 cond_A
+         then all cond_A1 events will be replaced with cond_A events, merging
+         the two classes.  Then only cond_A will remain.  There can be only one.
+
+         This option may be used multiple times.
+
+         See also "timing_tool.py -extend".
+
     -rand_post_stim_rest yes/no : allow random rest after final stimulus
 
          To some degree, it might make sense to have a fixed amount of rest at
@@ -1528,9 +1545,10 @@ g_history = """
     3.7  Jan 27, 2020: add basis=BASIS parameter when defining timing class
     3.8  Jun 25, 2021: add -rand_post_elist_partition for S Haller
     3.9  Feb 19, 2026: add -tr_locked to g_style_opts_old
+    3.10 Oct 23, 2026: add -post_elist_merge
 """
 
-g_version = "version 3.8 June 25, 2021"
+g_version = "version 3.10 October 23, 2026"
 
 g_todo = """
    - specify basis function in stim class (can now do it in timing class)
@@ -1611,6 +1629,8 @@ class RandTiming:
         self.advanced   = 0
 
         # advanced options
+        self.post_elist_merges   = []   # pairs, merge source into dest
+                                        # [ [src1, dest1], [s2, d2], ...]
         self.rand_post_stim_rest = 1    # include random rest from last event?
         self.rand_post_elist_part= []   # partition each elist into multi
                                         # [ [OCLASS, TYPE, NCLASS, NCLASS,...] ]
@@ -1761,6 +1781,8 @@ class RandTiming:
                         helpstr='offset to add to every stimulus time')
         self.valid_opts.add_opt('-ordered_stimuli', -1, [], okdash=0,
                         helpstr='require these stimuli to be so ordered')
+        self.valid_opts.add_opt('-post_elist_merge', 2, [], req=0,
+                        helpstr='finally, merge source class into dest')
         self.valid_opts.add_opt('-pre_stim_rest', 1, [],
                         helpstr='time before first stimulus, in seconds')
         self.valid_opts.add_opt('-post_stim_rest', 1, [],
@@ -1898,6 +1920,11 @@ class RandTiming:
            olist = self.user_opts.find_all_opts('-rand_post_elist_partition')
            for opt in olist:
               self.rand_post_elist_part.append(opt.parlist)
+
+           # post_elist_merge
+           olist = self.user_opts.find_all_opts('-post_elist_merge')
+           for opt in olist:
+              self.post_elist_merges.append(opt.parlist)
 
            # default to including post-stim rest
            if self.user_opts.have_no_opt('-rand_post_stim_rest'):
@@ -3946,9 +3973,132 @@ class RandTiming:
           if self.apply_rand_post_elist_part(plist):
              return 1
 
+       # opposite: possibly merge source classes into dest classes
+       # - modify and add to sclasses while modifying full_event_list
+       for plist in self.post_elist_merges:
+          if self.apply_post_elist_merges(plist):
+             return 1
+
        # convert to AfniData instances
        if self.adv_create_adata_list():
           return 1
+
+       return 0
+
+    def apply_post_elist_merges(self, merge_pair):
+       """merge the merge_pair[0] class into the merge_pair[1] class
+
+           self.full_event_list (e.g. having run 0 and run 1) format:
+             [ [ [sind sdur rdur stime] [sind sdur rdur stime] ... ]
+               [ [sind sdur rdur stime] [sind sdur rdur stime] ... ] ]
+
+           ** stim_event_list might need it, but should be empty now
+
+           1. update self.full_event_list : change all sind == m0 to m1
+           2. remove self.classes[mc0] : requires reindexing event_list
+
+          return 0 on success
+       """
+
+       # should have 2 elements in parameter list
+       if len(merge_pair) != 2:
+          print("** -post_elist_merge is not a pair, %s" % merge_pair)
+          return 1
+       # verify that both labels are known
+       for label in merge_pair:
+          if label not in self.labels:
+             print("** -post_elist_merge params must be valid classes\n" \
+                   "   params  : %s\n"                                   \
+                   "   classes : %s\n"                                   \
+                   % ( ', '.join(merge_pair), ', '.join(self.labels)))
+             return 1
+
+       lab0 = merge_pair[0]
+       lab1 = merge_pair[1]
+       cla0 = self.get_stim_class_index(lab0)
+       cla1 = self.get_stim_class_index(lab1)
+
+       # ----------------------------------------------------------------------
+       # now merge cla0 into cla1, then remove stc0 and its label
+       #
+       # self.full_event_list (e.g. having run 0 and run 1)
+       #   [ [ [sind sdur rdur stime] [sind sdur rdur stime] ... ]
+       #     [ [sind sdur rdur stime] [sind sdur rdur stime] ... ] ]
+       #
+       # change all sind == cla0 to cla1
+
+       if self.verb > 1:
+          print("-- will merge class %s into class %s ..." % (lab0, lab1))
+          if self.verb > 2: print("-- class indices %d, %d" % (cla0, cla1))
+
+       nrep = 0
+       for erun in self.full_event_list:
+          for event in erun:
+             if event[0] == cla0:
+                nrep += 1
+                event[0] = cla1
+
+       if self.verb > 1:
+          print("-- FEV: replaced %d evt=%d with evt=%d" % (nrep, cla0, cla1))
+
+       # and do the same for the stim_event_list
+       if len(self.stim_event_list) > 0:
+          print("** should not have any stim_event_list")
+
+       # clean up to make an appropriate stim class list
+       # - delete the stim class and label (not the timing classes)
+       # - reindex the event list
+       #      : subtract 1 for any index >= cla0 (which we will delete)
+       if self.remove_stim_class(cla0):
+          return 1
+
+       return 0
+
+    def remove_stim_class(self, sind):
+       """delete the stimulus class for the given index
+
+          - delete the class and label
+            - remove from stimdict
+            - remove from sclasses (matches sind)
+            - remove from labels
+            - decrement num_stim
+
+          - reindex full_event_list
+            - if any >  sind, decrement
+            - it any == sind, error
+
+          return 0 on success
+       """
+       if self.verb > 1:
+          print("-- removing stimulus class %d : %s"%(sind, self.labels[sind]))
+
+       # delete label and stim class
+       # delete dict entry, and redo dict
+       try:
+           lab = self.labels.pop(sind)
+           sc = self.sclasses.pop(sind)
+           self.stimdict.pop(lab)
+           del(sc)
+           # decrement all larger keys
+           for key in self.stimdict.keys():
+              index = self.stimdict[key]
+              if index > sind:
+                 self.stimdict[key] = index-1
+           self.num_stim -= 1
+       except:
+           print("** failed to remove stim class index %d" % sind)
+           return 1
+
+       # reindex full_event_list
+       # (any event > sind: decrement, any == sind: error)
+       for erun in self.full_event_list:
+          for event in erun:
+             if event[0] == sind:
+                print("** error: trying to delete stim %d, (%s)\n"
+                      "        : but still in full_event_list" % (sind,lab))
+                return 1
+             elif event[0] > sind:
+                event[0] -= 1
 
        return 0
 
@@ -4194,7 +4344,9 @@ class RandTiming:
                 print('   %s' % ', '.join(['%g'%e for e in fe]))
           felist.append(ferun)
 
+       # stim_event_list runs have been modified to create full_event_list
        self.full_event_list = felist
+       self.stim_event_list = []
 
        return 0
 
