@@ -2952,7 +2952,7 @@ models: $(MODELLIST)
 
 PLIST_CONTRIB = $(PLIST_ZIAD) $(PLIST_BIRN) $(PLIST_KUMMER) $(PLIST_LACONTE) \
                 $(PLIST_RICKR) $(PLIST_TROSS) $(PLIST_BELMONTE)              \
-                $(PLIST_FREDTAM) $(PLIST_DAVIDSHIN)
+                $(PLIST_DAVIDSHIN)
 
 
 # Really, contrib_plugins and related targets are not needed.  It might be
@@ -2965,11 +2965,6 @@ PLIST_ZIAD =  plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
 
 ziad_plugins: $(PLIST_ZIAD)
-
-
-PLIST_FREDTAM = plug_retroicor.$(SO)
-
-fredtam_plugins: $(PLIST_FREDTAM)
 
 
 PLIST_DAVIDSHIN = plug_aslA3D3.$(SO)

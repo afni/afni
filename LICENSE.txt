@@ -360,16 +360,6 @@ Location: src/SUMA/SUMA_{coarsen.c,gts.c,gts.h}
 Authors:  Jakub Otwinowski
 License:  GNU GPL 2.0 [top of file]
 
-Location: src/{plug_,3d}retroicor.c 
-Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
-          Toronto, Canada)
-License:  GNU GPL 2.0 [top of file]
-
-Location: src/retroicor.c 
-Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
-          Toronto, Canada)
-License:  GNU GPL 2.0 [top of file]
-
 Location: src/balloon.c 
 Authors:  Matthew Belmonte
 License:  GNU GPL 2.0 or later [top of file]
