@@ -4973,12 +4973,21 @@ LABELS_ARE_DONE:  /* target for goto above */
        } /* end of covariates analysis */
 
        if( BminusA && ntwosam ){  /* negate 2 sample results? [05 Nov 2010] */
-         /* resar[] always stores the 2-sample results as interleaved
+         /* Original note to this if-condition: 
+            resar[] always stores the 2-sample results as interleaved
             (mean,statistic) pairs -- 2*(mcov+1) slots -- regardless of
             -nomeans/-notests; ntwosam counts output VOLUMES, so using it
             here negated the wrong slots when -nomeans or -notests was
-            given (the output statistic kept the A-B sign) */
-         for( ii=0 ; ii < 2*(mcov+1) ; ii++ ) resar[ii] = -resar[ii] ;
+            given (the output statistic kept the A-B sign)
+
+            [2026-10-26] An update added now, to account for Singleton cases:
+            Singleton analyses produce one (effect, statistic) pair;
+            other two-sample analyses produce mcov+1 pairs,
+            independent of -nomeans/-notests. */
+         int num_slot = 2 ;   /* default number of 2-sample result slots */
+         if( !singletonA ) num_slot = 2*(mcov+1) ;
+
+         for( ii=0 ; ii < num_slot ; ii++ ) resar[ii] = -resar[ii] ;
        }
 
        /* save min and max values from resar [16 Mar 2017] */
