@@ -336,7 +336,7 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[narg],"-perc",5) == 0 ){
-        if( narg+1 > argc ) ERROR_exit("need argument after '-perc'") ;
+        if( narg+1 >= argc ) ERROR_exit("need argument after '-perc'") ;
         perc = (float)strtod(argv[++narg],NULL) ;
         if( perc < 0.0f || perc > 100.0f )
           ERROR_exit("'-perc %s' is not legal [range is 0..100]",argv[narg]) ;
