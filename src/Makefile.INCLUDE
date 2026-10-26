@@ -3903,10 +3903,10 @@ pkundu_install:
 #	cd ../	;		)
 
 #############
-# jzosky directory
+# jzosky directory: now deprecated, see physio_calc.py
 
-jzosky_install:
-	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
+###jzosky_install:
+###	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
 
 #############
 # leej3 directory

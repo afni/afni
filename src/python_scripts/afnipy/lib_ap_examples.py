@@ -833,10 +833,11 @@ def egs_example():
               (              just a terribly simple example using ricor)
 
            Assuming the class data is for resting-state and that we have the
-           appropriate slice-based regressors from RetroTS.py, apply the
-           despike and ricor processing blocks.  Note that '-do_block' is used
-           to add non-default blocks into their default positions.  Here the
-           'despike' and 'ricor' processing blocks would come before 'tshift'.
+           appropriate slice-based regressors from physio_calc.py (formerly
+           RetroTS.py), apply the despike and ricor processing blocks.
+           Note that '-do_block' is used to add non-default blocks into their
+           default positions.  Here the 'despike' and 'ricor' processing
+           blocks would come before 'tshift'.
 
            Remove 3 TRs from the ricor regressors to match the EPI data.  Also,
            since degrees of freedom are not such a worry, regress the motion

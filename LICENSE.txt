@@ -336,10 +336,6 @@ Location: src/jpeg-6b/ansi2knr.c
 Authors:  Richard M. Stallman
 License:  Ghostscript GPL [top of file]
 
-Location: src/jzosky/RetroTS.py
-Authors:  Joshua Zosky
-License:  GNU GPL 3.0 or later [top of file]
-
 Location: src/mpegtoppm_dir
 Authors:  Aaron Holtzman, Michel Lespinasse, et al.
 License:  GNU GPL 2.0 [src/mpegtoppm_dir/COPYING]

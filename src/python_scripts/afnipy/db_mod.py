@@ -10340,7 +10340,7 @@ EXAMPLES (options can be provided in any order): ~1~
     Example 5a. RETROICOR, resting state data. ~2~
 
        Assuming the class data is for resting-state and that we have the
-       appropriate slice-based regressors from RetroTS.py, apply the
+       appropriate slice-based regressors from physio_calc.py, apply the
        despike and ricor processing blocks.  Note that '-do_block' is used
        to add non-default blocks into their default positions.  Here the
        'despike' and 'ricor' processing blocks would come before 'tshift'.
@@ -11857,7 +11857,7 @@ Application of bandpassing in afni_proc.py:
 There are 3 main steps (generate ricor regs, pre-process, group analysis):
 
     step 0: If physio recordings were made, generate slice-based regressors
-            using RetroTS.py.  Such regressors can be used by afni_proc.py
+            using physio_calc.py.  Such regressors can be used by afni_proc.py
             via the 'ricor' processing block.
 
             RetroTS.m is Ziad Saad's MATLAB routine to convert the 2 time
@@ -11866,6 +11866,11 @@ There are 3 main steps (generate ricor regs, pre-process, group analysis):
 
           * RetroTS.py is a conversion of RetroTS.m to python by J Zosky.
             It depends on scipy.  See "RetroTS.py -help" for details.
+
+          * physio_calc.py is a major rewrite for physio-regressor estimation.
+            It expands regressor estimation possibilities, includes more QC,
+            and adds some helpful prefiltering.  See "physio_calc.py -help" 
+            for details.
 
     step 1: analyze with afni_proc.py
 
@@ -11886,7 +11891,7 @@ There are 3 main steps (generate ricor regs, pre-process, group analysis):
         processing blocks:
 
             despike (shrink large spikes in time series)
-            ricor   (if applicable, remove the RetroTS regressors)
+            ricor   (if applicable, apply the slicewise physio_calc regressors)
             tshift  (correct for slice timing)
             align   (figure out alignment between anat and EPI)
             tlrc    (figure out alignment between anat and template)
@@ -12463,8 +12468,8 @@ not yet implemented.  Advantages include:
 RETROICOR NOTE: ~2~
 
 ** Cardiac and respiratory regressors must be created from an external
-   source, such as the RetroTS.py program written by Z Saad, and converted
-   to python by J Zosky.  The input to that should be the 2+ signals.  The
+   source, such as the physio_calc.py program written by P Lauren, RC Reynolds,
+   D Glen and PA Taylor.  The input to that should be the 2+ signals.  The
    output should be a single file per run, containing 13 or more regressors
    for each slice.  That set of output files would be applied here in
    afni_proc.py.
@@ -13964,8 +13969,8 @@ OPTIONS:  ~2~
         regressors per slice, then there should be 5 files input, each with
         351 (=27*13) columns.
 
-        This format is based on the output of RetroTS.py, included in the
-        AFNI distribution.
+        This format is based on the slicewise output of physio_calc.py, 
+        included in the AFNI distribution.
 
     -ricor_regs_nfirst NFIRST       : ignore the first regressor timepoints
 
