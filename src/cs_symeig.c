@@ -4,6 +4,22 @@
    Attribution License (CC BY 4.0). See the file README.Copyright for details.
 ******************************************************************************/
 
+/* [2026-10-26] Updates added here for special case of when 2 eigenvalues are
+   degenerate, to ensure that all eigenvectors are orthogonoal and well-scaled.
+   This issue was raised on GitHub by C Rorden (with additional work/input from
+   G Devenyi):  https://github.com/afni/afni/issues/1008. Thanks to them for
+   mentioning this.
+
+   As noted in the Git Issue, such an issue almost never occurs in practice in
+   the noisy DWI data acquired in real-life situations, but it is still useful
+   to prevent any numerical issues in special cases.
+
+   The code updates, below, were suggested by Claude, with additional 
+   checks/input from ChatGPT, and tested+committed by PA Taylor. Tests run on
+   DWI data in the FATCAT_DEMO produced no differences in DTI scalar values
+   at a tolerance level of 0.00001.
+*/
+
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -71,6 +87,9 @@ void symeig_3( double *a , double *e , int dovec )
    double d12,d13,d23 ;
    double u1,u2,u3 , v1,v2,v3 , w1,w2,w3 , t1,t2,t3 , tn ;
    double anni ;
+   /* added for robust eigenvector computation */
+   double px,py,pz , qx,qy,qz , M11,M12,M22 , hd,sg , c,s , liso ;
+   int    iso3 ;
 
    if( a == NULL || e == NULL ) return ;
 
@@ -174,60 +193,111 @@ void symeig_3( double *a , double *e , int dovec )
    d12 = fabs(lam1-lam2) ; d13 = fabs(lam1-lam3) ; d23 = fabs(lam2-lam3) ;
    rr  = MIN(d12,d13)    ; rr  = MIN(rr,d23)     ;
 
-   if( rr > EPS*ann ){  /*---- not a double root ----*/
+   /* Note: after scaling by anni the eigenvalues are O(1), so the correct
+      threshold is EPS, not EPS*ann as it was before the scaling was added. */
+   if( rr > EPS ){  /*---- not a double root ----*/
 
-     if( lam1 > lam2 )  SWAP(lam1,lam2) ;  /* start by sorting eigenvalues */
+     if( lam1 > lam2 )  SWAP(lam1,lam2) ;  /* sort eigenvalues */
      if( lam1 > lam3 )  SWAP(lam1,lam3) ;
      if( lam2 > lam3 )  SWAP(lam2,lam3) ;
      e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;  /* re-scale */
 
-     /* find eigenvector for lam1 by computing Ay-lam1*y for
-        vectors y1=[1,0,0], y2=[0,1,0], and y3=[0,0,1]; the eigenvector
-        is orthogonal to all of these, so use the cross product to get it */
+     /* ---------------------------------------------------------------
+        Robust eigenvector computation.
+        When two eigenvalues are nearly equal (e.g. prolate/oblate
+        tensor), (A - lam*I) is rank-1 for both similar eigenvalues,
+        so the cross products of its rows are nearly parallel.
+        Building the third eigenvector as their cross product then
+        gives a near-zero vector, breaking orthonormality.
 
-     u1 = aa-lam1 ; u2 = bb      ; u3 = cc ;   /* A*y1 - lam1*y1 */
-     v1 = bb      ; v2 = dd-lam1 ; v3 = ee ;   /* A*y2 - lam1*y2 */
-     CROSS(u1,u2,u3 , v1,v2,v3 , t1,t2,t3 ) ;     tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-     if( tn < EPSQ*ann ){                      /* u and v were parallel? */
-       w1 = cc ; w2 = ee ; w3 = ff-lam1 ;      /* A*y3 - lam1*y3 */
-       CROSS(u1,u2,u3 , w1,w2,w3 , t1,t2,t3 ) ;   tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-       if( tn < EPSQ*ann ){                    /* u and w were parallel? */
-         CROSS(v1,v2,v3 , w1,w2,w3 , t1,t2,t3 ) ; tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-       }
+        Fix: identify the most isolated eigenvalue, compute its
+        eigenvector from the best-norm cross product of all three row
+        pairs, build an orthonormal basis {p,q} for the perpendicular
+        plane, project A into that plane to get a 2x2 problem, and
+        solve it with one Jacobi rotation.  Output is orthonormal by
+        construction regardless of eigenvalue gaps.
+     --------------------------------------------------------------- */
+
+     /* step 1: most isolated eigenvalue — largest gap to its neighbour */
+     iso3 = ( fabs(lam2-lam1) < fabs(lam3-lam2) ) ; /* 1 => lam3 isolated */
+     liso = iso3 ? lam3 : lam1 ;
+
+     /* step 2: eigenvector of isolated eigenvalue — best of three cross products */
+     u1 = aa-liso ; u2 = bb       ; u3 = cc ;
+     v1 = bb       ; v2 = dd-liso ; v3 = ee ;
+     w1 = cc       ; w2 = ee       ; w3 = ff-liso ;
+
+     CROSS(u1,u2,u3 , v1,v2,v3 , t1,t2,t3) ; tn = t1*t1+t2*t2+t3*t3 ;
+     { double bx,by,bz,bn ;
+       CROSS(u1,u2,u3 , w1,w2,w3 , bx,by,bz) ; bn = bx*bx+by*by+bz*bz ;
+       if( bn > tn ){ t1=bx ; t2=by ; t3=bz ; tn=bn ; }
+       CROSS(v1,v2,v3 , w1,w2,w3 , bx,by,bz) ; bn = bx*bx+by*by+bz*bz ;
+       if( bn > tn ){ t1=bx ; t2=by ; t3=bz ; tn=bn ; }
      }
-     a[0] = t1/tn ; a[1] = t2/tn ; a[2] = t3/tn ;  /* normalize */
+     tn = sqrt(tn) ;
+     w1 = t1/tn ; w2 = t2/tn ; w3 = t3/tn ;   /* isolated eigenvector */
 
-     /* do same for lam2 */
-
-     u1 = aa-lam2 ; u2 = bb      ; u3 = cc ;
-     v1 = bb      ; v2 = dd-lam2 ; v3 = ee ;
-     CROSS(u1,u2,u3 , v1,v2,v3 , t1,t2,t3 ) ;     tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-     if( tn < EPSQ*ann ){
-       w1 = cc ; w2 = ee ; w3 = ff-lam2 ;
-       CROSS(u1,u2,u3 , w1,w2,w3 , t1,t2,t3 ) ;   tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-       if( tn < EPSQ*ann ){
-         CROSS(v1,v2,v3 , w1,w2,w3 , t1,t2,t3 ) ; tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-       }
+     /* step 3: orthonormal basis {p,q} for plane perpendicular to w
+                — best of three axis cross products */
+     CROSS(w1,w2,w3 , 1,0,0 , px,py,pz) ; tn = px*px+py*py+pz*pz ;
+     { double bx,by,bz,bn ;
+       CROSS(w1,w2,w3 , 0,1,0 , bx,by,bz) ; bn = bx*bx+by*by+bz*bz ;
+       if( bn > tn ){ px=bx ; py=by ; pz=bz ; tn=bn ; }
+       CROSS(w1,w2,w3 , 0,0,1 , bx,by,bz) ; bn = bx*bx+by*by+bz*bz ;
+       if( bn > tn ){ px=bx ; py=by ; pz=bz ; tn=bn ; }
      }
-     a[3] = t1/tn ; a[4] = t2/tn ; a[5] = t3/tn ;  /* normalize */
+     tn = sqrt(tn) ;
+     px /= tn ; py /= tn ; pz /= tn ;
+     CROSS(w1,w2,w3 , px,py,pz , qx,qy,qz) ;  /* q = w x p, already unit */
 
-     /* orthgonality of eigenvectors ==> can get last one by cross product */
-
-#if 1
-     CROSS( a[0],a[1],a[2] , a[3],a[4],a[5] , a[6],a[7],a[8] ) ;
-#else
-     u1 = aa-lam3 ; u2 = bb      ; u3 = cc ;
-     v1 = bb      ; v2 = dd-lam3 ; v3 = ee ;
-     CROSS(u1,u2,u3 , v1,v2,v3 , t1,t2,t3 ) ;     tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-     if( tn < EPSQ*ann ){
-       w1 = cc ; w2 = ee ; w3 = ff-lam3 ;
-       CROSS(u1,u2,u3 , w1,w2,w3 , t1,t2,t3 ) ;   tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-       if( tn < EPSQ*ann ){
-         CROSS(v1,v2,v3 , w1,w2,w3 , t1,t2,t3 ) ; tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-       }
+     /* step 4: project scaled A into {p,q} to form 2x2 symmetric matrix */
+     { double Apx = aa*px+bb*py+cc*pz ,
+              Apy = bb*px+dd*py+ee*pz ,
+              Apz = cc*px+ee*py+ff*pz ;
+       double Aqx = aa*qx+bb*qy+cc*qz ,
+              Aqy = bb*qx+dd*qy+ee*qz ,
+              Aqz = cc*qx+ee*qy+ff*qz ;
+       M11 = px*Apx + py*Apy + pz*Apz ;   /* p'Ap */
+       M12 = px*Aqx + py*Aqy + pz*Aqz ;   /* p'Aq */
+       M22 = qx*Aqx + qy*Aqy + qz*Aqz ;   /* q'Aq */
      }
-     a[6] = t1/tn ; a[7] = t2/tn ; a[8] = t3/tn ;  /* normalize */
-#endif
+
+     /* step 5: stable symmetric 2x2 eigenvector for the smaller eigenvalue.
+        The eigenvector direction for lam_s satisfies (A2x2 - lam_s*I)v = 0.
+        The formula  lam_s - M11 = -hd - sg  is NOT used: it equals
+        (M22-M11)/2 - sqrt(((M22-M11)/2)^2 + M12^2), which suffers
+        catastrophic cancellation when |M12| << |M11-M22|.
+        Instead, pick whichever matrix row gives a non-cancelling nullspace:
+          hd >= 0 (M11 >= M22): row-1 nullspace [-M12, hd+sg]; hd+sg >= sg, safe.
+          hd <  0 (M11 <  M22): row-2 nullspace [hd-sg,  M12]; |hd-sg|=|hd|+sg, safe.
+        In both cases tn >= sg, so division is safe whenever sg >= eps. */
+     hd = 0.5*(M11-M22) ;
+     sg = sqrt(hd*hd + M12*M12) ;
+     if( sg < 1.e-14 ){            /* scalar 2x2: any orthonormal pair works */
+       c = 1.0 ; s = 0.0 ;
+     } else if( hd >= 0.0 ){
+       tn = sqrt(M12*M12 + (hd+sg)*(hd+sg)) ;   /* tn >= sg > 0 */
+       c = -M12/tn ; s = (hd+sg)/tn ;
+     } else {
+       tn = sqrt((hd-sg)*(hd-sg) + M12*M12) ;   /* tn = |hd|+sg > 0 */
+       c = (hd-sg)/tn ; s = M12/tn ;
+     }
+     /* smaller 2x2 eigenvector: c*p + s*q
+        larger  2x2 eigenvector: -s*p + c*q   (orthogonal by construction) */
+
+     /* store in correct output slots (lam1 <= lam2 <= lam3 after sort) */
+     if( iso3 ){    /* w is eigenvector of lam3 -> slot 2 (a[6..8]) */
+       a[6] =  w1             ; a[7] =  w2             ; a[8] =  w3             ;
+       a[0] =  c*px + s*qx    ; a[1] =  c*py + s*qy    ; a[2] =  c*pz + s*qz   ;
+       a[3] = -s*px + c*qx    ; a[4] = -s*py + c*qy    ; a[5] = -s*pz + c*qz   ;
+     } else {       /* w is eigenvector of lam1 -> slot 0 (a[0..2]) */
+       a[0] =  w1             ; a[1] =  w2             ; a[2] =  w3             ;
+       a[3] =  c*px + s*qx    ; a[4] =  c*py + s*qy    ; a[5] =  c*pz + s*qz   ;
+       a[6] = -s*px + c*qx    ; a[7] = -s*py + c*qy    ; a[8] = -s*pz + c*qz   ;
+     }
+
+     /* ensure right-handed coordinate system (determinant = +1) */
+     if( DET3(a) < 0.0 ){ a[6] = -a[6]; a[7] = -a[7]; a[8] = -a[8]; }
 
    } else { /*---- if here, we have a double root ----*/
 
@@ -238,14 +308,15 @@ void symeig_3( double *a , double *e , int dovec )
      lam1 = lam2 = 0.5*(lam1+lam2) ;
 
      /* compute eigenvector for lam3 using method as above */
+     /* Note: threshold is EPSQ not EPSQ*ann; matrix is already scaled */
 
      u1 = aa-lam3 ; u2 = bb      ; u3 = cc ;
      v1 = bb      ; v2 = dd-lam3 ; v3 = ee ;
      CROSS(u1,u2,u3 , v1,v2,v3 , t1,t2,t3 ) ;     tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-     if( tn < EPSQ*ann ){
+     if( tn < EPSQ ){
        w1 = cc ; w2 = ee ; w3 = ff-lam3 ;
        CROSS(u1,u2,u3 , w1,w2,w3 , t1,t2,t3 ) ;   tn = sqrt(t1*t1+t2*t2+t3*t3) ;
-       if( tn < EPSQ*ann ){
+       if( tn < EPSQ ){
          CROSS(v1,v2,v3 , w1,w2,w3 , t1,t2,t3 ) ; tn = sqrt(t1*t1+t2*t2+t3*t3) ;
        }
      }
