@@ -2624,8 +2624,13 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
 
             //if((Gx==0.0) && (Gy==0.0) && (Gz==0.0))
             gscale = sqrt(Gx*Gx + Gy*Gy + Gz*Gz);
-            if( gscale<BMAX_REF )
+            if( gscale<BMAX_REF ){
                B0list[i+1] = 1;   /* no gradient applied*/
+               gscale = 1.;       /* avoid 0/0 = NaN in the divisions below
+                                     for an exactly-zero gradient row (same
+                                     guard as Form_R_Matrix); the b-matrix
+                                     elements are ~0 for such rows anyway */
+            }
             else{
                B0list[i+1] = 0;
                if(gscale > MAX_BVAL)
