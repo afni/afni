@@ -13,6 +13,17 @@
   ***** I'm not actually sure these functions work -- BEWARE !! :( *****
 
   ***** Instead ... try using the contents of file fftn_OMP.c *****
+
+  Fix (Oct 2026): fft_3dec_OMP, fft_4dec_OMP, and fft_5dec_OMP share one
+  twiddle-factor workspace (CFO_cs[rec][ithr]) but previously maintained
+  independent cache markers (CFO_rmold3/4/5).  A call through one radix
+  could overwrite the shared table without invalidating the other markers,
+  causing a subsequent call through a different radix to skip regeneration
+  and use twiddle factors computed for the wrong N.  The fix cross-invalidates
+  the other two radix markers whenever any radix regenerates the shared table,
+  forcing correct regeneration on the next call.
+  See GitHub issue #987 for the full diagnosis and test cases.
+
 ******************************************************************************/
 
 #include "mrilib.h"   /* AFNI package library header */
@@ -72,9 +83,13 @@ static int      *CFO_sclinv =NULL ;  /* per-thread inverse scaling flag */
 static int      *CFO_recC   =NULL ;  /* per-thread recursion level for csfft_cox_OMP */
 static int      *CFO_recX   =NULL ;  /* per-thread recursion level for decimaion funcs */
 
-static int *CFO_rmold3[RMAX] ;       /* per-thread, per-recursion last M value used */
-static int *CFO_rmold4[RMAX] ;       /* for decimation by 3, 4, 5 functions */
-static int *CFO_rmold5[RMAX] ;
+/* All three radix routines share one workspace (CFO_cs[rec][ithr]); when
+   any radix regenerates the table it zeros the other two markers so they
+   are forced to regenerate rather than reading stale factors.  0 is a safe
+   sentinel: no valid FFT sub-transform length M is ever 0.                   */
+static int *CFO_rmold3[RMAX] ;  /* per-thread, per-recursion last M used by fft_3dec */
+static int *CFO_rmold4[RMAX] ;  /* per-thread, per-recursion last M used by fft_4dec */
+static int *CFO_rmold5[RMAX] ;  /* per-thread, per-recursion last M used by fft_5dec */
 
 static int     *nCFO_aa[RMAX] ;      /* per-thread, per-recursion temp arrays */
 static int     *nCFO_bb[RMAX] ;      /* nCFO_aa[r][i] is the size of the 'aa' */
@@ -2511,13 +2526,18 @@ static void fft_4dec_OMP( int mode , int idim , complex *xc )
    CFO_assign(cc,M) ;
    CFO_assign(dd,M) ;
 
-   mold = CFO_rmold4[rec][ithr] ;  /* what was done before at this recursion level */
+   mold = CFO_rmold4[rec][ithr] ;  /* last M used by fft_4dec at this [rec][ithr] */
 
   { if( M != mold ){
+      /* The cs workspace at this [rec][ithr] slot is shared by all
+         three radix routines; regenerating it here invalidates any
+         table a different radix may have left behind, so zero their
+         markers to force them to regenerate when next called.        */
       double th = (2.0*PI/N) ;
       cs[0].r = 1.0 ; cs[0].i = 0.0 ;
       for( k=1 ; k < M3 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
       CFO_rmold4[rec][ithr] = M ;
+      CFO_rmold3[rec][ithr] = CFO_rmold5[rec][ithr] = 0 ;
   }}
 
    /*-- load subarrays, and FFT each one --*/
@@ -2666,13 +2686,18 @@ static void fft_3dec_OMP( int mode , int idim , complex *xc )
    CFO_assign(bb,M) ;
    CFO_assign(cc,M) ;
 
-   mold = CFO_rmold3[rec][ithr] ;  /* what was done before at this recursion level */
+   mold = CFO_rmold3[rec][ithr] ;  /* last M used by fft_3dec at this [rec][ithr] */
 
   { if( M != mold ){
+      /* The cs workspace at this [rec][ithr] slot is shared by all
+         three radix routines; regenerating it here invalidates any
+         table a different radix may have left behind, so zero their
+         markers to force them to regenerate when next called.        */
       double th = (2.0*PI/N) ;
       cs[0].r = 1.0 ; cs[0].i = 0.0 ;
       for( k=1 ; k < M2 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
       CFO_rmold3[rec][ithr] = M ;
+      CFO_rmold4[rec][ithr] = CFO_rmold5[rec][ithr] = 0 ;
    }}
 
    /*-- load subarrays, and FFT each one --*/
@@ -2794,13 +2819,18 @@ static void fft_5dec_OMP( int mode , int idim , complex *xc )
    CFO_assign(dd,M) ;
    CFO_assign(ee,M) ;
 
-   mold = CFO_rmold5[rec][ithr] ;  /* what was done before at this recursion level */
+   mold = CFO_rmold5[rec][ithr] ;  /* last M used by fft_5dec at this [rec][ithr] */
 
   { if( M != mold ){           /* new M? */
+      /* The cs workspace at this [rec][ithr] slot is shared by all
+         three radix routines; regenerating it here invalidates any
+         table a different radix may have left behind, so zero their
+         markers to force them to regenerate when next called.        */
       double th = (2.0*PI/N) ;
       cs[0].r = 1.0 ; cs[0].i = 0.0 ;
       for( k=1 ; k < M4 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
       CFO_rmold5[rec][ithr] = M ;
+      CFO_rmold3[rec][ithr] = CFO_rmold4[rec][ithr] = 0 ;
    }}
 
    /*-- load subarrays, and FFT each one --*/
