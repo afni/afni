@@ -64,6 +64,7 @@ echo "++++ Passed first checks to be able to run test. Continuing."
 if ( ! -f mask.auto.nii.gz ) then
     echo "** ERROR: cannot find output mask"
     echo "   Is this being run in: ~/AFNI_data6/afni/ ? It should be..."
+    exit -1
 else
     echo "++ Found input mask"
     echo "   ... just proceeding with comparison"

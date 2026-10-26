@@ -61,6 +61,7 @@ echo "++++ Passed first checks to be able to run test. Continuing."
 if ( ! -f mask.auto.nii.gz ) then
     echo "** ERROR: cannot find input mask: mask.auto.nii.gz"
     echo "   Is this being run in: ~/AFNI_data6/afni/ ? It should be..."
+    exit -1
 else
     echo "++ Found input mask"
     echo "   ... just proceeding with comparison"
@@ -69,6 +70,7 @@ endif
 if ( ! -f epi_r1+orig.HEAD ) then
     echo "** ERROR: cannot find input EPI dataset: epi_r1+orig.HEAD"
     echo "   Is this being run in: ~/AFNI_data6/afni/ ? It should be..."
+    exit -1
 else
     echo "++ Found input EPI dataset"
     echo "   ... just proceeding with comparison"
