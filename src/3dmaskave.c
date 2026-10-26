@@ -260,7 +260,7 @@ int main( int argc , char * argv[] )
          }
          mask_bot = strtod( argv[++narg] , NULL ) ;
          mask_top = strtod( argv[++narg] , NULL ) ;
-         if( mask_top < mask_top ){
+         if( mask_top < mask_bot ){
             fprintf(stderr,"*** -mrange inputs are illegal!\n") ; exit(1) ;
          }
          narg++ ; continue ;
@@ -287,7 +287,7 @@ int main( int argc , char * argv[] )
          }
          data_bot = strtod( argv[++narg] , NULL ) ;
          data_top = strtod( argv[++narg] , NULL ) ;
-         if( data_top < data_top ){
+         if( data_top < data_bot ){
             fprintf(stderr,"*** -mrange inputs are illegal!\n") ; exit(1) ;
          }
          drange = 1 ;
