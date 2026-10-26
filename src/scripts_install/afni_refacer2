@@ -477,7 +477,7 @@ foreach mode ( ${run_mode} )
         -c       tmp.05.sh_t2a_thr.nii"[${subbr}]"                           \
         -expr    "a*not(bool(c))"                                            \
         -prefix  tmp.99.result.${mode}.nii                                   \
-        -datum   float 
+        -datum   float                                                       \
         -isola
 
     if ( $status ) then
