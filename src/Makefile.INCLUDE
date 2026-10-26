@@ -141,7 +141,7 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
 PROGS_3  = 3dAnhist 3dAFNIto3D 3dWarp nicat                                   \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive      \
            nifti_tool 3dAllineate whereami whereami_afni plugout_drive 3dLSS  \
-           3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml        \
+           3dMedianFilter  3dAFNItoNIML 3dAFNItoRaw im2niml                   \
            3dedge3 DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth   \
            3dmaxima GLTsymtest 3dPval stimband 1dNLfit 1dApar2mat             \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx   \
@@ -198,7 +198,7 @@ PROGRAMS_NOPLUG =                                                             \
         3dAFNItoANALYZE 3dAFNItoNIFTI 3dAutoTcorrelate 3dFDR 3dAutomask       \
         3dThreetoRGB 3dresample 3dAutobox 3dLRflip dicom_hdr 3dDespike        \
         dicom_to_raw file_tool rotcom 3dWarp nicat 3dSpatNorm 3dWarpDrive     \
-        3dretroicor 3dTnorm 3dAFNItoRaw DTIStudioFibertoSegments im2niml      \
+        3dTnorm 3dAFNItoRaw DTIStudioFibertoSegments im2niml                  \
         3dLocalstat 3dGetrow nifti_tool 3dAllineate Dimon 3danisosmooth       \
         3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost         \
         3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry   \
@@ -230,7 +230,7 @@ PROGRAMS_EXE =                                                                \
         3dTcat 3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam     \
         1dBport 3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
         3dNotes 3dROIstats 1deval 3dStatClust 1ddot 3dBrickStat 3dDWItoDT     \
-        3dTstat 3dDTeig 3dmaskdump 3dretroicor 3daxialize imcat 3dTshift      \
+        3dTstat 3dDTeig 3dmaskdump 3daxialize imcat 3dTshift                  \
         3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot 3dfim+        \
         imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump 3dMean 3dAttribute     \
         cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay          \
@@ -2191,9 +2191,7 @@ iochan_relay:iochan_relay.o
 
 ### These programs are from Fred Tam
 
-3dretroicor:3dretroicor.o retroicor.o
-	$(RM) $@
-	$(CC) -o 3dretroicor 3dretroicor.o retroicor.o $(LFLAGS) $(LLIBS)
+### 3dretroicor: deprecated (see physio_calc.py)
 
 ### These programs are from Matthew Belmonte
 
@@ -2954,7 +2952,7 @@ models: $(MODELLIST)
 
 PLIST_CONTRIB = $(PLIST_ZIAD) $(PLIST_BIRN) $(PLIST_KUMMER) $(PLIST_LACONTE) \
                 $(PLIST_RICKR) $(PLIST_TROSS) $(PLIST_BELMONTE)              \
-                $(PLIST_FREDTAM) $(PLIST_DAVIDSHIN)
+                $(PLIST_DAVIDSHIN)
 
 
 # Really, contrib_plugins and related targets are not needed.  It might be
@@ -2967,11 +2965,6 @@ PLIST_ZIAD =  plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
 
 ziad_plugins: $(PLIST_ZIAD)
-
-
-PLIST_FREDTAM = plug_retroicor.$(SO)
-
-fredtam_plugins: $(PLIST_FREDTAM)
 
 
 PLIST_DAVIDSHIN = plug_aslA3D3.$(SO)
@@ -3910,10 +3903,10 @@ pkundu_install:
 #	cd ../	;		)
 
 #############
-# jzosky directory
+# jzosky directory: now deprecated, see physio_calc.py
 
-jzosky_install:
-	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
+###jzosky_install:
+###	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
 
 #############
 # leej3 directory

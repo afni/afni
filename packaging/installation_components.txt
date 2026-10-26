@@ -254,7 +254,6 @@ track_tools, suma
 3drefit, corebinaries
 3drename, corebinaries
 3dresample, corebinaries
-3dretroicor, corebinaries
 3drotate, corebinaries
 3dsvm_linpredict, corebinaries
 3dtoXdataset, corebinaries
@@ -521,11 +520,6 @@ suma_change_spec, tcsh
 @djunct_make_script_and_rst.py, python
 @djunct_select_str.py, python
 BayesianGroupAna.py, python
-PeakFinder.py, python
-PhaseEstimator.py, python
-RVT_from_PeakFinder.py, python
-RetroTS.py, python
-Show_RVT_Peak.py, python
 abids_json_info.py, python
 abids_json_tool.py, python
 abids_lib.py, python
