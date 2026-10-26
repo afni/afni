@@ -4845,7 +4845,7 @@ LABELS_ARE_DONE:  /* target for goto above */
              }
            }
 
-           if( !singletonA ){  /* -zskip for setA separately from setB */
+           if( !IS_PAIRED && !singletonA ){  /* -zskip for setA separately from setB */
              for( ii=nz=0 ; ii < nval_AAA ; ii++ ) nz += (datAAA[ii] == 0.0f) ;
              if( nz > 0 ){            /* copy nonzero vals to a new array */
                nAAA = nval_AAA - nz ;
@@ -4973,7 +4973,12 @@ LABELS_ARE_DONE:  /* target for goto above */
        } /* end of covariates analysis */
 
        if( BminusA && ntwosam ){  /* negate 2 sample results? [05 Nov 2010] */
-         for( ii=0 ; ii < ntwosam ; ii++ ) resar[ii] = -resar[ii] ;
+         /* resar[] always stores the 2-sample results as interleaved
+            (mean,statistic) pairs -- 2*(mcov+1) slots -- regardless of
+            -nomeans/-notests; ntwosam counts output VOLUMES, so using it
+            here negated the wrong slots when -nomeans or -notests was
+            given (the output statistic kept the A-B sign) */
+         for( ii=0 ; ii < 2*(mcov+1) ; ii++ ) resar[ii] = -resar[ii] ;
        }
 
        /* save min and max values from resar [16 Mar 2017] */
@@ -6620,10 +6625,13 @@ double GIC_student_t2z( double tt , double dof )
    xx = dof/(dof + tt*tt) ;
    pp = GIC_incbeta( xx , 0.5*dof , 0.5 , bb ) ;
 
-   if( tt > 0.0 ) pp = 1.0 - 0.5 * pp ;
-   else           pp = 0.5 * pp ;
+   /* compute z directly from the (small) 2-sided tail probability pp;
+      the old form 1.0-0.5*pp rounds to 1.0 for pp < 2e-16, which
+      saturated the result at ZMAX and lost precision above z ~ 7.7
+      (same roundoff fix as student_t2z in mri_stats.c) */
 
-   xx = - GIC_qginv(pp) ;
+   if( tt > 0.0 ) xx =  GIC_qginv(0.5*pp) ;
+   else           xx = -GIC_qginv(0.5*pp) ;
    if( xx > ZMAX ) xx = ZMAX ; else if( xx < -ZMAX ) xx = -ZMAX ;
    return xx ;
 }
