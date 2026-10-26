@@ -216,6 +216,10 @@ else
     set wdir0 = __work_refacer.${opref}.`3dnewid -fun11`
     set wdir  = ${odir}/${wdir0}
     \mkdir -p ${wdir}
+    
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 endif
 
 # if we got to here:  good to continue.  Brag a bit first.
@@ -237,8 +241,16 @@ set dset_orig = tmp.00.INPUT.nii
 
 if ( "$nnn" == "1" ) then
     3dcopy $iset ${wdir}/${dset_orig}
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 else
     3dcalc -a $iset'[0]' -expr a -prefix ${wdir}/${dset_orig}
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 endif
 
 cd ${wdir}
@@ -253,6 +265,10 @@ cd ${wdir}
     -ssave  tmp.01.uscale.nii     \
     ${dset_orig}
 
+if ( $status ) then
+    goto BAD_EXIT
+endif
+
 # Align to the MNI template - save only the transform matrix
 
 3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'           \
@@ -261,6 +277,10 @@ cd ${wdir}
             -cmass -conv 0.5                                      \
             -source_automask+4 -fineblur 3 -norefinal -twobest 3  \
             -num_rtb 33 -1Dmatrix_save tmp.02.mat_a2t.1D
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # compute the inverse matrix, to transform from MNI back to orig space
 
@@ -293,6 +313,10 @@ cat_matvec                      \
     -prefix tmp.05.sh_t2a_thr.nii
 
 3drefit -space ORIG tmp.05.sh_t2a_thr.nii
+
+if ( $status ) then
+    goto BAD_EXIT
+endif
 
 # ------------------ hard work done; prep for output -------------------
 
@@ -363,6 +387,9 @@ foreach subbr ( ${use_subbr} )
         -preserve                                               \
         -prefix tmp.99.result.${reface_type[${idx}]}.nii
 
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 end
 
 # DEFACE: just remove the 'face' rather than replace it
@@ -383,6 +410,9 @@ if ( "${run_mode}" == "ALL" || "${run_mode}" == "deface" ) then
         -datum float                                            \
         -ISOLA
 
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 endif
 
 
@@ -508,6 +538,10 @@ else
     3dcopy -echo_edu ${owrite}                     \
         tmp.99.result.${run_mode}.nii              \
         ../${impref}
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 
     # make purdy images: input as ulay, re/defaced vol as olay
     if ( ${DO_CHAUFF} ) then
