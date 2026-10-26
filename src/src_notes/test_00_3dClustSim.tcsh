@@ -62,7 +62,7 @@ echo "++++ Passed first checks to be able to run test. Continuing."
 # test data 1: findable?
 
 if ( ! -f mask.auto.nii.gz ) then
-    echo "** ERROR: cannot find output mask"
+    echo "** ERROR: cannot find input mask"
     echo "   Is this being run in: ~/AFNI_data6/afni/ ? It should be..."
     exit -1
 else
