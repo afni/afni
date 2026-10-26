@@ -254,6 +254,10 @@ else
     set wdir0 = __work_refacer.${opref}.`3dnewid -fun11`
     set wdir  = ${odir}/${wdir0}
     \mkdir -p ${wdir}
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 endif
 
 # cube length for cubeface
@@ -285,8 +289,16 @@ set dset_orig = tmp.00.INPUT.nii
 
 if ( "$nnn" == "1" ) then
     3dcopy $iset ${wdir}/${dset_orig}
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 else
     3dcalc -a $iset'[0]' -expr a -prefix ${wdir}/${dset_orig}
+
+    if ( $status ) then
+        goto BAD_EXIT
+    endif
 endif
 
 cd ${wdir}
