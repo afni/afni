@@ -263,10 +263,17 @@ if __name__ == "__main__":
                     list_ids.append( ['itemid', AAII.itemid] )
 
             elif AAII.itemtype == 'WARN':
+                # [pt: 2026-10-27] vlines warn will now get IC/GV buttons,
+                # so the user can explore possible vlines more easily
                 ht+=lah.wrap_dat( lah.read_dat(img),
                                   addclass=" class='warnbord' ",
                                   warn_level = AAII.warn_level,
-                                  remove_top_empty = True)
+                                  remove_top_empty = True,
+                                  itemid=AAII.itemid,
+                                  ic_file=AAII.ic_file,
+                                  ic_args=AAII.ic_args,
+                                  gv_file=AAII.gv_file,
+                                  gv_args=AAII.gv_args )
                 if lahc.wlevel_ranks[AAII.warn_level] > MAX_WLEVEL_RANK :
                     MAX_WLEVEL = AAII.warn_level
                     MAX_WLEVEL_RANK = lahc.wlevel_ranks[MAX_WLEVEL]
