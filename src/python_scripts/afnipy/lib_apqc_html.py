@@ -2643,6 +2643,19 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="",
     </div> <!-- bot AV/NV buttons -->'''.format( itemid=itemid, 
                                                  av_file=av_file )
 
+    y+= wrap_icgv_btns(itemid, ic_file, ic_args, gv_file, gv_args)
+
+    y+= '''
+</div> <!-- bottom of image -->
+'''
+    y+= vpad*'\n'
+
+    return y
+
+# -------------------------------------------------------------------
+
+def wrap_icgv_btns( itemid='', ic_file='', ic_args='', gv_file='', gv_args='' ):
+    y = ''
     if ic_file or gv_file :
         y+= '''
     <!-- top InstaCorr and Graph-View buttons (IC/GV) -->
@@ -2666,11 +2679,6 @@ def wrap_img(x, wid=500, itemid='', vpad=0, addclass="",
 
         y+= '''
     </div> <!-- bot IC/GV buttons -->'''
-
-    y+= '''
-</div> <!-- bottom of image -->
-'''
-    y+= vpad*'\n'
 
     return y
 
@@ -2702,7 +2710,8 @@ def wrap_nv_html(fname):
 
 # string literal
 def wrap_dat(x, wid=500, vpad=0, addclass="", warn_level = "",
-             remove_top_empty=False):
+             remove_top_empty=False, itemid='',
+             ic_file='', ic_args='', gv_file='', gv_args=''):
 
     # some formatting: get rid of unnecessary top empty lines
     if remove_top_empty:
@@ -2724,9 +2733,14 @@ def wrap_dat(x, wid=500, vpad=0, addclass="", warn_level = "",
 #    y+= '''<div> 
 #    <pre {} ><left><b>{}{}</b></left></pre>
 #</div>'''.format(addclass, top_line, newx)
-    y+= '''<div> 
-    <pre {} ><left>{}{}</left></pre>
-</div>'''.format(addclass, top_line, newx)
+    div_style = ''
+    if ic_file or gv_file :
+        div_style = ' style="position: relative;"'
+    y+= '''<div{}> 
+    <pre {} ><left>{}{}</left></pre>'''.format(div_style, addclass, top_line, newx)
+    y+= wrap_icgv_btns(itemid, ic_file, ic_args, gv_file, gv_args)
+    y+= '''
+</div>'''
     y+= vpad*'\n'
 
     return y

@@ -259,8 +259,11 @@ auth = 'PA Taylor'
 #ver = '6.1' ; date = 'Feb 7, 2025'
 # [PT] expand functionality when part of analysis has not been done in AP
 #
-ver = '6.2' ; date = 'Sep 18, 2025'
+#ver = '6.2' ; date = 'Sep 18, 2025'
 # [PT] fix vstat_seedcorr when processing has not included blurring
+#
+ver = '6.3' ; date = 'Oct 27, 2026'
+# [PT] warns section for vlines now gets IC+GV buttons
 #
 #########################################################################
 
@@ -6036,6 +6039,13 @@ num : int
     # text above data
     otoptxt = "EPI variance lines warnings"
 
+    # Use the same tcat block and first run as the radcor IC/GV buttons.
+    pb      = os.path.basename(os.path.normpath(dirname)).split('.')[1]
+    ic_file = 'run_instacorr_pbrun.tcsh'
+    ic_args = '{} {}'.format(pb, 'r01')
+    gv_file = 'run_graphview_pbrun.tcsh'
+    gv_args = '{} {}'.format(pb, 'r01')
+
     # Make info below images 
     otopdict = {
         'itemtype'    : 'WARN',
@@ -6044,7 +6054,11 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
-        'warn_level'  : warn_level
+        'warn_level'  : warn_level,
+        'ic_file'     : ic_file,
+        'ic_args'     : ic_args,
+        'gv_file'     : gv_file,
+        'gv_args'     : gv_args,
     }
     with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
         json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
