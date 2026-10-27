@@ -89,6 +89,16 @@ examples:
 
       This is intended to work with the output from gtkyd_check.
 
+   6. report outliers: from APQC ratings, where 'vorig rating', 'warns rating'
+      or 'FINAL rating' are 'bad'
+
+      gen_ss_review_table.py                                                \\
+         -outlier_sep space                                                 \\
+         -report_outliers 'vorig rating' EQ bad                             \\
+         -report_outliers 'warns rating' EQ bad                             \\
+         -report_outliers 'FINAL rating' EQ bad                             \\
+         -infiles_json sub*/*/*.results/QC*/extra_info/out.ss_review.*.json
+
 ------------------------------------------
 terminal options:
 
@@ -103,15 +113,21 @@ process options:
 
          e.g. -infiles out.ss_review.subj12345.txt
          e.g. -infiles group.*/subj.*/*.results/out.ss_review.*
+         e.g. -infiles sub*/*/*.results/QC*/extra_info/out.ss_review.*.json
 
       The resulting table will be based on all of the fields in these files.
 
       This program can be used as a pipe for input and output, using '-'
       or file stream names.
 
+      Note that if the inputs are JSON files, it is better to use -infiles_json,
+      though the output will be mostly the same.
+
    -infiles_json JSON1 ... : specify JSON text files (= dictionaries) to
                           process, and make a table based on all of
                           the keys in these files.
+
+         e.g. -infiles sub*/*/*.results/QC*/extra_info/out.ss_review.*.json
 
    -overwrite           : overwrite the output -write_table, if it exists
 
@@ -191,6 +207,7 @@ process options:
         e.g. -report_outliers 'AFNI version' VARY
         e.g. -report_outliers 'global correlation (GCOR)' SHOW
         e.g. -report_outliers ANY VARY
+        e.g. -report_outliers 'FINAL rating' EQ bad
 
       This option is used to make a table of outlier subjects.  If any
       comparison function is true for a subject (other than SHOW), that subject
@@ -376,9 +393,10 @@ g_history = """
    1.8  Aug 07, 2024   - [pt] new opt -join_values, for JG-C
    1.9  Aug 06, 2025   - [pt] new operator VARY_PM, for "plus/minus" equality
    2.0  Aug 22, 2025   - [pt] VARY and VARY_PM show comparand in label row
+   2.1  Oct 27, 2026   - add example using APQC out.ss_review.*.json files
 """
 
-g_version = "gen_ss_review_table.py version 2.0, Aug 22, 2025"
+g_version = "gen_ss_review_table.py version 2.1, Oct 27, 2026"
 
 
 class MyInterface:
