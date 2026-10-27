@@ -5962,6 +5962,9 @@ num : int
     if str_full :
         text_loc = 'olay: line markers for ' + str_full
 
+    # potential extra args for IC and GV, if vlines are found
+    ic_coords = ''
+
     # alternate: some variance lines, and now we have to do work :(
     if os.path.isfile( file_img ) : 
         warn_level = "medium"   ## or should be severe?
@@ -5993,6 +5996,11 @@ num : int
                 list_coordlist.append(coordlist)
                 list_title.append(title)
                 sum_nrow+= nrow
+
+                # for IC/GV buttons: a string of 3 coords
+                if not(ic_coords) :
+                    ic_coords = coordlist[0]
+
             text_inter = 'Intersecting  : {}\n'.format(nrow)
 
         # info from bad_coords.r* files
@@ -6007,6 +6015,11 @@ num : int
                 list_coordlist.append(coordlist)
                 list_title.append(title)
                 sum_nrow+= nrow
+
+                # for IC/GV buttons: a string of 3 coords
+                if not(ic_coords) :
+                    ic_coords = coordlist[0]
+
         all_num = [str(x) for x in list_nlines]
         otext+= 'Lines per run : {}\n'.format(' '.join(all_num))
 
@@ -6045,6 +6058,11 @@ num : int
     ic_args = '{} {}'.format(pb, 'r01')
     gv_file = 'run_graphview_pbrun.tcsh'
     gv_args = '{} {}'.format(pb, 'r01')
+
+    # and extra args: coords if vlines were identified (ic_coords is 1 str)
+    if ic_coords :
+        ic_args+= ' {}'.format(ic_coords) 
+        gv_args+= ' {}'.format(ic_coords) 
 
     # Make info below images 
     otopdict = {
