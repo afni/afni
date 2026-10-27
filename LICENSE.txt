@@ -137,7 +137,7 @@ Location: src/nifti/cmake/nifti_common.cmake
 Authors:  Insight Software Consortium
 License:  Apache 2.0 [top of file]
 
-Location: part of src/niml/niml_md5.c
+Location: part of src/niml/niml_md5.c (for MD5 hashing)
 Authors:  RSA Data Security, Inc.
 License:  Permissive [top of file]
 
@@ -344,7 +344,7 @@ Location: src/mpegtoppm_dir
 Authors:  Aaron Holtzman, Michel Lespinasse, et al.
 License:  GNU GPL 2.0 [src/mpegtoppm_dir/COPYING]
 
-Location: part of src/niml/niml_md5.c
+Location: part of src/niml/niml_md5.c (SHA-256 Hash Functions)
 Authors:  Christophe Devine
 License:  GNU GPL 2.0 or later [top of file]
 
