@@ -236,6 +236,163 @@ static char i_helpstring[] =
 
 static char * ICOR_main( PLUGIN_interface * ) ;
 
+/* A driven INIT refreshes an existing form, or the next time it is shown.
+   Ordinary GUI use keeps its existing behavior, including unsubmitted edits. */
+static unsigned long ICOR_revision[MAX_CONTROLLERS] ;
+
+typedef struct {
+   PLUGIN_interface *plint ;
+   MRI_IMAGE *orts ;  /* own a copy: a later setup can free iset->gortim */
+   Three_D_View *im3d ;
+   unsigned long revision ;
+} ICOR_form_state ;
+
+static ICOR_form_state *ICOR_forms[MAX_CONTROLLERS] ;
+static void ICOR_form_sync( ICOR_form_state *state ) ;
+
+void AFNI_icor_sync_form( Three_D_View *im3d )
+{
+   int ic = AFNI_controller_index(im3d) ;
+   if( ic < 0 || ic >= MAX_CONTROLLERS ) return ;
+   ICOR_revision[ic]++ ;
+   if( ICOR_revision[ic] == 0 ) ICOR_revision[ic]++ ;
+   if( ICOR_forms[ic] != NULL && ICOR_forms[ic]->plint->im3d == im3d )
+     ICOR_form_sync(ICOR_forms[ic]) ;
+}
+
+/* Set both the chooser's dataset ID and its visible label.  The normal
+   chooser callback rebuilds the complete dataset list when opened. */
+static void ICOR_form_dataset( PLUGIN_dsetval *av, THD_3dim_dataset *dset )
+{
+   av->dset_choice = -1 ;
+   if( ISVALID_DSET(dset) ){
+     av->dset_link = (PLUGIN_dataset_link *)XtRealloc(
+                        (char *)av->dset_link, sizeof(PLUGIN_dataset_link)) ;
+     av->dset_count = 1 ;
+     make_PLUGIN_dataset_link(dset,av->dset_link) ;
+     av->dset_choice = 0 ;
+     MCW_set_widget_label(av->pb,av->dset_link[0].title) ;
+   } else {
+     av->dset_count = 0 ;
+     MCW_set_widget_label(av->pb,"-- Choose Dataset --") ;
+   }
+}
+
+/* Driven values need not fit the GUI's original arrow-button range. */
+static void ICOR_form_number( void *chooser, float value )
+{
+   MCW_arrowval *av = (MCW_arrowval *)chooser ;
+   if( value < av->fmin ) av->fmin = value ;
+   if( value > av->fmax ) av->fmax = value ;
+   AV_assign_fval(av,value) ;
+}
+
+static void ICOR_form_sync( ICOR_form_state *state )
+{
+   PLUGIN_interface *plint = state->plint ;
+   ICOR_setup *iset ;
+   PLUGIN_option_widgets *ow ;
+   int ic, ii, meth=0, chosen ;
+   char stend[80], *tag ;
+   static int methods[10] = {
+     NBISTAT_PEARSON_CORR, NBISTAT_SPEARMAN_CORR, NBISTAT_QUADRANT_CORR,
+     NBISTAT_KENDALL_TAUB, NBISTAT_TICTACTOE_CORR, NBISTAT_BC_PEARSON_M,
+     NBISTAT_BC_PEARSON_V, NBISTAT_EUCLIDIAN_DIST, NBISTAT_CITYBLOCK_DIST,
+     NBISTAT_QUANTILE_CORR } ;
+   static char *names[10] = {
+     "Pearson", "Spearman", "Quadrant", "Ken Tau_b", "TicTacToe",
+     "BCpearson", "VCpearson", "Euclidean", "CityBlock", "Quantile:9" } ;
+
+   if( !IM3D_OPEN(plint->im3d) ) return ;
+   ic = AFNI_controller_index(plint->im3d) ;
+   if( ic < 0 || ic >= MAX_CONTROLLERS || ICOR_revision[ic] == 0 ) return ;
+   if( state->im3d == plint->im3d && state->revision == ICOR_revision[ic] ) return ;
+   iset = plint->im3d->iset ;
+   if( !ISVALID_ICOR_setup(iset) ) return ;
+
+   if( iset->clen > 0 )
+     sprintf(stend,"%d@%d,%d,%d",iset->start,iset->clen,iset->cnum,iset->cstep) ;
+   else
+     sprintf(stend,"%d,%d",iset->start,iset->end) ;
+   for( ii=0 ; ii < 10 ; ii++ ) if( methods[ii] == iset->cmeth ) meth = ii ;
+
+   for( ii=0 ; ii < plint->option_count ; ii++ ){
+     tag = plint->option[ii]->tag ;
+     ow = plint->wid->opwid[ii] ;
+     chosen = 1 ;
+
+     if( strcmp(tag,"TimeSeries") == 0 ){
+       ICOR_form_dataset((PLUGIN_dsetval *)ow->chooser[0],iset->dset) ;
+       set_PLUGIN_strval((PLUGIN_strval *)ow->chooser[1],stend) ;
+       ICOR_form_number(ow->chooser[2],iset->blur) ;
+     } else if( strcmp(tag,"Mask") == 0 ){
+       AV_assign_ival((MCW_arrowval *)ow->chooser[0],iset->automask != 0) ;
+       ICOR_form_dataset((PLUGIN_dsetval *)ow->chooser[1],iset->mset) ;
+       ICOR_form_number(ow->chooser[2],iset->mindex) ;
+     } else if( strcmp(tag,"Bandpass") == 0 ){
+       ICOR_form_number(ow->chooser[0],iset->fbot) ;
+       ICOR_form_number(ow->chooser[1],iset->ftop) ;
+       AV_assign_ival((MCW_arrowval *)ow->chooser[2],iset->despike != 0) ;
+     } else if( strcmp(tag,"GlobalOrts") == 0 ){
+       PLUGIN_tsval *av = (PLUGIN_tsval *)ow->chooser[0] ;
+       if( state->orts != NULL ) mri_free(state->orts) ;
+       state->orts = (iset->gortim != NULL) ? mri_copy(iset->gortim) : NULL ;
+       av->tsim = state->orts ; av->ts_choice = -1 ;
+       MCW_set_widget_label(av->pb, av->tsim == NULL ? "-- Choose Timeseries --"
+                             : (av->tsim->name != NULL ? av->tsim->name
+                                                       : "InstaCorr Global Orts")) ;
+       ICOR_form_number(ow->chooser[1],iset->gortnpc) ;
+       AV_assign_ival((MCW_arrowval *)ow->chooser[2],iset->do_ts != 0) ;
+       chosen = (iset->gortim != NULL || iset->gortnpc > 0 || iset->do_ts) ;
+     } else if( strcmp(tag,"MiscOpts") == 0 ){
+       MCW_arrowval *av = (MCW_arrowval *)ow->chooser[2] ;
+       ICOR_form_number(ow->chooser[0],iset->sblur) ;
+       ICOR_form_number(ow->chooser[1],iset->polort) ;
+       /* Keep a driven method visible even if normally hidden in this menu. */
+       if( meth >= plint->option[ii]->subvalue[2].string_range_count )
+         refit_MCW_optmenu(av,0,meth,meth,0,
+                           (str_func *)MCW_av_substring_CB,names) ;
+       else
+         AV_assign_ival(av,meth) ;
+     } else if( strcmp(tag,"Iterate") == 0 ){
+       ICOR_form_number(ow->chooser[0],iset->iter_count) ;
+       ICOR_form_number(ow->chooser[1],iset->iter_thresh) ;
+       chosen = (iset->iter_count > 1) ;
+     } else if( strcmp(tag,"ExtraSet") == 0 ){
+       ICOR_form_dataset((PLUGIN_dsetval *)ow->chooser[0],iset->eset) ;
+       chosen = ISVALID_DSET(iset->eset) ;
+     } else {
+       continue ;
+     }
+     /* Notify PLUTO so the row's sensitivity and label match its toggle. */
+     XmToggleButtonSetState(ow->toggle,chosen,True) ;
+   }
+   state->im3d = plint->im3d ;
+   state->revision = ICOR_revision[ic] ;
+}
+
+static void ICOR_form_map_EV( Widget w, XtPointer cd,
+                              XEvent *ev, Boolean *dispatch )
+{
+   ICOR_form_state *state = (ICOR_form_state *)cd ;
+   int ic ;
+   if( ev->type != MapNotify || !IM3D_OPEN(state->plint->im3d) ) return ;
+   ic = AFNI_controller_index(state->plint->im3d) ;
+   if( ic < 0 || ic >= MAX_CONTROLLERS ) return ;
+   ICOR_forms[ic] = state ;
+   ICOR_form_sync(state) ;
+}
+
+static void ICOR_form_destroy_CB( Widget w, XtPointer cd, XtPointer cbs )
+{
+   ICOR_form_state *state = (ICOR_form_state *)cd ;
+   int ic ;
+   for( ic=0 ; ic < MAX_CONTROLLERS ; ic++ )
+     if( ICOR_forms[ic] == state ) ICOR_forms[ic] = NULL ;
+   if( state->orts != NULL ) mri_free(state->orts) ;
+   XtFree((char *)state) ;
+}
+
 /***********************************************************************
    Set up the interface to the user
 ************************************************************************/
@@ -323,6 +480,19 @@ PLUGIN_interface * ICOR_init( char *lab )
    PLUTO_add_option ( plint , "ExtraSet" , "ExtraSet" , FALSE ) ;
    PLUTO_add_dataset( plint , "Extraset" ,
                       ANAT_ALL_MASK , FUNC_ALL_MASK , DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
+
+   /* Create the (unmapped) widgets now so the first opening can also refresh.
+      PLUG_setup_widgets() is a no-op when called again for this interface. */
+   PLUG_setup_widgets(plint,GLOBAL_library.dc) ;
+   {
+     ICOR_form_state *state = (ICOR_form_state *)XtMalloc(sizeof(ICOR_form_state)) ;
+     state->plint = plint ; state->orts = NULL ;
+     state->im3d = NULL ; state->revision = 0 ;
+     XtAddEventHandler(plint->wid->shell,StructureNotifyMask,False,
+                        ICOR_form_map_EV,(XtPointer)state) ;
+     XtAddCallback(plint->wid->shell,XmNdestroyCallback,
+                     ICOR_form_destroy_CB,(XtPointer)state) ;
+   }
 
    return plint ;
 }

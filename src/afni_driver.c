@@ -75,6 +75,7 @@ static int AFNI_drive_instacorr( char *cmd ) ;      /* 20 Oct 2010 */
 
 #ifdef ALLOW_PLUGINS
 static int AFNI_drive_open_plugin( char *cmd ) ;    /* 13 Nov 2001 */
+extern void AFNI_icor_sync_form( Three_D_View *im3d ) ;
 #endif
 
 static int AFNI_drive_open_graph_xy ( char *cmd ) ; /* 14 Nov 2001 */
@@ -3897,6 +3898,9 @@ static int AFNI_drive_instacorr( char *cmd )
        im3d->iset->cmeth = (iset->clen == 0) ? iset->cmeth : NBISTAT_PEARSON_CORR ;
        DESTROY_ICOR_setup(iset) ;
        ININFO_message("INSTACORR INIT minor change made :-)") ;
+#ifdef ALLOW_PLUGINS
+       AFNI_icor_sync_form(im3d) ;
+#endif
        return 0 ;
      }
 
@@ -3912,6 +3916,9 @@ static int AFNI_drive_instacorr( char *cmd )
      }
      DESTROY_ICOR_setup(im3d->iset) ; im3d->iset = iset ;     /* ready to go! */
      SENSITIZE_INSTACORR(im3d,True) ;
+#ifdef ALLOW_PLUGINS
+     AFNI_icor_sync_form(im3d) ;
+#endif
      ININFO_message("INSTACORR INIT completed successfully :-)") ;
      return 0 ;
    }
