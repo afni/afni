@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Oct, 2026, RCR, "gen_ss_review_table.py", MINOR, TYPE_ENHANCE,
+   "add example using APQC out.ss_review.*.json files",
+   NULL
+ } ,
+
  { 23, Oct, 2026, RCR, "make_random_timing.py", MINOR, TYPE_NEW_OPT,
    "add option -post_elist_merge, to finally merge one condition into another",
    "Added for C Walsh."
