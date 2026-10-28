@@ -684,18 +684,37 @@ ENTRY("THD_perm_set_build") ;
    }
 
    if( exact ){
-      /* Enumerate the group.  The identity is always one of the arrangements
-         visited (up to a swap of equivalent observations, which by definition
-         leaves the statistic alone), so the observed statistic is part of its
-         own null distribution without any special casing. */
+      int identity=-1,ii ;
+      /* Enumerate in sorted-key order, then move the identity-equivalent
+         arrangement to slot zero. Replacing its representative with the
+         literal identity preserves every distinct arrangement exactly once. */
       for( ip=0 ; ip < nperm ; ip++ ){
          perm_state_emit(st,pset,ip) ;
+         if( identity<0 ){
+            for( ii=0 ; ii<ps->nobs ; ii++ ){
+               int src=pset->perm[(size_t)ip*ps->nobs+ii] ;
+               if( pset->sign[(size_t)ip*ps->nobs+ii]!=1 ||
+                   (ps->eqclass ? ps->eqclass[src]!=ps->eqclass[ii] : src!=ii) ) break ;
+            }
+            if( ii==ps->nobs ) identity=ip ;
+         }
          if( ip+1 < nperm && !perm_state_next(st) ){
             ERROR_message("permutation set: enumeration ended after %d of %d",
                           ip+1,nperm) ;
             pset->nperm = ip+1 ; break ;
          }
       }
+      if( identity<0 ){
+         ERROR_message("permutation set: exact enumeration omitted the identity") ;
+         perm_state_free(st) ; THD_perm_set_free(pset) ; RETURN(NULL) ;
+      }
+      if( identity>0 ) for( ii=0 ; ii<ps->nobs ; ii++ ){
+         size_t pos=(size_t)identity*ps->nobs+ii ;
+         pset->perm[pos]=pset->perm[ii] ;
+         pset->sign[pos]=pset->sign[ii] ;
+      }
+      perm_state_identity(st) ;
+      perm_state_emit(st,pset,0) ;
    } else {
       srand48(ps->seed) ;
       /* Slot 0 is the identity on purpose: an empirical p-value must be able
@@ -1382,26 +1401,46 @@ static int perm_work_alloc( perm_work *w, int nobs, int npar, int ncon, int nnui
    return 1 ;
 }
 
+int THD_perm_glm_fit( const PERM_glm *glm, const double *y,
+                       double *beta, double *sse, double *centered_ss )
+{
+   int ii,jj; double mean=0.0,ss=0.0,sy=0.0;
+   if(!glm || !y || !beta || !sse || glm->nobs<1 || glm->npar<1 ||
+      !ISVALID_MATRIX(glm->M) || !ISVALID_MATRIX(glm->pinvM)) return 0;
+   for(ii=0;ii<glm->nobs;ii++) {
+      if(!isfinite(y[ii])) return 0;
+      if(centered_ss) mean+=y[ii];
+   }
+   mean/=glm->nobs;
+   for(jj=0;jj<glm->npar;jj++) {
+      double b=0.0;
+      for(ii=0;ii<glm->nobs;ii++) b+=glm->pinvM.elts[jj][ii]*y[ii];
+      if(!isfinite(b)) return 0;
+      beta[jj]=b;
+   }
+   for(ii=0;ii<glm->nobs;ii++) {
+      double e=y[ii];
+      if(centered_ss) { double z=e-mean; sy+=z*z; }
+      for(jj=0;jj<glm->npar;jj++) e-=glm->M.elts[ii][jj]*beta[jj];
+      ss+=e*e;
+   }
+   if(!isfinite(ss) || (centered_ss && !isfinite(sy))) return 0;
+   *sse=ss;
+   if(centered_ss) *centered_ss=sy;
+   return 1;
+}
+
 /* Fit the full model to yp and return the contrast's t (ncon == 1) or F
    (ncon > 1).  effect, when not NULL, receives the contrast estimate. */
 
 static float perm_glm_stat( PERM_glm *glm, double *yp, perm_work *w, float *effect )
 {
-   int ii, jj, nobs = glm->nobs, npar = glm->npar, ncon = glm->ncon ;
+   int ii, jj, npar = glm->npar, ncon = glm->ncon ;
    double sse = 0.0, sigma2, num ;
 
-   /* beta = pinvM * yp */
-   for( ii=0 ; ii < npar ; ii++ ){
-      double *row = glm->pinvM.elts[ii], ss = 0.0 ;
-      for( jj=0 ; jj < nobs ; jj++ ) ss += row[jj]*yp[jj] ;
-      w->beta[ii] = ss ;
-   }
-
-   /* residual sum of squares of yp - M*beta */
-   for( ii=0 ; ii < nobs ; ii++ ){
-      double *row = glm->M.elts[ii], ss = yp[ii] ;
-      for( jj=0 ; jj < npar ; jj++ ) ss -= row[jj]*w->beta[jj] ;
-      sse += ss*ss ;
+   if( !THD_perm_glm_fit(glm,yp,w->beta,&sse,NULL) ){
+      if( effect != NULL ) *effect = 0.0f ;
+      return 0.0f ;
    }
 
    /* contrast estimate */
@@ -1517,7 +1556,10 @@ ENTRY("THD_permute_freedman_lane") ;
            w.ep[i] = sg[i] * w.ez[pp[i]] ;
            w.yp[i] = w.zfit[i] + w.ep[i] ;
          }
-         st  = perm_glm_stat(glm,w.yp,&w,NULL) ;
+         /* Slot zero is the literal identity. Reconstructing y through the
+            reduced fit can round its t just below the observed t and lose
+            the guaranteed identity exceedance (even reporting p=0). */
+         st  = (p==0) ? pr->stat[e] : perm_glm_stat(glm,w.yp,&w,NULL) ;
          cmp = (pr->tail == PERM_TAIL_TWO) ? fabsf(st) : st ;
          if( cmp > my_max[p] ) my_max[p] = cmp ;
          if( cmp >= obs ) pr->cnt_unc[e]++ ;

@@ -162,7 +162,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip       \
            3dNwarpXYZ 3dTRfix 3dToyProg 3dRankizer nifti1_tool gifti_tool     \
            cifti_tool images_equal uniq_images tokens 3dLocalACF 3dXClustSim  \
            3dtoXdataset 3dMultiThresh 3dLFCD 3dDegreeCentrality 3dECM 3dMSE   \
-           3dRSA 3dInSync 1dTrdm                                               \
+           3dRSA 3dInSync 1dTrdm 1dXmatTool                                  \
            3dsvm_linpredict 3dTfilter 3dTsplit4D 3dSharpen  3dDepthMap        \
            3dExtractGroupInCorr dcm2niix_afni 3dTto1D 3dBrainSync 3dGrayplot  \
            1dsound afni_check_omp 3dPVmap 3dExchange 3dEdu_01_scale 3dDiff    \
@@ -1790,12 +1790,12 @@ sparse_array.o:sparse_array.c sparse_array.h
 	$(RM) $@
 	$(CCOMP) -o 3dMSE 3dMSE.o $(LFLAGS) $(LLIBS)
 
-RSA_OBJS = 3dRSA.o thd_datatable.o thd_mapinfer.o thd_patterns.o thd_permute.o \
-           thd_simmatrix.o thd_phasefft.o
-RSA_HDRS = thd_datatable.h thd_mapinfer.h thd_patterns.h thd_permute.h \
-           thd_simmatrix.h thd_phasefft.h niml.h AFNI_version.h
+RSA_OBJS = 3dRSA.o thd_datatable.o thd_xmat.o thd_mapinfer.o thd_patterns.o thd_permute.o \
+           thd_simmatrix.o thd_rsa.o thd_phasefft.o
+RSA_HDRS = thd_datatable.h thd_xmat.h thd_mapinfer.h thd_patterns.h thd_permute.h \
+           thd_simmatrix.h thd_rsa.h thd_phasefft.h niml.h AFNI_version.h
 
-$(RSA_OBJS): $(RSA_HDRS)
+$(filter-out thd_xmat.o,$(RSA_OBJS)): $(RSA_HDRS)
 	$(RM) $@
 	$(CCOMP) -c $(@:.o=.c) $(INFLAGS)
 
@@ -1803,22 +1803,45 @@ $(RSA_OBJS): $(RSA_HDRS)
 	$(RM) $@
 	$(CCOMP) -o 3dRSA $(RSA_OBJS) $(LFLAGS) $(LLIBS)
 
-INSYNC_OBJS = 3dInSync.o thd_insync.o thd_datatable.o thd_simmatrix.o \
+INSYNC_OBJS = 3dInSync.o thd_insync.o thd_insync_stats.o thd_datatable.o thd_xmat.o thd_simmatrix.o \
               thd_permute.o thd_mapinfer.o thd_phasefft.o thd_patterns.o
 
 3dInSync.o: 3dInSync.c thd_insync.h thd_datatable.h thd_simmatrix.h \
-             thd_permute.h thd_mapinfer.h thd_phasefft.h thd_patterns.h \
-             niml.h AFNI_version.h
+             thd_permute.h niml.h AFNI_version.h
 	$(RM) $@
 	$(CCOMP) -c 3dInSync.c $(INFLAGS)
 
-thd_insync.o: thd_insync.c thd_insync.h
+thd_insync.o: thd_insync.c thd_insync.h thd_datatable.h thd_simmatrix.h \
+              thd_permute.h thd_mapinfer.h thd_phasefft.h thd_patterns.h \
+              niml.h AFNI_version.h
 	$(RM) $@
 	$(CCOMP) -c thd_insync.c $(INFLAGS)
+
+thd_insync_stats.o: thd_insync_stats.c thd_insync.h thd_datatable.h
+	$(RM) $@
+	$(CCOMP) -c thd_insync_stats.c $(INFLAGS)
 
 3dInSync:$(INSYNC_OBJS) $(LIBMRI_OBJ)
 	$(RM) $@
 	$(CCOMP) -o 3dInSync $(INSYNC_OBJS) $(LFLAGS) $(LLIBS)
+
+thd_srm.o: thd_srm.c thd_srm.h
+	$(RM) $@
+	$(CCOMP) -c thd_srm.c $(INFLAGS)
+
+XMATTOOL_OBJS = 1dXmatTool.o thd_xmat.o thd_datatable.o
+
+1dXmatTool.o: 1dXmatTool.c thd_xmat.h thd_datatable.h
+	$(RM) $@
+	$(CCOMP) -c 1dXmatTool.c $(INFLAGS)
+
+1dXmatTool:$(XMATTOOL_OBJS) $(LIBMRI_OBJ)
+	$(RM) $@
+	$(CCOMP) -o 1dXmatTool $(XMATTOOL_OBJS) $(LFLAGS) $(LLIBS)
+
+thd_xmat.o: thd_xmat.c thd_xmat.h thd_datatable.h
+	$(RM) $@
+	$(CCOMP) -c thd_xmat.c $(INFLAGS)
 
 TRDM_OBJS = 1dTrdm.o thd_datatable.o thd_mapinfer.o thd_permute.o thd_simmatrix.o
 
