@@ -46,6 +46,15 @@
 #include "readme_afnigui.h"
 #include "readme_env.h"
 
+#ifdef DARWIN
+# include <X11/Xatom.h>
+# include <X11/Shell.h>
+# include <X11/StringDefs.h>
+# include <X11/Xutil.h>
+# include <Xm/TextF.h>
+# include <wchar.h>
+#endif
+
 /*------------------------------------------------------*/
 /* if the compiler wants to 'show off' the name of this
    edition of AFNI, then turn that macro into a string. */
@@ -2295,6 +2304,196 @@ static int check_string( char *targ , int ns , char *ss[] )
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*----------------------------------------------------------------------------*/
 
+/* BEGIN AFNI_DIRECT_SELECTION_PASTE
+   Optional macOS clipboard action.  Request the standard X11 CLIPBOARD
+   directly, bypassing Motif's paste/transfer actions.  Enable with:
+     -xrm 'AFNI*XmTextField.translations: #override Mod2<KeyPress>v: AFNI-paste-selection()'
+   This is an experimental workaround, not a diagnosis of the Motif failure.
+*/
+#ifdef DARWIN
+
+#define AFNI_PASTE_BYTE_LIMIT (1024UL * 1024UL)
+
+typedef struct {
+   Widget target ;
+   Atom clipboard , targets[3] ;
+   int next_target ;
+   Time time ;
+} AFNI_selection_paste ;
+
+/* An unmapped, persistent requestor lets a dialog close during a transfer. */
+static Widget AFNI_paste_requestor = NULL ;
+
+static void AFNI_paste_target_destroyed( Widget w, XtPointer cd, XtPointer cb )
+{
+   AFNI_selection_paste *req = (AFNI_selection_paste *)cd ;
+   (void)w ; (void)cb ;
+   req->target = NULL ;
+}
+
+static void AFNI_paste_dispose( AFNI_selection_paste *req )
+{
+   if( req->target != NULL )
+      XtRemoveCallback( req->target, XmNdestroyCallback,
+                        AFNI_paste_target_destroyed, (XtPointer)req ) ;
+   free(req) ;
+}
+
+static void AFNI_paste_receive( Widget, XtPointer, Atom *, Atom *,
+                                XtPointer, unsigned long *, int * ) ;
+
+static void AFNI_paste_request_next( AFNI_selection_paste *req )
+{
+   if( req->next_target == 3 ){
+      WARNING_message("AFNI paste: CLIPBOARD transfer or text conversion failed") ;
+      AFNI_paste_dispose(req) ;
+      return ;
+   }
+   /* Xt may invoke the callback synchronously: do not access req afterward. */
+   XtGetSelectionValue( AFNI_paste_requestor, req->clipboard,
+                       req->targets[req->next_target++], AFNI_paste_receive,
+                       (XtPointer)req, req->time ) ;
+}
+
+static void AFNI_paste_receive( Widget requestor, XtPointer cd,
+                                Atom *selection, Atom *type, XtPointer value,
+                                unsigned long *length, int *format )
+{
+   AFNI_selection_paste *req = (AFNI_selection_paste *)cd ;
+   XTextProperty property ;
+   wchar_t **strings = NULL ;
+   int count = 0 , status , max_length ;
+   size_t nchars , ii ;
+   XmTextPosition from , to , cursor , old_last , new_last , new_cursor ;
+   Boolean pending_delete = True ;
+   Widget target = req->target ;
+   (void)requestor ; (void)selection ;
+
+   if( target == NULL ){
+      if( value != NULL ) XtFree((char *)value) ;
+      AFNI_paste_dispose(req) ;
+      return ;
+   }
+   if( value == NULL || *type == None || *type == XT_CONVERT_FAIL ){
+      if( value != NULL ) XtFree((char *)value) ;
+      AFNI_paste_request_next(req) ;
+      return ;
+   }
+   if( *format != 8 || *length > AFNI_PASTE_BYTE_LIMIT ){
+      WARNING_message("AFNI paste: invalid format or text exceeds 1 MiB") ;
+      XtFree((char *)value) ;
+      AFNI_paste_dispose(req) ;
+      return ;
+   }
+   if( *length == 0 ){
+      INFO_message("AFNI paste: CLIPBOARD contains empty text") ;
+      XtFree((char *)value) ;
+      AFNI_paste_dispose(req) ;
+      return ;
+   }
+
+   /* XTextProperty is length-delimited; the selection need not end in NUL. */
+   property.value = (unsigned char *)value ;
+   property.encoding = *type ;
+   property.format = *format ;
+   property.nitems = *length ;
+   status = XwcTextPropertyToTextList( XtDisplay(target), &property,
+                                      &strings, &count ) ;
+   XtFree((char *)value) ;
+   if( status != Success || strings == NULL || count != 1 ){
+      if( strings != NULL ) XwcFreeStringList(strings) ;
+      AFNI_paste_request_next(req) ;
+      return ;
+   }
+
+   if( !XtIsSensitive(target) || !XmTextFieldGetEditable(target) ){
+      XwcFreeStringList(strings) ;
+      AFNI_paste_dispose(req) ;
+      return ;
+   }
+   nchars = wcslen(strings[0]) ;
+   if( nchars == 0 ){
+      XwcFreeStringList(strings) ;
+      AFNI_paste_dispose(req) ;
+      return ;
+   }
+   /* TextField is single-line.  Preserve separation in copied coordinates. */
+   for( ii=0 ; ii < nchars ; ii++ ){
+      if( strings[0][ii] == L'\r' || strings[0][ii] == L'\n' ||
+          strings[0][ii] == L'\t' ) strings[0][ii] = L' ' ;
+      else if( strings[0][ii] < L' ' || strings[0][ii] == 127 ){
+         WARNING_message("AFNI paste: text contains an unsupported control character") ;
+         XwcFreeStringList(strings) ;
+         AFNI_paste_dispose(req) ;
+         return ;
+      }
+   }
+
+   cursor = XmTextFieldGetInsertionPosition(target) ;
+   old_last = XmTextFieldGetLastPosition(target) ;
+   XtVaGetValues( target, XmNpendingDelete, &pending_delete, NULL ) ;
+   from = to = cursor ;
+   if( !pending_delete || !XmTextFieldGetSelectionPosition(target,&from,&to) ||
+       cursor < from || cursor > to ) from = to = cursor ;
+   max_length = XmTextFieldGetMaxLength(target) ;
+   if( from < 0 || to < from || to > old_last || max_length < 0 ||
+       nchars > (size_t)max_length ||
+       (unsigned long)(old_last-(to-from)) > (unsigned long)max_length-nchars ){
+      WARNING_message("AFNI paste: text exceeds this field's maximum length") ;
+      XwcFreeStringList(strings) ;
+      AFNI_paste_dispose(req) ;
+      return ;
+   }
+   XmTextFieldReplaceWcs( target, from, to, strings[0] ) ;
+   XwcFreeStringList(strings) ;
+   /* A modify-verification callback is allowed to destroy the dialog. */
+   if( req->target != NULL ){
+      new_last = XmTextFieldGetLastPosition(req->target) ;
+      new_cursor = from + (XmTextPosition)nchars ;
+      if( new_cursor > new_last ) new_cursor = new_last ;
+      XmTextFieldSetInsertionPosition( req->target, new_cursor ) ;
+   }
+   AFNI_paste_dispose(req) ;
+}
+
+static void AFNI_paste_selection_action( Widget w, XEvent *event,
+                                        String *params, Cardinal *num_params )
+{
+   AFNI_selection_paste *req ;
+   Display *display = XtDisplay(w) ;
+   (void)params ; (void)num_params ;
+   if( !XmIsTextField(w) || event == NULL || event->type != KeyPress ) return ;
+   if( !XtIsSensitive(w) || !XmTextFieldGetEditable(w) ) return ;
+   if( event->xkey.time == CurrentTime ){
+      WARNING_message("AFNI paste: a real keyboard-event timestamp is required") ;
+      return ;
+   }
+   if( AFNI_paste_requestor == NULL ){
+      AFNI_paste_requestor = XtVaCreatePopupShell(
+         "afniPaste", overrideShellWidgetClass, MAIN_shell,
+         XtNwidth, (XtArgVal)1, XtNheight, (XtArgVal)1, NULL ) ;
+      XtRealizeWidget(AFNI_paste_requestor) ;
+   }
+   req = (AFNI_selection_paste *)calloc(1,sizeof(*req)) ;
+   if( req == NULL ){
+      WARNING_message("AFNI paste: cannot allocate selection request") ;
+      return ;
+   }
+   req->target = w ;
+   req->clipboard = XInternAtom(display,"CLIPBOARD",False) ;
+   req->targets[0] = XInternAtom(display,"UTF8_STRING",False) ;
+   req->targets[1] = XInternAtom(display,"COMPOUND_TEXT",False) ;
+   req->targets[2] = XA_STRING ;
+   req->time = event->xkey.time ;
+   XtAddCallback( w, XmNdestroyCallback,
+                  AFNI_paste_target_destroyed, (XtPointer)req ) ;
+   AFNI_paste_request_next(req) ;
+}
+
+#endif /* DARWIN */
+/* END AFNI_DIRECT_SELECTION_PASTE */
+
+
 int main( int argc , char *argv[] )
 {
    int ii ; int dienow=0 ;
@@ -2716,6 +2915,14 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+#ifdef DARWIN
+   { static XtActionsRec paste_actions[] = {
+        { "AFNI-paste-selection", AFNI_paste_selection_action }
+     } ;
+     XtAppAddActions( MAIN_app, paste_actions, XtNumber(paste_actions) ) ;
+   }
+#endif
 
 #if 1
    { Display *dpy = XtDisplay(MAIN_shell) ;
