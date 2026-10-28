@@ -2305,10 +2305,11 @@ static int check_string( char *targ , int ns , char *ss[] )
 /*----------------------------------------------------------------------------*/
 
 /* BEGIN AFNI_DIRECT_SELECTION_PASTE
-   Optional macOS clipboard action.  Request the standard X11 CLIPBOARD
-   directly, bypassing Motif's paste/transfer actions.  Enable with:
-     -xrm 'AFNI*XmTextField.translations: #override Mod2<KeyPress>v: AFNI-paste-selection()'
-   This is an experimental workaround, not a diagnosis of the Motif failure.
+   macOS clipboard action.  Request the standard X11 CLIPBOARD directly,
+   bypassing Motif's paste/transfer actions.  A widget-creation hook binds
+   Command+V on new XmTextField widgets.  AFNI_PASTE_DEBUG=YES enables tracing.
+   The ASCII transfer/insertion path has been tested by the user on macOS;
+   the original Motif failure and non-ASCII behavior remain unverified.
 */
 #ifdef DARWIN
 
@@ -2326,6 +2327,11 @@ static Widget AFNI_paste_requestor = NULL ;
 static const char *AFNI_paste_target_names[3] = {
    "UTF8_STRING", "COMPOUND_TEXT", "STRING"
 } ;
+
+static int AFNI_paste_trace_enabled(void)
+{
+   return AFNI_yesenv("AFNI_PASTE_DEBUG") ;
+}
 
 static void AFNI_paste_free_text( wchar_t **strings, wchar_t *plain )
 {
@@ -2354,11 +2360,12 @@ static void AFNI_paste_receive( Widget, XtPointer, Atom *, Atom *,
 static void AFNI_paste_request_next( AFNI_selection_paste *req )
 {
    if( req->next_target == 3 ){
-      WARNING_message("AFNI paste v2: exhausted CLIPBOARD targets; see request/response diagnostics above") ;
+      WARNING_message("AFNI paste: exhausted CLIPBOARD targets; set AFNI_PASTE_DEBUG=YES for diagnostics") ;
       AFNI_paste_dispose(req) ;
       return ;
    }
-   fprintf(stderr,"++ AFNI paste v2: request target=%s owner=0x%lx time=%lu\n",
+   if( AFNI_paste_trace_enabled() )
+      fprintf(stderr,"++ AFNI paste: request target=%s owner=0x%lx time=%lu\n",
            AFNI_paste_target_names[req->next_target],
            (unsigned long)XGetSelectionOwner(XtDisplay(req->target),req->clipboard),
            (unsigned long)req->time) ;
@@ -2389,11 +2396,13 @@ static void AFNI_paste_receive( Widget requestor, XtPointer cd,
       AFNI_paste_dispose(req) ;
       return ;
    }
-   fprintf(stderr,"++ AFNI paste v2: response target=%s type=0x%lx bytes=%lu format=%d value=%s\n",
+   if( AFNI_paste_trace_enabled() )
+      fprintf(stderr,"++ AFNI paste: response target=%s type=0x%lx bytes=%lu format=%d value=%s\n",
            AFNI_paste_target_names[req->next_target-1],
            (unsigned long)*type,*length,*format,(value != NULL)?"present":"NULL") ;
    if( value == NULL || *type == None || *type == XT_CONVERT_FAIL ){
-      fprintf(stderr,"++ AFNI paste v2: selection request failed%s\n",
+      if( AFNI_paste_trace_enabled() )
+         fprintf(stderr,"++ AFNI paste: selection request failed%s\n",
               (*type == XT_CONVERT_FAIL)?" (XT_CONVERT_FAIL)":"") ;
       if( value != NULL ) XtFree((char *)value) ;
       AFNI_paste_request_next(req) ;
@@ -2406,7 +2415,8 @@ static void AFNI_paste_receive( Widget requestor, XtPointer cd,
       return ;
    }
    if( *length == 0 ){
-      INFO_message("AFNI paste: CLIPBOARD contains empty text") ;
+      if( AFNI_paste_trace_enabled() )
+         INFO_message("AFNI paste: CLIPBOARD contains empty text") ;
       XtFree((char *)value) ;
       AFNI_paste_dispose(req) ;
       return ;
@@ -2423,14 +2433,15 @@ static void AFNI_paste_receive( Widget requestor, XtPointer cd,
    if( ascii_only ){
       plain = (wchar_t *)calloc((size_t)*length+1,sizeof(*plain)) ;
       if( plain == NULL ){
-         WARNING_message("AFNI paste v2: cannot allocate ASCII text") ;
+         WARNING_message("AFNI paste: cannot allocate ASCII text") ;
          XtFree((char *)value) ;
          AFNI_paste_dispose(req) ;
          return ;
       }
       for( ii=0 ; ii < *length ; ii++ ) plain[ii] = (wchar_t)bytes[ii] ;
       text = plain ; count = 1 ;
-      fprintf(stderr,"++ AFNI paste v2: ASCII text; bypassed Xlib locale conversion\n") ;
+      if( AFNI_paste_trace_enabled() )
+         fprintf(stderr,"++ AFNI paste: ASCII text; bypassed Xlib locale conversion\n") ;
    } else {
       /* Selection data is length-delimited and need not end in NUL. */
       property.value = (unsigned char *)value ;
@@ -2439,7 +2450,8 @@ static void AFNI_paste_receive( Widget requestor, XtPointer cd,
       property.nitems = *length ;
       status = XwcTextPropertyToTextList( XtDisplay(target), &property,
                                          &strings, &count ) ;
-      fprintf(stderr,"++ AFNI paste v2: Xlib conversion status=%d strings=%d\n",status,count) ;
+      if( AFNI_paste_trace_enabled() )
+         fprintf(stderr,"++ AFNI paste: Xlib conversion status=%d strings=%d\n",status,count) ;
       if( status == Success && strings != NULL && count == 1 ) text = strings[0] ;
    }
    XtFree((char *)value) ;
@@ -2487,14 +2499,16 @@ static void AFNI_paste_receive( Widget requestor, XtPointer cd,
       AFNI_paste_dispose(req) ;
       return ;
    }
-   fprintf(stderr,"++ AFNI paste v2: inserting %lu characters; field length before=%ld\n",
+   if( AFNI_paste_trace_enabled() )
+      fprintf(stderr,"++ AFNI paste: inserting %lu characters; field length before=%ld\n",
            (unsigned long)nchars,(long)old_last) ;
    XmTextFieldReplaceWcs( target, from, to, text ) ;
    AFNI_paste_free_text(strings,plain) ;
    /* A modify-verification callback is allowed to destroy the dialog. */
    if( req->target != NULL ){
       new_last = XmTextFieldGetLastPosition(req->target) ;
-      fprintf(stderr,"++ AFNI paste v2: field length after=%ld\n",(long)new_last) ;
+      if( AFNI_paste_trace_enabled() )
+         fprintf(stderr,"++ AFNI paste: field length after=%ld\n",(long)new_last) ;
       new_cursor = from + (XmTextPosition)nchars ;
       if( new_cursor > new_last ) new_cursor = new_last ;
       XmTextFieldSetInsertionPosition( req->target, new_cursor ) ;
@@ -2534,6 +2548,36 @@ static void AFNI_paste_selection_action( Widget w, XEvent *event,
    XtAddCallback( w, XmNdestroyCallback,
                   AFNI_paste_target_destroyed, (XtPointer)req ) ;
    AFNI_paste_request_next(req) ;
+}
+
+static XtTranslations AFNI_paste_default_translations = NULL ;
+
+/* Merge the binding after creation/resource initialization.  This also
+   supersedes stale paste bindings from earlier xrdb experiments, while
+   retaining the widget's other translations. */
+static void AFNI_paste_widget_created( Widget hooks, XtPointer cd, XtPointer cb )
+{
+   XtCreateHookData created = (XtCreateHookData)cb ;
+   (void)hooks ; (void)cd ;
+   if( created != NULL && created->widget != NULL &&
+       XmIsTextField(created->widget) && AFNI_paste_default_translations != NULL )
+      XtOverrideTranslations( created->widget, AFNI_paste_default_translations ) ;
+}
+
+static void AFNI_initialize_paste( XtAppContext app, Widget shell )
+{
+   static XtActionsRec actions[] = {
+      { "AFNI-paste-selection", AFNI_paste_selection_action }
+   } ;
+   XtAppAddActions( app, actions, XtNumber(actions) ) ;
+   AFNI_paste_default_translations = XtParseTranslationTable(
+      "Mod2<KeyPress>v: AFNI-paste-selection()" ) ;
+   if( AFNI_paste_default_translations == NULL ){
+      WARNING_message("AFNI paste: could not install default Command+V binding") ;
+      return ;
+   }
+   XtAddCallback( XtHooksOfDisplay(XtDisplay(shell)), XtNcreateHook,
+                  AFNI_paste_widget_created, NULL ) ;
 }
 
 #endif /* DARWIN */
@@ -2963,11 +3007,7 @@ int main( int argc , char *argv[] )
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
 
 #ifdef DARWIN
-   { static XtActionsRec paste_actions[] = {
-        { "AFNI-paste-selection", AFNI_paste_selection_action }
-     } ;
-     XtAppAddActions( MAIN_app, paste_actions, XtNumber(paste_actions) ) ;
-   }
+   AFNI_initialize_paste( MAIN_app, MAIN_shell ) ;
 #endif
 
 #if 1
