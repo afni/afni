@@ -3010,6 +3010,11 @@ ENTRY("MCW_choose_string") ;
                  XmNtraversalOn , True ,
               NULL ) ;
 
+#ifdef DARWIN
+   XtOverrideTranslations( wtf, XtParseTranslationTable(
+      "Mod2<KeyPress>v: paste-clipboard()" ) ) ;
+#endif
+
    if( default_string != NULL && default_string[0] != '\0' ){
      int qq  = strlen(default_string) , ii ;
      for( ii=0 ; ii < qq ; ii++ ) if( default_string[ii] != ' ' ) break ;
