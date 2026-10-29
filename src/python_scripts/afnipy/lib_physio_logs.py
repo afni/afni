@@ -239,7 +239,7 @@ here."""
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
-    D['peak num total'] = str(tsobj.n_peaks)
+    D['peak num'] = str(tsobj.n_peaks)
     minval, maxval, meanval, stdval = tsobj.stats_ival_mmms("peaks")
     q25, q50, q75 = tsobj.stats_ival_percentiles("peaks") # def: quartiles
     D['peak ival min max'] = str("{:8.6f} {:8.6f}".format(minval, 
@@ -252,18 +252,18 @@ here."""
 
     peak_times = tsobj.tvalues[tsobj.peaks]
     num, frac = _review_ival_outliers(peak_times)
-    D['peak ival outlier num total'] = num
-    D['peak ival outlier frac total'] = frac
+    D['peak ival outlier num'] = num
+    D['peak ival outlier frac'] = frac
     if tsobj.n_troughs:
         trough_times = tsobj.tvalues[tsobj.troughs]
         is_fail, indices = lpout.find_nonalt_extrema(peak_times, trough_times)
         if not is_fail:
-            D['peak nonalt num total'] = str(len(indices))
+            D['peak nonalt num'] = str(len(indices))
         else:
-            D['peak nonalt num total'] = 'NA'
+            D['peak nonalt num'] = 'NA'
     else:
         # Without opposite extrema, alternation cannot be assessed.
-        D['peak nonalt num total'] = 'NA'
+        D['peak nonalt num'] = 'NA'
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
@@ -274,19 +274,19 @@ here."""
         ab.WP("Less than 2 peaks, extreme case and may cause crashes.")
 
     # info over subset of MRI dset duration
-    D['peak num over dset'] = str(tsobj.stats_count_pt("peaks", 
-                                                       min_idx=idxA,
-                                                       max_idx=idxB))
+    D['peak num (dset span)'] = str(tsobj.stats_count_pt("peaks", 
+                                                         min_idx=idxA,
+                                                         max_idx=idxB))
     minval, maxval, meanval, stdval = tsobj.stats_ival_mmms("peaks", 
                                                             min_idx=idxA,
                                                             max_idx=idxB)
     q25, q50, q75 = tsobj.stats_ival_percentiles("peaks", min_idx=idxA,
                                                  max_idx=idxB)
-    D['peak ival over dset min max'] = str("{:8.6f} {:8.6f}".format(minval, 
-                                                                    maxval))
-    D['peak ival over dset mean std'] = str("{:8.6f} {:8.6f}".format(meanval,
-                                                                     stdval))
-    D['peak ival over dset q25 q50 q75'] = \
+    D['peak ival min max (dset span)'] = str("{:8.6f} {:8.6f}".format(minval, 
+                                                                      maxval))
+    D['peak ival mean std (dset span)'] = str("{:8.6f} {:8.6f}".format(meanval,
+                                                                       stdval))
+    D['peak ival q25 q50 q75 (dset span)'] = \
         str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
                                              q50, 
                                              q75))
@@ -294,25 +294,25 @@ here."""
     peak_dset_times = tsobj.tvalues[tsobj.adjunct_get_list(
         kind='peaks', min_idx=idxA, max_idx=idxB)]
     num, frac = _review_ival_outliers(peak_dset_times)
-    D['peak ival outlier num over dset'] = num
-    D['peak ival outlier frac over dset'] = frac
+    D['peak ival outlier num (dset span)'] = num
+    D['peak ival outlier frac (dset span)'] = frac
     if tsobj.n_troughs:
         trough_dset_times = tsobj.tvalues[tsobj.adjunct_get_list(
             kind='troughs', min_idx=idxA, max_idx=idxB)]
         is_fail, indices = lpout.find_nonalt_extrema(
             peak_dset_times, trough_dset_times)
         if not is_fail:
-            D['peak nonalt num over dset'] = str(len(indices))
+            D['peak nonalt num (dset span)'] = str(len(indices))
         else:
-            D['peak nonalt num over dset'] = 'NA'
+            D['peak nonalt num (dset span)'] = 'NA'
     else:
-        D['peak nonalt num over dset'] = 'NA'
+        D['peak nonalt num (dset span)'] = 'NA'
 
 
     if tsobj.n_troughs :
         D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
-        D['trough num total'] = str(tsobj.n_troughs)
+        D['trough num'] = str(tsobj.n_troughs)
         minval, maxval, meanval, stdval = tsobj.stats_ival_mmms("troughs")
         q25, q50, q75 = tsobj.stats_ival_percentiles("troughs")
         D['trough ival min max'] = str("{:8.6f} {:8.6f}".format(minval, 
@@ -325,13 +325,13 @@ here."""
                                                  q75))
 
         num, frac = _review_ival_outliers(trough_times)
-        D['trough ival outlier num total'] = num
-        D['trough ival outlier frac total'] = frac
+        D['trough ival outlier num'] = num
+        D['trough ival outlier frac'] = frac
         is_fail, indices = lpout.find_nonalt_extrema(trough_times, peak_times)
         if not is_fail :
-            D['trough nonalt num total'] = str(len(indices))
+            D['trough nonalt num'] = str(len(indices))
         else:
-            D['trough nonalt num total'] = 'NA'
+            D['trough nonalt num'] = 'NA'
 
         D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
@@ -342,9 +342,9 @@ here."""
 
 
         # info over subset of MRI dset duration
-        D['trough num over dset'] = str(tsobj.stats_count_pt("troughs", 
-                                                             min_idx=idxA,
-                                                             max_idx=idxB))
+        D['trough num (dset span)'] = str(tsobj.stats_count_pt("troughs", 
+                                                               min_idx=idxA,
+                                                               max_idx=idxB))
         if tsobj.n_troughs :
             minval, maxval, meanval, stdval = \
                 tsobj.stats_ival_mmms("troughs",
@@ -353,26 +353,26 @@ here."""
             q25, q50, q75 = tsobj.stats_ival_percentiles("troughs", 
                                                          min_idx=idxA,
                                                          max_idx=idxB)
-            D['trough ival over dset min max'] = \
+            D['trough ival min max (dset span)'] = \
                 str("{:8.6f} {:8.6f}".format(minval, 
                                              maxval))
-            D['trough ival over dset mean std'] = \
+            D['trough ival mean std (dset span)'] = \
                 str("{:8.6f} {:8.6f}".format(meanval, 
                                              stdval))
-            D['trough ival over dset q25 q50 q75'] = \
+            D['trough ival q25 q50 q75 (dset span)'] = \
                 str("{:8.6f} {:8.6f} {:8.6f}".format(q25, 
                                                      q50, 
                                                      q75))
 
             num, frac = _review_ival_outliers(trough_dset_times)
-            D['trough ival outlier num over dset'] = num
-            D['trough ival outlier frac over dset'] = frac
+            D['trough ival outlier num (dset span)'] = num
+            D['trough ival outlier frac (dset span)'] = frac
             is_fail, indices = lpout.find_nonalt_extrema(
                 trough_dset_times, peak_dset_times)
             if not is_fail:
-                D['trough nonalt num over dset'] = str(len(indices))
+                D['trough nonalt num (dset span)'] = str(len(indices))
             else:
-                D['trough nonalt num over dset'] = 'NA'
+                D['trough nonalt num (dset span)'] = 'NA'
 
     return D
 
