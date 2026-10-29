@@ -64,8 +64,11 @@ if __name__ == "__main__":
     # + a quick but OK exit (disp help, ver, opt list, etc.)
     # + getting a dict of checked opts for the program
     # + error exit :(
+
+    # sys.argv[0] includes path, which we don't need/want
     args_orig = copy.deepcopy(sys.argv)
-    args_dict = lpo.main_option_processing( sys.argv )
+    args_orig[0] = os.path.basename(sys.argv[0])
+    args_dict = lpo.main_option_processing( args_orig )
 
     # -------------------- if doing calc, import more -----------------------
 

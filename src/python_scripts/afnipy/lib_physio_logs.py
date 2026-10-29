@@ -393,7 +393,7 @@ def save_cmd_orig(pcobj, verb=1):
 
     # --------------------- make strings of info -----------------------------
     
-    sheb_str = '#!/bin/tcsh\n\n'
+    sheb_str = '#!/usr/bin/env tcsh\n\n'
 
     comm_str = '# A backup of the physio_calc.py command use to create '
     comm_str+= 'this set of data\n\n'
@@ -413,6 +413,7 @@ def save_cmd_orig(pcobj, verb=1):
 
     # make the command str, in a niceified way
     cmd_orig = ' '.join(pcobj.args_orig)
+    cmd_orig+= ' '
     all_opt  = ['-'+opt for opt in DEF.DOPTS.keys()]
     is_ok, cmd_str = \
         lfcs.afni_niceify_cmd_str(cmd_orig, list_cmd_args=all_opt)
