@@ -5093,6 +5093,21 @@ def run_checks(BIN, work, threads, verbose):
           os.path.exists(os.path.join(cnd, "mem_override.rsa.1D")),
           "rc=%d %s" % (rc, mout.strip()[-180:]))
 
+    # Runwise atlas analyses retain the same subject/run beta and residual
+    # collection, so guard them with the same preflight even without a moving
+    # searchlight.  The tiny limit keeps this a refusal-only, fast check.
+    atlas_mem = ["-runwiseTable", os.path.join(cnd, "rw.txt"), "-mask",
+                 os.path.join(cnd, "mask.nii.gz"), "-mode", "RSA",
+                 "-model_mat", "block", os.path.join(cnd, "block.1D"),
+                 "-metric", "spearman", "-nperm", "0", "-no_dset",
+                 "-memory_limit", "0.000001", "-prefix",
+                 os.path.join(cnd, "mem_atlas_refuse")]
+    rc, mout = rsa(atlas_mem)
+    check("F11 runwise atlas memory limit refuses before loading",
+          rc != 0 and "runwise atlas memory preflight" in mout and
+          "exceeds the" in mout and "-memory_override" in mout,
+          "rc=%d %s" % (rc, mout.strip()[-180:]))
+
     # =====================================================================
     # 7. -model_dset under searchlight.  Stream a second modality through the
     #    moving neighborhood.  With a radius covering the whole volume every
@@ -5628,10 +5643,22 @@ def run_checks(BIN, work, threads, verbose):
     check("Stage 5 run-resolved joint beta/partial/contrast match NumPy",
           numeric_ok, "rc=%d rows=%d %s" % (jr1, len(jrows1), jo1.strip()[-180:]))
     jsort = lambda rows: sorted(rows, key=lambda x: (str(x["model"]), str(x["summary"])))
-    check("Stage 5 shuffled rows and OpenMP count are exactly reproducible",
-          jrN == 0 and jsort(jrows1) == jsort(jrowsN),
+    # Reordering subjects/runs changes float reduction order. At the table's
+    # six-digit precision, beta/partial_r may differ in the last printed digit;
+    # labels and all inference fields must still agree exactly. Check OpenMP
+    # separately with identical row order, where bitwise equality is required.
+    shuffled_ok = jrN == 0 and len(jrows1) == len(jrowsN)
+    for left, right in zip(jsort(jrows1), jsort(jrowsN)):
+        shuffled_ok &= (left.keys() == right.keys() and all(
+            abs(left[k]-right[k]) <= 2e-6 if k in ('beta','partial_r')
+            else left[k] == right[k] for k in left))
+    check("Stage 5 shuffled rows preserve inference and coefficients within 2e-6",
+          shuffled_ok,
           "rc1=%d rcN=%d rows=%d/%d %s" %
           (jr1, jrN, len(jrows1), len(jrowsN), joN.strip()[-140:]))
+    jrT, joT, jrowsT = s5j_run("joint_tN_same_order", jt1, envN)
+    check("Stage 5 identical-row OpenMP counts are exactly reproducible",
+          jrT == 0 and jsort(jrows1) == jsort(jrowsT), joT.strip()[-140:])
     jheads = glob.glob(os.path.join(s5j, "joint_t1+*.HEAD"))
     jlabs = head_brick_labs(jheads[0]) if jr1 == 0 and jheads else []
     check("Stage 5 dataset labels distinguish coefficients and coefficient contrasts",
@@ -6002,6 +6029,142 @@ def run_checks(BIN, work, threads, verbose):
 # ============================================================================
 # main
 # ============================================================================
+def run_precision_checks(binary, work, threads):
+    """Exact sparse-pattern ties through group effects, p, BH, and max-t FWE."""
+    import numpy as np
+    import nibabel as nib
+    from scipy.stats import rankdata
+
+    folder = os.path.join(work, 'pearson_precision')
+    os.makedirs(folder, exist_ok=True)
+    rng = np.random.default_rng(725)
+    ns, nr, nc, nv = 6, 3, 15, 63
+    amps = np.array([[rng.permutation(np.arange(-7, 8)) for _ in range(nr)]
+                     for _ in range(ns)], dtype=np.float32) * np.float32(.137)
+    upper = np.triu_indices(nc, 1)
+    model = (np.arange(nc)[:, None]//5 == np.arange(nc)[None, :]//5).astype(float)
+    np.savetxt(os.path.join(folder, 'model.1D'), model)
+    mr = rankdata(model[upper])-53
+    signs = np.sign(amps)
+    tri = signs[:, :, upper[0]]*signs[:, :, upper[1]]
+    subject_r = (12*((rankdata(tri, axis=2)-53) @ mr)/(105*(105**2-1))).astype(np.float32)
+    z = np.arctanh(subject_r).astype(np.float64)
+    effect = np.tanh(z.mean(axis=0))
+    flip = np.array(list(itertools.product([-1., 1.], repeat=ns)))
+    null = flip[:, :, None]*z[None, :, :]
+    null_t = np.abs(null.mean(axis=1)/(null.std(axis=1, ddof=1)/np.sqrt(ns)))
+    obs_t = np.abs(z.mean(axis=0)/(z.std(axis=0, ddof=1)/np.sqrt(ns)))
+    pv = np.mean(null_t >= obs_t[None, :]-1e-6, axis=0)
+    pfwe = np.mean(null_t.max(axis=1)[:, None] >= obs_t[None, :]-1e-6, axis=0)
+    order = np.argsort(pv)
+    qv = np.empty(nr)
+    qv[order] = np.minimum(1, np.minimum.accumulate((pv[order]*nr/np.arange(1,nr+1))[::-1])[::-1])
+    mask = np.broadcast_to(np.arange(1, nr+1, dtype=np.int16)[None, :, None], (nv,nr,1)).copy()
+    nib.save(nib.Nifti1Image(mask, np.eye(4)), os.path.join(folder, 'mask.nii.gz'))
+    arrays = []
+    for reverse in [False, True]:
+        table = ['Subj InputFile']
+        for s in range(ns):
+            data = np.zeros((nv,nr,1,nc),np.float32)
+            for r,pos in enumerate([0,19,62]):
+                data[nv-1-pos if reverse else pos,r,0,:] = amps[s,r]
+            name = 's%d_order%d.nii.gz' % (s,reverse)
+            nib.save(nib.Nifti1Image(data,np.eye(4)), os.path.join(folder,name))
+            table.append('s%d %s' % (s,name))
+        tablefile = 'table%d.txt' % reverse
+        with open(os.path.join(folder,tablefile),'w') as f:
+            f.write('\n'.join(table)+'\n')
+        for nt in [1,threads]:
+            prefix = 'result%d_%d' % (reverse,nt)
+            cmd = [os.path.abspath(binary),'-mask','mask.nii.gz','-mode','RSA',
+                   '-dataTableFile',tablefile,'-model_mat','same','model.1D',
+                   '-neural_metric','corr','-center_conditions','subject','-metric','rhoa',
+                   '-nperm','64','-seed','725','-prefix',prefix]
+            p = subprocess.run(cmd,cwd=folder,env=dict(os.environ,OMP_NUM_THREADS=str(nt),
+                               AFNI_VERSION_CHECK='NO'),stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+            if p.returncode:
+                raise RuntimeError('sparse precision CLI failed: '+p.stdout)
+            _,rows = read_table(os.path.join(folder,prefix+'.rsa.1D'),'same')
+            got = np.array([[row['same_'+c] for c in ['r','p','q','pfwe']] for row in rows])
+            want = np.column_stack([effect,pv,qv,pfwe])
+            check('sparse Pearson exact effects/p/BH/FWE order=%d threads=%d' % (reverse,nt),
+                  np.allclose(got,want,atol=1e-6,rtol=0),repr(got-want))
+            arrays.append(got)
+    check('sparse Pearson feature-order and thread invariance',
+          all(np.array_equal(x,arrays[0]) for x in arrays[1:]))
+
+
+def run_temporal_precision_checks(binary, work, threads):
+    """Periodic Pearson ties must survive the time-shift null's lag cache."""
+    import numpy as np
+    import nibabel as nib
+    from scipy.stats import rankdata
+
+    folder = os.path.join(work, 'timeshift_precision')
+    os.makedirs(folder, exist_ok=True)
+    amp = np.array([-1.01, -.78, -.57, .37, .21, .11], dtype=np.float32)
+    ns, nt, ndraw, seed = len(amp), 64, 1001, 91
+    series = amp[:, None] * np.tile(np.array([1, -1], np.float32), nt//2)
+    nib.save(nib.Nifti1Image(np.ones((1, 1, 1), np.int16), np.eye(4)),
+             os.path.join(folder, 'mask.nii.gz'))
+    table = ['Subj InputFile']
+    for s in range(ns):
+        name = 's%d.nii.gz' % s
+        nib.save(nib.Nifti1Image(series[s].reshape(1, 1, 1, nt), np.eye(4)),
+                 os.path.join(folder, name))
+        table.append('s%d %s' % (s, name))
+    with open(os.path.join(folder, 'table.txt'), 'w') as f:
+        f.write('\n'.join(table)+'\n')
+    model = np.sign(amp[:, None]*amp[None, :])
+    np.savetxt(os.path.join(folder, 'model.1D'), model)
+    upper = np.triu_indices(ns, 1)
+    mr = rankdata(model[upper])-8
+    offsets = timeshift_offsets(ns, nt, ndraw, 1, seed)
+    signs = np.sign(amp)[None, :]*np.where(offsets % 2, -1, 1)
+    # Shifting this two-sample periodic waveform only changes its sign.
+    # Construct exact +/-1 triangles analytically, without a Pearson oracle
+    # that might itself split ties. Constant triangles have statistic zero.
+    ranks = rankdata(signs[:, upper[0]]*signs[:, upper[1]], axis=1)-8
+    dot = ranks @ mr
+    den2 = (ranks*ranks).sum(axis=1)*(mr*mr).sum()
+    for metric in ('spearman', 'rhoa'):
+        if metric == 'spearman':
+            observed = 1.0
+            # Exact rank arithmetic: |corr| >= 1 iff dot^2 >= SSx*SSy.
+            pv = np.mean((den2 > 0) & (dot*dot >= den2))
+        else:
+            observed = 12*dot[0]/(15*(15**2-1))
+            pv = np.mean(np.abs(dot) >= abs(dot[0]))
+        want = np.array([[observed, pv, pv, pv]])  # one ROI: q = p = pfwe
+        outputs = []
+        for spatial in ('atlas', 'searchlight'):
+            for nth in sorted(set((1, threads))):
+                prefix = '%s_%s_t%d' % (metric, spatial, nth)
+                cmd = [os.path.abspath(binary), '-dataTableFile', 'table.txt',
+                       '-mask', 'mask.nii.gz', '-mode', 'IS-RSA',
+                       '-model_mat', 'same', 'model.1D', '-neural_metric', 'corr',
+                       '-metric', metric, '-null', 'timeshift', '-min_shift', '1',
+                       '-nperm', str(ndraw), '-seed', str(seed), '-no_dset',
+                       '-prefix', prefix]
+                if spatial == 'searchlight':
+                    cmd += ['-searchlight', 'SPHERE(2)']
+                p = subprocess.run(cmd, cwd=folder,
+                                   env=dict(os.environ, OMP_NUM_THREADS=str(nth),
+                                            AFNI_VERSION_CHECK='NO'),
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                if p.returncode:
+                    raise RuntimeError('periodic time-shift CLI failed: '+p.stdout)
+                _, rows = read_table(os.path.join(folder, prefix+'.rsa.1D'), 'same')
+                got = np.array([[row['same_'+c] for c in ('r', 'p', 'q', 'pfwe')]
+                                for row in rows])
+                check('periodic time-shift Pearson ties '+prefix,
+                      got.shape == want.shape and np.allclose(got, want, atol=5e-7, rtol=0),
+                      'got=%s expected=%s' % (got, want))
+                outputs.append(got)
+        check('periodic time-shift atlas/searchlight/thread equality '+metric,
+              all(np.array_equal(x, outputs[0]) for x in outputs[1:]))
+
+
 def main():
     default_bin = os.environ.get("RSA_BIN") or shutil.which("3dRSA") or "3dRSA"
     ap = argparse.ArgumentParser(description=__doc__,
@@ -6035,6 +6198,8 @@ def main():
 
     try:
         run_checks(a.bin, work, a.threads, a.verbose)
+        run_precision_checks(a.bin, work, a.threads)
+        run_temporal_precision_checks(a.bin, work, a.threads)
     except Skip as e:
         print("SKIP: %s" % e); return 0
     except Exception as e:

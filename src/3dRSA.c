@@ -2,6 +2,7 @@
 #include "thd_datatable.h"
 #include "thd_mapinfer.h"
 #include "thd_simmatrix.h"
+#include "thd_rsa.h"
 #include "thd_patterns.h"
 #include "thd_phasefft.h"
 #include <ctype.h>
@@ -385,6 +386,165 @@ typedef struct RSA_model {
    THD_simmat **sub_mat ; float *sub_tri ;
    float **cmean ; int mvals ; char name[128] ;
 } RSA_model ;
+
+typedef struct {
+   char *name,*csv ;
+   unsigned char *member ;             /* resolved in Xmat StimLabels order */
+} RSA_xgroup ;
+
+typedef struct { char *label,*spec ; } RSA_generated_spec ;
+
+static char ** rsa_split_named_csv( const char *arg, const char *opt, int *nout )
+{
+   char *copy,*tok,*sp,**out=NULL ; int nn=0 ;
+   if( nout!=NULL ) *nout=0 ;
+   if( arg==NULL || *arg=='\0' || arg[0]==',' || arg[strlen(arg)-1]==',' ||
+       strstr(arg,",,")!=NULL )
+     ERROR_exit("3dRSA: %s needs a nonempty comma-separated list (got '%s')",
+                opt,(arg!=NULL)?arg:"") ;
+   copy=strdup(arg) ;
+   for( tok=strtok_r(copy,",",&sp) ; tok!=NULL ; tok=strtok_r(NULL,",",&sp) ){
+     char *end ; int ii ;
+     while( *tok==' ' || *tok=='\t' ) tok++ ;
+     end=tok+strlen(tok) ; while( end>tok && (end[-1]==' ' || end[-1]=='\t') ) *--end='\0' ;
+     if( *tok=='\0' ) ERROR_exit("3dRSA: empty name in %s '%s'",opt,arg) ;
+     for( ii=0 ; ii<nn ; ii++ ) if( strcmp(out[ii],tok)==0 )
+       ERROR_exit("3dRSA: duplicate name '%s' in %s '%s'",tok,opt,arg) ;
+     out=(char **)realloc(out,sizeof(char *)*(nn+1)) ; out[nn++]=strdup(tok) ;
+   }
+   free(copy) ; if( nout!=NULL ) *nout=nn ; return out ;
+}
+
+/*! Union of group members for the implicit -xmat_stims selection.  The Xmat
+    reader restores StimLabels order, so declaration order never changes the
+    condition axis. */
+static char * rsa_xgroup_union( RSA_xgroup *g, int ng )
+{
+   char **all=NULL ; int na=0,gg,ii ; size_t nc=1 ; char *out ;
+   for( gg=0 ; gg<ng ; gg++ ){
+     int nn=0 ; char **v=rsa_split_named_csv(g[gg].csv,"-xmat_stims_group",&nn) ;
+     for( ii=0 ; ii<nn ; ii++ ) if( rsa_string_index(all,na,v[ii])<0 ){
+       all=(char **)realloc(all,sizeof(char *)*(na+1)) ; all[na++]=strdup(v[ii]) ;
+       nc+=strlen(v[ii])+1 ;
+     }
+     for( ii=0 ; ii<nn ; ii++ ) free(v[ii]) ; free(v) ;
+   }
+   out=(char *)calloc(nc,1) ;
+   for( ii=0 ; ii<na ; ii++ ){
+     if( ii>0 ) strcat(out,",") ; strcat(out,all[ii]) ; free(all[ii]) ;
+   }
+   free(all) ; return out ;
+}
+
+static void rsa_xgroups_resolve( RSA_xgroup *g, int ng, THD_runset *rs )
+{
+   int gg,hh,ii ;
+   for( gg=0 ; gg<ng ; gg++ ){
+     int nn=0 ; char **v ;
+     if( g[gg].name==NULL || *g[gg].name=='\0' || strchr(g[gg].name,',')!=NULL )
+       ERROR_exit("3dRSA: invalid -xmat_stims_group name '%s'",g[gg].name) ;
+     for( hh=0 ; hh<gg ; hh++ ) if( strcasecmp(g[gg].name,g[hh].name)==0 )
+       ERROR_exit("3dRSA: duplicate -xmat_stims_group name '%s'",g[gg].name) ;
+     if( rsa_string_index(rs->cond_lab,rs->ncond,g[gg].name)>=0 )
+       ERROR_exit("3dRSA: -xmat_stims_group name '%s' is also a selected StimLabel;\n"
+                  "       group aliases and stimulus names must be distinct",g[gg].name) ;
+     g[gg].member=(unsigned char *)calloc(rs->ncond,1) ;
+     v=rsa_split_named_csv(g[gg].csv,"-xmat_stims_group",&nn) ;
+     for( ii=0 ; ii<nn ; ii++ ){
+       int cc=rsa_string_index(rs->cond_lab,rs->ncond,v[ii]) ;
+       if( cc<0 ) ERROR_exit("3dRSA: group '%s' names stimulus '%s', which is not in\n"
+                             "       the selected Xmat StimLabels",g[gg].name,v[ii]) ;
+       g[gg].member[cc]=1 ; free(v[ii]) ;
+     }
+     free(v) ;
+   }
+}
+
+static int rsa_xgroup_index( RSA_xgroup *g, int ng, const char *name )
+{
+   int ii ; for( ii=0 ; ii<ng ; ii++ ) if( strcmp(g[ii].name,name)==0 ) return ii ;
+   return -1 ;
+}
+
+static THD_simmat * rsa_group_model( RSA_generated_spec *s, RSA_xgroup *g,
+                                     int ng, THD_runset *rs )
+{
+   int nv=0,ii,jj,kk,*owner=(int *)malloc(sizeof(int)*rs->ncond) ;
+   char **v=rsa_split_named_csv(s->spec,"-model_groups",&nv) ; THD_simmat *sm ;
+   if( nv<2 ) ERROR_exit("3dRSA: -model_groups %s needs at least two groups",s->label) ;
+   for( ii=0 ; ii<rs->ncond ; ii++ ) owner[ii]=-1 ;
+   for( kk=0 ; kk<nv ; kk++ ){
+     int gi=rsa_xgroup_index(g,ng,v[kk]) ;
+     if( gi<0 ) ERROR_exit("3dRSA: -model_groups %s names unknown group '%s'",s->label,v[kk]) ;
+     for( ii=0 ; ii<rs->ncond ; ii++ ) if( g[gi].member[ii] ){
+       if( owner[ii]>=0 )
+         ERROR_exit("3dRSA: -model_groups %s is not a partition: stimulus '%s' is\n"
+                    "       in both '%s' and '%s'. An omnibus within/between-group\n"
+                    "       RDM needs exactly one group per stimulus, or its 0/1\n"
+                    "       prediction is ambiguous. Use -contrast for a subgroup test.",
+                    s->label,rs->cond_lab[ii],v[owner[ii]],v[kk]) ;
+       owner[ii]=kk ;
+     }
+   }
+   for( ii=0 ; ii<rs->ncond ; ii++ ) if( owner[ii]<0 )
+     ERROR_exit("3dRSA: -model_groups %s does not assign selected stimulus '%s'.\n"
+                "       An omnibus group RDM must cover every selected stimulus exactly once.",
+                s->label,rs->cond_lab[ii]) ;
+   sm=THD_simmat_new(rs->ncond) ; sm->is_dist=1 ;
+   for( ii=0 ; ii<rs->ncond ; ii++ ) for( jj=0 ; jj<rs->ncond ; jj++ )
+     sm->mat[(size_t)ii*rs->ncond+jj]=(ii==jj || owner[ii]==owner[jj])?0.0f:1.0f ;
+   for( kk=0 ; kk<nv ; kk++ ) free(v[kk]) ; free(v) ; free(owner) ; return sm ;
+}
+
+static THD_simmat * rsa_symbolic_contrast_model( RSA_generated_spec *s,
+                                                  RSA_xgroup *g, int ng,
+                                                  THD_runset *rs )
+{
+   char *copy,*tok,*sp,*expr ; int *code,ii,jj,nterm=0,npos=0,nneg=0,nin=0 ;
+   THD_simmat *sm ; float lo=FLT_MAX,hi=-FLT_MAX ;
+   if( strncasecmp(s->spec,"SYM:",4)!=0 )
+     ERROR_exit("3dRSA: -contrast %s currently needs 'SYM: +group -group'",s->label) ;
+   expr=s->spec+4 ; while( *expr==' ' || *expr=='\t' ) expr++ ;
+   copy=strdup(expr) ; code=(int *)calloc(rs->ncond,sizeof(int)) ;
+   for( tok=strtok_r(copy," \t",&sp) ; tok!=NULL ; tok=strtok_r(NULL," \t",&sp) ){
+     int sign,gi ;
+     if( (tok[0]!='+' && tok[0]!='-') || tok[1]=='\0' )
+       ERROR_exit("3dRSA: -contrast %s term '%s' must be +group or -group",s->label,tok) ;
+     sign=(tok[0]=='+')?1:-1 ; gi=rsa_xgroup_index(g,ng,tok+1) ;
+     if( gi<0 ) ERROR_exit("3dRSA: -contrast %s names unknown group '%s'",s->label,tok+1) ;
+     for( ii=0 ; ii<rs->ncond ; ii++ ) if( g[gi].member[ii] ){
+       if( code[ii]!=0 )
+         ERROR_exit("3dRSA: -contrast %s gives stimulus '%s' more than one code.\n"
+                    "       Referenced contrast groups must be disjoint; otherwise\n"
+                    "       the model coordinate is ambiguous.",s->label,rs->cond_lab[ii]) ;
+       code[ii]=sign ;
+     }
+     nterm++ ; if( sign>0 ) npos++ ; else nneg++ ;
+   }
+   free(copy) ;
+   if( nterm<2 || npos<1 || nneg<1 )
+     ERROR_exit("3dRSA: -contrast %s needs at least one +group and one -group",s->label) ;
+   for( ii=0 ; ii<rs->ncond ; ii++ ) if( code[ii]!=0 ) nin++ ;
+   if( nin<3 ) ERROR_exit("3dRSA: -contrast %s includes only %d stimuli; at least 3 are needed",
+                          s->label,nin) ;
+   sm=THD_simmat_new(rs->ncond) ; sm->is_dist=1 ;
+   for( ii=0 ; ii<rs->ncond ; ii++ ) for( jj=0 ; jj<rs->ncond ; jj++ ){
+     float x ;
+     if( ii==jj ) x=0.0f ;
+     else if( code[ii]==0 || code[jj]==0 ) x=NAN ;
+     else x=(code[ii]==code[jj])?0.0f:1.0f ;
+     sm->mat[(size_t)ii*rs->ncond+jj]=x ;
+     if( ii<jj && isfinite(x) ){ if(x<lo)lo=x; if(x>hi)hi=x; }
+   }
+   free(code) ;
+   if( !(hi>lo) ){
+     THD_simmat_free(sm) ;
+     ERROR_exit("3dRSA: -contrast %s produces a constant RDM; each side needs\n"
+                "       enough declared stimuli to define within- and between-side pairs",
+                s->label) ;
+   }
+   return sm ;
+}
 
 /*! Joint, run-resolved standardized dyadic regression.  Every run is fit with
     the fixed and run-varying model RDMs together.  THD_rdm_regress_signed uses
@@ -1131,13 +1291,14 @@ static void rsa_searchlight_memory_preflight(
    int nboot, int ncboot, int ncon, int ncomq, int nfit, int nfitw, int nfitcon,
    int do_loo,
    int nloo, int nloofam, int do_nc,
-   int noise_norm, int do_dset, int cmp, int joint,
+   int noise_norm, int do_dset, int cmp, int joint, int subject_nout,
    double limit_gib, int limit_given,
-   int memory_override, int quiet )
+   int memory_override, int quiet, int searchlight )
 {
    const double GIB=1073741824.0 , FS=(double)sizeof(float) ;
    THD_memory_plan me ;
-   double warn=0.0 , nfwe=(nperm>0)?(double)nperm:0.0 ;
+   double warn=0.0 , nfwe=(nperm>0)?(double)nperm:0.0,runwise_full=0.0,transient=0.0 ;
+   const char *scope=searchlight?"searchlight":"runwise atlas" ;
    int jj,mm,kk,nfixed=0,ndset=0,maxvox,nfeat,ncol,ntri,nbrik,maxcond=nvals,maxloo=1 ;
    int dualboot=(nboot>0 && ncboot>0) ;
 
@@ -1160,9 +1321,10 @@ static void rsa_searchlight_memory_preflight(
    me.input += rsa_dset_bytes(mset) ;
    if( runset != NULL ){
      for( jj=0 ; jj < runset->nrow ; jj++ ){
-       me.input += rsa_dset_bytes(runset->betas[jj]) ;
-       if( noise_norm != NN_NONE ) me.input += rsa_dset_bytes(runset->resid[jj]) ;
+       runwise_full += rsa_dset_bytes(runset->betas[jj]) ;
+       if( noise_norm != NN_NONE ) runwise_full += rsa_dset_bytes(runset->resid[jj]) ;
      }
+     me.input += (runset->store_nvox>0) ? runset->store_bytes : runwise_full ;
    } else {
      int nn=(series_runs!=NULL)?series_runs->nrow:
             (condition_index!=NULL)?condition_index->ncell:nsub ;
@@ -1191,6 +1353,10 @@ static void rsa_searchlight_memory_preflight(
                 + (double)rl->nroi*(2.0*sizeof(int)+sizeof(intvec)+sizeof(char *)) ;
    for( kk=0 ; kk < rl->nroi ; kk++ )
      me.geometry += (double)rl->vox[kk].nar*sizeof(int) ;
+   if( runset!=NULL && runset->store_nvox>0 )
+     me.geometry += (double)runset->nvox*sizeof(int)
+                  + (double)runset->store_nvox*sizeof(int)
+                  + 2.0*runset->nrow*sizeof(float *) ;
 
    /* Fixed matrices, shared relabelings/resamples, result columns, and the
       synchronized max-null arrays do not scale with the OpenMP thread count. */
@@ -1230,6 +1396,9 @@ static void rsa_searchlight_memory_preflight(
       runwise whitening workspace are allocated once per OpenMP thread. */
    me.per_thread += FS*( (9.0+2.0*ncol)*ntri + ncol+1.0 + nitem*nitem ) ;
    me.per_thread += FS*( (double)nitem*nfeat + (double)(1+ndset)*nitem*nitem ) ;
+   if( mode==MODE_RDM && rdm_over==RDM_SUBJ )
+     me.per_thread += 2.0*FS*(double)nsub*THD_NTRI(maxcond)
+                    + (double)nsub*sizeof(unsigned char) ;
    if( do_loo ){
      double lpeak=4.0*nitem ; int lp ;
      for( mm=0 ; mm<nmod ; mm++ ) if( rsa_model_has_loo(mod+mm) ){
@@ -1365,45 +1534,71 @@ static void rsa_searchlight_memory_preflight(
    }
    if( do_dset ) me.output=(double)DSET_NVOX(mset)*nbrik*FS ;
 
+   if( subject_nout>0 ){
+     /* Retained participant outcomes, OLS/permutation result arrays, and
+        repeat triangles. Existing estimates conservatively cover RDM work. */
+     me.shared += FS*((double)subject_nout*nsub*rl->nroi+32.0*rl->nroi)
+                  + 8.0*nsub*nsub ;
+     if( runset!=NULL ){
+       int sr,maxrun=0 ;
+       for( sr=0 ; sr<nsub ; sr++ ) if( runset->nrun[sr]>maxrun ) maxrun=runset->nrun[sr] ;
+       me.per_thread += FS*(double)maxrun*ntri ;
+     }
+     if( do_dset ) me.output=FS*DSET_NVOX(mset)*subject_nout*((nperm>0)?12:10) ;
+   }
+
    me.system=(double)AFNI_get_memsize() ;
    me.limit=limit_given ? limit_gib*GIB
                         : ((me.system>0.0) ? 0.80*me.system : 0.0) ;
    warn=limit_given ? 0.75*me.limit
                     : ((me.system>0.0) ? 0.50*me.system : 0.0) ;
    THD_memory_plan_finish(&me) ;
+   if( runset!=NULL && runset->store_nvox>0 ){
+     transient=runset->store_largest_input ;
+     double load_peak=me.input+me.geometry+me.shared+me.output
+                     +transient ;
+     if( load_peak>me.total ) me.total=load_peak ;
+   }
 
    if( !quiet ){
+     if( runset!=NULL && runset->store_nvox>0 )
+       INFO_message("3dRSA: runwise data held as exact float32 over %d of %d voxels/nodes:\n"
+                    "       %.3f GiB compact store (full-grid datasets would need %.3f GiB)",
+                    runset->store_nvox,runset->nvox,runset->store_bytes/GIB,
+                    runwise_full/GIB) ;
      if( me.limit > 0.0 )
-       INFO_message("3dRSA: searchlight memory preflight: estimated peak %.3f GiB\n"
+       INFO_message("3dRSA: %s memory preflight: estimated peak %.3f GiB\n"
                     "       = %.3f input + %.3f neighborhoods/shared/output"
-                    " + %d x %.3f thread scratch; limit %.3f GiB (%s)",
-                    me.total/GIB,me.input/GIB,(me.geometry+me.shared+me.output)/GIB,
-                    me.nthread,me.per_thread/GIB,me.limit/GIB,
+                    " + %d x %.3f thread scratch + %.3f transient load;"
+                    " limit %.3f GiB (%s)",
+                    scope,me.total/GIB,me.input/GIB,(me.geometry+me.shared+me.output)/GIB,
+                    me.nthread,me.per_thread/GIB,transient/GIB,me.limit/GIB,
                     limit_given?"-memory_limit":"80% of detected RAM") ;
      else
-       INFO_message("3dRSA: searchlight memory preflight: estimated peak %.3f GiB\n"
+       INFO_message("3dRSA: %s memory preflight: estimated peak %.3f GiB\n"
                     "       = %.3f input + %.3f neighborhoods/shared/output"
-                    " + %d x %.3f thread scratch; system RAM is unavailable",
-                    me.total/GIB,me.input/GIB,(me.geometry+me.shared+me.output)/GIB,
-                    me.nthread,me.per_thread/GIB) ;
+                    " + %d x %.3f thread scratch + %.3f transient load;"
+                    " system RAM is unavailable",
+                    scope,me.total/GIB,me.input/GIB,(me.geometry+me.shared+me.output)/GIB,
+                    me.nthread,me.per_thread/GIB,transient/GIB) ;
    }
 
    if( me.limit > 0.0 && me.total > me.limit ){
      if( !memory_override )
-       ERROR_exit("3dRSA: estimated searchlight peak memory %.3f GiB exceeds the\n"
+       ERROR_exit("3dRSA: estimated %s peak memory %.3f GiB exceeds the\n"
                   "       %.3f GiB %s limit. Reduce OMP_NUM_THREADS, use a smaller\n"
                   "       mask/input, add -no_dset, or set a suitable -memory_limit.\n"
                   "       If this allocation is intentional, rerun with\n"
                   "       -memory_override to acknowledge the risk.",
-                  me.total/GIB,me.limit/GIB,limit_given?"-memory_limit":"system-RAM") ;
+                  scope,me.total/GIB,me.limit/GIB,limit_given?"-memory_limit":"system-RAM") ;
      WARNING_message("3dRSA: estimated peak %.3f GiB exceeds the %.3f GiB limit;\n"
                      "       continuing because -memory_override was given",
                      me.total/GIB,me.limit/GIB) ;
    } else if( warn > 0.0 && me.total > warn ){
-     WARNING_message("3dRSA: estimated searchlight peak memory is %.3f GiB\n"
+     WARNING_message("3dRSA: estimated %s peak memory is %.3f GiB\n"
                      "       (more than %s of the applicable limit/system RAM).\n"
                      "       Consider fewer OMP_NUM_THREADS or a smaller mask.",
-                     me.total/GIB,limit_given?"75%":"50%") ;
+                     scope,me.total/GIB,limit_given?"75%":"50%") ;
    }
 }
 
@@ -1457,6 +1652,63 @@ void usage_3dRSA(int detail)
 "    matrix from '-model_mat' or their own fixed '-seed_mask' RDM. The\n"
 "    per-subject correlations are Fisher-z\n"
 "    transformed and tested against zero across subjects.\n"
+"    Add -subject_outcome to regress individual outcomes on behavior instead.\n"
+"\n"
+"Participant-level behavioral association (classic -mode RSA):   ~2~\n"
+"  -subject_outcome model_fit|stability\n"
+"    model_fit: one Fisher-transformed fixed-model RDM correlation per subject.\n"
+"      Uses -model_mat (or complete Xmat-generated models). Ordinary and\n"
+"      runwise crossnobis RDMs are supported. Stronger model fit means stronger\n"
+"      agreement with that model, not greater stability across repeats.\n"
+"    stability: independently build a condition RDM in each run/session, then\n"
+"      average Fisher-transformed correlations over ALL unordered repeat pairs\n"
+"      within each subject. Every subject has equal weight in the regression.\n"
+"      Requires -runwiseTable or -xmatTable and all conditions in every repeat.\n"
+"      No model matrix is supplied. -neural_metric and -center_conditions apply\n"
+"      separately to each repeat. -noise_norm must be none: pooled whitening\n"
+"      would couple the repeat estimates. This measures reproducibility of\n"
+"      measured geometry, which depends on measurement quality as well as\n"
+"      representation. It is not a noise-corrected reliability coefficient.\n"
+"  -subject_table FILE\n"
+"    A separate table with an explicit Subj column and exactly one row per\n"
+"    imaging participant, e.g. 'Subj IQ Age Motion'. IDs are matched exactly,\n"
+"    regardless of row order. Missing, duplicate, and extra subjects are errors.\n"
+"  -subject_predictor COLUMN\n"
+"    One continuous predictor of interest, e.g. IQ. Keep it continuous.\n"
+"  -subject_covariates C1,C2,...\n"
+"    Optional numeric nuisance columns, e.g. Age,Motion. An intercept is always\n"
+"    included. Categorical covariates must be explicitly dummy-coded. Columns\n"
+"    are centered/scaled internally; beta and SE are reported in original\n"
+"    predictor units (Fisher-z outcome per score unit). Intercept is the fitted\n"
+"    outcome at the sample means. Nonfinite, constant or collinear columns and\n"
+"    designs without residual degrees of freedom are rejected. No row deletion.\n"
+"    These four options define a separate analysis; the table, predictor and\n"
+"    outcome are all required. Supported RDM comparisons: pearson or spearman\n"
+"    via -metric [default spearman]. Correlations are clipped at +/-0.999999\n"
+"    before Fisher transformation. Constant/undefined RDM correlations become\n"
+"    missing outcomes, not zero fits. A missing outcome for ANY subject, a\n"
+"    constant outcome, or zero residual variance invalidates that location's\n"
+"    regression. Check the valid and n outputs; invalid p/q values are 1.\n"
+"    -nperm 0 uses a two-sided parametric Student t test. Otherwise the shared\n"
+"    Freedman-Lane engine permutes residuals of the intercept+covariate model,\n"
+"    adds its fitted values back, and refits the full model. The same subject\n"
+"    permutations apply throughout space. Requires independent participants\n"
+"    and exchangeable reduced-model errors; nuisance-adjusted permutation is\n"
+"    generally approximate. SE is ordinary homoscedastic OLS in either mode.\n"
+"    BH q and max-|t| FWE p control space separately for each outcome/model.\n"
+"    They do not pool across models or generalize to new sampled conditions.\n"
+"    Output: PREFIX.subject_design.tsv, PREFIX.subject_outcomes.tsv, and\n"
+"    PREFIX.subject_regression.tsv, plus a bucket unless -no_dset. Bricks per\n"
+"    outcome: beta, SE, t, p, q, partialR, intercept, n, valid, df; with\n"
+"    permutations also pFWE and zFWE. outcome_z in the participant table is a\n"
+"    Fisher-transformed correlation, never an inferential z statistic.\n"
+"    Example (runs.txt has Subj Run InputFile [ConditionFile]):\n"
+"      3dRSA -mode RSA -mask atlas.nii.gz -runwiseTable runs.txt \\\n"
+"        -subject_outcome stability -subject_table people.txt \\\n"
+"        -subject_predictor IQ -subject_covariates Age,Motion \\\n"
+"        -metric pearson -nperm 5000 -seed 123 -prefix IQ_stability\n"
+"    For category fit, use -subject_outcome model_fit, supply a -model_mat,\n"
+"    and choose ordinary -dataTableFile or runwise input as appropriate.\n"
 "\n"
 "--------------\n"
 "Input options:   ~1~\n"
@@ -1527,20 +1779,24 @@ void usage_3dRSA(int detail)
 "                      '-noise_norm none', 'diag', or 'shrinkage'.  Prefer this\n"
 "                      when conditions have independent repeated estimates.\n"
 "                 Both reuse the usual subject test/FDR/max-FWE path.\n"
-"                 All input datasets are held in memory, so watch memory on\n"
-"                 full-res data -- and doubly so with IS-RSA '-model_dset', which\n"
-"                 keeps the second modality resident too.  '-model_dset' IS\n"
+"                 Searchlights keep their needed input values resident. Runwise\n"
+"                 input is compacted to the analyzed voxel/node union; other\n"
+"                 full-res input -- and IS-RSA '-model_dset', which keeps a\n"
+"                 second modality resident -- can still be large. '-model_dset' IS\n"
 "                 supported: the\n"
 "                 cross-modal model is rebuilt from that other modality in each\n"
 "                 moving sphere, so you get a whole-brain map of where the two\n"
 "                 modalities share a subject geometry.  '-save_rdm' is not (it\n"
 "                 would write one matrix per voxel).\n"
 "\n"
-"  -memory_limit G = Searchlight peak-memory limit in GiB.  Before loading all\n"
+"  -memory_limit G = Searchlight/runwise peak-memory limit in GiB. Before loading\n"
 "                 subject datasets, 3dRSA estimates resident inputs, neighborhood\n"
 "                 indices, shared result/null/output arrays, and per-OpenMP-thread\n"
 "                 scratch (including crossnobis whitening).  By default it warns\n"
 "                 above 50%% of detected physical RAM and refuses above 80%%.\n"
+"                 Runwise analyses automatically keep only the union of analyzed\n"
+"                 voxels/nodes in exact float32 when that is smaller than the\n"
+"                 native full-grid datasets, reading one dataset at a time.\n"
 "                 This option replaces the 80%% limit with G GiB, which is useful\n"
 "                 under a scheduler/container whose job limit is below host RAM;\n"
 "                 with an explicit limit, the warning begins at 75%% of G.\n"
@@ -1769,6 +2025,13 @@ void usage_3dRSA(int detail)
 "                      the run's\n"
 "                      residual time series, needed only for the whitened\n"
 "                      (Mahalanobis) crossnobis distance.\n"
+"                   ++ AFNI-native residual slicing: add an 'Xmat' column that\n"
+"                      names the subject's X.xmat.1D on every run row, and give\n"
+"                      ResidFile as the WHOLE residual dataset without a selector.\n"
+"                      Run must then be its one-based numeric Xmat run. RunStart\n"
+"                      and GoodList select only that run's uncensored residual\n"
+"                      samples. InputFile remains the explicit run beta dataset\n"
+"                      or selector, so this composes with ConditionFile/TrialFile.\n"
 "                   ++ F21 unbalanced input: add a 'ConditionFile' column. Each\n"
 "                      row names a text file containing one whitespace-free\n"
 "                      condition label per InputFile sub-brick. Conditions may\n"
@@ -1822,8 +2085,36 @@ void usage_3dRSA(int detail)
 "                   ++ Add '-searchlight NNN' to compute the same runwise\n"
 "                      crossnobis analysis in every moving neighborhood.\n"
 "\n"
+"  -xmatTable FILE = Compact AFNI-native crossnobis input, one row per SUBJECT:\n"
+"\n"
+"                   Subj  Xmat          InputFile          ResidFile\n"
+"                   s01   X.xmat.1D     stats_REML+tlrc    errts_REML+tlrc\n"
+"                   s02   X.xmat.1D     stats_REML+tlrc    errts_REML+tlrc\n"
+"\n"
+"                 InputFile and optional ResidFile are whole datasets without\n"
+"                 selectors. The design matrix supplies stimulus conditions,\n"
+"                 one-run beta labels, run boundaries, and censoring. 3dRSA\n"
+"                 finds each matching *_Coef brick, expands the subject into\n"
+"                 runs, averages repeated condition betas within run, and uses\n"
+"                 only uncensored residual samples. Condition/model order is\n"
+"                 the Xmat StimLabels order. A stimulus regressor spanning runs\n"
+"                 cannot define an independent estimate and is rejected; use an\n"
+"                 explicit -runwiseTable for that design. Otherwise this has the\n"
+"                 same modes, metrics and inference as -runwiseTable.\n"
+"\n"
+"  -xmat_stims LIST = With -xmatTable, use only these comma-separated StimLabels\n"
+"                 [default: all]. Their relative order remains StimLabels order.\n"
+"\n"
+"  -xmat_stims_group NAME LIST = Declare a reusable stimulus group, where LIST\n"
+"                 is comma-separated Xmat StimLabels. May be repeated. If\n"
+"                 -xmat_stims is omitted, the union of all declared groups is\n"
+"                 selected; condition order still follows Xmat StimLabels.\n"
+"                 Groups may overlap globally so a broad omnibus grouping and\n"
+"                 narrower planned contrasts can share aliases. See\n"
+"                 -model_groups and -contrast below.\n"
+"\n"
 "  -noise_norm NNN = Noise-normalize the crossnobis distance using the residuals\n"
-"                 (needs '-runwiseTable' with a 'ResidFile' column).  Weighting\n"
+"                 (needs '-runwiseTable' or '-xmatTable' with ResidFile). Weighting\n"
 "                 each voxel by how noisy it is -- and, for the full version,\n"
 "                 decorrelating the voxels -- makes the distance a Mahalanobis\n"
 "                 distance and is what most improves crossnobis reliability\n"
@@ -1831,8 +2122,11 @@ void usage_3dRSA(int detail)
 "                   none      No whitening (the default): plain cross-validated\n"
 "                             squared Euclidean.\n"
 "                   diag      Univariate: divide each voxel by its residual noise\n"
-"                             SD (variances floored to the median, so a silent\n"
-"                             voxel is not amplified).\n"
+"                             SD after flooring variances to the UPPER MEDIAN\n"
+"                             of strictly positive variances. With an even count,\n"
+"                             this selects the higher middle value, not the mean\n"
+"                             of the middle pair. All below-floor variances,\n"
+"                             including zero, receive this same floor.\n"
 "                   shrinkage Multivariate: whiten by the FULL residual covariance\n"
 "                             (Sigma^-1/2), regularized by Ledoit-Wolf shrinkage\n"
 "                             toward a scaled identity with small eigenvalues\n"
@@ -1845,6 +2139,17 @@ void usage_3dRSA(int detail)
 "                 The covariance is estimated per subject per ROI from that\n"
 "                 subject's residual time series (each run demeaned first), never\n"
 "                 from the condition betas being compared.\n"
+"                 Both normalization modes require positive residual variance\n"
+"                 somewhere in the location after per-run demeaning. Zero\n"
+"                 covariance, allocation failure, or nonfinite covariance or\n"
+"                 whitening stops the analysis with subject/location context.\n"
+"                 Rank-deficient positive covariance can still be regularized.\n"
+"                 For one voxel with positive residual variance, the covariance\n"
+"                 already equals the scaled-identity target: shrinkage leaves it\n"
+"                 unchanged and gives ordinary inverse-SD weighting. A shrinkage\n"
+"                 coefficient of 0 or 1 therefore describes the same estimate in\n"
+"                 this scalar case; compare covariance or distances across\n"
+"                 implementations, rather than the coefficient alone.\n"
 "\n"
 "===================================================================\n"
 "MODELS -- what you are testing, and how to say it   ~1~\n"
@@ -1852,8 +2157,8 @@ void usage_3dRSA(int detail)
 "\n"
 "A model is a square matrix, the same size as the neural one, saying how\n"
 "similar each PAIR of items ought to be if your hypothesis is true.  3dRSA\n"
-"can build one three ways: from a column of numbers, from a file, or from a\n"
-"second set of datasets.\n"
+"can build one from a column of numbers, from a file, from Xmat stimulus\n"
+"groups/contrasts, or from a second set of datasets.\n"
 "\n"
 "-------------------------------------------------------------------\n"
 "  -model LABEL CCC:RRR -- build a matrix from a behavioral column   ~2~\n"
@@ -1933,6 +2238,15 @@ void usage_3dRSA(int detail)
 "Reads a square matrix from the 1D file FFF, which must match the number of\n"
 "rows of the neural matrix.  May be given more than once.\n"
 "\n"
+"A symmetric pair of cells may be written as '.' to leave that condition pair\n"
+"outside this model's estimand. The mask is not a zero and is not imputed; the\n"
+"fit uses only finite model pairs. Both symmetric cells must be '.', and at\n"
+"least 3 finite pairs with 2 distinct predictions must remain. Under\n"
+"-classic_null conditions, the mask moves with the model's row/column labels.\n"
+"Partial RDMs are currently scalar classic-RSA models: model_joint, model\n"
+"contrasts/commonality/fitting, condition bootstrap, and covariance-weighted\n"
+"metrics are rejected because they require a common complete dyad set.\n"
+"\n"
 "Required for '-mode RSA', where the rows are conditions and so cannot\n"
 "come from a dataTable column.  This is how the classic designs are\n"
 "expressed: 1 for pairs of conditions in the same category and 0 otherwise,\n"
@@ -1941,6 +2255,37 @@ void usage_3dRSA(int detail)
 "\n"
 "Also the way to bring in a model 3dRSA cannot build itself -- a matrix you\n"
 "computed in R or Python, or one saved earlier by '-save_rdm'.\n"
+"\n"
+"-------------------------------------------------------------------\n"
+"  -model_groups LABEL G1,G2,... -- build an omnibus group RDM   ~2~\n"
+"-------------------------------------------------------------------\n"
+"With -xmatTable, builds a 0-within/1-between condition RDM from groups\n"
+"declared by repeated -xmat_stims_group options. The groups named together\n"
+"here must be mutually exclusive and must cover every selected stimulus\n"
+"exactly once. That partition is required because an omnibus within/between\n"
+"prediction is ambiguous if one stimulus has two group identities. Example:\n"
+"\n"
+"  -xmat_stims_group animate face,cat \\\n"
+"  -xmat_stims_group inanimate bottle,chair,house,scissors,shoe \\\n"
+"  -xmat_stims_group scrambled scrambledpix \\\n"
+"  -model_groups CategoryGroup animate,inanimate,scrambled\n"
+"\n"
+"-------------------------------------------------------------------\n"
+"  -contrast LABEL 'SYM: +GROUP -GROUP' -- build a focused RDM   ~2~\n"
+"-------------------------------------------------------------------\n"
+"Builds a planned, dot-masked condition RDM from two or more declared groups.\n"
+"Pairs within one sign are 0, pairs across signs are 1, and every pair touching\n"
+"an unmentioned stimulus is '.'. Referenced groups must be disjoint, but they\n"
+"may be narrower aliases that overlap groups used by another model. Thus:\n"
+"\n"
+"  -xmat_stims_group tools scissors,shoe \\\n"
+"  -xmat_stims_group places chair,house \\\n"
+"  -contrast ToolsVsPlaces 'SYM: +tools -places'\n"
+"\n"
+"asks only whether the selected tool/place geometry matches that planned\n"
+"division; it does not treat face, cat, bottle, or scrambledpix as a neutral\n"
+"midpoint. This model-building -contrast is distinct from -model_contrast,\n"
+"which compares the fitted performance of two already named model RDMs.\n"
 "\n"
 "-------------------------------------------------------------------\n"
 "  -model_series LLL -- time-resolved model-RDM series (F20)   ~2~\n"
@@ -2766,6 +3111,14 @@ void usage_3dRSA(int detail)
 "   which could accept trailing option text or propagate a NaN into inference;\n"
 "   repair those inputs rather than relying on the old accidental behavior.\n"
 "\n"
+"* Pearson feature matrices (including '-zcensor') use double accumulation, then\n"
+"   store correlations as floats. This corrects rounding that could split\n"
+"   exact +/-1 ties before rank-based model comparison, notably for sparse\n"
+"   spatial patterns. Effects and permutation/FDR/FWE results can consequently\n"
+"   differ from earlier builds. Input patterns and matrix storage remain float;\n"
+"   genuinely close ranks can still depend on numerical precision. This change\n"
+"   does not apply to Spearman neural matrices.\n"
+"\n"
 "* Parallelized with OpenMP over ROIs.  On 16 cores a 200-ROI atlas with 2\n"
 "   models and 5000 permutations takes under a second, against about 8\n"
 "   seconds on one core.  Since the parallelism is over ROIs, an atlas with\n"
@@ -2809,8 +3162,8 @@ void usage_3dRSA(int detail)
 "   where both.txt has an fMRIFile column of datasets beside InputFile.\n"
 "\n"
 "4. Classic (traditional within-subject) RSA. Suppose every subject saw the\n"
-"   same three conditions -- houses, faces, and trees -- and each subject's\n"
-"   first-level dataset contains one beta sub-brick per condition. The data\n"
+"   same six conditions -- houses, faces, trees, tools, animals, and vehicles --\n"
+"   and has one first-level beta sub-brick per condition. The data\n"
 "   table has ONE ROW PER SUBJECT, not one row per condition:\n"
 "\n"
 "     Subj  InputFile\n"
@@ -2825,18 +3178,24 @@ void usage_3dRSA(int detail)
 "     brick 0 = houses\n"
 "     brick 1 = faces\n"
 "     brick 2 = trees\n"
+"     brick 3 = tools\n"
+"     brick 4 = animals\n"
+"     brick 5 = vehicles\n"
 "\n"
 "   In classic RSA the RDM rows are CONDITIONS. Therefore a condition-level\n"
 "   behavior hypothesis is supplied as a condition-by-condition -model_mat;\n"
 "   it is not a subject column in subs.txt. For example, suppose independent\n"
-"   ratings predict happiness 2 for houses, 5 for faces, and 4 for trees. A\n"
+"   ratings predict happiness 2, 5, 4, 1, 3, and 6 in that condition order. A\n"
 "   similarity model (larger = closer predicted happiness), in the SAME order\n"
 "   as the beta sub-bricks, could be the numeric file happiness.1D:\n"
 "\n"
-"     # row/column order: houses faces trees\n"
-"     1.000000  0.000000  0.333333\n"
-"     0.000000  1.000000  0.666667\n"
-"     0.333333  0.666667  1.000000\n"
+"     # row/column order: houses faces trees tools animals vehicles\n"
+"     1.0 0.4 0.6 0.8 0.8 0.2\n"
+"     0.4 1.0 0.8 0.2 0.6 0.8\n"
+"     0.6 0.8 1.0 0.4 0.8 0.6\n"
+"     0.8 0.2 0.4 1.0 0.6 0.0\n"
+"     0.8 0.6 0.8 0.6 1.0 0.4\n"
+"     0.2 0.8 0.6 0.0 0.4 1.0\n"
 "\n"
 "   (The diagonal is ignored.) 3dRSA builds one neural condition RDM per\n"
 "   subject and ROI, correlates each with this fixed happiness model, then\n"
@@ -2855,6 +3214,9 @@ void usage_3dRSA(int detail)
 "     s01   tree   s01_condition_betas+tlrc[tree]\n"
 "     s01   house  s01_condition_betas+tlrc[house]\n"
 "     s01   face   s01_condition_betas+tlrc[face]\n"
+"     s01   tool   s01_condition_betas+tlrc[tool]\n"
+"     s01   animal s01_condition_betas+tlrc[animal]\n"
+"     s01   vehicle s01_condition_betas+tlrc[vehicle]\n"
 "     ...\n"
 "\n"
 "   Then bind labels to the row/column order of happiness.1D explicitly:\n"
@@ -2862,7 +3224,7 @@ void usage_3dRSA(int detail)
 "     3dRSA -mask atlas+tlrc -mode RSA                         \\\n"
 "           -dataTableFile subs_by_condition.txt                \\\n"
 "           -condition_column cond                              \\\n"
-"           -condition_order house,face,tree                    \\\n"
+"           -condition_order house,face,tree,tool,animal,vehicle \\\n"
 "           -model_mat happiness happiness.1D                   \\\n"
 "           -nperm 5000 -prefix rsa_happiness_long\n"
 "\n"
@@ -2870,8 +3232,8 @@ void usage_3dRSA(int detail)
 "   not follow subject or condition order; -condition_order describes only\n"
 "   the fixed model matrix.\n"
 "\n"
-"   Three conditions make the axes easy to see but are too few for a useful\n"
-"   real RSA; use many independently defined conditions/stimuli in practice.\n"
+"   Six conditions keep this illustration compact and meet the program minimum.\n"
+"   Use many independently defined conditions/stimuli in practice.\n"
 "\n"
 "5. Second-order task-fMRI IS-RSA: compare subjects by their condition RDMs,\n"
 "   avoiding voxelwise correspondence across subjects:\n"
@@ -3172,21 +3534,6 @@ static int rsa_roilist_exclude_seed( THD_roilist *rl , intvec *seed , int nvox )
    return nex ;
 }
 
-/*! Remove the voxelwise mean pattern over conditions in place.  F is laid out
-    [condition][voxel].  This is the subject-wise cocktail-blank/re-meaning
-    operation used before ordinary angle-based condition RDMs. */
-
-static void rsa_center_condition_patterns( int ncond , int nvx , float *F )
-{
-   int c , v ;
-   for( v=0 ; v < nvx ; v++ ){
-     double mean=0.0 ;
-     for( c=0 ; c < ncond ; c++ ) mean += F[(size_t)c*nvx+v] ;
-     mean /= (double)ncond ;
-     for( c=0 ; c < ncond ; c++ ) F[(size_t)c*nvx+v] -= (float)mean ;
-   }
-}
-
 /*! Extract one subject's condition patterns in the declared model-matrix
     order.  Ordinary input stores all conditions as bricks in dset[jj].  A
     condition-indexed long table stores one selected brick per canonical
@@ -3202,6 +3549,23 @@ static void rsa_subject_patterns( int jj, int ncond, int nvx,
    }
    for( cc=0 ; cc<ncond ; cc++ )
      THD_roi_pattern(dset[jj*ncond+cc],vox,out+(size_t)cc*nvx) ;
+}
+
+static void rsa_noise_failure( int status, int mode, THD_runset *runset,
+                               int jj, THD_roilist *rl, int kk )
+{
+   const char *reason ;
+   switch( status ){
+     case THD_NOISE_BAD_INPUT: reason="invalid residual dimensions or buffer"; break;
+     case THD_NOISE_ALLOC: reason="covariance allocation failure"; break;
+     case THD_NOISE_ZERO_VARIANCE:
+       reason="no positive residual variance after per-run demeaning"; break;
+     default: reason="nonfinite or unrepresentable residual covariance/whitening"; break;
+   }
+   ERROR_exit("3dRSA: %s noise normalization failed for subject '%s', %s %d: %s",
+              mode==NN_DIAG ? "diag" : "shrinkage", runset->subj[jj],
+              rl->center[kk]>=0 ? "searchlight center voxel/node" : "ROI",
+              rl->val[kk], reason) ;
 }
 
 /*! Build subject jj's neural condition RDM for ROI kk.  With a runset this is
@@ -3223,22 +3587,18 @@ static THD_simmat * rsa_subject_rdm( int jj , THD_roilist *rl , int kk ,
 
    if( runset == NULL ){
      rsa_subject_patterns(jj,nitem,nvx,dset,condition_index,rl->vox+kk,F) ;
-     /* Euclidean differences cancel a common mean pattern algebraically. Skip
-        the subtraction there to retain exact compatibility rather than add
-        harmless floating-point roundoff. */
-     if( center_conditions && neu_metric != SIM_EUCLID )
-       rsa_center_condition_patterns(nitem,nvx,F) ;
-     return THD_simmat_from_features( nitem , nvx , F , neu_metric ) ;
+     return THD_rsa_condition_rdm(nitem,nvx,F,neu_metric,center_conditions,
+                                  NULL,0) ;
    }
 
    nr = runset->nrun[jj] ;
    for( r=0 ; r < nr ; r++ ){
      int row=runset->row_of[jj][r] ;
      if( !runset->has_condmap )
-       THD_roi_pattern(runset->betas[row],rl->vox+kk,rpat[r]) ;
+       THD_runset_roi_pattern(runset,row,0,rl->vox+kk,rpat[r]) ;
      else {
        int b ;
-       THD_roi_pattern(runset->betas[row],rl->vox+kk,runraw) ;
+       THD_runset_roi_pattern(runset,row,0,rl->vox+kk,runraw) ;
        memset(rpat[r],0,sizeof(float)*(size_t)nitem*nvx) ;
        for( b=0 ; b<runset->nbrick[row] ; b++ ){
          int gc=runset->cond_of[row][b] ; float *dst=rpat[r]+(size_t)gc*nvx ;
@@ -3259,7 +3619,7 @@ static THD_simmat * rsa_subject_rdm( int jj , THD_roilist *rl , int kk ,
      int ntot = 0 ;
      for( r=0 ; r < nr ; r++ ){
        int row = runset->row_of[jj][r] , nt = DSET_NVALS(runset->resid[row]) ;
-       THD_roi_pattern( runset->resid[row] , rl->vox+kk , wh->residbuf ) ;  /* [nt*nvx] */
+       THD_runset_roi_pattern(runset,row,1,rl->vox+kk,wh->residbuf) ; /* [nt*nvx] */
        for( v=0 ; v < nvx ; v++ ){        /* demean this run, per voxel */
          double m=0.0 ;
          for( t=0 ; t < nt ; t++ ) m += wh->residbuf[(size_t)t*nvx+v] ;
@@ -3270,13 +3630,17 @@ static THD_simmat * rsa_subject_rdm( int jj , THD_roilist *rl , int kk ,
        ntot += nt ;
      }
      if( wh->mode == NN_DIAG ){
-       THD_noise_wdiag( nvx , ntot , wh->Rmat , wh->wdiag ) ;
+       int status=THD_noise_wdiag( nvx , ntot , wh->Rmat , wh->wdiag ) ;
+       if( status != THD_NOISE_OK )
+         rsa_noise_failure(status,wh->mode,runset,jj,rl,kk) ;
        for( r=0 ; r < nr ; r++ )
          for( c=0 ; c < nitem ; c++ )
            for( v=0 ; v < nvx ; v++ ) rpat[r][(size_t)c*nvx+v] *= wh->wdiag[v] ;
      } else {
-       float shrink ; int erank ;
-       THD_noise_whalf( nvx , ntot , wh->Rmat , wh->Whalf , &shrink , &erank ) ;
+       float shrink ; int erank, status ;
+       status=THD_noise_whalf( nvx , ntot , wh->Rmat , wh->Whalf , &shrink , &erank ) ;
+       if( status != THD_NOISE_OK )
+         rsa_noise_failure(status,wh->mode,runset,jj,rl,kk) ;
        for( r=0 ; r < nr ; r++ )
          for( c=0 ; c < nitem ; c++ ){
            float *b = rpat[r] + (size_t)c*nvx ;
@@ -3307,27 +3671,31 @@ static THD_simmat * rsa_second_order_rdm(
    THD_roilist *rl , int kk , int nsub , int ncond , int nvx ,
    int cond_metric , int outer_metric , THD_3dim_dataset **dset ,
    THD_runset *runset , THD_datatable_index *condition_index,
-   int center_conditions , float *triF , float *pat ,
-   float **rpat, float *runraw, RSA_whiten *wh )
+   int center_conditions , float *pat , float **rpat, float *runraw,
+   RSA_whiten *wh, THD_rsa_rdm_workspace *rws )
 {
-   THD_simmat *sr ; int jj , aa , nctri=THD_NTRI(ncond) ;
+   THD_simmat *sr,*out=NULL ; int jj,own_ws=0 ;
+
+   if( rws==NULL ){
+     rws=THD_rsa_rdm_workspace_new(nsub,ncond) ; own_ws=1 ;
+   }
+   if( rws==NULL || !THD_rsa_rdm_workspace_reset(rws,nsub,ncond,NULL,0) )
+     goto done ;
 
    for( jj=0 ; jj < nsub ; jj++ ){
      sr=rsa_subject_rdm(jj,rl,kk,ncond,nvx,cond_metric,dset,runset,condition_index,
                         center_conditions,pat,rpat,runraw,wh) ;
-     if( sr == NULL ) return NULL ;
-     THD_simmat_to_tri(sr,triF+(size_t)jj*nctri) ;
-     /* The outer features are RDM entries in a common dissimilarity sense.
-        Correlation/rank/cosine inner constructors return similarities; 1-s
-        preserves Pearson/Spearman second-order geometry and makes cosine's
-        origin plus exported semantics unambiguous.  Euclid/crossnobis already
-        return distances (including valid negative crossnobis estimates). */
-     if( !sr->is_dist )
-       for( aa=0 ; aa < nctri ; aa++ )
-         triF[(size_t)jj*nctri+aa] = 1.0f-triF[(size_t)jj*nctri+aa] ;
+     if( sr == NULL ) goto done ;
+     if( !THD_rsa_rdm_workspace_store(rws,jj,sr,1,NULL,0) ){
+       THD_simmat_free(sr) ; goto done ;
+     }
      THD_simmat_free(sr) ;
    }
-   return THD_simmat_from_features(nsub,nctri,triF,outer_metric) ;
+   out=THD_rsa_second_order_rdm(rws,outer_metric,NULL,0) ;
+
+done:
+   if( own_ws ) THD_rsa_rdm_workspace_free(rws) ;
+   return out ;
 }
 
 /*! Build the one seed model from the main input data.  IS-RSA returns the
@@ -3344,7 +3712,7 @@ static THD_simmat * rsa_build_seed_model(
    float **classic_tri )
 {
    THD_simmat *out=NULL,*sm=NULL ; RSA_whiten wh ;
-   float *F=NULL,*pat=NULL,*triF=NULL,**rpat=NULL,*runraw=NULL,*avgtri=NULL ;
+   float *F=NULL,*pat=NULL,**rpat=NULL,*runraw=NULL ;
    unsigned char *keep=NULL ;
    int svx,jj,rr,maxrun=0,maxnt=0,maxntot=0,ntri=THD_NTRI(nvals) ;
 
@@ -3393,12 +3761,10 @@ static THD_simmat * rsa_build_seed_model(
        out=zcensor ? THD_simmat_from_features_zcensor(nsub,nvals,F,keep,neu_metric,NULL)
                    : THD_simmat_from_features(nsub,nvals,F,neu_metric) ;
      } else if( mode==MODE_RDM ){
-       int nctri=THD_NTRI(nvals) ;
-       triF=(float *)malloc(sizeof(float)*(size_t)nsub*nctri) ;
        pat=(float *)malloc(sizeof(float)*(size_t)nvals*svx) ;
        out=rsa_second_order_rdm(seedrl,0,nsub,nvals,svx,cond_metric,
                                 neu_metric,dset,runset,condition_index,center_conditions,
-                                triF,pat,rpat,runraw,&wh) ;
+                                pat,rpat,runraw,&wh,NULL) ;
      } else {
        int nf=svx*nvals ;
        F=(float *)malloc(sizeof(float)*(size_t)nsub*nf) ;
@@ -3414,20 +3780,20 @@ static THD_simmat * rsa_build_seed_model(
        sm=rsa_subject_rdm(jj,seedrl,0,nvals,svx,neu_metric,dset,runset,condition_index,
                           center_conditions,pat,rpat,runraw,&wh) ;
        if( sm==NULL ){ free(all) ; all=NULL ; goto done ; }
-       THD_simmat_to_tri(sm,all+(size_t)jj*ntri) ; THD_simmat_free(sm) ;
+       if( !THD_rsa_simmat_to_triangle(sm,all+(size_t)jj*ntri,0,NULL,0) ){
+         THD_simmat_free(sm) ; free(all) ; all=NULL ; goto done ;
+       }
+       THD_simmat_free(sm) ;
      }
-     avgtri=(float *)calloc(ntri,sizeof(float)) ;
-     for( jj=0 ; jj<nsub ; jj++ ){
-       int aa ; for( aa=0 ; aa<ntri ; aa++ ) avgtri[aa]+=all[(size_t)jj*ntri+aa] ;
-     }
-     { int aa ; for( aa=0 ; aa<ntri ; aa++ ) avgtri[aa]/=(float)nsub ; }
-     out=THD_simmat_new(nvals) ; THD_tri_to_simmat(nvals,avgtri,out) ;
-     out->is_dist=(runset!=NULL || neu_metric==SIM_EUCLID) ;
+     out=THD_rsa_mean_subject_rdms(nsub,nvals,all,
+                                   runset!=NULL || neu_metric==SIM_EUCLID,
+                                   NULL,0) ;
+     if( out==NULL ){ free(all) ; all=NULL ; goto done ; }
      if( classic_tri != NULL ) *classic_tri=all ; else free(all) ;
    }
 
 done:
-   free(F) ; free(keep) ; free(pat) ; free(triF) ; free(runraw) ; free(avgtri) ;
+   free(F) ; free(keep) ; free(pat) ; free(runraw) ;
    if( rpat!=NULL ){ for( rr=0 ; rr<maxrun ; rr++ ) free(rpat[rr]) ; free(rpat) ; }
    free(wh.residbuf) ; free(wh.Rmat) ; free(wh.Whalf) ; free(wh.wdiag) ; free(wh.wtmp) ;
    return out ;
@@ -4228,6 +4594,8 @@ static THD_permstat rsa_classic_condition_test(
 {
    THD_permstat ps ; int np=(cset!=NULL)?cset->nperm:0,pk,jj,nge=0 ;
    int m=THD_NTRI(nitem),iscov=(cmp==CMP_CORR_COV || cmp==CMP_COS_COV) ;
+   int ismask=THD_simmat_has_missing(model_a) ||
+              (model_b!=NULL && THD_simmat_has_missing(model_b)) ;
    float obs=0.0f,*pn=permnull ;
 
    ps.stat=0.0f ; ps.pval=-1.0f ; ps.zscr=0.0f ; ps.nperm=np ;
@@ -4239,11 +4607,13 @@ static THD_permstat rsa_classic_condition_test(
 
    for( pk=0 ; pk<((np>0)?np:1) ; pk++ ){
      int *perm=(np>0)?cset->perm+(size_t)pk*nitem:NULL ; double sum=0.0 ;
-     if( perm!=NULL ) THD_simmat_to_tri_perm(model_a,perm,ws->yperm) ;
-     else             THD_simmat_to_tri     (model_a,     ws->yperm) ;
-     if( model_b!=NULL ){
-       if( perm!=NULL ) THD_simmat_to_tri_perm(model_b,perm,ws->yfit) ;
-       else             THD_simmat_to_tri     (model_b,     ws->yfit) ;
+     if( !ismask ){
+       if( perm!=NULL ) THD_simmat_to_tri_perm(model_a,perm,ws->yperm) ;
+       else             THD_simmat_to_tri     (model_a,     ws->yperm) ;
+       if( model_b!=NULL ){
+         if( perm!=NULL ) THD_simmat_to_tri_perm(model_b,perm,ws->yfit) ;
+         else             THD_simmat_to_tri     (model_b,     ws->yfit) ;
+       }
      }
      if( iscov ){
        THD_rdm_cov_transform(nitem,ws->yperm,cmp==CMP_CORR_COV,covA) ;
@@ -4258,9 +4628,13 @@ static THD_permstat rsa_classic_condition_test(
          if( model_b!=NULL ) rb=THD_rdm_cov_cosine(nitem,cs,covB) ;
        } else {
          float *st=srdm+(size_t)jj*m ;
-         ra=THD_tri_corr(m,st,ws->yperm,cmp,ws->sc1,ws->sc2) ;
-         if( model_b!=NULL )
-           rb=THD_tri_corr(m,st,ws->yfit,cmp,ws->sc1,ws->sc2) ;
+         if( ismask ){
+           ra=THD_simmat_corr_triangle(st,model_a,perm,cmp,ws) ;
+           if( model_b!=NULL ) rb=THD_simmat_corr_triangle(st,model_b,perm,cmp,ws) ;
+         } else {
+           ra=THD_tri_corr(m,st,ws->yperm,cmp,ws->sc1,ws->sc2) ;
+           if( model_b!=NULL ) rb=THD_tri_corr(m,st,ws->yfit,cmp,ws->sc1,ws->sc2) ;
+         }
        }
        sum += MYatanh(ra) - ((model_b!=NULL)?MYatanh(rb):0.0f) ;
      }
@@ -4326,16 +4700,333 @@ static THD_permstat rsa_classic_seed_condition_test(
    return ps ;
 }
 
+/* Participant-outcome regression: program policy and output. */
+#define RSA_SUBJECT_FIT       1
+#define RSA_SUBJECT_STABILITY 2
+
+typedef struct {
+   PERM_glm *glm;
+   int nsub,ncolumn;
+   char **name;
+   float *values;              /* [subject][predictor/covariate], original units */
+   double *mean,*scale;
+} RSA_subject_design;
+
+static RSA_subject_design *rsa_subject_design_read(char *file, char *predictor,
+                                                   char *covariates,
+                                                   int nsub, char **subj)
+{
+   RSA_subject_design *d=calloc(1,sizeof(*d));
+   THD_datatable *table;
+   THD_datatable_index *index;
+   char *key="Subj", **levels=subj, err[1024];
+   matrix X,Z; int s,c,ncov=0; char **cov=NULL;
+   if(!d) ERROR_exit("3dRSA: cannot allocate subject design");
+   table=THD_read_datatable_file(file);
+   if(!table || table->icol_subj<0)
+     ERROR_exit("3dRSA: -subject_table requires an explicit Subj column");
+   if(table->nrow!=nsub)
+     ERROR_exit("3dRSA: -subject_table needs exactly one row for each of the %d imaging subjects",nsub);
+   if(covariates) cov=rsa_split_named_csv(covariates,"-subject_covariates",&ncov);
+   d->nsub=nsub; d->ncolumn=1+ncov;
+   d->name=malloc(sizeof(char *)*d->ncolumn);
+   d->mean=calloc(d->ncolumn,sizeof(double));
+   d->scale=calloc(d->ncolumn,sizeof(double));
+   if(!d->name || !d->mean || !d->scale)
+     ERROR_exit("3dRSA: cannot allocate subject design columns");
+   d->name[0]=strdup(predictor);
+   for(c=0;c<ncov;c++) d->name[c+1]=cov[c];
+   free(cov);
+   index=THD_datatable_index_columns(table,1,&key,&nsub,&levels);
+   if(!index) ERROR_exit("3dRSA: cannot index subject design");
+   d->values=THD_datatable_numeric_columns(table,(const char * const *)d->name,
+                d->ncolumn,index->row_of,nsub,err,sizeof(err));
+   if(!d->values) ERROR_exit("3dRSA: subject predictor/covariates: %s",err);
+   THD_free_datatable_index(index); THD_free_datatable(table);
+   if(nsub<=d->ncolumn+1)
+     ERROR_exit("3dRSA: subject regression has no residual degrees of freedom (%d subjects, %d parameters)",
+                nsub,d->ncolumn+1);
+   matrix_initialize(&X); matrix_initialize(&Z);
+   matrix_create(nsub,1,&X); matrix_create(nsub,1+ncov,&Z);
+   for(s=0;s<nsub;s++) Z.elts[s][0]=1.0;
+   for(c=0;c<d->ncolumn;c++) {
+     double ss=0.0;
+     for(s=0;s<nsub;s++) d->mean[c]+=d->values[(size_t)s*d->ncolumn+c];
+     d->mean[c]/=nsub;
+     for(s=0;s<nsub;s++) {
+       double x=d->values[(size_t)s*d->ncolumn+c]-d->mean[c]; ss+=x*x;
+     }
+     if(!(ss>0.0)) ERROR_exit("3dRSA: constant subject predictor/covariate '%s'",d->name[c]);
+     d->scale[c]=sqrt(ss/nsub);
+     for(s=0;s<nsub;s++) {
+       double x=(d->values[(size_t)s*d->ncolumn+c]-d->mean[c])/d->scale[c];
+       if(c==0) X.elts[s][0]=x; else Z.elts[s][c]=x;
+     }
+   }
+   d->glm=THD_perm_glm_setup(X,Z,NULL);
+   matrix_destroy(&X); matrix_destroy(&Z);
+   if(!d->glm || d->glm->rank!=d->glm->npar)
+     ERROR_exit("3dRSA: subject regression design is rank deficient or not estimable");
+   return d;
+}
+
+static void rsa_subject_design_free(RSA_subject_design *d)
+{
+   int c; if(!d) return;
+   for(c=0;c<d->ncolumn;c++) free(d->name[c]);
+   free(d->name); free(d->values); free(d->mean); free(d->scale);
+   THD_perm_glm_free(d->glm); free(d);
+}
+
+/* The observed OLS fit also supplies SE and a validity mask before invoking
+   the shared Freedman-Lane engine. Internal standardization is undone for
+   the behavioral slope and SE, leaving units of outcome / original score. */
+static int rsa_subject_ols(RSA_subject_design *d,float **data,int k,
+                           float *beta,float *se,float *t,float *intercept)
+{
+   PERM_glm *g=d->glm; int i; double sse,sy;
+   double b[g->npar],y[g->nobs];
+   for(i=0;i<g->nobs;i++) y[i]=data[i][k];
+   if(!THD_perm_glm_fit(g,y,b,&sse,&sy)) return 0;
+   if(!(sy>0.0) || !(sse>1.e-12*sy) || !isfinite(sse)) return 0;
+   *beta=b[0]/d->scale[0];
+   *se=sqrt(sse/g->dof*g->cvar)/d->scale[0];
+   *t=b[0]/sqrt(sse/g->dof*g->cvar); *intercept=b[1];
+   return isfinite(*beta) && isfinite(*se) && isfinite(*t) && *se>0.0f;
+}
+
+static void rsa_subject_progress(int done,int total,void *p)
+{ (void)done; (void)total; rsa_progress_advance((RSA_progress *)p); }
+
+static FILE *rsa_subject_output(char *prefix,const char *suffix,char *path,size_t size)
+{
+   FILE *fp;
+   if(snprintf(path,size,"%s%s",prefix,suffix)>=(int)size)
+     ERROR_exit("3dRSA: subject output path is too long");
+   if(THD_deathcon() && THD_is_file(path)) ERROR_exit("3dRSA: output %s already exists",path);
+   fp=fopen(path,"w"); if(!fp) ERROR_exit("3dRSA: cannot write %s",path);
+   return fp;
+}
+
+static void rsa_subject_analysis(RSA_subject_design *design,int outcome,
+   THD_roilist *rl,THD_3dim_dataset *mset,THD_3dim_dataset **dset,
+   THD_runset *rs,THD_datatable_index *ci,char **subj,int nc,
+   RSA_model *mod,int nmod,int neural_metric,int metric,int center,int noise_norm,
+   int nperm,long seed,char *prefix,int do_dset,int quiet,int progress_mode,
+   int argc,char **argv)
+{
+   int ns=design->nsub,nr=rl->nroi,no=outcome==RSA_SUBJECT_STABILITY?1:nmod;
+   int nt=THD_NTRI(nc),nvmax=THD_roilist_maxvox(rl),maxrun=0,maxnt=0,maxntot=0;
+   int s,r,k,m,c,bs=0,nb=nperm>0?12:10; char path[THD_MAX_NAME],err[1024];
+   float *values=malloc(sizeof(float)*(size_t)no*ns*nr),*modeltri=NULL;
+   PERM_set *ps=NULL; THD_3dim_dataset *oset=NULL; RSA_progress progress;
+   FILE *subject_fp,*result_fp,*design_fp;
+   const char *field[]={"beta","SE","t","p","q","partialR","intercept","n","valid","df","pFWE","zFWE"};
+   if(!values) ERROR_exit("3dRSA: cannot allocate participant outcomes");
+   if(rs) for(s=0;s<ns;s++) {
+     int sumnt=0;
+     if(rs->nrun[s]>maxrun) maxrun=rs->nrun[s];
+     if(noise_norm!=NN_NONE) for(r=0;r<rs->nrun[s];r++) {
+       int t=DSET_NVALS(rs->resid[rs->row_of[s][r]]);
+       if(t>maxnt) maxnt=t; sumnt+=t;
+     }
+     if(sumnt>maxntot) maxntot=sumnt;
+   }
+   if(outcome==RSA_SUBJECT_FIT) {
+     modeltri=malloc(sizeof(float)*(size_t)no*nt);
+     if(!modeltri) ERROR_exit("3dRSA: cannot allocate fixed model triangles");
+     for(m=0;m<no;m++) THD_simmat_to_tri(mod[m].mat,modeltri+(size_t)m*nt);
+   }
+   if(nperm>0) {
+     PERM_scheme *scheme=THD_perm_scheme_new(ns);
+     if(!scheme) ERROR_exit("3dRSA: cannot allocate subject permutation scheme");
+     scheme->exchange=PERM_EE; scheme->exact=0; scheme->nperm=nperm; scheme->seed=seed;
+     ps=THD_perm_set_build(scheme); THD_perm_scheme_free(scheme);
+     if(!ps) ERROR_exit("3dRSA: cannot build subject residual permutations");
+   }
+   rsa_progress_init(&progress,progress_mode,quiet,4,"Participant outcomes",nr,"locations");
+#ifdef USE_OMP
+#pragma omp parallel
+#endif
+   {
+     int kk,ss,rr,mm; RSA_whiten wh;
+     float *pat=malloc(sizeof(float)*(size_t)nc*nvmax);
+     float *tri=malloc(sizeof(float)*(size_t)(maxrun>0?maxrun:1)*nt);
+     float *raw=rs && rs->has_condmap?malloc(sizeof(float)*(size_t)rs->maxbrick*nvmax):NULL;
+     float **rpat=rs?malloc(sizeof(float *)*maxrun):NULL;
+     float *sc1=malloc(sizeof(float)*nt),*sc2=malloc(sizeof(float)*nt);
+     memset(&wh,0,sizeof(wh)); wh.mode=noise_norm;
+     if(!pat || !tri || !sc1 || !sc2 || (rs && !rpat) || (rs && rs->has_condmap && !raw))
+       ERROR_exit("3dRSA: cannot allocate participant RDM workspace");
+     if(rs) for(rr=0;rr<maxrun;rr++) {
+       rpat[rr]=malloc(sizeof(float)*(size_t)nc*nvmax);
+       if(!rpat[rr]) ERROR_exit("3dRSA: cannot allocate repeat patterns");
+     }
+     if(noise_norm!=NN_NONE) {
+       wh.residbuf=malloc(sizeof(float)*(size_t)maxnt*nvmax);
+       wh.Rmat=malloc(sizeof(float)*(size_t)maxntot*nvmax);
+       wh.wdiag=malloc(sizeof(float)*nvmax); wh.wtmp=malloc(sizeof(float)*nvmax);
+       if(noise_norm==NN_SHRINK) wh.Whalf=malloc(sizeof(float)*(size_t)nvmax*nvmax);
+       if(!wh.residbuf || !wh.Rmat || !wh.wdiag || !wh.wtmp ||
+          (noise_norm==NN_SHRINK && !wh.Whalf)) ERROR_exit("3dRSA: cannot allocate whitening workspace");
+     }
+#ifdef USE_OMP
+#pragma omp for schedule(dynamic,1)
+#endif
+     for(kk=0;kk<nr;kk++) {
+       int nv=rl->vox[kk].nar;
+       for(ss=0;ss<ns;ss++) {
+         if(outcome==RSA_SUBJECT_STABILITY) {
+           int ok=1;
+           for(rr=0;rr<rs->nrun[ss];rr++) {
+             THD_simmat *sm;
+             THD_runset_roi_condition_pattern(rs,rs->row_of[ss][rr],rl->vox+kk,pat,raw);
+             sm=THD_rsa_condition_rdm_checked(nc,nv,pat,neural_metric,center);
+             if(!sm) {ok=0;break;}
+             THD_simmat_to_tri(sm,tri+(size_t)rr*nt); THD_simmat_free(sm);
+           }
+           values[(size_t)ss*nr+kk]=ok?
+             THD_rsa_repeat_stability(rs->nrun[ss],nt,tri,metric,sc1,sc2):NAN;
+         } else {
+           THD_simmat *sm;
+           if(rs) sm=rsa_subject_rdm(ss,rl,kk,nc,nv,neural_metric,dset,rs,ci,center,pat,rpat,raw,&wh);
+           else {
+             rsa_subject_patterns(ss,nc,nv,dset,ci,rl->vox+kk,pat);
+             sm=THD_rsa_condition_rdm_checked(nc,nv,pat,neural_metric,center);
+           }
+           if(sm) THD_simmat_to_tri(sm,tri);
+           for(mm=0;mm<no;mm++) values[((size_t)mm*ns+ss)*nr+kk]=sm?
+             THD_rsa_fisher_corr(nt,tri,modeltri+(size_t)mm*nt,metric,sc1,sc2):NAN;
+           THD_simmat_free(sm);
+         }
+       }
+       rsa_progress_advance(&progress);
+     }
+     if(rs) for(rr=0;rr<maxrun;rr++) free(rpat[rr]);
+     free(rpat);free(raw);free(pat);free(tri);free(sc1);free(sc2);
+     free(wh.residbuf);free(wh.Rmat);free(wh.wdiag);free(wh.wtmp);free(wh.Whalf);
+   }
+   if(do_dset) {
+     oset=EDIT_empty_copy(mset);
+     EDIT_dset_items(oset,ADN_prefix,prefix,ADN_nvals,no*nb,ADN_ntt,0,
+                     ADN_type,HEAD_FUNC_TYPE,ADN_func_type,FUNC_BUCK_TYPE,ADN_none);
+     if(THD_deathcon() && THD_is_file(DSET_HEADNAME(oset)))
+       ERROR_exit("3dRSA: output dataset %s already exists",DSET_HEADNAME(oset));
+   }
+   design_fp=rsa_subject_output(prefix,".subject_design.tsv",path,sizeof(path));
+   fprintf(design_fp,"# Internal centering/scaling; reported slope and SE use original predictor units.\n");
+   for(c=0;c<design->ncolumn;c++) fprintf(design_fp,"# %s: mean=%.17g scale=%.17g\n",
+       design->name[c],design->mean[c],design->scale[c]);
+   fprintf(design_fp,"Subj"); for(c=0;c<design->ncolumn;c++) fprintf(design_fp,"\t%s",design->name[c]);
+   fprintf(design_fp,"\n");
+   for(s=0;s<ns;s++) {
+     fprintf(design_fp,"%s",subj[s]);
+     for(c=0;c<design->ncolumn;c++) fprintf(design_fp,"\t%.9g",design->values[(size_t)s*design->ncolumn+c]);
+     fprintf(design_fp,"\n");
+   }
+   if(ferror(design_fp) || fclose(design_fp)) ERROR_exit("3dRSA: error writing subject design");
+   subject_fp=rsa_subject_output(prefix,".subject_outcomes.tsv",path,sizeof(path));
+   result_fp=rsa_subject_output(prefix,".subject_regression.tsv",path,sizeof(path));
+   fprintf(subject_fp,"# outcome_z is Fisher-transformed correlation, not an inferential z statistic.\n"
+           "# Stability: equal mean Fisher z of all unordered repeat RDM pairs; outcome_r=tanh(outcome_z).\n"
+           "# Correlations clipped at +/-0.999999 (float32) before atanh; undefined outcomes are nan.\n"
+           "Subj\tROI\tlabel\toutcome\tnrepeat\tnpair\toutcome_z\toutcome_r\n");
+   fprintf(result_fp,"# Participant OLS: outcome_z ~ %s",design->name[0]);
+   for(c=1;c<design->ncolumn;c++) fprintf(result_fp," + %s",design->name[c]);
+   fprintf(result_fp,"\n# Outcome: %s; RDM comparison: %s; neural metric: %s; center_conditions=%d\n",
+       outcome==RSA_SUBJECT_STABILITY?"repeat stability":"fixed category/model fit",
+       THD_simmat_cmp_label(metric),(rs && outcome==RSA_SUBJECT_FIT)?"crossnobis":THD_simmat_metric_label(neural_metric),center);
+   fprintf(result_fp,"# Two-sided %s; seed=%ld; draws=%d.\n"
+       "# q: BH over valid locations separately per outcome; pFWE: max |t| over the same family.\n"
+       "# SE: ordinary homoscedastic OLS; intercept: outcome at mean predictor/covariates.\n"
+       "# Independent participants; permutation assumes exchangeable reduced-model errors.\n"
+       "# Freedman-Lane with nuisance covariates is generally approximate, even when permutations are exhaustive.\n"
+       "# Missing outcomes or zero residual variance invalidate the whole location; no participant-wise deletion.\n",
+       ps?"Freedman-Lane reduced-residual permutation":"parametric Student t",seed,ps?ps->nperm:0);
+   if(rs && rs->cond_lab) {
+     fprintf(result_fp,"# Condition order:"); for(c=0;c<nc;c++) fprintf(result_fp," %s",rs->cond_lab[c]);
+     fprintf(result_fp,"\n");
+   }
+   fprintf(result_fp,"ROI\tlabel\tnvox\toutcome");
+   for(c=0;c<nb;c++) fprintf(result_fp,"\t%s",field[c]); fprintf(result_fp,"\n");
+   for(m=0;m<no;m++) {
+     const char *name=outcome==RSA_SUBJECT_STABILITY?"stability":mod[m].name;
+     float **data=malloc(sizeof(float *)*ns),*out=calloc((size_t)nb*nr,sizeof(float));
+     unsigned char *valid=calloc(nr,1); PERM_result *pr=NULL; int nvalid=0;
+     if(!data || !out || !valid) ERROR_exit("3dRSA: cannot allocate subject regression results");
+     for(s=0;s<ns;s++) data[s]=values+((size_t)m*ns+s)*nr;
+     for(k=0;k<nr;k++) {
+       int nok=0;
+       for(s=0;s<ns;s++) {
+         int nrep=rs?rs->nrun[s]:1,npair=outcome==RSA_SUBJECT_STABILITY?nrep*(nrep-1)/2:0;
+         float z=data[s][k]; if(isfinite(z)) nok++;
+         fprintf(subject_fp,"%s\t%d\t%s\t%s\t%d\t%d\t%.9g\t%.9g\n",subj[s],rl->val[k],
+             rl->lab && rl->lab[k]?rl->lab[k]:"NA",name,nrep,npair,z,tanhf(z));
+       }
+       out[3*nr+k]=out[4*nr+k]=1.0f;
+       if(ps) out[10*nr+k]=1.0f;
+       out[7*nr+k]=nok;
+       valid[k]=rsa_subject_ols(design,data,k,out+k,out+nr+k,out+2*nr+k,out+6*nr+k);
+       if(valid[k]) {
+         double t=out[2*nr+k]; nvalid++;
+         out[8*nr+k]=1;out[9*nr+k]=design->glm->dof;
+         out[5*nr+k]=t/sqrt(t*t+design->glm->dof);
+         out[3*nr+k]=student_t2p(fabs(t),design->glm->dof);
+       } else out[k]=out[nr+k]=out[2*nr+k]=out[6*nr+k]=0.0f;
+     }
+     if(ps) {
+       rsa_progress_init(&progress,progress_mode,quiet,4,"Subject regression",nr,"locations");
+       pr=THD_permute_freedman_lane(data,ns,nr,valid,design->glm,ps,PERM_TAIL_TWO,
+                                   rsa_subject_progress,&progress);
+       if(!pr) ERROR_exit("3dRSA: participant regression permutation failed");
+       for(k=0;k<nr;k++) if(valid[k]) {
+         out[3*nr+k]=pr->p_unc[k]; out[10*nr+k]=pr->p_fwe[k]; out[11*nr+k]=pr->z_fwe[k];
+       }
+     }
+     THD_bh_fdr_masked(nr,out+3*nr,valid,out+4*nr);
+     for(k=0;k<nr;k++) {
+       fprintf(result_fp,"%d\t%s\t%d\t%s",rl->val[k],rl->lab && rl->lab[k]?rl->lab[k]:"NA",rl->vox[k].nar,name);
+       for(c=0;c<nb;c++) fprintf(result_fp,"\t%.9g",out[(size_t)c*nr+k]);
+       fprintf(result_fp,"\n");
+     }
+     if(oset) for(c=0;c<nb;c++,bs++) {
+       char label[180];
+       EDIT_substitute_brick(oset,bs,MRI_float,NULL);
+       THD_roilist_paint(DSET_ARRAY(oset,bs),rl,out+(size_t)c*nr);
+       snprintf(label,sizeof(label),"%.110s_%s",name,field[c]); EDIT_BRICK_LABEL(oset,bs,label);
+       if(c==2) EDIT_BRICK_TO_FITT(oset,bs,design->glm->dof);
+       if(c==11) EDIT_BRICK_TO_FIZT(oset,bs);
+       EDIT_BRICK_FACTOR(oset,bs,0.0);
+     }
+     if(!quiet) INFO_message("3dRSA: %s subject regression: %d/%d valid locations, df=%d",name,nvalid,nr,design->glm->dof);
+     if(nvalid<nr) WARNING_message("3dRSA: %s: %d locations have undefined outcomes or zero residual variance; see valid/n maps",name,nr-nvalid);
+     THD_perm_result_free(pr);free(data);free(out);free(valid);
+   }
+   if(ferror(subject_fp) || fclose(subject_fp)) ERROR_exit("3dRSA: error writing participant outcomes");
+   if(ferror(result_fp) || fclose(result_fp)) ERROR_exit("3dRSA: error writing participant regression");
+   if(oset) {
+     THD_copy_labeltable_atr(oset->dblk,mset->dblk);
+     if(!THD_copy_surface_node_domain(oset,mset,err,sizeof(err))) ERROR_exit("3dRSA: %s",err);
+     tross_Copy_History(mset,oset); tross_Make_History("3dRSA",argc,argv,oset);
+     DSET_write(oset); if(!quiet) INFO_message("3dRSA: wrote %s",DSET_BRIKNAME(oset));
+     DSET_delete(oset);
+   }
+   if(!quiet) INFO_message("3dRSA: wrote %s.subject_{design,outcomes,regression}.tsv",prefix);
+   THD_perm_set_free(ps);free(values);free(modeltri);
+}
+
+
 static char *rsa_options[] = {
+   "-subject_table", "-subject_predictor", "-subject_covariates", "-subject_outcome",
    "-mask" , "-roi_sel" , "-seed_mask" , "-seed_roi" ,
    "-searchlight" , "-surf" , "-mode" , "-featuretype" , "-polort" ,
    "-memory_limit" , "-memory_override" ,
    "-dataTable" , "-dataTableFile" , "-condition_column" , "-condition_order" ,
    "-run_column" , "-run_normalize" , "-run_analysis" ,
    "-run_model" , "-run_center" , "-run_factor" , "-run_contrast" ,
-   "-runwiseTable" , "-noise_norm" ,
+   "-runwiseTable" , "-xmatTable" , "-xmat_stims" , "-xmat_stims_group" , "-noise_norm" ,
    "-center_conditions" ,
-   "-model" , "-model_mat" , "-model_series" , "-model_series_subjects" , "-model_dset" , "-model_joint" , "-ortvec" ,
+   "-model" , "-model_mat" , "-model_groups" , "-contrast" , "-model_series" , "-model_series_subjects" , "-model_dset" , "-model_joint" , "-ortvec" ,
    "-model_fit" , "-fit_ridge" , "-fit_condfold" ,
    "-model_contrast" , "-contrast_hypothesis" , "-model_commonality" , "-group_test" , "-classic_null" ,
    "-noise_ceiling" , "-nc_split" , "-loo" , "-block" ,
@@ -4354,12 +5045,17 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *mset=NULL , *oset=NULL , **dset=NULL , *seedset=NULL ;
    THD_roilist *rl=NULL , *seedrl=NULL ;
    THD_datatable *tab=NULL , *longtab=NULL ;
+   char *subject_table=NULL,*subject_predictor=NULL,*subject_covariates=NULL ;
+   int subject_outcome=0 ; RSA_subject_design *subject_design=NULL ;
    THD_datatable_index *condition_index=NULL ;
    RSA_series_runs *series_runs=NULL ;
    char *maskname=NULL , *prefix="RSA" , *save_rdm=NULL , *roi_sel=NULL ;
+   char domain_err[1024] ;
    char *seed_mask=NULL , *seed_roi_sel=NULL ;
    float *seed_srdm=NULL ; int seed_excluded=0 ;
-   char *runwise_file=NULL ; THD_runset *runset=NULL ;   /* -runwiseTable */
+   char *runwise_file=NULL,*xmat_file=NULL,*xmat_stims=NULL ; THD_runset *runset=NULL ;
+   char *implicit_xmat_stims=NULL ; RSA_xgroup *xgroup=NULL ; int nxgroup=0 ;
+   RSA_generated_spec *groupspec=NULL,*xconspec=NULL ; int ngroupspec=0,nxconspec=0 ;
    char *run_column=NULL ; int run_normalize=RUN_NORM_ZSCORE,run_normalize_given=0 ;
    char *condition_column=NULL,*condition_order_arg=NULL,**condition_level=NULL ;
    int ncondition_level=0 ;
@@ -4431,6 +5127,7 @@ int main( int argc , char *argv[] )
    int classic_null_given=0 ;
    int contrast_hypothesis=CONTRAST_LEGACY ;
    int contrast_hypothesis_given=0 ;
+   int has_masked_model=0 ;
 
    int nvox , nvals=0 , nsub , nroi=0 , nitem , ntri ;
    float **cmean=NULL ; unsigned char **zkeep=NULL ; int *zcmin=NULL ;
@@ -4476,6 +5173,24 @@ int main( int argc , char *argv[] )
    /*================== option processing ==================*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcasecmp(argv[nopt],"-subject_table")==0 ||
+          strcasecmp(argv[nopt],"-subject_predictor")==0 ||
+          strcasecmp(argv[nopt],"-subject_covariates")==0 ){
+        char **dst=strcasecmp(argv[nopt],"-subject_table")==0 ? &subject_table :
+                   strcasecmp(argv[nopt],"-subject_predictor")==0 ? &subject_predictor : &subject_covariates ;
+        if( *dst!=NULL ) ERROR_exit("3dRSA: %s was given twice",argv[nopt]) ;
+        if( nopt+1>=argc ) ERROR_exit("3dRSA: need an argument after %s",argv[nopt]) ;
+        *dst=argv[nopt+1]; nopt+=2; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-subject_outcome")==0 ){
+        if( subject_outcome ) ERROR_exit("3dRSA: -subject_outcome was given twice") ;
+        if( ++nopt>=argc ) ERROR_exit("3dRSA: need model_fit or stability after -subject_outcome") ;
+        if( strcasecmp(argv[nopt],"model_fit")==0 ) subject_outcome=RSA_SUBJECT_FIT ;
+        else if( strcasecmp(argv[nopt],"stability")==0 ) subject_outcome=RSA_SUBJECT_STABILITY ;
+        else ERROR_exit("3dRSA: -subject_outcome must be model_fit or stability") ;
+        nopt++; continue ;
+      }
 
       if( strcasecmp(argv[nopt],"-h")    == 0 ||
           strcasecmp(argv[nopt],"-help") == 0   ){
@@ -4689,6 +5404,20 @@ int main( int argc , char *argv[] )
         matlabel[nmatspec] = argv[nopt+1] ;
         matspec[nmatspec++] = argv[nopt+2] ; nopt += 3 ; continue ;
       }
+      if( strcasecmp(argv[nopt],"-model_groups") == 0 ){
+        if( nopt+2 >= argc )
+          ERROR_exit("3dRSA: need LABEL and group1,group2,... after -model_groups") ;
+        groupspec=(RSA_generated_spec *)realloc(groupspec,sizeof(*groupspec)*(ngroupspec+1)) ;
+        groupspec[ngroupspec].label=argv[nopt+1] ; groupspec[ngroupspec].spec=argv[nopt+2] ;
+        ngroupspec++ ; nopt+=3 ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-contrast") == 0 ){
+        if( nopt+2 >= argc )
+          ERROR_exit("3dRSA: need LABEL and 'SYM: +group -group' after -contrast") ;
+        xconspec=(RSA_generated_spec *)realloc(xconspec,sizeof(*xconspec)*(nxconspec+1)) ;
+        xconspec[nxconspec].label=argv[nopt+1] ; xconspec[nxconspec].spec=argv[nopt+2] ;
+        nxconspec++ ; nopt+=3 ; continue ;
+      }
       if( strcasecmp(argv[nopt],"-model_series") == 0 ){
         if( ++nopt >= argc ) ERROR_exit("3dRSA: need a list file after -model_series") ;
         if( series_file != NULL ) ERROR_exit("3dRSA: -model_series was given twice") ;
@@ -4792,6 +5521,22 @@ int main( int argc , char *argv[] )
         if( ++nopt >= argc ) ERROR_exit("3dRSA: need a file name after -runwiseTable") ;
         runwise_file = argv[nopt] ; nopt++ ; continue ;
       }
+      if( strcasecmp(argv[nopt],"-xmatTable") == 0 ){
+        if( ++nopt >= argc ) ERROR_exit("3dRSA: need a file name after -xmatTable") ;
+        xmat_file = argv[nopt] ; nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-xmat_stims") == 0 ){
+        if( ++nopt >= argc ) ERROR_exit("3dRSA: need a comma-separated stimulus list after -xmat_stims") ;
+        xmat_stims = argv[nopt] ; nopt++ ; continue ;
+      }
+      if( strcasecmp(argv[nopt],"-xmat_stims_group") == 0 ){
+        if( nopt+2 >= argc )
+          ERROR_exit("3dRSA: need GROUP and stim1,stim2,... after -xmat_stims_group") ;
+        xgroup=(RSA_xgroup *)realloc(xgroup,sizeof(*xgroup)*(nxgroup+1)) ;
+        memset(xgroup+nxgroup,0,sizeof(*xgroup)) ;
+        xgroup[nxgroup].name=argv[nopt+1] ; xgroup[nxgroup].csv=argv[nopt+2] ;
+        nxgroup++ ; nopt+=3 ; continue ;
+      }
       if( strcasecmp(argv[nopt],"-run_column") == 0 ){
         if( ++nopt >= argc ) ERROR_exit("3dRSA: need a column name after -run_column") ;
         if( run_column!=NULL ) ERROR_exit("3dRSA: -run_column was given twice") ;
@@ -4856,6 +5601,31 @@ int main( int argc , char *argv[] )
 
    /*================== validate ==================*/
 
+   if( subject_table || subject_predictor || subject_covariates || subject_outcome ){
+     if( !subject_table || !subject_predictor || !subject_outcome )
+       ERROR_exit("3dRSA: give -subject_table, -subject_predictor and -subject_outcome together") ;
+     if( rdm_over!=RDM_BRICK ) ERROR_exit("3dRSA: subject regression requires -mode RSA") ;
+     if( cmp_metric!=CMP_PEARSON && cmp_metric!=CMP_SPEARMAN )
+       ERROR_exit("3dRSA: subject regression supports -metric pearson or spearman") ;
+     if( joint || nortspec || nconstrspec || ncomspec || nfitspec || do_loo || do_nc ||
+         nboot || ncboot || classic_null_given || group_test || block_col ||
+         run_column || series_file || subject_series_file || seed_mask || save_rdm ||
+         null_mode!=NULL_LABELS || regout || polort>=0 )
+       ERROR_exit("3dRSA: subject regression is a separate participant-outcome analysis.\n"
+                  "       Do not combine it with joint/fitted/contrast/series/seed models,\n"
+                  "       -ortvec, -loo, -noise_ceiling, bootstraps, -classic_null,\n"
+                  "       -group_test signedrank, -block, -run_column, temporal nulls,\n"
+                  "       -regress_out, -polort, or -save_rdm. Use -subject_covariates.") ;
+     if( subject_outcome==RSA_SUBJECT_STABILITY ){
+       if( runwise_file==NULL && xmat_file==NULL )
+         ERROR_exit("3dRSA: stability needs independent repeats via -runwiseTable or -xmatTable") ;
+       if( nmodspec+nmatspec+ndsespec+ngroupspec+nxconspec>0 )
+         ERROR_exit("3dRSA: stability compares repeats; do not supply a condition model") ;
+       if( noise_norm!=NN_NONE )
+         ERROR_exit("3dRSA: stability currently requires -noise_norm none; pooled whitening couples repeat estimates") ;
+     }
+   }
+
    if( !quiet && progress_mode!=RSA_PROGRESS_OFF )
      INFO_message("3dRSA [1/5] Validating options and loading inputs...") ;
 #ifdef USE_OMP
@@ -4870,7 +5640,7 @@ int main( int argc , char *argv[] )
      ERROR_exit("3dRSA: -seed_roi selects a value from -seed_mask; give both options") ;
    if( seed_mask != NULL ){
      if( series_file != NULL || subject_series_file != NULL ||
-         nmodspec+nmatspec+ndsespec+nrunmodspec>0 )
+         nmodspec+nmatspec+ndsespec+nrunmodspec+ngroupspec+nxconspec>0 )
        ERROR_exit("3dRSA: -seed_mask defines the one representational-connectivity\n"
                   "       model. Do not combine it with -model, -model_mat,\n"
                   "       -model_series, or -model_dset.") ;
@@ -4893,7 +5663,7 @@ int main( int argc , char *argv[] )
    if( series_file != NULL ){
      if( subject_series_file != NULL )
        ERROR_exit("3dRSA: use either -model_series or -model_series_subjects, not both") ;
-     if( nmodspec+nmatspec+ndsespec+nrunmodspec > 0 )
+     if( nmodspec+nmatspec+ndsespec+nrunmodspec+ngroupspec+nxconspec > 0 )
        ERROR_exit("3dRSA: -model_series defines the complete ordered model set;\n"
                   "       do not combine it with -model, -model_mat, or -model_dset") ;
      if( joint || nortspec>0 || nconstrspec>0 || ncomspec>0 || nfitspec>0 || do_loo )
@@ -4905,7 +5675,7 @@ int main( int argc , char *argv[] )
      nmatspec=nseries ; series_active=1 ;
    }
    if( subject_series_file != NULL ){
-     if( nmodspec+nmatspec+ndsespec+nrunmodspec > 0 )
+     if( nmodspec+nmatspec+ndsespec+nrunmodspec+ngroupspec+nxconspec > 0 )
        ERROR_exit("3dRSA: -model_series_subjects defines the complete ordered model set;\n"
                   "       do not combine it with other model inputs") ;
      if( joint || nortspec>0 || nconstrspec>0 || ncomspec>0 || nfitspec>0 || do_loo )
@@ -4940,47 +5710,72 @@ int main( int argc , char *argv[] )
      ERROR_exit("3dRSA: -mask is required (the one exception is a surface\n"
                 "       -searchlight, which may omit -mask to search the\n"
                 "       whole mesh)") ;
-   if( sl_nbhd == NULL && (memory_limit_given || memory_override) )
-     ERROR_exit("3dRSA: -memory_limit/-memory_override apply only with -searchlight") ;
+   if( sl_nbhd == NULL && runwise_file==NULL && xmat_file==NULL && !subject_outcome &&
+       (memory_limit_given || memory_override) )
+     ERROR_exit("3dRSA: -memory_limit/-memory_override apply only with -searchlight\n"
+                "       or runwise crossnobis input") ;
 
-   /* Runwise (cross-validated) classic RSA takes a different input -- one row
-      per subject x run -- so it has its own table.  Load and validate that
-      table here; the same crossnobis estimator serves atlas ROIs and moving
+   if( (nxgroup>0 || ngroupspec>0 || nxconspec>0) && xmat_file==NULL )
+     ERROR_exit("3dRSA: -xmat_stims_group, -model_groups, and -contrast require -xmatTable;\n"
+                "       their stimulus names and order come from Xmat StimLabels") ;
+   if( (ngroupspec>0 || nxconspec>0) && nxgroup==0 )
+     ERROR_exit("3dRSA: -model_groups/-contrast require one or more\n"
+                "       -xmat_stims_group declarations") ;
+   if( nxgroup>0 && xmat_stims==NULL ){
+     implicit_xmat_stims=rsa_xgroup_union(xgroup,nxgroup) ;
+     xmat_stims=implicit_xmat_stims ;
+   }
+
+   /* Cross-validated classic RSA takes either an explicit subject x run table
+      or a compact subject table expanded from X.xmat.1D. Load and validate it
+      here; the same crossnobis estimator serves atlas ROIs and moving
       searchlight neighborhoods downstream. */
-   if( runwise_file != NULL ){
+   if( runwise_file != NULL || xmat_file != NULL ){
      THD_3dim_dataset *mchk ;
+     const char *input_opt=(xmat_file!=NULL)?"-xmatTable":"-runwiseTable" ;
+     const char *input_file=(xmat_file!=NULL)?xmat_file:runwise_file ;
+     if( runwise_file!=NULL && xmat_file!=NULL )
+       ERROR_exit("3dRSA: use EITHER -runwiseTable OR -xmatTable, not both") ;
+     if( xmat_stims!=NULL && xmat_file==NULL )
+       ERROR_exit("3dRSA: -xmat_stims requires -xmatTable") ;
      if( maskname == NULL )
-       ERROR_exit("3dRSA: -mask is required with -runwiseTable (the mask-optional\n"
-                  "       surface searchlight is IS-RSA only)") ;
+       ERROR_exit("3dRSA: -mask is required with %s (the mask-optional\n"
+                  "       surface searchlight is IS-RSA only)",input_opt) ;
      if( tab != NULL )
-       ERROR_exit("3dRSA: use EITHER -runwiseTable OR -dataTable/-dataTableFile,\n"
-                  "       not both") ;
+       ERROR_exit("3dRSA: use EITHER %s OR -dataTable/-dataTableFile, not both",
+                  input_opt) ;
      if( rdm_over != RDM_BRICK && feat_override != MODE_RDM )
-       ERROR_exit("3dRSA: -runwiseTable supplies cross-validated condition RDMs.\n"
+       ERROR_exit("3dRSA: %s supplies cross-validated condition RDMs.\n"
                   "       Use '-mode RSA', or '-mode IS-RSA -featuretype rdm'\n"
-                  "       for second-order crossnobis IS-RSA.") ;
-     runset = THD_runset_read( runwise_file ) ;
+                  "       for second-order crossnobis IS-RSA.",input_opt) ;
+     runset = (xmat_file!=NULL) ? THD_runset_read_xmat(xmat_file,xmat_stims)
+                                : THD_runset_read(runwise_file) ;
      if( runset == NULL )
-       ERROR_exit("3dRSA: -runwiseTable '%s' failed to load (see message above)",
-                  runwise_file) ;
+       ERROR_exit("3dRSA: %s '%s' failed to load (see message above)",
+                  input_opt,input_file) ;
+     if( nxgroup>0 ) rsa_xgroups_resolve(xgroup,nxgroup,runset) ;
      if( noise_norm != NN_NONE && !runset->has_resid )
        ERROR_exit("3dRSA: -noise_norm %s needs a 'ResidFile' column in the\n"
-                  "       -runwiseTable to estimate the noise covariance",
-                  (noise_norm==NN_DIAG)?"diag":"shrinkage") ;
+                  "       %s to estimate the noise covariance",
+                  (noise_norm==NN_DIAG)?"diag":"shrinkage",input_opt) ;
      mchk = THD_open_dataset( maskname ) ;
      if( mchk == NULL ) ERROR_exit("3dRSA: can't open -mask '%s'",maskname) ;
      if( DSET_NVOX(mchk) != runset->nvox )
        ERROR_exit("3dRSA: -mask has %d voxels but the runwise datasets have %d",
                   DSET_NVOX(mchk),runset->nvox) ;
-     if( !EQUIV_GRIDS(mchk,runset->betas[0]) )
+     if( DBLK_IS_NI_SURF_DSET(mchk->dblk) || DBLK_IS_GIFTI(mchk->dblk) ||
+         DBLK_IS_NI_SURF_DSET(runset->betas[0]->dblk) || DBLK_IS_GIFTI(runset->betas[0]->dblk) ){
+       if( !THD_surface_domain_match(mchk,runset->betas[0],domain_err,sizeof(domain_err)) )
+         ERROR_exit("3dRSA: %s",domain_err) ;
+     } else if( !EQUIV_GRIDS(mchk,runset->betas[0]) )
        ERROR_exit("3dRSA: -mask and runwise datasets are on different grids;\n"
                   "       searchlight neighborhoods require matching geometry") ;
      DSET_delete(mchk) ;
      if( !quiet ){
        THD_runset_print( runset , stdout ) ;
-       INFO_message("3dRSA: -runwiseTable -- %d subjects, %d conditions, %d "
+       if( subject_outcome!=RSA_SUBJECT_STABILITY ) INFO_message("3dRSA: %s -- %d subjects, %d conditions, %d "
                     "subject-runs; crossnobis (%s)",
-                    runset->nsub,runset->ncond,runset->nrow,
+                    input_opt,runset->nsub,runset->ncond,runset->nrow,
                     (noise_norm==NN_NONE)   ? "cross-validated squared Euclidean" :
                     (noise_norm==NN_DIAG)   ? "univariate noise-normalized"
                                             : "multivariate noise-normalized (shrinkage)") ;
@@ -4989,10 +5784,10 @@ int main( int argc , char *argv[] )
 
    if( noise_norm != NN_NONE && runset == NULL )
      ERROR_exit("3dRSA: -noise_norm only applies to cross-validated (crossnobis)\n"
-                "       RSA; give it with -runwiseTable.") ;
+                "       RSA; give it with -runwiseTable or -xmatTable.") ;
 
    if( tab == NULL && runset == NULL )
-     ERROR_exit("3dRSA: -dataTable, -dataTableFile or -runwiseTable is required") ;
+     ERROR_exit("3dRSA: -dataTable, -dataTableFile, -runwiseTable or -xmatTable is required") ;
    if( tab != NULL && tab->fname == NULL )
      ERROR_exit("3dRSA: the data table has no 'InputFile' column, so there are\n"
                 "       no datasets to analyze") ;
@@ -5120,6 +5915,18 @@ int main( int argc , char *argv[] )
      tab=shorttab ;
    }
    nsub = (runset != NULL) ? runset->nsub : tab->nrow ;
+   if( subject_outcome ){
+     if( tab && tab->icol_subj<0 ) ERROR_exit("3dRSA: subject regression requires explicit imaging Subj labels") ;
+     subject_design=rsa_subject_design_read(subject_table,subject_predictor,subject_covariates,
+                         nsub,runset?runset->subj:tab->subj) ;
+     if( subject_outcome==RSA_SUBJECT_STABILITY ){
+       for( jj=0 ; jj<runset->nrow ; jj++ ) for( ii=0 ; ii<runset->ncond ; ii++ )
+         if( runset->has_condmap && runset->nrep[jj][ii]<1 )
+           ERROR_exit("3dRSA: stability needs every condition in every repeat; Subj %s Run %s is missing %s",
+               runset->subj[runset->row_sub[jj]],runset->run_lab[jj],runset->cond_lab[ii]) ;
+       if( !quiet ) INFO_message("3dRSA: repeat stability uses independent within-run RDMs, then participant regression") ;
+     }
+   }
    if( subject_series != NULL )
      rsa_subject_series_require_subjects(subject_series,
                                          (runset!=NULL)?runset->subj:tab->subj,nsub) ;
@@ -5162,6 +5969,9 @@ int main( int argc , char *argv[] )
    if( subject_series != NULL && rdm_over != RDM_BRICK )
      ERROR_exit("3dRSA: -model_series_subjects is a paired condition-RDM model\n"
                 "       and requires classic '-mode RSA'") ;
+   if( (ngroupspec>0 || nxconspec>0) && rdm_over!=RDM_BRICK )
+     ERROR_exit("3dRSA: -model_groups and -contrast build condition RDMs and\n"
+                "       therefore require classic '-mode RSA'") ;
 
    if( series_runs!=NULL ){
      if( rdm_over!=RDM_SUBJ || mode!=MODE_CONT )
@@ -5260,9 +6070,10 @@ int main( int argc , char *argv[] )
    }
 
    if( rdm_over == RDM_BRICK ){
-     if( nmatspec+nsubjectseries == 0 && seed_mask == NULL )
+     if( nmatspec+nsubjectseries+ngroupspec+nxconspec == 0 && seed_mask == NULL &&
+         subject_outcome!=RSA_SUBJECT_STABILITY )
        ERROR_exit("3dRSA: -mode RSA needs -model_mat, -model_series,\n"
-                  "       -model_series_subjects, or -seed_mask.\n"
+                  "       -model_series_subjects, an Xmat-generated model, or -seed_mask.\n"
                   "       The rows are conditions, so a behavioral model cannot\n"
                   "       come from a -dataTable column.") ;
      if( nmodspec > 0 )
@@ -5276,7 +6087,7 @@ int main( int argc , char *argv[] )
                   "       applies to IS-RSA (-mode IS-RSA), where the matrix rows\n"
                   "       are subjects.") ;
    } else {
-     if( nmodspec + nmatspec + nsubjectseries + ndsespec + nrunmod == 0 && seed_mask == NULL )
+     if( nmodspec+nmatspec+nsubjectseries+ndsespec+nrunmod+ngroupspec+nxconspec==0 && seed_mask==NULL )
        ERROR_exit("3dRSA: no models given.  Use -model LABEL COLUMN:RULE, -model_mat\n"
                   "       for an explicit matrix, -model_series for a time-indexed\n"
                   "       matrix stack, -model_dset for another modality, -run_model\n"
@@ -5284,7 +6095,8 @@ int main( int argc , char *argv[] )
                   "       -seed_mask for representational connectivity.") ;
    }
 
-   nmod = nmodspec + nrunmod + nmatspec + nsubjectseries + ndsespec + ((seed_mask!=NULL)?1:0) ;
+   nmod = nmodspec+nrunmod+nmatspec+ngroupspec+nxconspec+nsubjectseries+ndsespec
+          + ((seed_mask!=NULL)?1:0) ;
    if( fit_ridge_given && nfitspec==0 )
      ERROR_exit("3dRSA: -fit_ridge was given without a -model_fit request") ;
    if( fit_condfold_file!=NULL && nfitspec==0 )
@@ -5521,7 +6333,13 @@ int main( int argc , char *argv[] )
    if( seed_mask != NULL ){
      seedset=THD_open_dataset(seed_mask) ;
      if( seedset==NULL ) ERROR_exit("3dRSA: can't open -seed_mask dataset '%s'",seed_mask) ;
-     if( DSET_NVOX(seedset)!=nvox || !EQUIV_GRIDS(mset,seedset) )
+     if( DSET_NVOX(seedset)!=nvox )
+       ERROR_exit("3dRSA: -seed_mask '%s' must match the target mask/data grid",seed_mask) ;
+     if( DBLK_IS_NI_SURF_DSET(mset->dblk) || DBLK_IS_GIFTI(mset->dblk) ||
+         DBLK_IS_NI_SURF_DSET(seedset->dblk) || DBLK_IS_GIFTI(seedset->dblk) ){
+       if( !THD_surface_domain_match(mset,seedset,domain_err,sizeof(domain_err)) )
+         ERROR_exit("3dRSA: -seed_mask '%s': %s",seed_mask,domain_err) ;
+     } else if( !EQUIV_GRIDS(mset,seedset) )
        ERROR_exit("3dRSA: -seed_mask '%s' must match the target mask/data grid",seed_mask) ;
      DSET_load(seedset) ; CHECK_LOAD_ERROR(seedset) ;
      rsa_validate_mask(seedset,1,"-seed_mask") ;
@@ -5607,7 +6425,11 @@ int main( int argc , char *argv[] )
      if( DSET_NVOX(dset[jj]) != nvox )
        ERROR_exit("3dRSA: '%s' has %d voxels but the -mask has %d",
                   fn , DSET_NVOX(dset[jj]) , nvox) ;
-     if( !EQUIV_GRIDS(mset,dset[jj]) )
+     if( DBLK_IS_NI_SURF_DSET(mset->dblk) || DBLK_IS_GIFTI(mset->dblk) ||
+         DBLK_IS_NI_SURF_DSET(dset[jj]->dblk) || DBLK_IS_GIFTI(dset[jj]->dblk) ){
+       if( !THD_surface_domain_match(mset,dset[jj],domain_err,sizeof(domain_err)) )
+         ERROR_exit("3dRSA: InputFile '%s': %s",fn,domain_err) ;
+     } else if( !EQUIV_GRIDS(mset,dset[jj]) )
        WARNING_message("3dRSA: grid mismatch between -mask and '%s'",fn) ;
 
      if( series_runs!=NULL ){
@@ -5680,7 +6502,9 @@ int main( int argc , char *argv[] )
    nitem = (rdm_over == RDM_SUBJ) ? nsub : nvals ;
    ntri  = THD_NTRI(nitem) ;
 
-   if( nitem < 6 )
+   if( subject_outcome && nitem<3 )
+     ERROR_exit("3dRSA: subject outcomes require at least 3 conditions") ;
+   if( !subject_outcome && nitem < 6 )
      ERROR_exit("3dRSA: the matrices would be only %d x %d.  With so few items\n"
                 "       the permutation test has almost no resolution and the\n"
                 "       correlation is not interpretable.  Need at least 6.",
@@ -5904,6 +6728,19 @@ int main( int argc , char *argv[] )
      dot = strrchr(mod[mm].name,'.') ; if( dot != NULL ) *dot = '\0' ;
    }
 
+   for( ii=0 ; ii<ngroupspec ; ii++,mm++ ){
+     mod[mm].kind=MODK_MATRIX ; mod[mm].spec=groupspec[ii].spec ; mod[mm].icol=-1 ;
+     mod[mm].mat=rsa_group_model(groupspec+ii,xgroup,nxgroup,runset) ;
+     strncpy(mod[mm].name,groupspec[ii].label,sizeof(mod[mm].name)-1) ;
+     mod[mm].name[sizeof(mod[mm].name)-1]='\0' ;
+   }
+   for( ii=0 ; ii<nxconspec ; ii++,mm++ ){
+     mod[mm].kind=MODK_MATRIX ; mod[mm].spec=xconspec[ii].spec ; mod[mm].icol=-1 ;
+     mod[mm].mat=rsa_symbolic_contrast_model(xconspec+ii,xgroup,nxgroup,runset) ;
+     strncpy(mod[mm].name,xconspec[ii].label,sizeof(mod[mm].name)-1) ;
+     mod[mm].name[sizeof(mod[mm].name)-1]='\0' ;
+   }
+
    for( ii=0 ; ii<nsubjectseries ; ii++,mm++ ){
      char **asub=(runset!=NULL)?runset->subj:tab->subj ; int ss ;
      mod[mm].kind=MODK_SUBMATRIX ; mod[mm].spec=subject_series_file ; mod[mm].icol=-1 ;
@@ -5998,10 +6835,65 @@ int main( int argc , char *argv[] )
        }
      for( ii=0 ; ii < ndsespec ; ii++ )
        if( dselabel != NULL ){
-         gi = nmodspec + nrunmod + nmatspec + nsubjectseries + ii ;
+         gi = nmodspec+nrunmod+nmatspec+ngroupspec+nxconspec+nsubjectseries+ii ;
          strncpy(mod[gi].name,dselabel[ii],sizeof(mod[gi].name)-1) ;
          mod[gi].name[sizeof(mod[gi].name)-1] = '\0' ;
        }
+   }
+
+   for( ii=0 ; ii<nmod ; ii++ ) for( jj=0 ; jj<ii ; jj++ )
+     if( strcmp(mod[ii].name,mod[jj].name)==0 )
+       ERROR_exit("3dRSA: model label '%s' was used more than once; every model\n"
+                  "       needs a unique label",mod[ii].name) ;
+
+   /* A dot-masked RDM defines a scalar fixed-model question over a fixed set
+      of dyads.  Keep that estimand explicit: subject fits and a joint
+      row/column condition relabeling are valid, while combining models with
+      different masks or resampling the condition axis is a different problem. */
+   for( mm=0 ; mm<nmod ; mm++ ){
+     int ss,ncheck=(mod[mm].sub_mat!=NULL)?nsub:1 ;
+     for( ss=0 ; ss<ncheck ; ss++ ){
+       THD_simmat *sm=(mod[mm].sub_mat!=NULL)?mod[mm].sub_mat[ss]:mod[mm].mat ;
+       if( sm!=NULL && THD_simmat_has_missing(sm) ){
+         int a,b,nv=0 ; float lo=FLT_MAX,hi=-FLT_MAX ;
+         if( mod[mm].sub_mat!=NULL )
+           ERROR_exit("3dRSA: dot-masked RDMs are not yet supported in\n"
+                      "       -model_series_subjects; use a fixed -model_mat") ;
+         has_masked_model=1 ;
+         for( a=0 ; a<sm->n ; a++ ) for( b=a+1 ; b<sm->n ; b++ ){
+           float x=sm->mat[(size_t)a*sm->n+b] ;
+           if( isfinite(x) ){ nv++ ; if(x<lo)lo=x; if(x>hi)hi=x; }
+         }
+         if( nv<3 || !(hi>lo) )
+           ERROR_exit("3dRSA: masked model '%s' has %d usable pair%s and range %.6g.\n"
+                      "       A partial RDM needs at least 3 finite dyads and at least\n"
+                      "       two distinct predictions to define a correlation.",
+                      mod[mm].name,nv,(nv==1)?"":"s",(double)(hi-lo)) ;
+       }
+     }
+   }
+   if( has_masked_model ){
+     if( subject_outcome ) ERROR_exit("3dRSA: subject model-fit regression currently requires complete model RDMs") ;
+     if( rdm_over!=RDM_BRICK )
+       ERROR_exit("3dRSA: dot-masked model RDMs currently apply only to classic\n"
+                  "       '-mode RSA', where their cells select condition pairs") ;
+     if( joint || nconstrspec>0 || ncomspec>0 || nfitspec>0 )
+       ERROR_exit("3dRSA: a dot-masked RDM cannot be combined with -model_joint,\n"
+                  "       -model_contrast, -model_commonality, or -model_fit.\n"
+                  "       Those procedures require models on the same dyads; different\n"
+                  "       masks would silently compare different estimands. Test each\n"
+                  "       partial fixed model as its own scalar effect instead.") ;
+     if( ncboot>0 )
+       ERROR_exit("3dRSA: -cond_bootstrap is not yet defined for a dot-masked RDM;\n"
+                  "       condition resampling changes which selected dyads exist.\n"
+                  "       Subject -bootstrap remains supported.") ;
+     if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV )
+       ERROR_exit("3dRSA: -metric %s requires the complete condition-distance\n"
+                  "       covariance and cannot be used with a dot-masked RDM",
+                  THD_simmat_cmp_label(cmp_metric)) ;
+     if( !quiet )
+       INFO_message("3dRSA: dot-masked fixed model(s): each fit uses only finite\n"
+                    "       model dyads; '.' pairs are outside that model's estimand") ;
    }
 
    /* LOO predicts scalar columns or complete multivariate profiles.  Preserve
@@ -6257,7 +7149,8 @@ int main( int argc , char *argv[] )
    /*-- tell the user what sense each model carries --*/
 
    if( !quiet ){
-     int neu_sim = (neu_metric != SIM_EUCLID) ;
+     int neu_sim = (rdm_over==RDM_BRICK && runset!=NULL)
+                     ? 0 : (neu_metric != SIM_EUCLID) ;
      for( mm=0 ; mm < nmod ; mm++ ){
        if( mod[mm].kind==MODK_SUBMATRIX ){
          INFO_message("3dRSA: model '%s' is a subject-indexed dissimilarity RDM;\n"
@@ -6305,11 +7198,10 @@ int main( int argc , char *argv[] )
          }
        }
        int mod_sim = (mod[mm].mat != NULL) ? !mod[mm].mat->is_dist : neu_sim ;
-       INFO_message("3dRSA: model '%s' -> positive means %s",
-         mod[mm].name ,
-         (neu_sim == mod_sim) ? "similar behavior goes with similar brains"
-                              : "similar behavior goes with DISsimilar brains"
-                                " (a similarity mixed with a distance)" ) ;
+       INFO_message("3dRSA: model '%s' -> positive means %s",mod[mm].name,
+         ( neu_sim &&  mod_sim) ? "greater predicted similarity goes with greater neural similarity" :
+         (!neu_sim && !mod_sim) ? "greater predicted dissimilarity goes with greater neural dissimilarity" :
+                                  "the model and neural matrix use opposite similarity/distance senses") ;
      }
    }
 
@@ -6380,17 +7272,21 @@ int main( int argc , char *argv[] )
      }
    }
 
-   /* F11: estimate the peak while all searchlight input headers are open but
-      before their voxel arrays are loaded.  Atlas/ROI mode unloads subjects as
-      it reduces them and therefore does not need this resident-input guard. */
-   if( streaming )
+   /* F11: estimate the peak before large voxel arrays are loaded. Ordinary
+      atlas input is reduced one dataset at a time; runwise atlas/searchlight
+      input uses the compact store planned here. */
+   if( runset!=NULL ){
+     int sc=THD_runset_plan_store(runset,rl,seedrl,noise_norm!=NN_NONE) ;
+     if( sc<0 ) ERROR_exit("3dRSA: cannot plan the runwise compact voxel store") ;
+   }
+   if( streaming || runset!=NULL || subject_outcome )
      rsa_searchlight_memory_preflight(
        mset,rl,dset,runset,series_runs,condition_index,run_analysis,nrunconspec,mod,nmod,nort,nsub,mode,rdm_over,nitem,nvals,
        nperm,null_mode,nboot,ncboot,ncon,ncomq,nfit,nfitw,nfitcon,
        do_loo,nloo,nloofam,do_nc,
        noise_norm,do_dset,
-       cmp_metric,joint,
-       memory_limit_gib,memory_limit_given,memory_override,quiet ) ;
+       cmp_metric,joint,subject_outcome?(subject_outcome==RSA_SUBJECT_STABILITY?1:nmod):0,
+       memory_limit_gib,memory_limit_given,memory_override,quiet,streaming ) ;
 
    /* Build the seed once, before any atlas continuous-data reduction unloads
       subject datasets.  Searchlights retain the fixed seed geometry while
@@ -6399,9 +7295,17 @@ int main( int argc , char *argv[] )
      if( runset != NULL ){
        int rw ;
        for( rw=0 ; rw<runset->nrow ; rw++ ){
-         DSET_load(runset->betas[rw]) ; CHECK_LOAD_ERROR(runset->betas[rw]) ;
+         if( runset->store_nvox>0 ){
+           if( !THD_runset_load_store_row(runset,rw,0) )
+             ERROR_exit("3dRSA: cannot compact beta data for Subj %s, Run %s",
+                        runset->subj[runset->row_sub[rw]],runset->run_lab[rw]) ;
+         } else { DSET_load(runset->betas[rw]) ; CHECK_LOAD_ERROR(runset->betas[rw]) ; }
          if( noise_norm!=NN_NONE ){
-           DSET_load(runset->resid[rw]) ; CHECK_LOAD_ERROR(runset->resid[rw]) ;
+           if( runset->store_nvox>0 ){
+             if( !THD_runset_load_store_row(runset,rw,1) )
+               ERROR_exit("3dRSA: cannot compact residual data for Subj %s, Run %s",
+                          runset->subj[runset->row_sub[rw]],runset->run_lab[rw]) ;
+           } else { DSET_load(runset->resid[rw]) ; CHECK_LOAD_ERROR(runset->resid[rw]) ; }
          }
        }
      } else {
@@ -6446,10 +7350,18 @@ int main( int argc , char *argv[] )
      rsa_progress_init(&progress,progress_mode,quiet,3,"Loading runwise data",
                        runset->nrow*(1+(noise_norm!=NN_NONE)),"datasets") ;
      for( rw=0 ; rw < runset->nrow ; rw++ ){
-       DSET_load(runset->betas[rw]) ; CHECK_LOAD_ERROR(runset->betas[rw]) ;
+       if( runset->store_nvox>0 ){
+         if( !THD_runset_load_store_row(runset,rw,0) )
+           ERROR_exit("3dRSA: cannot compact beta data for Subj %s, Run %s",
+                      runset->subj[runset->row_sub[rw]],runset->run_lab[rw]) ;
+       } else { DSET_load(runset->betas[rw]) ; CHECK_LOAD_ERROR(runset->betas[rw]) ; }
        rsa_progress_advance(&progress) ;
        if( noise_norm != NN_NONE ){
-         DSET_load(runset->resid[rw]) ; CHECK_LOAD_ERROR(runset->resid[rw]) ;
+         if( runset->store_nvox>0 ){
+           if( !THD_runset_load_store_row(runset,rw,1) )
+             ERROR_exit("3dRSA: cannot compact residual data for Subj %s, Run %s",
+                        runset->subj[runset->row_sub[rw]],runset->run_lab[rw]) ;
+         } else { DSET_load(runset->resid[rw]) ; CHECK_LOAD_ERROR(runset->resid[rw]) ; }
          rsa_progress_advance(&progress) ;
        }
      }
@@ -6560,6 +7472,14 @@ int main( int argc , char *argv[] )
      }
    }
 
+   if( subject_outcome ){
+     rsa_subject_analysis(subject_design,subject_outcome,rl,mset,dset,runset,condition_index,
+       runset?runset->subj:tab->subj,nitem,mod,nmod,neu_metric,cmp_metric,center_conditions,
+       noise_norm,nperm,seed,prefix,do_dset,quiet,progress_mode,argc,argv) ;
+     rsa_subject_design_free(subject_design) ;
+     goto rsa_cleanup ;
+   }
+
    /*-- show how correlated the models are; collinearity is the whole reason
         -model_joint exists, so it should not be a hidden quantity --*/
 
@@ -6596,7 +7516,10 @@ int main( int argc , char *argv[] )
    if( !quiet && nmod > 1 && !series_active && !run_resolved ){
      int all_fixed=1 ;
      for( mm=0 ; mm < nmod ; mm++ ) if( mod[mm].mat == NULL ) all_fixed = 0 ;
-     if( all_fixed ){
+     if( has_masked_model ){
+       INFO_message("3dRSA: model intercorrelations are not summarized because a\n"
+                    "       dot-masked model has a different, explicitly selected dyad set") ;
+     } else if( all_fixed ){
        THD_rdm_ws *w0 = THD_rdm_ws_new( nitem , nmod ) ;
        THD_simmat **mv = (THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
        float *cm = (float *)malloc(sizeof(float)*nmod*nmod) ;
@@ -6664,7 +7587,7 @@ int main( int argc , char *argv[] )
              mv[mm] = rsa_second_order_rdm(rl,kk2,nsub,mod[mm].mvals,
                                             rl->vox[kk2].nar,cond_metric,neu_metric,
                                             mod[mm].dset,NULL,NULL,center_conditions,
-                                            Fs,Fspat,NULL,NULL,NULL) ;
+                                            Fspat,NULL,NULL,NULL,NULL) ;
            } else {
              int mvv = mod[mm].mvals , nf2 = rl->vox[kk2].nar*mvv ;
              for( jj=0 ; jj < nsub ; jj++ )
@@ -7199,6 +8122,7 @@ int main( int argc , char *argv[] )
 #pragma omp parallel
  {
    THD_rdm_ws *ws , *cws=NULL ;
+   THD_rsa_rdm_workspace *rws=NULL ;
    THD_simmat *neural=NULL , *tsneural=NULL , **mv ;
    THD_simmat **rneural=NULL ;
    float *F , *tsmain=NULL , *tslag=NULL , *tsprep=NULL , *tsnorm=NULL ;
@@ -7230,7 +8154,7 @@ int main( int argc , char *argv[] )
    float *fitfoldz=NULL ; unsigned char *fitvalid=NULL ; int nfitfold=0 ;
    float **rpat=NULL,*runraw=NULL ; int maxrun_l=0 ; /* crossnobis mapped/run patterns */
    RSA_whiten wh ;                                 /* per-thread noise-whitening scratch */
-   int nfeat_max , npat_max=0 , maxvox_l , kk_ , mm_ , jj_ , nvx ;
+   int nfeat_max , npat_max=0 , maxcond_l=nvals , maxvox_l , kk_ , mm_ , jj_ , nvx ;
 
    { int wncol=joint ? nmod+nort : ((nort>0) ? 1+nort : 1) ;
      if( ncomq>0 && wncol<3 ) wncol=3 ;
@@ -7359,11 +8283,17 @@ int main( int argc , char *argv[] )
               : (mode == MODE_RDM) ? THD_NTRI(mod[mm_].mvals)
                                    : maxvox_l * mod[mm_].mvals ;
        if( nf > nfeat_max ) nfeat_max = nf ; }
-     if( mode == MODE_RDM && maxvox_l*mod[mm_].mvals > npat_max )
-       npat_max=maxvox_l*mod[mm_].mvals ;
+     if( mode == MODE_RDM ){
+       if( maxvox_l*mod[mm_].mvals > npat_max ) npat_max=maxvox_l*mod[mm_].mvals ;
+       if( mod[mm_].mvals > maxcond_l ) maxcond_l=mod[mm_].mvals ;
+     }
    }
 
    F = (float *)malloc(sizeof(float)*(size_t)nitem*nfeat_max) ;
+   if( mode == MODE_RDM && rdm_over == RDM_SUBJ ){
+     rws=THD_rsa_rdm_workspace_new(nsub,maxcond_l) ;
+     if( rws==NULL ) ERROR_exit("3dRSA: cannot allocate the RDM construction workspace") ;
+   }
    if( zcensor ) Z=(unsigned char *)malloc((size_t)nitem*nfeat_max) ;
    if( run_resolved ){
      int ru,maxrv=0,nre=joint?nmod*series_runs->nrun:series_runs->nrun ;
@@ -7535,7 +8465,7 @@ int main( int argc , char *argv[] )
          nfeat = THD_NTRI(nvals) ;
          neural = rsa_second_order_rdm(rl,kk_,nsub,nvals,nvx,
                                         cond_metric,neu_metric,dset,runset,condition_index,
-                                        center_conditions,F,ipat,rpat,runraw,&wh) ;
+                                        center_conditions,ipat,rpat,runraw,&wh,rws) ;
        } else {
          nfeat = nvx * nvals ;
          for( jj_=0 ; jj_ < nsub ; jj_++ )
@@ -7661,7 +8591,7 @@ int main( int argc , char *argv[] )
          } else if( mode == MODE_RDM ){
            mv[mm_] = rsa_second_order_rdm(rl,kk_,nsub,mod[mm_].mvals,nvx,
                                            cond_metric,neu_metric,mod[mm_].dset,NULL,NULL,
-                                           center_conditions,F,ipat,NULL,NULL,NULL) ;
+                                           center_conditions,ipat,NULL,NULL,NULL,rws) ;
          } else {
            int mv2 = mod[mm_].mvals , nf2 = nvx*mv2 ;
            for( jj_=0 ; jj_ < nsub ; jj_++ )
@@ -8004,7 +8934,8 @@ int main( int argc , char *argv[] )
        for( jj_=0 ; jj_ < nsub ; jj_++ ){
          neural = rsa_subject_rdm( jj_,rl,kk_,nitem,nvx,neu_metric,
                                    dset,runset,condition_index,center_conditions,F,rpat,runraw,&wh ) ;
-         THD_simmat_to_tri( neural , srdm + (size_t)jj_*ntri ) ;
+         if( !THD_rsa_simmat_to_triangle(neural,srdm+(size_t)jj_*ntri,0,NULL,0) )
+           ERROR_exit("3dRSA: cannot compact subject %d's condition RDM",jj_+1) ;
          if( srdmcov!=NULL )
            THD_rdm_cov_transform(nitem,srdm+(size_t)jj_*ntri,
                                  cmp_metric==CMP_CORR_COV,
@@ -8118,9 +9049,8 @@ int main( int argc , char *argv[] )
                rsub[jj_]=MYatanh(THD_rdm_cov_cosine(
                                   nitem,srdmcov+(size_t)jj_*nitem*nitem,mcov[mm_])) ;
              else {
-               THD_simmat_to_tri( sm , ws->yperm ) ;
-               rsub[jj_] = MYatanh( THD_tri_corr( ntri , st , ws->yperm ,
-                                                  cmp_metric , ws->sc1 , ws->sc2 ) ) ;
+               rsub[jj_]=MYatanh(THD_simmat_corr_triangle(
+                                      st,sm,NULL,cmp_metric,ws)) ;
              }
              if( ncboot > 0 ){
                int bb_ ;
@@ -8414,6 +9344,7 @@ int main( int argc , char *argv[] )
    if( wh.Whalf    != NULL ) free(wh.Whalf) ;
    if( wh.wdiag    != NULL ) free(wh.wdiag) ;
    if( wh.wtmp     != NULL ) free(wh.wtmp) ;
+   THD_rsa_rdm_workspace_free(rws) ;
    THD_rdm_ws_free(ws) ;
  }
  AFNI_OMP_END ;
@@ -8654,6 +9585,7 @@ int main( int argc , char *argv[] )
       fprintf(fp,"# 3dRSA output\n") ;
       fprintf(fp,"# output schema: 3dRSA-rsa-v2\n") ;
       fprintf(fp,"# numerical input contract: finite values required in every used table column, mask label, and analyzed data brick; data outside the union analysis domain are ignored\n#\n") ;
+      fprintf(fp,"# Pearson feature matrices (when used): double accumulation, float storage; includes pairwise zero censoring\n") ;
       fprintf(fp,"# mask     : %s\n",
               (maskname != NULL) ? maskname : "(none -- whole surface mesh)") ;
       fprintf(fp,"# mode     : %s%s\n",
@@ -9176,12 +10108,8 @@ int main( int argc , char *argv[] )
         }
       }
       THD_copy_labeltable_atr(oset->dblk,mset->dblk) ;
-      if( (DBLK_IS_NI_SURF_DSET(mset->dblk)||DBLK_IS_GIFTI(mset->dblk)) &&
-          mset->dblk->nnodes>0 && mset->dblk->node_list!=NULL ){
-        int nn=mset->dblk->nnodes ;
-        oset->dblk->node_list=(int *)RwcMalloc(sizeof(int)*nn); oset->dblk->nnodes=nn ;
-        memcpy(oset->dblk->node_list,mset->dblk->node_list,sizeof(int)*nn) ;
-      }
+      if( !THD_copy_surface_node_domain(oset,mset,domain_err,sizeof(domain_err)) )
+        ERROR_exit("3dRSA: %s",domain_err) ;
       tross_Copy_History(mset,oset); tross_Make_History("3dRSA",argc,argv,oset) ;
       DSET_write(oset); if( !quiet ) INFO_message("3dRSA: wrote dataset %s",DSET_BRIKNAME(oset)) ;
       do_dset=0 ;                    /* dedicated run-resolved writer handled it */
@@ -9535,17 +10463,8 @@ int main( int argc , char *argv[] )
 
       THD_copy_labeltable_atr( oset->dblk , mset->dblk ) ;
 
-      /* Preserve the surface node index so a sparse-node result maps back onto
-         the right nodes -- EDIT_empty_copy drops it.  We copy ONLY the node
-         list, deliberately NOT THD_copy_datablock_auxdata(), which would delete
-         our brick labels and FIZT stat codes and overwrite them from the mask. */
-      if( ( DBLK_IS_NI_SURF_DSET(mset->dblk) || DBLK_IS_GIFTI(mset->dblk) ) &&
-          mset->dblk->nnodes > 0 && mset->dblk->node_list != NULL ){
-        int nn = mset->dblk->nnodes ;
-        oset->dblk->node_list = (int *)RwcMalloc( sizeof(int)*nn ) ;
-        oset->dblk->nnodes    = nn ;
-        memcpy( oset->dblk->node_list , mset->dblk->node_list , sizeof(int)*nn ) ;
-      }
+      if( !THD_copy_surface_node_domain(oset,mset,domain_err,sizeof(domain_err)) )
+        ERROR_exit("3dRSA: %s",domain_err) ;
 
       tross_Copy_History( mset , oset ) ;
       tross_Make_History( "3dRSA" , argc , argv , oset ) ;
@@ -9643,6 +10562,7 @@ int main( int argc , char *argv[] )
              "   verbatim time labels in that table.\n\n",prefix) ;
    }
 
+ rsa_cleanup:
    THD_mantel_cache_free(mcache) ; free(mcache_ix) ;
    free(loo_owner) ; free(loo_fam) ;
    free(block_lab) ;

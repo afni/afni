@@ -1,6 +1,7 @@
 #ifndef _THD_PATTERNS_HEADER_
 #define _THD_PATTERNS_HEADER_
 
+#include "thd_sampleset.h"
 #include <stddef.h>
 
 /*----------------------------------------------------------------------------
@@ -21,10 +22,10 @@
     sphere), plus a label and an optional center. */
 typedef struct {
    int     nroi ;
-   int    *val ;    /* [nroi] atlas value, or the center voxel index (searchlight) */
-   intvec *vox ;    /* [nroi] voxel indices; .nar is the voxel count */
+   int    *val ;    /* [nroi] atlas value, or center voxel/mesh-node ID         */
+   intvec *vox ;    /* [nroi] volume voxels or surface dataset rows; .nar is count */
    char  **lab ;    /* [nroi] label from the atlas label table, or NULL */
-   int    *center ; /* [nroi] center voxel to paint; -1 means paint the whole ROI */
+   int    *center ; /* [nroi] dataset row to paint; -1 means paint the whole ROI */
 } THD_roilist ;
 
 /*! Every distinct positive value in the mask becomes an ROI.  'roi_sel' is an
@@ -52,8 +53,30 @@ extern MCW_cluster * THD_searchlight_parse( const char *spec,
 extern void THD_roilist_paint( float *brick, const THD_roilist *rl,
                                const float *values ) ;
 
+/*! Compare the represented node domain of two NIML/GIFTI surface datasets.
+    A dense dataset implicitly represents node i at row i; a sparse dataset
+    uses dblk->node_list.  Thus dense and sparse inputs can match, but only
+    when every row resolves to exactly the same nonnegative, unique node ID.
+    Sparse rows need not be sorted. Returns 1 on an exact match and writes a
+    bounded diagnostic on failure. */
+extern int THD_surface_domain_match( const THD_3dim_dataset *aa,
+                                     const THD_3dim_dataset *bb,
+                                     char *err, size_t errlen ) ;
+
+/*! Copy only the sparse surface node domain from src to dst.  This deliberately
+    leaves brick labels, statistics, and other auxiliary data untouched.  A
+    dense surface source clears any stale destination node list; a non-surface
+    source succeeds without changing the destination.  Surface source and
+    destination row counts must match; malformed/duplicate source IDs fail
+    without modifying the destination. */
+extern int THD_copy_surface_node_domain( THD_3dim_dataset *dst,
+                                         const THD_3dim_dataset *src,
+                                         char *err, size_t errlen ) ;
+
 #ifdef USE_SUMA
-/*! Geodesic surface searchlights over the nodes represented by mset. */
+/*! Geodesic surface searchlights over the nodes represented by mset.  Sparse
+    node indexes must be unique, in the mesh range, and exactly one per dataset
+    row. val[] reports mesh node IDs while center[] stores dataset rows. */
 extern THD_roilist * THD_roilist_searchlight_surf( const char *surface,
                                                    THD_3dim_dataset *mset,
                                                    float radius, int all_nodes,
@@ -91,6 +114,20 @@ extern void THD_roi_mean_ts_zmask( THD_3dim_dataset *dset , intvec *vox ,
 
     which is why there is only one function here rather than two. */
 extern void THD_roi_pattern( THD_3dim_dataset *dset , intvec *vox , float *out ) ;
+
+/*! Extract selected canonical sample rows over one ROI/searchlight into
+    out[nsample][vox->nar].  sample_index gives zero-based THD_sampleset rows
+    in the desired output order; repeated rows are allowed.  Passing NULL
+    selects every canonical row and requires nsample == ss->nsample.
+
+    Dataset scale factors are applied.  The caller owns all storage, and no
+    allocation is performed after a dataset is loaded.  Returns 1 on success;
+    on failure, out may be partially filled and err receives a bounded
+    diagnostic when supplied. */
+extern int THD_roi_samples( const THD_sampleset *ss,
+                            const int *sample_index, int nsample,
+                            const intvec *vox, float *out,
+                            char *err, size_t errlen ) ;
 
 /*----------------------------------------------------------------------------
   Run-aware input, for cross-validated (runwise) classic RSA.
@@ -136,6 +173,7 @@ typedef struct {
    int    nvox ;        /*!< voxels (grid), common to all datasets            */
    int    has_resid ;   /*!< 1 if a ResidFile column was present              */
    int    resid_nt ;    /*!< residual time points (min over rows); 0 if none  */
+   int    from_xmat ;   /*!< runs/conditions were expanded from an Xmat table */
 
    char **subj ;        /*!< [nsub] subject labels, in first-seen order       */
    int   *nrun ;        /*!< [nsub] runs per subject                          */
@@ -152,6 +190,16 @@ typedef struct {
    int  **nrep ;        /*!< [nrow][ncond] local repetitions (0 = absent)     */
    char ***trial_lab ;  /*!< [nrow][nbrick[row]] trial IDs, or NULL           */
 
+   /* Optional exact float32 store over only the voxels used by the analysis.
+      Headers remain open for metadata, but their full-grid arrays are unloaded. */
+   int    store_nvox ;  /*!< compact voxel count; 0 means ordinary datasets   */
+   int   *store_map ;   /*!< [nvox] full-grid voxel -> compact index, or -1    */
+   int   *store_vox ;   /*!< [store_nvox] compact index -> full-grid voxel     */
+   float **beta_store ; /*!< [nrow][nbrick[row]*store_nvox], brick-major       */
+   float **resid_store; /*!< [nrow][residual_nt[row]*store_nvox], or NULL      */
+   double store_bytes ; /*!< resident compact arrays                           */
+   double store_largest_input ; /*!< largest full dataset while filling store       */
+
    char  *source ;      /*!< where it came from, for messages                 */
 } THD_runset ;
 
@@ -166,6 +214,35 @@ typedef struct {
     checked. Returns NULL with an ERROR_message on any problem. Dataset headers
     are opened but not loaded (stream per ROI later). */
 extern THD_runset * THD_runset_read ( char *fname ) ;
+/*! Read a compact one-row-per-subject table with Subj, Xmat and whole-bucket
+    InputFile columns; ResidFile is optional and must likewise be the whole
+    residual dataset.  Stimulus beta labels, runs, conditions, censoring and
+    residual run samples are derived from Xmat.  stims is a comma-separated
+    stimulus-label subset, or NULL for all stimuli. */
+extern THD_runset * THD_runset_read_xmat( char *fname , char *stims ) ;
+/*! Plan an exact float32 store over the union of primary and optional extra
+    ROI voxels. It is enabled only when smaller than the datasets' native
+    resident arrays. include_resid says whether residuals will be consumed.
+    Returns 1 when compact storage was selected, 0 when dense storage is
+    already smaller/equal, and -1 on allocation or invalid-voxel failure. */
+extern int          THD_runset_plan_store( THD_runset *rs, THD_roilist *primary,
+                                           THD_roilist *extra, int include_resid ) ;
+/*! Load one row's beta (residual=0) or residual (residual=1) into the planned
+    compact store and unload its full-grid voxel array. */
+extern int          THD_runset_load_store_row( THD_runset *rs, int row, int residual ) ;
+/*! Extract a row's beta/residual patterns for an ROI from either representation. */
+extern void         THD_runset_roi_pattern( THD_runset *rs, int row, int residual,
+                                            intvec *vox, float *out ) ;
+
+/*! Extract one run's beta patterns in canonical condition order, averaging
+    repeated labels. pat holds ncond*vox->nar floats. For mapped runs, raw
+    is separate caller-owned scratch of nbrick[row]*vox->nar floats; otherwise
+    it may be NULL. Requires a valid loaded run and ROI, as roi_pattern does.
+    Missing mapped conditions remain zero; callers requiring complete repeats
+    must check nrep[row][condition] before using this helper. */
+extern void THD_runset_roi_condition_pattern( THD_runset *rs, int row,
+                                               intvec *vox, float *pat,
+                                               float *raw ) ;
 extern void         THD_runset_free ( THD_runset *rs ) ;
 extern void         THD_runset_print( THD_runset *rs , FILE *fp ) ;
 

@@ -14,6 +14,11 @@
       s01   ctl    22   s01.betas+tlrc
       s02   pat    31   s02.betas+tlrc
 
+  Files may instead place the schema in a leading '# Columns: ...' line.
+  Spaces and tabs separate fields; other '#' comments are ignored. Quote a
+  field containing whitespace or literal comment characters; double a literal
+  quote inside a quoted field. THD_1D_print_token writes this representation.
+
   Two columns are special, and both are optional:
     'InputFile' -- the dataset for that row
     'Subj'      -- the subject label; if absent, labels are synthesized
@@ -63,11 +68,20 @@ typedef struct {
 #define DT_NROW(dt)      ( (dt)->nrow )
 #define DT_NCOL(dt)      ( (dt)->ncol )
 
+/*-- design matrices: a table can name each row's X.xmat.1D in a column (Xmat);
+     thd_xmat.h reads them and adds THD_datatable_expand_xmat_items() and
+     THD_datatable_add_xmat_columns().  They live in thd_xmat.c, so programs
+     that do not use design matrices do not link it. --*/
+
 /*-- reading --*/
 
 /*! Read a table from a file.  The header is the first non-comment line, and
     the column count comes from it, so 'InputFile' may sit in any column.  A
-    line ending in backslash continues onto the next.  '#' begins a comment. */
+    line ending in backslash continues onto the next.  '#' at the start of a
+    word begins a comment; inside a word it is text (face#0,
+    stats+tlrc[face#0_Coef]).  A word that begins with a quote, "..." or '...',
+    runs to the matching quote, so a value can hold spaces or start with '#';
+    a quote inside a word is text, as in AFNI's x.1D' (transposed). */
 extern THD_datatable * THD_read_datatable_file( char *fname ) ;
 
 /*! Read a table from the command line, starting at argv[nopt].  Handles both
@@ -94,12 +108,46 @@ extern int THD_datatable_column( THD_datatable *dt , char *name ) ;
     numeric.  The array belongs to the table -- do not free it. */
 extern float * THD_datatable_values( THD_datatable *dt , char *name ) ;
 
+/*! Copy named numeric columns into an owned row-major float matrix:
+    result[i*ncolumn+j] corresponds to columns[j] and rows[i]. Column names
+    match case-insensitively; missing, empty, repeated or nonnumeric columns
+    are errors. Subj/InputFile retain their special nonnumeric status.
+    rows may reorder/repeat/subset zero-based table rows. With rows==NULL,
+    nrow must equal dt->nrow and all rows are copied in table order.
+    The whole column must have numeric metadata; selected values must also
+    be finite as floats (including after conversion from the original text).
+    No centering, scaling, imputation or model fitting is performed.
+    Positive row/column counts are required. Inputs are unmodified. Returns
+    NULL on failure with an optional bounded diagnostic; row numbers in
+    diagnostics are one-based output/table rows. Free the result with free(). */
+extern float * THD_datatable_numeric_columns(
+                                      const THD_datatable *dt,
+                                      const char * const *columns, int ncolumn,
+                                      const int *rows, int nrow,
+                                      char *err, int nerr ) ;
+
 /*! Make a deep copy containing the selected rows, in the requested order.
     Row indices are zero based.  This is useful when a long/repeated-measures
     input table must be reduced to one representative row per independent
     unit before ordinary model-column processing. */
 extern THD_datatable * THD_datatable_select_rows( THD_datatable *dt ,
                                                   int *rows , int nrow ) ;
+
+/*! Append second's rows after first's, matching columns case-insensitively.
+    Both inputs must be nonempty tables with the same unique column-name set;
+    their column order may differ. Output column order/spelling follows first.
+    Rows (including duplicates), cell text and paths are preserved verbatim.
+    Subj and InputFile are optional; no analysis-specific columns are added.
+    The result owns all its storage and rebuilds numeric/subject/file caches
+    from the combined cells. Inputs are unmodified and may be the same table.
+    source is a synthetic description, from_argv is zero; callers needing
+    per-row source provenance should add that metadata themselves.
+    Returns NULL with an optional error message on schema, size or allocation
+    failure. Free a successful result with THD_free_datatable(). */
+extern THD_datatable * THD_datatable_concat_rows(
+                                      const THD_datatable *first,
+                                      const THD_datatable *second,
+                                      char *err, int nerr ) ;
 
 /*! Build and validate a complete Cartesian index over named columns.
     For dimension d, caller_nlevel[d] > 0 means caller_level[d] gives the
@@ -118,5 +166,8 @@ extern void THD_free_datatable_index( THD_datatable_index *dx ) ;
 extern void THD_datatable_print( THD_datatable *dt , FILE *fp ) ;
 
 extern void THD_free_datatable( THD_datatable *dt ) ;
+
+/* Quoted whitespace-table token; doubled quotes preserve literal quotes. */
+extern void THD_1D_print_token(FILE *,const char *);
 
 #endif /* _THD_DATATABLE_HEADER_ */

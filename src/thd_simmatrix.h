@@ -85,7 +85,9 @@ extern int THD_simmat_fill_from_features( THD_simmat *sm, int nfeat, float *F,
     standard strict-upper-triangle pair order.  Optional need[] has the same
     layout and skips lags absent from the shared draw set. prep [nit*nfeat] and
     norm[nit] are caller-owned scratch, allowing one allocation per worker.
-    Pearson centers each series once; Spearman ranks and centers it once;
+    Pearson reuses double means and sums of squares for each pair's lags,
+    rounding only final correlations to float; its prep/norm scratch is unused.
+    Spearman ranks and centers each series once;
     cosine retains its level; Euclidean stores direct squared-difference sums.
     Returns 0 on success. */
 extern int THD_simmat_lag_table( int nit, int nfeat, float *F, int metric,
@@ -158,12 +160,24 @@ extern THD_simmat * THD_simmat_crossnobis_valid( int ncond, int nrun, int nvox,
 #define NN_DIAG    1   /* univariate: divide each voxel by its noise SD  */
 #define NN_SHRINK  2   /* multivariate: whiten by a shrunk full covariance */
 
+/* Both noise estimators return one of these statuses. Outputs are usable only
+   after THD_NOISE_OK; failure may leave them unchanged or partly written. */
+enum {
+   THD_NOISE_OK = 0,
+   THD_NOISE_BAD_INPUT,
+   THD_NOISE_ALLOC,
+   THD_NOISE_ZERO_VARIANCE,
+   THD_NOISE_NONFINITE
+} ;
+
 /*! Univariate noise-normalization weights.  R is a demeaned residual matrix,
     [nresid*nvox] laid out [time][voxel].  Fills w[nvox] with 1/sqrt(var_v), the
     per-voxel noise precision, with variances floored to the median positive
     variance so a near-silent voxel does not blow up.  Whitening a pattern is
-    then the elementwise product pattern[v]*w[v]. */
-extern void THD_noise_wdiag( int nvox, int nresid, float *R, float *w ) ;
+    then the elementwise product pattern[v]*w[v]. Returns THD_NOISE_OK on
+    success, otherwise a THD_NOISE_* error above. At least one voxel must have
+    positive residual variance; all returned weights must be finite. */
+extern int THD_noise_wdiag( int nvox, int nresid, float *R, float *w ) ;
 
 /*! Multivariate noise-normalization matrix Sigma^{-1/2}, [nvox*nvox], from a
     demeaned residual matrix R [nresid*nvox] ([time][voxel]).  Sigma = R'R/nresid
@@ -173,17 +187,26 @@ extern void THD_noise_wdiag( int nvox, int nresid, float *R, float *w ) ;
     The Ledoit-Wolf numerator uses the equivalent row-norm/Frobenius identity,
     avoiding a second nresid*nvox*nvox pass over the residual outer products.
     Whitening a pattern is then the matrix-vector product Whalf * pattern.
-    *shrink (0..1) and *erank report the conditioning.  Returns 0 on success. */
+    *shrink (0..1) and *erank report the conditioning. Returns THD_NOISE_OK on
+    success, otherwise a THD_NOISE_* error above. Covariance must have positive
+    trace and the resulting whitening matrix must be finite. Positive but
+    rank-deficient covariance remains valid under the regularization. */
 extern int THD_noise_whalf( int nvox, int nresid, float *R, float *Whalf,
                             float *shrink, int *erank ) ;
 
 /*! Read a square matrix from a 1D file; errors out unless it is nexpect square
-    (pass 0 to accept any size). */
+    (pass 0 to accept any size).  A literal '.' may replace a symmetric pair
+    of off-diagonal entries to mark that dyad as outside the model's estimand. */
 extern THD_simmat * THD_simmat_read_1D( char *fname, int nexpect ) ;
 
-/*! Write as a 1D file, via mri_write_1D so that THD_simmat_read_1D can read
-    it back unchanged. */
+/*! Write as a 1D file.  Complete matrices use mri_write_1D; masked entries are
+    written as '.', so that THD_simmat_read_1D can read them back unchanged. */
 extern int THD_simmat_write_1D( char *fname, THD_simmat *sm ) ;
+
+/*! Number of finite strict-upper-triangle dyads, and whether any are masked.
+    The diagonal is deliberately ignored by both queries. */
+extern int THD_simmat_nvalid     ( THD_simmat *sm ) ;
+extern int THD_simmat_has_missing( THD_simmat *sm ) ;
 
 /*-- triangles: the strict upper triangle is what actually gets analyzed,
      since the matrices are symmetric and the diagonal is meaningless --*/
@@ -279,6 +302,13 @@ extern size_t THD_mantel_cache_bytes( THD_mantel_cache *cache ) ;
 
 extern THD_rdm_ws * THD_rdm_ws_new ( int n , int ncol ) ;
 extern void         THD_rdm_ws_free( THD_rdm_ws *ws ) ;
+
+/*! Correlate a complete neural triangle with the finite entries of model.
+    If perm is non-NULL, relabel the model rows and columns together; the mask
+    moves with those labels.  This is the scalar fixed-model primitive for a
+    hand-authored partial RDM. */
+extern float THD_simmat_corr_triangle( float *neural_tri, THD_simmat *model,
+                                       int *perm, int cmp, THD_rdm_ws *ws ) ;
 
 /*! Fit a standardized least-squares model directly to compact triangle
     vectors.  y and each x[c] have m entries; under CMP_SPEARMAN they are ranked

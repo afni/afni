@@ -68,6 +68,25 @@ void THD_rank_avg( int n , float *x , float *rk )
 /*  Construction                                                              */
 /*============================================================================*/
 
+/* Keep feature inputs and matrix storage as float, but accumulate Pearson in
+   double. Float accumulation can split exact +/-1 ties for collinear patterns;
+   subsequent rank comparisons then magnify those rounding errors. Rounding
+   only the final correlation to float preserves these ties without imposing
+   an approximate-tie threshold on genuinely different correlations. */
+static float simmat_pearson_corr( int n, const float *x, const float *y )
+{
+   double xm=0.0,ym=0.0,xx=0.0,yy=0.0,xy=0.0 ; int ii ;
+   if( n<2 ) return 0.0f ;
+   for( ii=0 ; ii<n ; ii++ ){ xm+=x[ii] ; ym+=y[ii] ; }
+   xm/=n ; ym/=n ;
+   for( ii=0 ; ii<n ; ii++ ){
+     double a=(double)x[ii]-xm,b=(double)y[ii]-ym ;
+     xx+=a*a ; yy+=b*b ; xy+=a*b ;
+   }
+   if( xx<=0.0 || yy<=0.0 ) return 0.0f ;
+   return (float)(xy/sqrt(xx*yy)) ;
+}
+
 int THD_simmat_fill_from_features( THD_simmat *sm, int nfeat, float *F,
                                     int metric, float *sc1, float *sc2 )
 {
@@ -99,7 +118,7 @@ int THD_simmat_fill_from_features( THD_simmat *sm, int nfeat, float *F,
 
        switch( metric ){
          case SIM_PEARSON:
-           val = THD_pearson_corr( nfeat , a , b ) ;
+           val = simmat_pearson_corr( nfeat , a , b ) ;
          break ;
 
          case SIM_SPEARMAN:
@@ -176,7 +195,8 @@ THD_simmat * THD_simmat_from_features_zcensor( int nit, int nfeat, float *F,
        if( metric==SIM_SPEARMAN ){
          THD_rank_avg(nuse,sc1,sc1) ; THD_rank_avg(nuse,sc2,sc2) ;
        }
-       val=THD_pearson_corr(nuse,sc1,sc2) ;
+       val=(metric==SIM_PEARSON) ? simmat_pearson_corr(nuse,sc1,sc2)
+                                : THD_pearson_corr(nuse,sc1,sc2) ;
        if( !isfinite(val) ) goto bad ;
        sm->mat[ii*nit+jj]=sm->mat[jj*nit+ii]=val ;
      }
@@ -207,18 +227,44 @@ int THD_simmat_lag_table( int nit, int nfeat, float *F, int metric,
    ntot=(size_t)nit*(size_t)nfeat ;
    for( qq=0 ; qq<ntot ; qq++ ) if( !isfinite(F[qq]) ) return 1 ;
 
+   /* Match simmat_pearson_corr for the temporal null as well as the observed
+      matrix. Centering into float prep[] would already lose precision before
+      a double dot product. Keep pair means and SS in double, reuse them over
+      all requested lags, and round only the final correlations to float. */
+   if( metric == SIM_PEARSON ){
+     for( ii=0 ; ii<nit ; ii++ ) for( jj=ii+1 ; jj<nit ; jj++,pair++ ){
+       double xm=0.0,ym=0.0,xx=0.0,yy=0.0,den ;
+       x=F+(size_t)ii*nfeat ; y=F+(size_t)jj*nfeat ;
+       for( kk=0 ; kk<nfeat ; kk++ ){ xm+=x[kk] ; ym+=y[kk] ; }
+       xm/=nfeat ; ym/=nfeat ;
+       for( kk=0 ; kk<nfeat ; kk++ ){
+         double a=(double)x[kk]-xm,b=(double)y[kk]-ym ;
+         xx+=a*a ; yy+=b*b ;
+       }
+       den=sqrt(xx*yy) ;
+       for( ll=0 ; ll<nfeat ; ll++ ){
+         double xy=0.0 ; float val ;
+         if( need != NULL && !need[(size_t)pair*nfeat+ll] ) continue ;
+         for( kk=0,ky=ll ; kk<nfeat ; kk++ ){
+           xy+=((double)x[kk]-xm)*((double)y[ky]-ym) ;
+           if( ++ky == nfeat ) ky=0 ;
+         }
+         val=(xx>0.0 && yy>0.0) ? (float)(xy/den) : 0.0f ;
+         if( !isfinite(val) ) return 1 ;
+         table[(size_t)pair*nfeat+ll]=val ;
+       }
+     }
+     return 0 ;
+   }
+
    /* Prepare each subject once.  Circular rotation preserves ranks, means,
       sums of squares, and norms, so only the pairwise cross-product varies. */
    for( ii=0 ; ii < nit ; ii++ ){
      x=prep+(size_t)ii*nfeat ;
      memcpy(x,F+(size_t)ii*nfeat,sizeof(float)*nfeat) ;
      if( metric == SIM_SPEARMAN ) rank_order_float(nfeat,x) ;
-     if( metric == SIM_PEARSON || metric == SIM_SPEARMAN ){
-       if( metric == SIM_SPEARMAN ) mean=0.5f*(nfeat-1) ;
-       else {
-         for( mean=0.0f,kk=0 ; kk < nfeat ; kk++ ) mean += x[kk] ;
-         mean /= (float)nfeat ;
-       }
+     if( metric == SIM_SPEARMAN ){
+       mean=0.5f*(nfeat-1) ;
        for( kk=0 ; kk < nfeat ; kk++ ) x[kk] -= mean ;
      }
      for( ss=0.0f,kk=0 ; kk < nfeat ; kk++ ) ss += x[kk]*x[kk] ;
@@ -580,29 +626,33 @@ static int dbl_cmp_asc( const void *a , const void *b )
 
 /*! Univariate (diagonal) noise normalization.  See the header. */
 
-void THD_noise_wdiag( int nvox , int nresid , float *R , float *w )
+int THD_noise_wdiag( int nvox , int nresid , float *R , float *w )
 {
    int v , t , m=0 ; double *var , *pos , med ;
 
-   if( nvox < 1 || nresid < 1 || R == NULL || w == NULL ) return ;
+   if( nvox < 1 || nresid < 1 || R == NULL || w == NULL )
+     return THD_NOISE_BAD_INPUT ;
 
    var = (double *)malloc(sizeof(double)*nvox) ;
    pos = (double *)malloc(sizeof(double)*nvox) ;
    if( var==NULL || pos==NULL ){
-     free(var) ; free(pos) ; for( v=0 ; v<nvox ; v++ ) w[v]=1.0f ; return ;
+     free(var) ; free(pos) ; return THD_NOISE_ALLOC ;
    }
    for( v=0 ; v < nvox ; v++ ){
      double s=0.0 ;
      for( t=0 ; t < nresid ; t++ ){
        double x = R[(size_t)t*nvox+v] ;
-       if( !isfinite(x) ){ free(var) ; free(pos) ;
-         for( v=0 ; v<nvox ; v++ ) w[v]=1.0f ; return ; }
+       if( !isfinite(x) ){
+         free(var) ; free(pos) ; return THD_NOISE_NONFINITE ; }
        s += x*x ;
      }
      var[v] = s / nresid ;
+     if( !isfinite(var[v]) ){
+       free(var) ; free(pos) ; return THD_NOISE_NONFINITE ; }
      if( var[v] > 0.0 ) pos[m++] = var[v] ;
    }
-   if( m == 0 ){ for( v=0 ; v < nvox ; v++ ) w[v] = 1.0f ; free(var) ; free(pos) ; return ; }
+   if( m == 0 ){
+     free(var) ; free(pos) ; return THD_NOISE_ZERO_VARIANCE ; }
    qsort( pos , m , sizeof(double) , dbl_cmp_asc ) ;
    med = pos[m/2] ;
    /* floor variances to the median positive variance: a voxel quieter than
@@ -610,8 +660,11 @@ void THD_noise_wdiag( int nvox , int nresid , float *R , float *w )
    for( v=0 ; v < nvox ; v++ ){
      double vv = (var[v] > med) ? var[v] : med ;
      w[v] = (float)( 1.0 / sqrt(vv) ) ;
+     if( !isfinite(w[v]) || w[v] <= 0.0f ){
+       free(var) ; free(pos) ; return THD_NOISE_NONFINITE ; }
    }
    free(var) ; free(pos) ;
+   return THD_NOISE_OK ;
 }
 
 /*! Multivariate noise normalization matrix Sigma^{-1/2}.  See the header. */
@@ -622,13 +675,14 @@ int THD_noise_whalf( int nvox , int nresid , float *R , float *Whalf ,
    int p = nvox , k , l , t , j ; double *S , *V , *ev , mu , delta ;
    double sum_norm4=0.0 ;
 
-   if( p < 1 || nresid < 1 || R == NULL || Whalf == NULL ) return 1 ;
+   if( p < 1 || nresid < 1 || R == NULL || Whalf == NULL )
+     return THD_NOISE_BAD_INPUT ;
 
    S  = (double *)calloc((size_t)p*p,sizeof(double)) ;
    V  = (double *)malloc(sizeof(double)*(size_t)p*p) ;
    ev = (double *)malloc(sizeof(double)*p) ;
    if( S==NULL || V==NULL || ev==NULL ){
-     free(S) ; free(V) ; free(ev) ; return 1 ;
+     free(S) ; free(V) ; free(ev) ; return THD_NOISE_ALLOC ;
    }
 
    /* Sigma = R'R / nresid (R already demeaned per run).  Accumulate by
@@ -638,7 +692,8 @@ int THD_noise_whalf( int nvox , int nresid , float *R , float *Whalf ,
      float *rt=R+(size_t)t*p ; double norm2=0.0 ;
      for( k=0 ; k < p ; k++ ){
        double x=rt[k] ;
-       if( !isfinite(x) ){ free(S) ; free(V) ; free(ev) ; return 1 ; }
+       if( !isfinite(x) ){
+         free(S) ; free(V) ; free(ev) ; return THD_NOISE_NONFINITE ; }
        norm2 += x*x ;
      }
      sum_norm4 += norm2*norm2 ;
@@ -654,6 +709,10 @@ int THD_noise_whalf( int nvox , int nresid , float *R , float *Whalf ,
      }
 
    mu = 0.0 ; for( k=0 ; k < p ; k++ ) mu += S[k+(size_t)p*k] ; mu /= p ;
+   if( !isfinite(mu) || !isfinite(sum_norm4) ){
+     free(S) ; free(V) ; free(ev) ; return THD_NOISE_NONFINITE ; }
+   if( mu <= 0.0 ){
+     free(S) ; free(V) ; free(ev) ; return THD_NOISE_ZERO_VARIANCE ; }
 
    /* Ledoit-Wolf shrinkage of Sigma toward mu*I */
    { double d2=0.0 , ss2=0.0 , bbar , b2 , bnum ;
@@ -668,6 +727,8 @@ int THD_noise_whalf( int nvox , int nresid , float *R , float *Whalf ,
         This is algebraically the former T*p*p loop, reduced to the row norms
         accumulated above plus one p*p norm.  Clamp roundoff at zero. */
      bnum = sum_norm4-(double)nresid*ss2 ;
+     if( !isfinite(bnum) || !isfinite(d2) ){
+       free(S) ; free(V) ; free(ev) ; return THD_NOISE_NONFINITE ; }
      if( bnum < 0.0 ) bnum=0.0 ;
      bbar = bnum/((double)nresid*nresid) ;
      b2 = (bbar < d2) ? bbar : d2 ;
@@ -677,10 +738,16 @@ int THD_noise_whalf( int nvox , int nresid , float *R , float *Whalf ,
        for( l=0 ; l < p ; l++ )
          S[k+(size_t)p*l] = (1.0-delta)*S[k+(size_t)p*l] + ((k==l)?delta*mu:0.0) ;
    }
-   if( shrink != NULL ) *shrink = (float)delta ;
-
    memcpy( V , S , sizeof(double)*(size_t)p*p ) ;
    symeig_double( p , V , ev ) ;              /* V[k+p*j] = comp k of eigvec j */
+   for( j=0 ; j<p ; j++ ){
+     if( !isfinite(ev[j]) ){
+       free(S) ; free(V) ; free(ev) ; return THD_NOISE_NONFINITE ; }
+     for( k=0 ; k<p ; k++ ) if( !isfinite(V[k+(size_t)p*j]) ){
+       free(S) ; free(V) ; free(ev) ; return THD_NOISE_NONFINITE ; }
+   }
+   if( ev[p-1] <= 0.0 ){
+     free(S) ; free(V) ; free(ev) ; return THD_NOISE_NONFINITE ; }
    { double emax = ev[p-1] , floorv = (emax>0.0) ? 1.0e-8*emax : 1.0e-12 ;
      int er=0 ;
      for( j=0 ; j < p ; j++ ) if( ev[j] > 1.0e-2*((emax>0.0)?emax:1.0) ) er++ ;
@@ -695,38 +762,102 @@ int THD_noise_whalf( int nvox , int nresid , float *R , float *Whalf ,
      }
    }
 
+   for( k=0 ; k<p ; k++ )
+     for( l=0 ; l<p ; l++ ) if( !isfinite(Whalf[(size_t)k*p+l]) ){
+       free(S) ; free(V) ; free(ev) ; return THD_NOISE_NONFINITE ; }
+   if( shrink != NULL ) *shrink = (float)delta ;
    free(S) ; free(V) ; free(ev) ;
-   return 0 ;
+   return THD_NOISE_OK ;
 }
 
 /*============================================================================*/
 /*  1D input and output                                                       */
 /*============================================================================*/
 
+/*! A deliberately small extension of AFNI's ordinary 1D reader: only invoke
+    it when the file contains a standalone '.' token.  That keeps all existing
+    mri_read_1D syntax for complete matrices, while giving partial model RDMs a
+    readable, alignment-preserving missing-cell notation. */
+static float * simmat_read_dot_file( char *fname, int *nrow, int *ncol )
+{
+   FILE *fp ; char line[65536] ; float *v=NULL ; int nr=0,nc=-1,nv=0,cap=0,hasdot=0 ;
+
+   *nrow=*ncol=0 ; fp=fopen(fname,"r") ; if( fp==NULL ) return NULL ;
+   while( fgets(line,sizeof(line),fp)!=NULL ){
+     char *hash=strchr(line,'#'),*tok,*save=NULL ; int thisc=0 ;
+     if( hash!=NULL ) *hash='\0' ;
+     for( tok=strtok_r(line," \t\r\n",&save) ; tok!=NULL ;
+          tok=strtok_r(NULL," \t\r\n",&save) ){
+       char *end=NULL ; float x ;
+       if( strcmp(tok,".")==0 ){ x=NAN ; hasdot=1 ; }
+       else {
+         x=strtof(tok,&end) ;
+         if( end==tok || *end!='\0' || !isfinite(x) ){
+           fclose(fp) ; free(v) ;
+           if( hasdot ) ERROR_exit("matrix file '%s' has invalid token '%s'",fname,tok) ;
+           return NULL ;
+         }
+       }
+       if( nv==cap ){
+         cap=(cap==0)?64:2*cap ; v=(float *)realloc(v,sizeof(float)*cap) ;
+         if( v==NULL ){ fclose(fp) ; ERROR_exit("cannot allocate matrix read from '%s'",fname) ; }
+       }
+       v[nv++]=x ; thisc++ ;
+     }
+     if( thisc>0 ){
+       if( nc<0 ) nc=thisc ;
+       else if( thisc!=nc ){
+         fclose(fp) ; free(v) ;
+         if( hasdot ) ERROR_exit("matrix file '%s' has %d entries on row %d; expected %d",
+                                 fname,thisc,nr+1,nc) ;
+         return NULL ;
+       }
+       nr++ ;
+     }
+   }
+   fclose(fp) ;
+   if( !hasdot ){ free(v) ; return NULL ; }
+   if( nr<1 || nc<1 || nv!=nr*nc ){
+     free(v) ; ERROR_exit("cannot parse dot-masked matrix file '%s'",fname) ;
+   }
+   *nrow=nr ; *ncol=nc ; return v ;
+}
+
 THD_simmat * THD_simmat_read_1D( char *fname , int nexpect )
 {
-   MRI_IMAGE *im ; THD_simmat *sm ; float *iar ; int ii , jj , n ;
+   MRI_IMAGE *im=NULL ; THD_simmat *sm ; float *iar=NULL,*dotar ; int ii,jj,n,nr=0,nc=0 ;
 
-   im = mri_read_1D( fname ) ;
-   if( im == NULL ) ERROR_exit("can't read matrix file '%s'",fname) ;
-   if( im->nx != im->ny )
-     ERROR_exit("matrix file '%s' is %d x %d, but must be square",
-                fname , im->nx , im->ny ) ;
-   if( nexpect > 0 && im->nx != nexpect )
-     ERROR_exit("matrix file '%s' is %d x %d, but %d x %d is needed here",
-                fname , im->nx , im->ny , nexpect , nexpect ) ;
-
-   n = im->nx ; sm = THD_simmat_new(n) ; iar = MRI_FLOAT_PTR(im) ;
-   if( sm==NULL || iar==NULL ){
-     THD_simmat_free(sm) ; mri_free(im) ;
-     ERROR_exit("cannot allocate matrix read from '%s'",fname) ;
+   dotar=simmat_read_dot_file(fname,&nr,&nc) ;
+   if( dotar!=NULL ){
+     if( nr!=nc ){
+       free(dotar) ; ERROR_exit("matrix file '%s' is %d x %d, but must be square",fname,nr,nc) ;
+     }
+     n=nr ;
+     if( nexpect>0 && n!=nexpect ){
+       free(dotar) ; ERROR_exit("matrix file '%s' is %d x %d, but %d x %d is needed here",
+                                fname,n,n,nexpect,nexpect) ;
+     }
+     sm=THD_simmat_new(n) ;
+     if( sm==NULL ){ free(dotar) ; ERROR_exit("cannot allocate matrix read from '%s'",fname) ; }
+     memcpy(sm->mat,dotar,sizeof(float)*(size_t)n*n) ; free(dotar) ;
+   } else {
+     im=mri_read_1D(fname) ;
+     if( im==NULL ) ERROR_exit("can't read matrix file '%s'",fname) ;
+     if( im->nx!=im->ny )
+       ERROR_exit("matrix file '%s' is %d x %d, but must be square",fname,im->nx,im->ny) ;
+     if( nexpect>0 && im->nx!=nexpect )
+       ERROR_exit("matrix file '%s' is %d x %d, but %d x %d is needed here",
+                  fname,im->nx,im->ny,nexpect,nexpect) ;
+     n=im->nx ; sm=THD_simmat_new(n) ; iar=MRI_FLOAT_PTR(im) ;
+     if( sm==NULL || iar==NULL ){
+       THD_simmat_free(sm) ; mri_free(im) ;
+       ERROR_exit("cannot allocate matrix read from '%s'",fname) ;
+     }
+     /* mri_read_1D gives element (i,j) at iar[j*nx+i]; store row major */
+     for( ii=0 ; ii<n ; ii++ ) for( jj=0 ; jj<n ; jj++ )
+       sm->mat[ii*n+jj]=iar[jj*n+ii] ;
+     mri_free(im) ;
    }
-
-   /* mri_read_1D gives element (i,j) at iar[j*nx+i]; store row major */
-   for( ii=0 ; ii < n ; ii++ )
-     for( jj=0 ; jj < n ; jj++ ) sm->mat[ii*n+jj] = iar[ jj*n + ii ] ;
-
-   mri_free(im) ;
 
    /* A Mantel/RSA matrix must be finite and symmetric.  Only the strict upper
       triangle is analyzed, but the permutation relabels rows AND columns
@@ -738,11 +869,16 @@ THD_simmat * THD_simmat_read_1D( char *fname , int nexpect )
      for( ii=0 ; ii < n ; ii++ )
        for( jj=ii+1 ; jj < n ; jj++ ){
          float a = sm->mat[ii*n+jj] , b = sm->mat[jj*n+ii] , d ;
+         if( isnan(a) != isnan(b) ){
+           THD_simmat_free(sm) ;
+           ERROR_exit("matrix file '%s' masks only one side of pair (%d,%d).\n"
+                      "       A '.' is a pair mask, so both symmetric cells must be '.'.",
+                      fname,ii+1,jj+1) ;
+         }
+         if( isnan(a) ) continue ;
          if( !isfinite(a) || !isfinite(b) ){
            THD_simmat_free(sm) ;
-           ERROR_exit("matrix file '%s' has a non-finite entry at (%d,%d); RSA\n"
-                      "       needs finite similarities/distances",
-                      fname , ii+1 , jj+1 ) ;
+           ERROR_exit("matrix file '%s' has a non-finite entry at (%d,%d)",fname,ii+1,jj+1) ;
          }
          d = fabsf(a-b) ;
          if( d > maxasym ){ maxasym = d ; bi = ii ; bj = jj ; }
@@ -772,6 +908,22 @@ int THD_simmat_write_1D( char *fname , THD_simmat *sm )
    if( sm == NULL ) return 0 ;
    n = sm->n ;
 
+   if( THD_simmat_has_missing(sm) ){
+     FILE *fp=fopen(fname,"w") ;
+     if( fp==NULL ){ WARNING_message("can't write matrix file %s",fname) ; return 0 ; }
+     for( ii=0 ; ii<n ; ii++ ){
+       for( jj=0 ; jj<n ; jj++ ){
+         float x=sm->mat[(size_t)ii*n+jj] ;
+         if( jj>0 ) fputc(' ',fp) ;
+         if( isnan(x) ) fputc('.',fp) ; else fprintf(fp,"%.9g",x) ;
+       }
+       fputc('\n',fp) ;
+     }
+     rv=(fclose(fp)==0) ;
+     if( !rv ) WARNING_message("can't write matrix file %s",fname) ;
+     return rv ;
+   }
+
    /* build in the layout mri_read_1D produces, then let mri_write_1D (which
       transposes on the way out) make it an exact round trip */
    im  = mri_new( n , n , MRI_float ) ;
@@ -783,6 +935,20 @@ int THD_simmat_write_1D( char *fname , THD_simmat *sm )
    mri_free(im) ;
    if( !rv ) WARNING_message("can't write matrix file %s",fname) ;
    return rv ;
+}
+
+int THD_simmat_nvalid( THD_simmat *sm )
+{
+   int ii,jj,nv=0 ;
+   if( sm==NULL || sm->mat==NULL ) return 0 ;
+   for( ii=0 ; ii<sm->n ; ii++ ) for( jj=ii+1 ; jj<sm->n ; jj++ )
+     if( isfinite(sm->mat[(size_t)ii*sm->n+jj]) ) nv++ ;
+   return nv ;
+}
+
+int THD_simmat_has_missing( THD_simmat *sm )
+{
+   return sm!=NULL && THD_simmat_nvalid(sm)<THD_NTRI(sm->n) ;
 }
 
 /*============================================================================*/
@@ -1032,6 +1198,22 @@ void THD_rdm_ws_free( THD_rdm_ws *ws )
    free(ws) ;
 }
 
+float THD_simmat_corr_triangle( float *neural_tri, THD_simmat *model,
+                                int *perm, int cmp, THD_rdm_ws *ws )
+{
+   int ii,jj,q=0,k=0,n ;
+   if( neural_tri==NULL || model==NULL || ws==NULL || ws->n!=model->n ) return NAN ;
+   n=model->n ;
+   for( ii=0 ; ii<n ; ii++ ) for( jj=ii+1 ; jj<n ; jj++,q++ ){
+     int a=(perm!=NULL)?perm[ii]:ii,b=(perm!=NULL)?perm[jj]:jj ;
+     float mv=model->mat[(size_t)a*n+b] ;
+     if( !isfinite(mv) ) continue ;
+     ws->tri[k]=neural_tri[q] ; ws->yperm[k]=mv ; k++ ;
+   }
+   if( k<2 ) return NAN ;
+   return THD_tri_corr(k,ws->tri,ws->yperm,cmp,ws->sc1,ws->sc2) ;
+}
+
 /*--- small statistics ---*/
 
 float THD_onesamp_t( int n , float *v )
@@ -1134,7 +1316,8 @@ THD_mantel_cache * THD_mantel_cache_build( int nmodel, THD_simmat **models,
    n=models[0]->n ; m=THD_NTRI(n) ; np=pset->nperm ;
    if( n < 3 || np < 1 || pset->nobs != n ) return NULL ;
    for( mm=0 ; mm < nmodel ; mm++ )
-     if( models[mm] == NULL || models[mm]->n != n ) return NULL ;
+     if( models[mm] == NULL || models[mm]->n != n ||
+         THD_simmat_has_missing(models[mm]) ) return NULL ;
 
    mc=(THD_mantel_cache *)calloc(1,sizeof(THD_mantel_cache)) ;
    mc->n=n ; mc->m=m ; mc->nmodel=nmodel ; mc->nperm=np ; mc->cmp=cmp ;
@@ -1184,6 +1367,21 @@ THD_permstat THD_mantel_corr( THD_simmat *neural , THD_simmat *model ,
    int np = (pset != NULL) ? pset->nperm : 0 ;
 
    ps.stat = 0.0f ; ps.pval = -1.0f ; ps.zscr = 0.0f ; ps.nperm = np ;
+
+   if( THD_simmat_has_missing(model) ){
+     THD_simmat_to_tri(neural,ws->resid) ;
+     robs=THD_simmat_corr_triangle(ws->resid,model,NULL,cmp,ws) ;
+     ps.stat=robs ;
+     if( pset==NULL ){ ps.zscr=MYatanh(robs) ; return ps ; }
+     for( nge=0,pk=0 ; pk<np ; pk++ ){
+       int *perm=pset->perm+(size_t)pk*n ;
+       float rp=THD_simmat_corr_triangle(ws->resid,model,perm,cmp,ws) ;
+       if( fabsf(rp)>=fabsf(robs) ) nge++ ;
+       if( permnull!=NULL ) permnull[pk]=fabsf(rp) ;
+     }
+     ps.pval=(float)nge/(float)np ; ps.zscr=THD_p_to_z(ps.pval,robs) ;
+     return ps ;
+   }
 
    THD_simmat_to_tri( neural , ws->tri ) ;
    THD_simmat_to_tri( model  , ws->sc1 ) ;      /* sc1 reused below, so copy */
@@ -1257,6 +1455,9 @@ THD_permstat THD_mantel_corr_cached( THD_simmat *neural, THD_simmat *model,
      float rp=(mc->cmp==CMP_RHOA)
        ? mantel_prepared_rhoa(m,mc->prep+ix*m,ws->rprep)
        : mantel_prepared_corr(m,mc->prep+ix*m,mc->ss[ix],ws->rprep,nss) ;
+     /* Slot zero is the identity. Cached centering must not round its value
+        below the separately computed observed statistic and lose that draw. */
+     if( pk==0 ) rp=robs ;
      if( fabsf(rp) >= fabsf(robs) ) nge++ ;
      if( permnull != NULL ) permnull[pk]=fabsf(rp) ;
    }
@@ -1372,6 +1573,7 @@ THD_permstat THD_mantel_contrast_cached( THD_simmat *neural,
        ? mantel_prepared_rhoa(m,mc->prep+bix*m,ws->rprep)
        : mantel_prepared_corr(m,mc->prep+bix*m,mc->ss[bix],ws->rprep,nss) ;
      float dp=rap-rbp ;
+     if( pk==0 ) dp=dobs ;  /* exact identity, as in the uncached path */
      if( fabsf(dp) >= fabsf(dobs) ) nge++ ;
      if( permnull != NULL ) permnull[pk]=fabsf(dp) ;
    }
