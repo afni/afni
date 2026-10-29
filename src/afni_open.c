@@ -208,18 +208,55 @@ int is_xmat(char *name)
    return(a);
 }
 
+/* return whether this viewer should open in foreground
+ * - most should not, they should open in the background
+ * - a local function to be used with ao_with_editor
+ *
+ * foreground viewers:
+ *   vi, vim, nano
+ * anything else is background
+ */
+static int open_viewer_in_foreground(char * viewer)
+{
+   int len;
+
+   if( !viewer ) return 1;
+
+   len = strlen(viewer);
+
+   /* check both vi and vim */
+   if ( len <= 2 && !strcmp(viewer, "vi") )
+      return 1;
+
+   if ( len >= 3 && ( !strcmp(viewer+len-3, "vim")
+                   || !strcmp(viewer+len-2, "vi") ) )
+      return 1;
+
+   if ( len >=4 && !strcmp(viewer+len-4, "nano") )
+      return 1;
+
+   /* anything else runs in the background */
+   return 0;
+}
+
 int ao_with_editor(char *fname)
 {
    char cmd[1024];
+   char * bkgrd=NULL;   /* to background or not to background */
    static char *viewer=NULL;
-   int s;
+   int s, len;
    if (!viewer && !(viewer=GetAfniTextEditor())) {
       ERROR_message("No text editor");
       return(-1);
    }
    if (!fname) return(-2);
-   
-   snprintf(cmd,1023*sizeof(char),"%s %s &", viewer, fname);
+
+   if ( open_viewer_in_foreground(viewer) )
+      bkgrd = "";
+   else
+      bkgrd = " &";
+
+   snprintf(cmd,1023*sizeof(char),"%s %s %s", viewer, fname, bkgrd);
    s = system(cmd);
    return(s);
 }
