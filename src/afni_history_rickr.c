@@ -53,6 +53,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Oct, 2026, RCR, "afni_open", MINOR, TYPE_ENHANCE,
+   "have afni_open -e respect the common EDITOR or VISUAL env vars",
+   "Also, if vi, vim or nano, run in the foreground.\n"
+   "We might want to add other editors to check for foreground execution."
+ } ,
+
  { 27, Oct, 2026, RCR, "gen_ss_review_table.py", MINOR, TYPE_ENHANCE,
    "add example using APQC out.ss_review.*.json files",
    NULL

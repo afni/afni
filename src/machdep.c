@@ -195,6 +195,10 @@ char * GetAfniTextEditor(void)
 
    ate = my_getenv("AFNI_GUI_EDITOR");
    if( ate != NULL ) return(ate);
+   ate = my_getenv("EDITOR");    /* common and not AFNI specific */
+   if( ate != NULL ) return(ate);
+   ate = my_getenv("VISUAL");    /* common and not AFNI specific */
+   if( ate != NULL ) return(ate);
 
    /* else, hunt */
    if( ate == NULL ) ate = THD_find_executable( "nedit" )   ;
