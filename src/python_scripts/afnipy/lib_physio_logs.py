@@ -159,8 +159,8 @@ is_ok : int
         suffix = label + '_' + suffix
     oname_rev = make_pcobj_oname(suffix, pcobj, ext='txt', is_extra=True)
 
-    # get dict of items to write
-    dict_rev = get_ts_obj_review_info(tsobj)
+    # get dict of items to write (now useful to have pcobj itself, too)
+    dict_rev = get_ts_obj_review_info(tsobj, pcobj, label)
         
     # write out
     fff = open( oname_rev, mode )
@@ -197,10 +197,12 @@ count, fraction : tuple of str
     return str(len(intervals)), fraction
 
 
-def get_ts_obj_review_info(tsobj):
+def get_ts_obj_review_info(tsobj, pcobj, label):
     """What info do we want from the ts_obj class tsobj?  That is defined
-here."""
+here. Now include pcobj, because it is useful to have some runtime
+opts and info stored there.
 
+    """
 
     D = {}
 
@@ -236,6 +238,29 @@ here."""
     D['dset start time']  = "{:.6f}".format(0.0)
     D['dset end time']    = "{:.6f}".format(tsobj.duration_vol)
     D['dset duration']    = "{:.6f}".format(tsobj.duration_vol)
+
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
+    # useful quantities for this section
+    nts = tsobj.n_ts_orig
+    if len(pcobj.extra_fix_list) :
+        efl = ' '.join([str(x) for x in pcobj.extra_fix_list])
+    else:
+        efl = 'NA'
+    if len(pcobj.remove_val_list) :
+        rvl = ' '.join([str(x) for x in pcobj.remove_val_list])
+    else:
+        rvl = 'NA'
+
+    D['do fix nan']       = "{:d}".format(int(not(pcobj.exit_on_nan)))
+    D['do fix null']      = "{:d}".format(int(not(pcobj.exit_on_null)))
+    D['do fix outliers']  = "{:d}".format(int(pcobj.do_fix_outliers))
+    D['extra fix list']   = "{:s}".format(efl)
+    D['remove val list']  = "{:s}".format(rvl)
+    D['bad remove num']   = "{:d}".format(pcobj.bad_nrem[label])
+    D['bad remove frac']  = "{:.6f}".format(pcobj.bad_nrem[label]/nts)
+    D['bad fix num']      = "{:d}".format(pcobj.bad_nfix[label])
+    D['bad fix frac']     = "{:.6f}".format(pcobj.bad_nfix[label]/nts)
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 

@@ -481,6 +481,16 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
             'resp' : [],               # list of files (will be 2 for resp)
         }
 
+        # counts for final output log
+        self.bad_nrem = {              # num bad pts: remove/purge
+            'card' : 0,
+            'resp' : 0,
+        }
+        self.bad_nfix = {              # num bad pts: fix
+            'card' : 0,
+            'resp' : 0,
+        }
+
         # QC image opts
         self.img_verb      = 1          # int, amount of graphs to save
         self.img_fontsize  = DEF.DEF_img_fontsize  # flt, FS for output images
@@ -652,7 +662,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
             arr   = data_dict[label][1]
 
             # run checks (and fixes)
-            arr_fixed, ts_unfilt = self.run_all_checks_and_fix(arr)
+            arr_fixed, ts_unfilt = self.run_all_checks_and_fix(arr, label)
 
             samp_freq = AD['freq']
 
@@ -823,7 +833,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         if step <= 1 :    return x, self.init_samp_freq
         else:             return x[::step], self.freq_downsamp
 
-    def run_all_checks_and_fix(self, arr):
+    def run_all_checks_and_fix(self, arr, label):
         """Run one or more badness checks on the input 1D time series (which
         could be any physio data: card, resp, etc.).  Run the fixes,
         too, if askd to do so.
@@ -838,11 +848,15 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
             check_and_remove_arr_values(arr, 
                                         bad_vals=self.remove_val_list,
                                         verb=self.verb)
+        self.bad_nrem[label] = nrem
+
         arr_fixed, nfix = \
             check_and_fix_arr_badness(arr2, 
                                       bad_nums=self.extra_fix_list,
                                       outliers_bad=self.do_fix_outliers,
                                       verb=self.verb)
+        self.bad_nfix[label] = nfix
+
         # if fixing is needed, put copy of orig as ts_unfilt
         if nfix :    ts_unfilt = copy.deepcopy(arr)
         else:        ts_unfilt = None
@@ -1131,14 +1145,20 @@ arr_bad : np.ndarray (1D)
     """
     N = len(x)
 
-    # find nans
+    # 1) find nans
+
     arr_bad = np.isnan(x)
+
+    if verb:
+        nbadnan = np.sum(arr_bad)
+        ab.IP("Number of bad 'nan' values found: {}".format(nbadnan))
+
+    # 2) check for additional bad values, if listed
 
     if verb and len(bad_nums) :
         ttt = ', '.join([str(x) for x in bad_nums])
         ab.IP("List of bad 'extra fix' numbers: [{}]".format(ttt))
 
-    # ... and check for additional bad values, if listed
     nbadnum = 0
     if not(bad_nums is None) :
         for ii in range(N):
@@ -1147,7 +1167,6 @@ arr_bad : np.ndarray (1D)
                 nbadnum+= 1
 
     if verb:
-        nbad = np.sum(arr_bad)
         ab.IP("Number of bad 'extra fix' values found: {}".format(nbadnum))
 
     return arr_bad
