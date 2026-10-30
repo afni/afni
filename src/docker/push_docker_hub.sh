@@ -9,6 +9,8 @@
 ## as of 10/2026 pushing to discoraj's docker hub
 
 afni_ver=$(curl -s "https://raw.githubusercontent.com/afni/afni/refs/heads/master/src/AFNI_version_base.txt")
+disco_docker_ver=$(curl -s "https://raw.githubusercontent.com/afni/afni/refs/heads/master/src/docker/disco_docker_version.txt")
+
 
 docker build --platform=linux/amd64,linux/arm64 \
        -t discoraj/afni_docker_universal:2.0 \
