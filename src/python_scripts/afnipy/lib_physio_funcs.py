@@ -718,8 +718,10 @@ is_ok : int
     count = tsobj.proc_count   # NB: initialized to existing count
     peaks = tsobj.peaks
     troughs = tsobj.troughs    # might be empty list, which is fine
-    p_ival = np.median([j-i for i, j in zip(peaks[:-1], peaks[1:])])
-    p_ival*= tsobj.samp_delt
+    is_fail, med_ival, mad_ival = lpu.calc_interval_stats_medmad(
+        peaks, samp_delt=tsobj.samp_delt)
+    if is_fail:
+        return BAD_RETURN
     # **** decide if we still need local peaks and troughs arrays in
     # **** this func
 
@@ -730,8 +732,8 @@ is_ok : int
 
     # ----- run INTERACTIVE plot
     count+=1
-    lab_title = 'Interactive peaks ($\\Delta t_{\\rm med}$ = '
-    lab_title+= '{:0.3f} s)'.format(p_ival)
+    lab_title = 'Interactive peaks (ival$_{\\rm med}$ = '
+    lab_title+= '{:0.3f} $\\pm$ {:0.3f} s)'.format(med_ival, mad_ival)
     lab_short = 'interact_peaks'
     if len(troughs) :
         lab_title+= ' and troughs'
@@ -826,21 +828,18 @@ is_ok : int
     count = tsobj.proc_count
     peaks = tsobj.peaks
     troughs = tsobj.troughs    # might be empty list, which is fine
-    all_ival = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
-    p_ival = np.median(all_ival)
-    p_ival*= tsobj.samp_delt
-    is_fail, mad_ival = lpo.calc_MAD(all_ival)
+    is_fail, med_ival, mad_ival = lpu.calc_interval_stats_medmad(
+        peaks, samp_delt=tsobj.samp_delt)
     if is_fail :
         return BAD_RETURN
-    mad_ival*= tsobj.samp_delt
 
     # -------------- FINAL plot
     if count >= 10 :
         count+=1
     else:
         count = 10
-    lab_title = 'Final peaks ($\\Delta t_{\\rm med}$ = '
-    lab_title+= '{:0.3f} $\\pm$ {:0.3f} s)'.format(p_ival, mad_ival)
+    lab_title = 'Final peaks (ival$_{\\rm med}$ = '
+    lab_title+= '{:0.3f} $\\pm$ {:0.3f} s)'.format(med_ival, mad_ival)
     lab_short = 'final_peaks'
     if len(troughs) :
         lab_title+= ' and troughs'
