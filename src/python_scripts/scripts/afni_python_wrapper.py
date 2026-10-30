@@ -137,6 +137,16 @@ afni_python_wrapper.py: use to call afnipy functions from the shell
             afni_python_wrapper.py -exec "import PyQt4"
             afni_python_wrapper.py -exec "show_process_stack()"
 
+            # extract the SliceTiming list from an EPI JSON sidecar
+            cat sub-000_run-1_bold.json                                     \\
+                | afni_python_wrapper.py                                    \\
+                      -exec 'print_json_dict(fields="SliceTiming",verb=0)'
+
+            OR putting the filename as a parameter...
+
+            afni_python_wrapper.py -exec 'print_json_dict( \\
+               "sub-000_run-1_bold.json", fields="SliceTiming",verb=0)'
+
       -funchelp FUNC    : print the help for module function FUNC
 
          Print the FUNC.__doc__ text, if any.

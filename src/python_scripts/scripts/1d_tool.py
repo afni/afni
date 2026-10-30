@@ -688,15 +688,28 @@ examples (very basic for now): ~1~
             1d_tool.py -infile slice_times.1D \\
                        -show_slice_timing_gentle -verb 3
 
+       d. read from a JSON sidecar
+
+            Send the JSON data through afni_python_wrapper.py to print the
+            SliceTiming entries, and pipe those through 1d_tool.py to evaluate.
+
+            cat sub-000_run-1_bold.json                                     \\
+                | afni_python_wrapper.py                                    \\
+                      -exec 'print_json_dict(fields="SliceTiming",verb=0)'  \\
+                | 1d_tool.py -show_slice_timing_pattern -infile -
+
+            Maybe this program might benefit from more direct reading of a
+            JSON file.
+
        ---
 
-       d. Related, show slice timing resolution, the accuracy of the slice
+       e. Related, show slice timing resolution, the accuracy of the slice
           times, assuming they should be multiples of a constant
           (the slice duration).
 
             1d_tool.py -infile slice_times.1D -show_slice_timing_resolution
 
-       e. or as a filter
+       f. or as a filter
 
             3dinfo -slice_timing -sb_delim ' ' FT_epi_r1+orig \\
                    | 1d_tool.py -show_slice_timing_resolution -infile -

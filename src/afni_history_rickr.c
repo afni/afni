@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Oct, 2026, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
+   "add example getting the slice timing pattern from a JSON sidecar",
+   NULL
+ } ,
+
  { 29, Oct, 2026, RCR, "afni_open", MINOR, TYPE_ENHANCE,
    "have afni_open -e respect the common EDITOR or VISUAL env vars",
    "Also, if vi, vim or nano, run in the foreground.\n"
