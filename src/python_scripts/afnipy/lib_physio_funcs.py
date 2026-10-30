@@ -3,15 +3,16 @@
 import sys, os
 import copy
 import numpy  as np
-from   scipy  import signal             as sps
+from   scipy  import signal              as sps
 
-from   afnipy import afni_base          as ab
-from   afnipy import lib_physio_peaks   as lpp
-from   afnipy import lib_physio_phases  as lpph
-from   afnipy import lib_physio_rvt     as lprvt
+from   afnipy import afni_base           as ab
+from   afnipy import lib_physio_peaks    as lpp
+from   afnipy import lib_physio_phases   as lpph
+from   afnipy import lib_physio_rvt      as lprvt
 from   afnipy import lib_physio_convolve as lpcon
-from   afnipy import lib_physio_plot    as lpplt
-from   afnipy import lib_physio_util    as lpu
+from   afnipy import lib_physio_plot     as lpplt
+from   afnipy import lib_physio_util     as lpu
+from   afnipy import lib_physio_outliers as lpo
 
 
 # ===========================================================================
@@ -825,8 +826,13 @@ is_ok : int
     count = tsobj.proc_count
     peaks = tsobj.peaks
     troughs = tsobj.troughs    # might be empty list, which is fine
-    p_ival = np.median([j-i for i, j in zip(peaks[:-1], peaks[1:])])
+    all_ival = [j-i for i, j in zip(peaks[:-1], peaks[1:])]
+    p_ival = np.median(all_ival)
     p_ival*= tsobj.samp_delt
+    is_fail, mad_ival = lpo.calc_MAD(all_ival)
+    if is_fail :
+        return BAD_RETURN
+    mad_ival*= tsobj.samp_delt
 
     # -------------- FINAL plot
     if count >= 10 :
@@ -834,7 +840,7 @@ is_ok : int
     else:
         count = 10
     lab_title = 'Final peaks ($\\Delta t_{\\rm med}$ = '
-    lab_title+= '{:0.3f} s)'.format(p_ival)
+    lab_title+= '{:0.3f} $\\pm$ {:0.3f} s)'.format(p_ival, mad_ival)
     lab_short = 'final_peaks'
     if len(troughs) :
         lab_title+= ' and troughs'
