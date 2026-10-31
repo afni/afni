@@ -1011,8 +1011,9 @@ them.
                                   for inter in all_inter if inter.poly[lab] is not None]
                         updated_xy[lab] = np.concatenate(
                             [original_xy[outside]] + edited)
-                        # sort arrays of peaks/troughs
-                        order = np.argsort(updated_xy[lab][:, 0])
+                        # Sort and keep one x/y row per peak/trough time.
+                        _, order = np.unique(updated_xy[lab][:, 0],
+                                             return_index=True)
                         updated_xy[lab] = updated_xy[lab][order]
                         if not any(inter.band_geometry[lab]
                                    for inter in fig_inter):

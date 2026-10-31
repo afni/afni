@@ -573,7 +573,6 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         return D
 
     def load_proc_peaks(self, label):
-
         """See if we have any load_proc_* data to read in, and if so, do it.
         The load_proc_* file inputs are just single columns of
         ints. So, use existing functionality to read them in, just
@@ -590,13 +589,13 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         # [0] item: peaks
         fname = self.load_proc[label][0]
         check0, flt_int0 = self.read_data_from_solo_file(fname, dtype=int)
-        self.data[label].peaks = list(flt_int0)
+        self.data[label].peaks = sorted(set(flt_int0))
 
         # [1] item troughs
         if self.count_load_proc(label) > 1 :
             fname = self.load_proc[label][1]
             check1, flt_int1 = self.read_data_from_solo_file(fname, dtype=int)
-            self.data[label].troughs = list(flt_int1)
+            self.data[label].troughs = sorted(set(flt_int1))
 
         return 0
 
