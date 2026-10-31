@@ -13,6 +13,7 @@ from   matplotlib.path        import Path as MplPath
 from   afnipy import lib_physio_defs     as DEF
 from   afnipy import lib_physio_interact as lpi
 from   afnipy import lib_physio_outliers as lpout
+from   afnipy import lib_physio_util     as lpu
 from   afnipy import afni_base           as ab
 
 # ---------------------------------------------------------------------------
@@ -989,7 +990,7 @@ them.
                 pp.spines['right'].set_linewidth(3)
 
             if do_interact:
-                # Rebuild only the animated bands when '5' is pressed.
+                # Refresh interval bands and peak interval title on '5'.
                 # Keep markers outside this figure (including edits from
                 # earlier figures) for the original global color scale.
                 fig_inter = all_inter[-iinum:]
@@ -1010,6 +1011,10 @@ them.
                                   for inter in all_inter if inter.poly[lab] is not None]
                         updated_xy[lab] = np.concatenate(
                             [original_xy[outside]] + edited)
+                        # Sort and keep one x/y row per peak/trough time.
+                        _, order = np.unique(updated_xy[lab][:, 0],
+                                             return_index=True)
+                        updated_xy[lab] = updated_xy[lab][order]
                         if not any(inter.band_geometry[lab]
                                    for inter in fig_inter):
                             continue
@@ -1060,13 +1065,30 @@ them.
                                                        (selected[:, 0] < hi)]
                                     marker.set_data(visible[:, 0], visible[:, 1])
                     canvas = fig_inter[0].canvas
+                    title_changed = False
+                    if 'p' in updated_xy:
+                        is_fail, med_ival, mad_ival = \
+                            lpu.calc_interval_stats_medmad(updated_xy['p'][:, 0])
+                        if is_fail:
+                            summary = r'ival$_{\rm med}$ = n/a'
+                        else:
+                            summary = (r'ival$_{{\rm med}}$ = {:.3f} $\pm$ {:.3f} s'
+                                       .format(med_ival, mad_ival))
+                        prefix, sep, rest = self.title.partition(' (ival')
+                        suffix = rest.partition(')')[2] if sep else ''
+                        title = '{} ({}){}'.format(prefix, summary, suffix)
+                        title_artist = fig_inter[0].ax.title
+                        title_changed = title != title_artist.get_text()
+                        title_artist.set_text(title)
+                        self.title = title
                     if not canvas.supports_blit:
                         # The native macOS backend, for example, cannot blit.
                         # One deferred draw replaces the bands on that backend.
                         canvas.draw_idle()
                     else:
-                        if not hasattr(fig_inter[0], 'figure_background'):
-                            canvas.draw()  # first render only
+                        if (title_changed or
+                                not hasattr(fig_inter[0], 'figure_background')):
+                            canvas.draw()  # refresh the static title/background
                         canvas.restore_region(fig_inter[0].figure_background)
                         for inter in fig_inter:
                             inter.draw_animated()

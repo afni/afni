@@ -5,6 +5,7 @@ import copy
 import numpy as np
 
 from   afnipy import afni_base as ab
+from   afnipy import lib_physio_outliers as lpo
 
 
 # ===========================================================================
@@ -125,6 +126,73 @@ all_stat : tuple of 4 floats, which are as follows...
     return 0, (minval, maxval, meanval, stdval)
 
 # ----------------------------------------------------------------------------
+
+def calc_interval_stats_medmad(A, samp_delt=None, verb=0):
+    """Calculate the median and scaled MAD of successive marker intervals.
+
+Marker positions are sorted before taking their successive differences.
+For example, A can contain peak indices or peak times.  The MAD is
+calculated by lib_physio_outliers.calc_MAD(), including its default
+1.4826 scale factor.  Duplicate positions are retained as zero-length
+intervals, rather than silently removed.
+
+Parameters
+----------
+A : array-like
+    Finite numeric 1D collection containing at least two marker positions.
+    Positions need not be sorted.  The input is not modified.
+samp_delt : float or None
+    Positive, finite sampling interval, in seconds, when A contains
+    sample indices.  If None, no scaling is applied; the returned values
+    have the same units as A.  In particular, pass None for times that
+    are already in seconds.
+verb : int
+    Verbosity level, retained for consistency with other interval helpers.
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure.
+med_ival : float
+    the median interval (in seconds when samp_delt is supplied), or in the 
+    units of A otherwise.
+mad_ival : float
+    the MAD of the input interval (in seconds when samp_delt is supplied), or in the 
+    units of A otherwise
+    """
+
+    BAD_RETURN = (-1, 0.0, 0.0)
+
+    # checks
+    try:
+        values = np.asarray(A, dtype=float)
+        scale = 1.0 if samp_delt is None else float(samp_delt)
+    except (TypeError, ValueError):
+        ab.EP1('invalid marker positions or sampling interval')
+        return BAD_RETURN
+    if values.ndim != 1 or values.size < 2 or not np.all(np.isfinite(values)):
+        ab.EP1('interval stats require at least 2 finite 1D marker positions')
+        return BAD_RETURN
+    if not np.isfinite(scale) or scale <= 0:
+        ab.EP1('sampling interval must be positive and finite')
+        return BAD_RETURN
+
+    try:
+        intervals = np.array([j-i for i, j in zip(values[:-1], values[1:])], 
+                             dtype=float)
+    except (TypeError, ValueError):
+        ab.EP1('failed to calc intervals')
+        return BAD_RETURN
+
+    is_fail, mad_ival = lpo.calc_MAD(intervals)
+    if is_fail:
+        return BAD_RETURN
+
+    med_ival = float(np.median(intervals)) * scale
+    mad_ival = float(mad_ival) * scale
+
+    return 0, med_ival, mad_ival
+
 
 def make_str_bandpass(label, lab_title, lab_short,
                       prefix='', odir='', ext='svg'):

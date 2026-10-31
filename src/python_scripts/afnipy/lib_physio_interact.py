@@ -499,6 +499,10 @@ There will always be at least one vertex left (which is, in fact, a
         # if close enough to refline, go into action
         if rind != None :
 
+            # Do not add another extremum of this type at the same sample.
+            if np.any(self.poly[lab].xy[1:-1, 0] == xdataval):
+                return 0
+
             # instead of searching to put point in order, just add it
             # here.  NB: this can*NOT* be the [0]th or [-1]th
             # entry---those are special in the polygon, and should be
@@ -566,6 +570,12 @@ There will always be at least one vertex left (which is, in fact, a
 
         # invalid reference point (point remains at last valid position)
         if rind is None :
+            return
+
+        # Reject moves onto another extremum of the same type.
+        xy = self.poly[self.act_lab].xy
+        other = np.arange(1, len(xy)-1) != self.act_ind
+        if np.any((xy[1:-1, 0] == xdataval) & other):
             return
 
         # constrained motion (occurs when: rind != None)

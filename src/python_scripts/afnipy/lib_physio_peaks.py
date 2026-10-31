@@ -539,8 +539,8 @@ based on the overall typical period of raw data.
 
 This basically takes each input peak, makes a plus/minus window around
 it, and finds the local max (or min, for troughs) in x there; the peak
-shifts to that new location. Output number of peaks matches input
-number.
+shifts to that new location. Coincident output locations are merged,
+so the output can contain fewer peaks than the input.
 
 If window_size is None (default), use the median of peaks as the base
 window size (scaled then by window_scale).  For local refinement, one
@@ -611,7 +611,7 @@ opeaks : list
         else:
             opeaks.append(start + np.argmax(x[start:finish]))
 
-    return opeaks
+    return sorted(set(opeaks))
 
 def percentileFilter_global(peaks, x, perc_filt = 10.0, 
                             is_troughs = False, 
@@ -966,6 +966,9 @@ opeaks : list
     were estimated within x, starting from input set of peaks
 
     """
+
+    # Remove duplicate indices before estimating intervals or thresholds.
+    peaks = sorted(set(peaks))
 
     # guard against veeery rare case
     if len(peaks) < 2 :
