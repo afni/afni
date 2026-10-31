@@ -186,6 +186,5 @@ set_target_properties(f2c PROPERTIES PUBLIC_HEADER f2c.h)
 target_link_libraries(
   f2c
   PRIVATE
-          NIFTI::nifticdf
           m
 )
