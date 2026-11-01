@@ -56,7 +56,7 @@ while ( $ac <= $#argv )
 
     # --------- opt
 
-    if ( "$argv[$ac]" == "-workdir" ) then
+    else if ( "$argv[$ac]" == "-workdir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set wdir = "$argv[$ac]"
