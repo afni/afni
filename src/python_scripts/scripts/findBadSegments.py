@@ -964,6 +964,42 @@ def correctCardiacPeaks_Old(cardiacPeaks):
         
     return cardiacPeaks
 
+def compareLECWwithMahalanobis(OutDir, respiratoryTimeSeries,
+       LECW_peaks, LECW_troughs, Mahalanobis_peaks, Mahalanobis_troughs, samp_freq, 
+       LECW_anomalyRanges, Mahalanobis_anomalyRanges, als_baseline_display):
+    
+    print('Compare LECW and Mahalonobis respiratory results')
+
+    # Create output directory if it doesn't already exist
+    if OutDir[-1] == '/':
+        OutDir = OutDir[:-1]
+    Path(OutDir).mkdir(parents=True, exist_ok=True)
+                
+    # append lets a caller (e.g. the Mahalanobis pipeline) route its output to
+    # its own file instead of overwriting the clustering/LECW results.
+    output_file_name = OutDir + '/respLECWversusMahalonobis_' + '.pdf'
+
+    if als_baseline_display:
+        baseline = alsBaseline(respiratoryTimeSeries, lam=1e6, p=0.01)
+        displayTimeSeries = respiratoryTimeSeries - baseline
+    else:
+        displayTimeSeries = respiratoryTimeSeries
+
+    # (
+    #  respiratoryPeakVals, 
+    #  respiratoryTroughVals,
+    #  ) = outputRespiratoryPlots(displayTimeSeries, respiratoryPeaks, 
+    #                        respiratoryTroughs, samp_freq,
+    #                        peak_outliers,
+    #                        outlier_ts_ranges, troughPeakMismatchRanges,
+    #                        output_file_name)
+    
+    # Output comparison
+    writeRespiratoryLECWvMahalonobisToFile(respiratoryTimeSeries, 
+                LECW_peaks, LECW_troughs, Mahalanobis_peaks, Mahalanobis_troughs, 
+                LECW_anomalyRanges, Mahalanobis_anomalyRanges, 
+                output_file_name, samp_freq)
+
 def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
             outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
@@ -1432,6 +1468,78 @@ def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries,
                     respiratoryTroughs, samp_freq, added_peaks, 
                     added_troughs, outlier_ts_ranges, 
                     output_file_name, interpolatedPeaks, interpolatedTroughs)
+                                         
+def writeRespiratoryLECWvMahalonobisToFile(respiratoryTimeSeries, 
+            LECW_peaks, LECW_troughs, Mahalanobis_peaks, Mahalanobis_troughs, 
+            LECW_anomalyRanges, Mahalanobis_anomalyRanges, 
+            output_file_name, samp_freq,  offset=0):
+    
+    y = respiratoryTimeSeries
+    x = np.arange(len(y))
+    x_scaled = x / samp_freq
+    global_ymax = np.max(y)
+    global_ymin = np.min(y)
+    points_per_row = 3000
+    num_rows = int(np.ceil(len(y) / points_per_row))
+    LECW_peaks_scaled = np.array(LECW_peaks) / samp_freq
+    LECW_troughs_scaled = np.array(LECW_troughs) / samp_freq
+    LECW_peakVals = respiratoryTimeSeries[LECW_peaks]
+    LECW_troughVals = respiratoryTimeSeries[LECW_troughs]
+    Mahalanobis_peaks_scaled = np.array(Mahalanobis_peaks) / samp_freq
+    Mahalanobis_troughs_scaled = np.array(Mahalanobis_troughs) / samp_freq
+    Mahalanobis_peakVals = respiratoryTimeSeries[Mahalanobis_peaks]
+    Mahalanobis_troughVals = respiratoryTimeSeries[Mahalanobis_troughs]
+    
+    fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
+    if num_rows == 1:
+        axes = [axes]
+    windowTitle = 'Corrected Respiratory Peaks ('+output_file_name+')'
+    fig.canvas.manager.set_window_title(windowTitle)
+
+    # Evenly divide THIS frame's length into num_rows equal-width chunks,
+    # so the frame's full range is used with no leftover/short row.
+    boundaries = np.round(np.linspace(0, len(y), num_rows + 1)).astype(int)
+
+    for row in range(num_rows):
+        local_start = boundaries[row]
+        local_end = boundaries[row + 1]
+        # global-index equivalents, for band comparisons/plotting
+        start = local_start + offset
+        end = local_end + offset
+        ax = axes[row]
+        # ax.plot(LECW_peaks_scaled[local_start:local_end], LECW_peaks[local_start:local_end],
+        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="magenta")
+        # ax.plot(LECW_troughs_scaled[local_start:local_end], LECW_troughs[local_start:local_end],
+        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="green")
+        # ax.plot(Mahalanobis_peaks_scaled[local_start:local_end], Mahalanobis_peaks[local_start:local_end],
+        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="red")
+        # ax.plot(Mahalanobis_troughs_scaled[local_start:local_end], Mahalanobis_troughs[local_start:local_end],
+        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="blue")
+        ax.plot(x_scaled[local_start:local_end], y[local_start:local_end],
+                linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="black")
+        ax.plot(Mahalanobis_peaks_scaled, Mahalanobis_peakVals, "ro")
+        ax.plot(Mahalanobis_troughs_scaled, Mahalanobis_troughVals, "bo")
+        ax.plot(LECW_peaks_scaled, LECW_peakVals, "mo", markerfacecolor='none')
+        ax.plot(LECW_troughs_scaled, LECW_troughVals, "go", markerfacecolor='none')
+        for band_start, band_end in LECW_anomalyRanges:
+            if band_end <= start or band_start >= end:
+                continue
+            ax.axvspan(max(band_start, start)/samp_freq, min(band_end, end)/samp_freq,
+                       color='green', alpha=0.15)
+        for bandrange in Mahalanobis_anomalyRanges:
+            if bandrange[1] <= start or bandrange[0] >= end:
+                continue
+            ax.axvspan(max(bandrange[0], start)/samp_freq, min(bandrange[1], end)/samp_freq,
+                       color='red', alpha=0.15)
+        ax.set_xlim(x_scaled[local_start], x_scaled[local_end - 1])
+        ax.set_ylim(global_ymin, global_ymax)
+        ax.set_ylabel("Respiratory Amplitude")
+    print('Set axes and save plot to file')
+    axes[-1].set_xlabel("Time (minutes)")
+    plt.tight_layout()
+    plt.savefig(output_file_name)
+    plt.show()
+
                                          
 def plotCorrectedRespiratoryImage(output_file_name, num_rows,
                                    x_scaled, y,
@@ -2825,6 +2933,11 @@ peak_outliers_list, outlier_ts_ranges = getDeepTroughOutliers(peak_outliers_list
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
             outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
             moveToLocalPeaks, als_baseline_display)
+                                    
+LECW_anomalyRanges = outlier_ts_ranges
+LECW_peaks = respiratoryPeaks
+LECW_troughs = respiratoryTroughs
+
 
 #################################################
 # Restore original peaks, troughs and time series
@@ -3153,6 +3266,16 @@ for current_range in sorted_ts_ranges:
         moveToLocalPeaks, als_baseline_display, append="MAHALANOBIS")
 
 plt.close('all')
+
+Mahalanobis_anomalyRanges = outlier_ts_ranges
+Mahalanobis_peaks = respiratoryPeaks
+Mahalanobis_troughs = respiratoryTroughs
+
+# Compare bad regions, found by Mahalonobis, with those found by LECW
+compareLECWwithMahalanobis(OutDir, respiratoryTimeSeries,
+       LECW_peaks, LECW_troughs, Mahalanobis_peaks, Mahalanobis_troughs, samp_freq, 
+       LECW_anomalyRanges, Mahalanobis_anomalyRanges, als_baseline_display)
+# TODO: Add code
 
 
 
