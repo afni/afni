@@ -3061,11 +3061,17 @@ void usage_3dRSA(int detail)
 "                     [sub-brick][voxel] vector contains no matched repetitions,\n"
 "                     so splitting it would confound condition and/or voxel\n"
 "                     identity with reliability.\n"
-"                   RSA: the Nili et al. (2014) noise ceiling -- each subject's\n"
-"                     condition RDM vs the group-mean RDM (upper bound,\n"
+"                   RSA: comparator-specific noise-ceiling estimates: each subject's\n"
+"                     condition RDM vs the normalized group template (inclusive,\n"
 "                     'nc_high') and vs the leave-one-subject-out mean of the\n"
-"                     others (lower bound, 'nc_low').  A model reaching nc_low\n"
-"                     is doing as well as the data reliability allows.\n"
+"                     others (leave-one-out, 'nc_low'). Templates use centered,\n"
+"                     unit-norm RDMs for Pearson, average ranks for rank metrics,\n"
+"                     and unit Frobenius-norm second moments for cov metrics.\n"
+"                     Correlations are Fisher-z averaged and back-transformed,\n"
+"                     matching model _r (including its correlation clipping).\n"
+"                     These are reference estimates, not guaranteed bounds on\n"
+"                     model _r; a model can exceed nc_high. Rank averaging for\n"
+"                     Kendall metrics is a heuristic.\n"
 "                     This applies to ordinary condition-pattern RDMs and to\n"
 "                     '-runwiseTable' crossnobis RDMs.  In the runwise case,\n"
 "                     independent runs define every subject RDM before the\n"
@@ -3073,8 +3079,7 @@ void usage_3dRSA(int detail)
 "                     if requested, is applied before crossnobis.  The fixed\n"
 "                     model has no fitted condition parameters, so no condition\n"
 "                     data enter a fit.  'nc_low' excludes the evaluated subject;\n"
-"                     'nc_high' includes it by the conventional upper-bound\n"
-"                     definition and is intentionally optimistic.\n"
+"                     'nc_high' includes it and is intentionally optimistic.\n"
 "                   ++ These also go into the output dataset as sub-bricks\n"
 "                      ('reliability', or 'nc_low'/'nc_high'), so under\n"
 "                      -searchlight you get a whole-brain reliability map to read\n"
@@ -9752,46 +9757,58 @@ int main( int argc , char *argv[] )
          THD_simmat_free(neural) ;
        }
 
-       /* Nili noise ceiling: correlate each subject's condition RDM with the
-          group-mean RDM (upper bound) and with the leave-one-subject-out mean
-          of the others (lower bound), then average over subjects.  With a
-          runset, srdm already contains unbiased crossnobis estimates whose two
-          contrast factors came from independent runs (after optional residual
-          whitening).  Thus no run data are fitted here: the lower template also
-          excludes the evaluated subject, while the conventional upper template
-          intentionally includes it as an optimistic attainable bound. */
+       /* Comparator-specific inclusive and leave-one-subject-out templates.
+          Preserve srdm/srdmcov for all subsequent model statistics.  Aggregate
+          on the same Fisher-z scale as model _r. These reference estimates
+          are not guaranteed maxima of the Fisher-aggregated objective. */
        if( do_nc ){
-         int a ; float hi=0.0f , lo=0.0f , mfac=1.0f/(float)nsub ;
-         if( srdmcov!=NULL ){
-           size_t q,nn=(size_t)nitem*nitem ;
-           for( q=0 ; q<nn ; q++ ){
-             double s=0.0 ;
-             for( jj_=0 ; jj_<nsub ; jj_++ ) s+=srdmcov[(size_t)jj_*nn+q] ;
-             covA[q]=(float)(s*mfac) ;
+         size_t q, width=(srdmcov!=NULL)?(size_t)nitem*nitem:(size_t)ntri ;
+         float *src=(srdmcov!=NULL)?srdmcov:srdm ;
+         float *full=(srdmcov!=NULL)?covA:triA ;
+         float *loo=(srdmcov!=NULL)?covB:triB ;
+         float *prep=(float *)malloc(sizeof(float)*(size_t)nsub*width) ;
+         double hi=0.0,lo=0.0 ;
+         if( prep==NULL ) ERROR_exit("3dRSA: cannot allocate ceiling templates") ;
+         for( jj_=0 ; jj_<nsub ; jj_++ ){
+           float *ts=src+(size_t)jj_*width,*ps=prep+(size_t)jj_*width ;
+           if( srdmcov==NULL && cmp_metric!=CMP_PEARSON ){
+             THD_rank_avg(ntri,ts,ps) ;
+           } else {
+             double mean=0.0,ss=0.0 ;
+             /* Covariance forms have already had the triangle mean removed
+                for corr_cov. Their Frobenius norm is the comparison norm. */
+             if( srdmcov==NULL ){
+               for( q=0 ; q<width ; q++ ) mean+=ts[q] ;
+               mean/=(double)width ;
+             }
+             for( q=0 ; q<width ; q++ ){
+               double v=(double)ts[q]-mean ; ss+=v*v ;
+             }
+             ss=(ss>0.0)?1.0/sqrt(ss):0.0 ;
+             for( q=0 ; q<width ; q++ ) ps[q]=(float)(((double)ts[q]-mean)*ss) ;
            }
-           for( jj_=0 ; jj_<nsub ; jj_++ ){
-             float *cs=srdmcov+(size_t)jj_*nn ;
-             for( q=0 ; q<nn ; q++ )
-               covB[q]=(covA[q]*(float)nsub-cs[q])/(float)(nsub-1) ;
-             hi+=THD_rdm_cov_cosine(nitem,cs,covA) ;
-             lo+=THD_rdm_cov_cosine(nitem,cs,covB) ;
+         }
+         for( q=0 ; q<width ; q++ ){
+           double sum=0.0 ;
+           for( jj_=0 ; jj_<nsub ; jj_++ ) sum+=prep[(size_t)jj_*width+q] ;
+           /* Correlations are scale invariant: retain the sum so integer
+              and half-integer rank totals stay exact for LOO subtraction. */
+           full[q]=(float)sum ;
+         }
+         for( jj_=0 ; jj_<nsub ; jj_++ ){
+           float *ts=src+(size_t)jj_*width,*ps=prep+(size_t)jj_*width ;
+           for( q=0 ; q<width ; q++ )
+             loo[q]=(float)(((double)full[q]-ps[q])/(nsub-1)) ;
+           if( srdmcov!=NULL ){
+             hi+=MYatanh(THD_rdm_cov_cosine(nitem,ts,full)) ;
+             lo+=MYatanh(THD_rdm_cov_cosine(nitem,ts,loo)) ;
+           } else {
+             hi+=MYatanh(THD_tri_corr(ntri,ts,full,cmp_metric,ws->sc1,ws->sc2)) ;
+             lo+=MYatanh(THD_tri_corr(ntri,ts,loo,cmp_metric,ws->sc1,ws->sc2)) ;
            }
-           ncA[kk_]=lo*mfac ; ncB[kk_]=hi*mfac ;
-         } else {
-         for( a=0 ; a < ws->m ; a++ ){            /* mean triangle into triA */
-           float s=0.0f ;
-           for( jj_=0 ; jj_ < nsub ; jj_++ ) s += srdm[(size_t)jj_*ws->m + a] ;
-           triA[a] = s*mfac ;
          }
-         for( jj_=0 ; jj_ < nsub ; jj_++ ){
-           float *ts = srdm + (size_t)jj_*ws->m ;
-           for( a=0 ; a < ws->m ; a++ )           /* leave-one-out mean */
-             triB[a] = ( triA[a]*(float)nsub - ts[a] ) / (float)(nsub-1) ;
-           hi += THD_tri_corr( ws->m , ts , triA , cmp_metric , ws->sc1 , ws->sc2 ) ;
-           lo += THD_tri_corr( ws->m , ts , triB , cmp_metric , ws->sc1 , ws->sc2 ) ;
-         }
-         ncA[kk_] = lo*mfac ; ncB[kk_] = hi*mfac ;
-         }
+         ncA[kk_]=tanhf((float)(lo/nsub)) ; ncB[kk_]=tanhf((float)(hi/nsub)) ;
+         free(prep) ;
        }
 
        if( joint ){
@@ -10615,7 +10632,7 @@ int main( int argc , char *argv[] )
         fprintf(fp,"# loo bootstrap: completed out-of-sample prediction/target rows; "
                    "predictions held fixed (no fold-refitting uncertainty)\n") ;
       if( do_nc && rdm_over == RDM_BRICK )
-        fprintf(fp,"# noise ceiling: Nili subject LOO lower / inclusive upper on %s RDMs\n",
+        fprintf(fp,"# noise ceiling: normalized subject LOO / inclusive templates; Fisher-z aggregate on %s RDMs\n",
                 (runset != NULL) ? "run-independent crossnobis" :
                                    "same-data condition-pattern") ;
       if(condition_level){
@@ -11137,7 +11154,7 @@ int main( int argc , char *argv[] )
          correlations, not test statistics, so they are plain effect bricks
          (no FIZT typing).  IS-RSA
          has one 'reliability' map (split-half geometry stability); classic RSA
-         has the Nili lower and upper bounds. */
+         has leave-one-out and inclusive ceiling estimates. */
       if( do_nc ){
         int nslot = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
                                     + (do_loofwe ? nloo : 0)
