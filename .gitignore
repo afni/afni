@@ -57,7 +57,6 @@ Makefile.R.INCLUDE
 Makefile.R.INCLUDE.BACK
 AFNI_version.txt
 AFNI_version.h
-/src/niml.h
 
 #Python
 *.pyc
