@@ -776,6 +776,46 @@ extern int SRM_gather_columns( const float *x , int nrow , int ncol ,
 extern int SRM_zscore_segments( float *x , int nvox , int ntime ,
                                 int nseg , const int *seglen , unsigned char *bad ) ;
 
+/* Held-out scoring and observed-sample fitting. All arrays are row-major.
+   Observation masks use nonzero = observed, NULL = all observed. */
+#define SRM_SCORE_ISC     0
+#define SRM_SCORE_MATCH   1
+#define SRM_SCORE_CHANCE  2
+#define SRM_SCORE_R2      3
+#define SRM_SCORE_NSAMP   4
+#define SRM_SCORE_COUNT   5
+typedef struct { int isc , match , r2 , ident ; } SRM_score_request ;
+
+/*! Score a view against supplied held-out references. P, ref_u and ref_r
+    are K x len; x is model->nvox[iview] x len; K must match model->nfeat.
+    ref_u is for correlation/matching, ref_r for reconstruction (posterior
+    mean for probabilistic models). ident selects item rather than segment
+    matching; win is the segment length. All input arrays are required.
+    out has SRM_SCORE_COUNT entries; unrequested/unavailable metrics are NaN.
+    With a mask, fewer than 3 observed samples yields NaN metrics and zero
+    voxel R2; segment windows retain gaps and no valid window yields NaN.
+    Without a mask, metric errors propagate. vox_r2 is optional (nvox values).
+    Inputs are borrowed and unchanged; returns SRM_OK or SRM_ERR_*. */
+extern int SRM_score_view( const SRM_model *model , int iview , const float *x , const float *P ,
+                           const float *ref_u , const float *ref_r , int K , int len , int win ,
+                           SRM_score_request want , const unsigned char *valid , double *out , float *vox_r2 ) ;
+
+/*! SRM_fit_view restricted to observed columns of s (K x T) and x (V x T).
+    obs is already on this training timeline: fold selection is the caller's.
+    Unobserved values are never read; fewer than K observations is an error.
+    Output buffers and optional rho2/mu follow SRM_fit_view's contract. */
+extern int SRM_fit_view_obs( const float *s , int K , int T , const float *x , int V , int center ,
+                             const unsigned char *obs , float *W , double *rho2 , float *mu ) ;
+
+/*! Fit an adapted W from observed columns, subtracting the supplied V means
+    (NULL: zero) and coupling to anchor (V x K) with finite lambda >= 0.
+    With no observations (including T=0), copy the anchor unchanged.
+    Return an owned one-view model with the supplied means; free with
+    SRM_free_model. On failure *out is NULL and a negative status is returned.
+    Input arrays are borrowed and unchanged. */
+extern int SRM_adapt_view( const float *s , int K , int T , const float *x , int V , const float *anchor ,
+                           const float *mu , double lambda , const unsigned char *obs , SRM_model **out ) ;
+
 extern const char * SRM_strerror( int code ) ;
 
 #ifdef __cplusplus

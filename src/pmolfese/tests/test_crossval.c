@@ -94,11 +94,61 @@ static int transfer_test(THD_sampleset *ss)
 done:THD_nested_foldplan_free(in);THD_foldplan_free(p);return fail;
 }
 
+static int assignment_test(THD_sampleset *ss)
+{
+   THD_foldplan *p=NULL,*table=NULL; char err[512]; int fail=0,f,i;
+   int assignment[]={1,0,1,2,0,2,2};
+   char a[]="first",b[]="second",c[]="third";
+   const char *names[]={a,b,c};
+   const int nt[]={2,2,3},want_test[]={1,4,0,2,3,5,6};
+   const int want_train[]={0,2,3,5,6,1,3,4,5,6,0,1,2,4};
+   int tr=0,te=0;
+   p=THD_foldplan_from_assignments(7,3,assignment,names,err,sizeof(err));CHECK(p,err);
+   CHECK(p->kind==THD_CV_LEAVE_GROUP_OUT && p->nstratum==1,"unstratified assigned folds");
+   for(f=0;f<3;f++){
+      CHECK(p->ntest[f]==nt[f] && p->ntrain[f]==7-nt[f],"unequal fold sizes");
+      CHECK(!strcmp(p->name[f],names[f]),"explicit name order precedes sample occurrence order");
+      for(i=0;i<p->ntest[f];i++)CHECK(p->test[f][i]==want_test[te++],"ordered test indices");
+      for(i=0;i<p->ntrain[f];i++)CHECK(p->train[f][i]==want_train[tr++],"ordered complement indices");
+   }
+   assignment[0]=0;a[0]='X';
+   CHECK(p->sample_test_fold[0]==1 && !strcmp(p->name[0],"first"),"plan owns assignments and names");
+   CHECK(THD_foldplan_validate(p,err,sizeof(err)),err);
+   THD_foldplan_free(p);p=NULL;
+   { int ids[]={0,0,1,1,0,0,1,1}; const char *labels[]={"f1","f2"};
+     table=THD_foldplan_leave_group_out(ss,"Fold",NULL,err,sizeof(err));CHECK(table,err);
+     p=THD_foldplan_from_assignments(8,2,ids,labels,err,sizeof(err));CHECK(p,err);
+     for(f=0;f<2;f++){
+        CHECK(!strcmp(p->name[f],table->name[f]) && p->ntrain[f]==table->ntrain[f] && p->ntest[f]==table->ntest[f],"same table and array fold metadata");
+        CHECK(!memcmp(p->train[f],table->train[f],sizeof(int)*(size_t)p->ntrain[f]) &&
+              !memcmp(p->test[f],table->test[f],sizeof(int)*(size_t)p->ntest[f]),"same table and array indices");
+     }
+     CHECK(!memcmp(p->sample_test_fold,table->sample_test_fold,8*sizeof(int)),"same sample mapping");
+   }
+   THD_foldplan_free(p);p=NULL;
+   { int ids[]={0,0,0}; const char *labels[]={"a","b"};
+     CHECK(!THD_foldplan_from_assignments(3,2,ids,labels,err,sizeof(err)),"empty test fold rejected");
+     ids[1]=-1;CHECK(!THD_foldplan_from_assignments(3,2,ids,labels,err,sizeof(err)),"negative assignment rejected");
+     ids[1]=2;CHECK(!THD_foldplan_from_assignments(3,2,ids,labels,err,sizeof(err)),"out of range assignment rejected");
+     ids[1]=1;labels[1]="a";CHECK(!THD_foldplan_from_assignments(3,2,ids,labels,err,sizeof(err)),"duplicate names rejected");
+     labels[1]="";CHECK(!THD_foldplan_from_assignments(3,2,ids,labels,err,sizeof(err)),"empty name rejected");
+     labels[1]=NULL;CHECK(!THD_foldplan_from_assignments(3,2,ids,labels,err,sizeof(err)),"missing name rejected");
+     labels[1]="b";
+     CHECK(!THD_foldplan_from_assignments(3,1,ids,labels,err,sizeof(err)),"one fold rejected");
+     CHECK(!THD_foldplan_from_assignments(0,2,ids,labels,err,sizeof(err)),"empty samples rejected");
+     CHECK(!THD_foldplan_from_assignments(3,4,ids,labels,err,sizeof(err)),"excess folds rejected before reading labels");
+     CHECK(!THD_foldplan_from_assignments(3,2,NULL,labels,err,sizeof(err)),"missing assignments rejected");
+     CHECK(!THD_foldplan_from_assignments(3,2,ids,NULL,NULL,0),"optional error buffer");
+   }
+done: THD_foldplan_free(p);THD_foldplan_free(table);return fail;
+}
+
 int main( void )
 {
    THD_sampleset *ss=make_samples() ; THD_foldplan *p=NULL,*p2=NULL ; char err[1024] ;
    int fail=0,*class_id=NULL,nclass=0,ii ; char **class_label=NULL ; FILE *fp=NULL ;
 
+   CHECK(!assignment_test(ss),"array fold constructor");
    CHECK(!transfer_test(ss),"directional transfer folds");
    CHECK(!candidate_test(ss),"candidate-search driver");
    p=THD_foldplan_leave_group_out(ss,"Run","Subj",err,sizeof(err)) ; CHECK(p!=NULL,err) ;

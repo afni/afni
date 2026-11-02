@@ -382,6 +382,25 @@ if(TARGET 1dTrdm AND TARGET 3dRSA)
 endif()
 
 if(ENABLE_TESTS)
+  # No program callers yet: exercise the shared progress module independently.
+  # The unit source includes thd_progress.c to check cadence without sleeps.
+  add_executable(thd_progress_unit
+    ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_progress.c)
+  target_include_directories(thd_progress_unit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+  target_link_libraries(thd_progress_unit PRIVATE AFNI::mri
+    $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C> m)
+  target_compile_definitions(thd_progress_unit PRIVATE
+    "$<IF:$<TARGET_EXISTS:OpenMP::OpenMP_C>,USE_OMP,>")
+  add_test(NAME thd_progress:unit COMMAND thd_progress_unit)
+  set_tests_properties(thd_progress:unit PROPERTIES LABELS "progress;unit"
+    ENVIRONMENT "OMP_NUM_THREADS=4")
+  if(UNIX AND Python_EXECUTABLE)
+    add_test(NAME thd_progress:terminal COMMAND ${Python_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_progress_terminal.py
+      $<TARGET_FILE:thd_progress_unit>)
+    set_tests_properties(thd_progress:terminal PROPERTIES LABELS "progress;unit")
+  endif()
+
   add_executable(
     thd_datatable_unit
     ${CMAKE_SOURCE_DIR}/src/thd_datatable.c

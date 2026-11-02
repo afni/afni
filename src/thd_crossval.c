@@ -154,6 +154,50 @@ int THD_foldplan_validate( const THD_foldplan *p, char *err, int nerr )
    free(seen) ; free(ntest) ; free(nuse) ; return 1 ;
 }
 
+THD_foldplan *THD_foldplan_from_assignments(
+   int nsample, int nfold, const int *test_fold, const char * const *fold_name,
+   char *err, int nerr)
+{
+   THD_foldplan *p; char *stratum[]={(char *)"All"}; int f,i,j;
+   if(err && nerr>0)err[0]='\0';
+   if(nsample<2 || nfold<2 || nfold>nsample || !test_fold || !fold_name){
+      cv_error(err,nerr,"assigned folds need samples, names and 2 <= nfold <= nsample");
+      return NULL;
+   }
+   for(f=0;f<nfold;f++){
+      if(!fold_name[f] || !fold_name[f][0]){
+         cv_error(err,nerr,"assigned fold %d has no name",f+1);return NULL;
+      }
+      for(j=0;j<f;j++)if(!strcmp(fold_name[f],fold_name[j])){
+         cv_error(err,nerr,"duplicate assigned fold name '%s'",fold_name[f]);return NULL;
+      }
+   }
+   p=cv_alloc(THD_CV_LEAVE_GROUP_OUT,nsample,nfold,1,NULL,NULL,stratum,err,nerr);
+   if(!p)return NULL;
+   for(i=0;i<nsample;i++){
+      f=test_fold[i];
+      if(f<0 || f>=nfold)return cv_fail(p,err,nerr,"sample %d has invalid fold ID %d",i+1,f);
+      p->sample_test_fold[i]=f;p->ntest[f]++;
+   }
+   for(f=0;f<nfold;f++){
+      int tr=0,te=0;
+      p->ntrain[f]=nsample-p->ntest[f];
+      if(!p->ntest[f] || !p->ntrain[f])
+         return cv_fail(p,err,nerr,"fold %s needs nonempty training and test sets",fold_name[f]);
+      p->name[f]=strdup(fold_name[f]);
+      p->train[f]=malloc(sizeof(int)*(size_t)p->ntrain[f]);
+      p->test[f]=malloc(sizeof(int)*(size_t)p->ntest[f]);
+      if(!p->name[f] || !p->train[f] || !p->test[f])
+         return cv_fail(p,err,nerr,"out of memory filling assigned fold %d",f+1);
+      for(i=0;i<nsample;i++){
+         if(test_fold[i]==f)p->test[f][te++]=i;
+         else p->train[f][tr++]=i;
+      }
+   }
+   if(!THD_foldplan_validate(p,err,nerr)){THD_foldplan_free(p);return NULL;}
+   return p;
+}
+
 THD_foldplan * THD_foldplan_leave_group_out( const THD_sampleset *ss,
                                               const char *group_column,
                                               const char *within_column,

@@ -1842,9 +1842,9 @@ thd_insync_stats.o: thd_insync_stats.c thd_insync.h thd_datatable.h
 	$(RM) $@
 	$(CCOMP) -o 3dInSync $(INSYNC_OBJS) $(LFLAGS) $(LLIBS)
 
-SRM_OBJS = 3dSRM.o thd_srm.o thd_datatable.o thd_xmat.o thd_mapinfer.o thd_permute.o
+SRM_OBJS = 3dSRM.o thd_srm.o thd_crossval.o thd_sampleset.o thd_datatable.o thd_xmat.o thd_mapinfer.o thd_permute.o
 
-3dSRM.o: 3dSRM.c thd_srm.h thd_xmat.h thd_datatable.h thd_mapinfer.h thd_permute.h \
+3dSRM.o: 3dSRM.c thd_srm.h thd_crossval.h thd_sampleset.h thd_xmat.h thd_datatable.h thd_mapinfer.h thd_permute.h \
          niml.h AFNI_version.h
 	$(RM) $@
 	$(CCOMP) -c 3dSRM.c $(INFLAGS)

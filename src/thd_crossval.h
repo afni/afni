@@ -67,6 +67,18 @@ extern int THD_nested_candidate_search(const THD_nested_foldplan *plan,int outer
    int *train,int *test,double *losses,int *winner,int *winner_nvalid,
    char *err,int nerr);
 
+/*! Build an unstratified leave-assigned-group-out plan without a sample table.
+    test_fold[nsample] contains zero-based IDs into fold_name[nfold], whose
+    order is preserved (independent of first occurrence). Every fold must
+    have at least one test and one training sample; 2 <= nfold <= nsample.
+    Each sample is tested exactly once; training is the complement of test.
+    Both index lists preserve ascending sample order. Names must be nonempty
+    and unique. All inputs are copied; free the result with THD_foldplan_free.
+    Returns NULL with an error on invalid inputs or allocation failure. */
+extern THD_foldplan *THD_foldplan_from_assignments(
+   int nsample, int nfold, const int *test_fold, const char * const *fold_name,
+   char *err, int nerr);
+
 /*! Leave one level of group_column out.  With within_column, make independent
     folds inside every stratum (for example Run within Subj); other strata are
     excluded from each fold.  Without it, all samples share one stratum. */

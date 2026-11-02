@@ -3838,3 +3838,111 @@ bad:
    SRM_free_model(m) ; SRM_provenance_free(pv) ;
    return rc ;
 }
+
+
+/* Indexed gather used by held-out scoring. */
+static float *srm_score_cols( const float *x , int V , int T , const int *col , int n )
+{
+   int f,t ; float *y=(float *)malloc(sizeof(float)*(size_t)V*n) ;
+   if( y!=NULL ) for( f=0 ; f<V ; f++ ) for( t=0 ; t<n ; t++ )
+     y[(size_t)f*n+t]=x[(size_t)f*T+col[t]] ;
+   return y ;
+}
+
+int SRM_fit_view_obs( const float *s , int K , int T , const float *x , int V , int center ,
+                      const unsigned char *obs , float *W , double *rho2 , float *mu )
+{
+   int n=0,t,rc ; float *xg,*sg ;
+   if( s==NULL || x==NULL || W==NULL || K<1 || V<K || T<1 ) return SRM_ERR_ARG ;
+   if( obs==NULL ) return SRM_fit_view(s,K,T,x,V,center,W,rho2,mu) ;
+   for( t=0 ; t<T ; t++ ) n+=(obs[t]!=0) ;
+   if( n<K ) return SRM_ERR_NFEAT ;
+   xg=(float *)malloc(sizeof(float)*(size_t)V*n) ;
+   sg=(float *)malloc(sizeof(float)*(size_t)K*n) ;
+   if( xg==NULL || sg==NULL ){ free(xg) ; free(sg) ; return SRM_ERR_MEMORY ; }
+   SRM_gather_columns(x,V,T,obs,xg) ; SRM_gather_columns(s,K,T,obs,sg) ;
+   rc=SRM_fit_view(sg,K,n,xg,V,center,W,rho2,mu) ;
+   free(xg) ; free(sg) ; return rc ;
+}
+
+int SRM_adapt_view( const float *s , int K , int T , const float *x , int V , const float *anchor ,
+                    const float *mu , double lambda , const unsigned char *obs , SRM_model **out )
+{
+   int n=0,t,f,rc=SRM_OK ; float *W,*xc=NULL,*sc=NULL ;
+   if( out==NULL ) return SRM_ERR_ARG ;
+   *out=NULL ;
+   if( K<1 || V<K || T<0 || anchor==NULL || !isfinite(lambda) || lambda<0.0 ||
+       (T>0 && (s==NULL || x==NULL)) ) return SRM_ERR_ARG ;
+   W=(float *)malloc(sizeof(float)*(size_t)V*K) ;
+   if( W==NULL ) return SRM_ERR_MEMORY ;
+   for( t=0 ; t<T ; t++ ) if( obs==NULL || obs[t] ) n++ ;
+   if( n==0 ) memcpy(W,anchor,sizeof(float)*(size_t)V*K) ;
+   else {
+     int j=0 ;
+     xc=(float *)malloc(sizeof(float)*(size_t)V*n) ; sc=(float *)malloc(sizeof(float)*(size_t)K*n) ;
+     if( xc==NULL || sc==NULL ){ rc=SRM_ERR_MEMORY ; goto done ; }
+     for( t=0 ; t<T ; t++ ) if( obs==NULL || obs[t] ){
+       for( f=0 ; f<V ; f++ ) xc[(size_t)f*n+j]=x[(size_t)f*T+t]-(mu!=NULL ? mu[f] : 0.0f) ;
+       for( f=0 ; f<K ; f++ ) sc[(size_t)f*n+j]=s[(size_t)f*T+t] ;
+       j++ ;
+     }
+     rc=SRM_fit_view_coupled(sc,K,n,xc,V,1,&n,anchor,lambda,(float * const *)&W) ;
+     if( rc!=SRM_OK ) goto done ;
+   }
+   *out=SRM_model_from_w(V,K,W,mu) ;
+   if( *out==NULL ) rc=SRM_ERR_MEMORY ;
+ done:
+   free(W) ; free(xc) ; free(sc) ; return rc ;
+}
+
+/*! Score one subject's held-out columns.  P is the subject's projected test
+    data (K x len); ref_u the reference shared response for correlation and
+    matching; ref_r the one used to reconstruct (the posterior mean for a PROB model).
+    model/iview locate the subject's W for the reconstruction. */
+int SRM_score_view( const SRM_model *model , int iview , const float *xte , const float *P ,
+                          const float *ref_u , const float *ref_r , int K , int len , int win ,
+                          SRM_score_request w , const unsigned char *valid , double *out , float *vox_r2 )
+{
+   int rc=SRM_OK ; double a , b , r2 ;
+   if( model==NULL || iview<0 || iview>=model->nview || K!=model->nfeat ||
+       len<1 || out==NULL || xte==NULL || P==NULL || ref_u==NULL || ref_r==NULL ) return SRM_ERR_ARG ;
+   if( valid!=NULL ){            /* missing samples: score on the valid columns (segment matching keeps the gaps) */
+     int *idx=(int *)malloc(sizeof(int)*(size_t)len) , n=0 , t , V=model->nvox[iview] ;
+     float *Pg , *ug , *rg , *xg ;
+     if( idx==NULL ) return SRM_ERR_MEMORY ;
+     for( t=0 ; t<len ; t++ ) if( valid[t] ) idx[n++]=t ;
+     out[SRM_SCORE_NSAMP]=n ; out[SRM_SCORE_ISC]=out[SRM_SCORE_MATCH]=out[SRM_SCORE_CHANCE]=out[SRM_SCORE_R2]=NAN ;
+     if( n<3 ){ free(idx) ; if( vox_r2!=NULL ) for( t=0 ; t<V ; t++ ) vox_r2[t]=0.0f ; return SRM_OK ; }
+     Pg=srm_score_cols(P,K,len,idx,n) ; ug=srm_score_cols(ref_u,K,len,idx,n) ; rg=srm_score_cols(ref_r,K,len,idx,n) ;
+     xg=srm_score_cols(xte,V,len,idx,n) ;
+     if( Pg==NULL || ug==NULL || rg==NULL || xg==NULL ){
+       free(idx) ; free(Pg) ; free(ug) ; free(rg) ; free(xg) ; return SRM_ERR_MEMORY ;
+     }
+     if( w.isc ){ rc=SRM_component_corr(Pg,ug,K,n,NULL,&a) ; if( rc==SRM_OK ) out[SRM_SCORE_ISC]=a ; }
+     if( rc==SRM_OK && w.match ){
+       rc = w.ident ? SRM_item_identify(Pg,ug,K,n,&a,&b) : SRM_segment_match_obs(P,ref_u,K,len,win,valid,&a,&b) ;
+       if( rc==SRM_OK ){ out[SRM_SCORE_MATCH]=a ; out[SRM_SCORE_CHANCE]=b ; }
+       else if( !w.ident && rc==SRM_ERR_ARG ) rc=SRM_OK ;       /* no window without a gap: not scored */
+     }
+     if( rc==SRM_OK && w.r2 ){ rc=SRM_reconstruction_r2(model,iview,xg,rg,n,&r2,vox_r2) ; if( rc==SRM_OK ) out[SRM_SCORE_R2]=r2 ; }
+     free(idx) ; free(Pg) ; free(ug) ; free(rg) ; free(xg) ;
+     return rc ;
+   }
+   out[SRM_SCORE_NSAMP]=len ; out[SRM_SCORE_ISC]=out[SRM_SCORE_MATCH]=out[SRM_SCORE_CHANCE]=out[SRM_SCORE_R2]=NAN ;
+   if( w.isc ){
+     rc=SRM_component_corr(P,ref_u,K,len,NULL,&a) ;
+     if( rc!=SRM_OK ) return rc ;
+     out[SRM_SCORE_ISC]=a ;
+   }
+   if( w.match ){
+     rc = w.ident ? SRM_item_identify(P,ref_u,K,len,&a,&b) : SRM_segment_match(P,ref_u,K,len,win,&a,&b) ;
+     if( rc!=SRM_OK ) return rc ;
+     out[SRM_SCORE_MATCH]=a ; out[SRM_SCORE_CHANCE]=b ;
+   }
+   if( w.r2 ){
+     rc=SRM_reconstruction_r2(model,iview,xte,ref_r,len,&r2,vox_r2) ;
+     if( rc!=SRM_OK ) return rc ;
+     out[SRM_SCORE_R2]=r2 ;
+   }
+   return SRM_OK ;
+}

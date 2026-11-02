@@ -2,6 +2,7 @@
 #include "thd_datatable.h"
 #include "thd_mapinfer.h"
 #include "thd_srm.h"
+#include "thd_crossval.h"
 #include "thd_xmat.h"
 #include "thd_permute.h"
 
@@ -1490,14 +1491,14 @@ static void srm_write_grid_dset( THD_3dim_dataset *geom , const char *prefix , i
   Cross-validation
 ==============================================================================*/
 
-#define M_ISC    0
-#define M_MATCH  1
-#define M_CHANCE 2
-#define M_R2     3
-#define M_NSAMP  4
-#define NMET     5
+#define M_ISC SRM_SCORE_ISC
+#define M_MATCH SRM_SCORE_MATCH
+#define M_CHANCE SRM_SCORE_CHANCE
+#define M_R2 SRM_SCORE_R2
+#define M_NSAMP SRM_SCORE_NSAMP
+#define NMET SRM_SCORE_COUNT
 
-typedef struct { int isc , match , r2 , ident ; } srm_want ;   /* ident: 'match' is item identification */
+typedef SRM_score_request srm_want ;   /* ident: 'match' is item identification */
 
 typedef struct {
    srm_opts *o ; srm_subj *sb ; int nsub , nrun , T , K ;
@@ -1514,8 +1515,9 @@ typedef struct {
 } srm_ctx ;
 
 typedef struct {
+   THD_foldplan *plan ;                   /* owned common plan; subsets borrow it */
    int nfold , by_blocks , items ;
-   int **col , *len ;                     /* held-out columns of each fold, ascending */
+   int **col , *len ;                     /* aliases of plan->test/ntest for common folds */
    int ***scol , **slen ;                 /* or each subject's own (-cv loso on randomized items), or NULL */
    char **name ;
    const char *unit ;                     /* "time points" or "items" */
@@ -1551,38 +1553,48 @@ static srm_want srm_parse_metrics( const char *s )
    return w ;
 }
 
+/*! Common folds own one plan. The legacy field names are borrowed aliases;
+    subject-specific folds retain their existing representation for now. */
+static void srm_common_folds( srm_folds *f , int T , const int *assignment , char **names , int nf )
+{
+   char err[512];
+   f->plan=THD_foldplan_from_assignments(T,nf,assignment,(const char * const *)names,err,sizeof(err));
+   if(f->plan==NULL)ERROR_exit("cannot build SRM folds: %s",err);
+   f->nfold=f->plan->nfold; f->col=f->plan->test; f->len=f->plan->ntest; f->name=f->plan->name;
+}
+
 /*! Folds of the time axis: the runs, or with one run, contiguous blocks of time. */
 static void srm_make_folds( srm_folds *f , int nrun , const int *seglen , char **runname , int T , int blocks )
 {
-   int ii , jj , acc=0 ;
-   memset(f,0,sizeof(*f)) ;
-   f->unit="time points" ;
-   if( nrun>=2 ){
-     f->nfold=nrun ; f->by_blocks=0 ;
-     f->len=(int *)malloc(sizeof(int)*(size_t)nrun) ; f->name=(char **)malloc(sizeof(char *)*(size_t)nrun) ;
-     for( ii=0 ; ii<nrun ; ii++ ){ f->len[ii]=seglen[ii] ; f->name[ii]=strdup(runname[ii]) ; }
-   } else {
-     int base=T/blocks , rem=T%blocks ; char nm[24] ;
-     f->nfold=blocks ; f->by_blocks=1 ;
-     f->len=(int *)malloc(sizeof(int)*(size_t)blocks) ; f->name=(char **)malloc(sizeof(char *)*(size_t)blocks) ;
-     for( ii=0 ; ii<blocks ; ii++ ){
-       f->len[ii]=base+(ii<rem) ;
-       snprintf(nm,sizeof(nm),"block%d",ii+1) ; f->name[ii]=strdup(nm) ;
-     }
+   int ii,jj,acc=0,nf=(nrun>=2)?nrun:blocks;
+   int *assignment; char **names;
+   memset(f,0,sizeof(*f)); f->unit="time points"; f->by_blocks=(nrun<2);
+   if(T<2 || nf<2 || nf>T)ERROR_exit("SRM folds need 2 <= number of folds <= number of time points");
+   assignment=(int *)malloc(sizeof(int)*(size_t)T);
+   names=(char **)calloc((size_t)nf,sizeof(char *));
+   if(!assignment || !names)ERROR_exit("out of memory building SRM folds");
+   for(ii=0;ii<nf;ii++){
+      int len=(nrun>=2)?seglen[ii]:T/blocks+(ii<T%blocks); char nm[24];
+      if(len<1 || len>T-acc)ERROR_exit("invalid run length building SRM folds");
+      if(nrun>=2)names[ii]=strdup(runname[ii]);
+      else{snprintf(nm,sizeof(nm),"block%d",ii+1);names[ii]=strdup(nm);}
+      if(!names[ii])ERROR_exit("out of memory naming SRM folds");
+      for(jj=0;jj<len;jj++)assignment[acc++]=ii;
    }
-   f->col=(int **)malloc(sizeof(int *)*(size_t)f->nfold) ;
-   for( ii=0 ; ii<f->nfold ; ii++ ){
-     f->col[ii]=(int *)malloc(sizeof(int)*(size_t)f->len[ii]) ;
-     for( jj=0 ; jj<f->len[ii] ; jj++ ) f->col[ii][jj]=acc+jj ;
-     acc+=f->len[ii] ;
-   }
+   if(acc!=T)ERROR_exit("SRM run lengths do not cover the retained timeline");
+   srm_common_folds(f,T,assignment,names,nf);
+   for(ii=0;ii<nf;ii++)free(names[ii]);
+   free(names);free(assignment);
 }
 
 static void srm_free_folds( srm_folds *f )
 {
    int ii ;
-   for( ii=0 ; ii<f->nfold ; ii++ ){ free(f->name[ii]) ; if( f->col!=NULL ) free(f->col[ii]) ; }
-   free(f->name) ; free(f->col) ; free(f->len) ;
+   if(f->plan!=NULL) THD_foldplan_free(f->plan);
+   else {
+     for( ii=0 ; ii<f->nfold ; ii++ ){ free(f->name[ii]) ; if( f->col!=NULL ) free(f->col[ii]) ; }
+     free(f->name) ; free(f->col) ; free(f->len) ;
+   }
    if( f->scol!=NULL ){ int ss ; for( ss=0 ; f->scol[ss]!=NULL ; ss++ ){
        for( ii=0 ; ii<f->nfold ; ii++ ) free(f->scol[ss][ii]) ; free(f->scol[ss]) ; free(f->slen[ss]) ; }
      free(f->scol) ; free(f->slen) ; }
@@ -1598,20 +1610,6 @@ static float * srm_cols_in( const float *x , int V , int T , const int *col , in
      for( t=0 ; t<len ; t++ ) dst[t]=src[col[t]] ;
    }
    return y ;
-}
-
-/*! All columns of x except col[0..len-1], in their order, as a new V x (T-len) array. */
-/*! srm_cols_out into a caller's buffer y (V x (T-len)). */
-static void srm_cols_out_into( const float *x , int V , int T , const int *col , int len , float *y )
-{
-   int Tr=T-len , f , t , q ; byte *out=(byte *)calloc((size_t)T,1) ;
-   if( out==NULL ) ERROR_exit("out of memory building a fold") ;
-   for( t=0 ; t<len ; t++ ) out[col[t]]=1 ;
-   for( f=0 ; f<V ; f++ ){
-     const float *src=x+(size_t)f*T ; float *dst=y+(size_t)f*Tr ;
-     for( t=0,q=0 ; t<T ; t++ ) if( !out[t] ) dst[q++]=src[t] ;
-   }
-   free(out) ;
 }
 
 /*! srm_cols_in into a caller's buffer y (V x len). */
@@ -1655,9 +1653,12 @@ static unsigned char * srm_mask_cols( const unsigned char *m , int T , const int
    return y ;
 }
 
-/*! Same for a K x T matrix. */
-static float * srm_mat_cols_out( const float *s , int K , int T , const int *col , int len )
-{ return srm_cols_out(s,K,T,col,len) ; }
+/*! Gather training columns from a common plan, or the legacy own-fold complement. */
+static float *srm_training_cols( const srm_folds *f , int ff , const float *x , int V , int T , const int *col , int len )
+{
+   return f->plan ? srm_cols_in(x,V,T,f->plan->train[ff],f->plan->ntrain[ff])
+                  : srm_cols_out(x,V,T,col,len);
+}
 
 static void srm_cvres_alloc( srm_cvres *r , int nsub , int nfold , int want_proj , int want_vr2 , const srm_ctx *cx )
 {
@@ -1700,7 +1701,7 @@ static void srm_cvres_free( srm_cvres *r )
 /*============================================================================
   -compress -save_r2: a fold's voxelwise R^2 needs that fold's W on the voxels.  Each scored fold notes what
   it needs (its W and means in R, the reference it reconstructs from, the held-out columns); when the subject
-  is read again, W = X M and the R^2 is made on the voxels exactly as srm_score_one would have.
+  is read again, W = X M and the R^2 is made on the voxels exactly as SRM_score_view would have.
 ==============================================================================*/
 
 typedef struct {
@@ -1741,7 +1742,7 @@ static float * srm_r2_make( int ss , const float *x , int V , int T , const floa
      if( acc==NULL ) acc=(double *)calloc((size_t)V,sizeof(double)) ;
      idx=(int *)malloc(sizeof(int)*(size_t)j->len) ;
      for( t=0 ; t<j->len ; t++ ) if( j->valid==NULL || j->valid[t] ) idx[n++]=t ;
-     if( n<3 && j->valid!=NULL ){ free(idx) ; continue ; }   /* as srm_score_one: too few to score, 0 */
+     if( n<3 && j->valid!=NULL ){ free(idx) ; continue ; }   /* as SRM_score_view: too few to score, 0 */
      M=(double *)malloc(sizeof(double)*(size_t)T*K) ; Wv=(float *)malloc(sizeof(float)*(size_t)V*K) ;
      rc=SRM_compress_map(R,rank,T,j->W,K,M) ;
      if( rc==SRM_OK ) rc=SRM_compress_expand(x,V,T,M,K,Wv) ;
@@ -1768,54 +1769,8 @@ static float * srm_r2_make( int ss , const float *x , int V , int T , const floa
    return out ;
 }
 
-/*! Score one subject's held-out columns.  P is the subject's projected test
-    data (K x len); ref_u the reference shared response for correlation and
-    matching; ref_r the one used to reconstruct (the posterior mean for a PROB model).
-    model/iview locate the subject's W for the reconstruction. */
-static int srm_score_one( const SRM_model *model , int iview , const float *xte , const float *P ,
-                          const float *ref_u , const float *ref_r , int K , int len , int win ,
-                          srm_want w , const unsigned char *valid , double *out , float *vox_r2 )
-{
-   int rc=SRM_OK ; double a , b , r2 ;
-   if( valid!=NULL ){            /* missing samples: score on the valid columns (segment matching keeps the gaps) */
-     int *idx=(int *)malloc(sizeof(int)*(size_t)len) , n=0 , t , V=model->nvox[iview] ;
-     float *Pg , *ug , *rg , *xg ;
-     for( t=0 ; t<len ; t++ ) if( valid[t] ) idx[n++]=t ;
-     out[M_NSAMP]=n ; out[M_ISC]=out[M_MATCH]=out[M_CHANCE]=out[M_R2]=NAN ;
-     if( n<3 ){ free(idx) ; if( vox_r2!=NULL ) for( t=0 ; t<V ; t++ ) vox_r2[t]=0.0f ; return SRM_OK ; }
-     Pg=srm_cols_in(P,K,len,idx,n) ; ug=srm_cols_in(ref_u,K,len,idx,n) ; rg=srm_cols_in(ref_r,K,len,idx,n) ;
-     xg=srm_cols_in(xte,V,len,idx,n) ;
-     if( w.isc ){ rc=SRM_component_corr(Pg,ug,K,n,NULL,&a) ; if( rc==SRM_OK ) out[M_ISC]=a ; }
-     if( rc==SRM_OK && w.match ){
-       rc = w.ident ? SRM_item_identify(Pg,ug,K,n,&a,&b) : SRM_segment_match_obs(P,ref_u,K,len,win,valid,&a,&b) ;
-       if( rc==SRM_OK ){ out[M_MATCH]=a ; out[M_CHANCE]=b ; }
-       else if( !w.ident && rc==SRM_ERR_ARG ) rc=SRM_OK ;       /* no window without a gap: not scored */
-     }
-     if( rc==SRM_OK && w.r2 ){ rc=SRM_reconstruction_r2(model,iview,xg,rg,n,&r2,vox_r2) ; if( rc==SRM_OK ) out[M_R2]=r2 ; }
-     free(idx) ; free(Pg) ; free(ug) ; free(rg) ; free(xg) ;
-     return rc ;
-   }
-   out[M_NSAMP]=len ; out[M_ISC]=out[M_MATCH]=out[M_CHANCE]=out[M_R2]=NAN ;
-   if( w.isc ){
-     rc=SRM_component_corr(P,ref_u,K,len,NULL,&a) ;
-     if( rc!=SRM_OK ) return rc ;
-     out[M_ISC]=a ;
-   }
-   if( w.match ){
-     rc = w.ident ? SRM_item_identify(P,ref_u,K,len,&a,&b) : SRM_segment_match(P,ref_u,K,len,win,&a,&b) ;
-     if( rc!=SRM_OK ) return rc ;
-     out[M_MATCH]=a ; out[M_CHANCE]=b ;
-   }
-   if( w.r2 ){
-     rc=SRM_reconstruction_r2(model,iview,xte,ref_r,len,&r2,vox_r2) ;
-     if( rc!=SRM_OK ) return rc ;
-     out[M_R2]=r2 ;
-   }
-   return SRM_OK ;
-}
-
 /*! The -score_by levels of subject ii in fold ff: each level's held-out columns (where valid), scored as
-    srm_score_one does.  Matching is among the level's own samples (windows inside it, or its items). */
+    SRM_score_view does.  Matching is among the level's own samples (windows inside it, or its items). */
 static void srm_score_levels( const srm_ctx *cx , srm_cvres *res , int ii , int ff , int nfold , const int *col ,
                               int len , const unsigned char *valid , const SRM_model *model , int iview ,
                               const float *xte , const float *P , const float *ref_u , const float *ref_r , srm_want w )
@@ -1826,7 +1781,7 @@ static void srm_score_levels( const srm_ctx *cx , srm_cvres *res , int ii , int 
    for( fa=0 ; fa<cx->nfac ; fa++ ) for( l=0 ; l<cx->fac_nlev[fa] ; l++ ){
      double *sc=res->lscore+(((size_t)ii*nfold+ff)*cx->L+cx->fac_off[fa]+l)*NMET ;
      for( t=0 ; t<len ; t++ ) m[t]=(unsigned char)((valid==NULL || valid[t]) && cx->lab[fa][ii][col[t]]==l) ;
-     if( srm_score_one(model,iview,xte,P,ref_u,ref_r,cx->K,len,cx->o->match_window,w,m,sc,NULL)!=SRM_OK ){
+     if( SRM_score_view(model,iview,xte,P,ref_u,ref_r,cx->K,len,cx->o->match_window,w,m,sc,NULL)!=SRM_OK ){
        int q ; for( q=0 ; q<NMET ; q++ ) if( q!=M_NSAMP ) sc[q]=NAN ;
      }
    }
@@ -1862,21 +1817,9 @@ static float * srm_cols_range( const float *x , int V , int T , int a , int n )
 static SRM_model * srm_adapt_view( const float *sa , int K , int na , const float *xa , int V , const float *anchor ,
                                    const float *mu , double lambda , const char *who , const unsigned char *oa )
 {
-   float *xc , *sc , *W=(float *)malloc(sizeof(float)*(size_t)V*K) ;
-   int f , t , c , rc , n=0 , *idx=(int *)malloc(sizeof(int)*(size_t)(na>0?na:1)) ; SRM_model *mv ;
-   for( t=0 ; t<na ; t++ ) if( oa==NULL || oa[t] ) idx[n++]=t ;     /* -cenmode missing: the observed samples only */
-   if( n==0 ) memcpy(W,anchor,sizeof(float)*(size_t)V*K) ;         /* nothing observed to adapt to: the anchor */
-   else {
-     xc=(float *)malloc(sizeof(float)*(size_t)V*n) ; sc=(float *)malloc(sizeof(float)*(size_t)K*n) ;
-     for( f=0 ; f<V ; f++ ) for( t=0 ; t<n ; t++ ) xc[(size_t)f*n+t]=xa[(size_t)f*na+idx[t]]-(mu!=NULL ? mu[f] : 0.0f) ;
-     for( c=0 ; c<K ; c++ ) for( t=0 ; t<n ; t++ ) sc[(size_t)c*n+t]=sa[(size_t)c*na+idx[t]] ;
-     rc=SRM_fit_view_coupled(sc,K,n,xc,V,1,&n,anchor,lambda,(float * const *)&W) ;
-     if( rc!=SRM_OK ) ERROR_exit("-cv_adapt: could not estimate the held-out run's W for Subj %s: %s",who,SRM_strerror(rc)) ;
-     free(xc) ; free(sc) ;
-   }
-   mv=SRM_model_from_w(V,K,W,mu) ;
-   if( mv==NULL ) ERROR_exit("out of memory in -cv_adapt") ;
-   free(W) ; free(idx) ;
+   SRM_model *mv=NULL ;
+   int rc=SRM_adapt_view(sa,K,na,xa,V,anchor,mu,lambda,oa,&mv) ;
+   if( rc!=SRM_OK ) ERROR_exit("-cv_adapt: could not estimate the held-out run's W for Subj %s: %s",who,SRM_strerror(rc)) ;
    return mv ;
 }
 
@@ -1893,10 +1836,10 @@ static int srm_adapt_known_s( const srm_ctx *cx , srm_cvres *res , int ii , int 
    unsigned char *ot=srm_mask_cols(cx->sb[ii].obs,cx->T,col,len,0) , *vr_=(ot!=NULL) ? ot+na : NULL ;   /* observed, or NULL */
    SRM_model *ma=srm_adapt_view(sa,K,na,xa,V,Wf,mu,cx->par.coupling,cx->sb[ii].label,ot) ;
    rc=SRM_project(ma,0,xr,nr,Pr) ;
-   if( rc==SRM_OK ) rc=srm_score_one(ma,0,xr,Pr,sr,sr,K,nr,cx->o->match_window,w,vr_,sc,vr) ;
+   if( rc==SRM_OK ) rc=SRM_score_view(ma,0,xr,Pr,sr,sr,K,nr,cx->o->match_window,w,vr_,sc,vr) ;
    if( rc==SRM_OK ) srm_r2_note(cx,res,ii,nfold,col+na,nr,vr_,ma,0,sr) ;
    if( rc==SRM_OK ) srm_score_levels(cx,res,ii,ff,nfold,col+na,nr,vr_,ma,0,xr,Pr,sr,sr,w) ;
-   if( rc==SRM_OK ) rc=srm_score_one(mv,0,xr,Pq,sr,sr,K,nr,cx->o->match_window,w,vr_,res->ascore+((size_t)ii*nfold+ff)*NMET,NULL) ;
+   if( rc==SRM_OK ) rc=SRM_score_view(mv,0,xr,Pq,sr,sr,K,nr,cx->o->match_window,w,vr_,res->ascore+((size_t)ii*nfold+ff)*NMET,NULL) ;
    SRM_free_model(ma) ; free(sa) ; free(sr) ; free(xa) ; free(xr) ; free(Pq) ; free(Pr) ; free(ot) ;
    return rc ;
 }
@@ -1958,8 +1901,8 @@ static void srm_adapt_run_scores( const srm_ctx *cx , const SRM_model *mf , int 
        for( q=0 ; q<no ; q++ ) po[q]=src[oth[q]] ;
        rc=SRM_shared_from_projections_obs(mf,no,oth,po,ooc,nr,0,ref_u) ;
        if( rc==SRM_OK ) rc=SRM_shared_from_projections_obs(mf,no,oth,po,ooc,nr,1,ref_r) ;
-       if( rc==SRM_OK ) rc = (pass==0) ? srm_score_one(mv[ii],0,xr[ii],Pr[ii],ref_u,ref_r,K,nr,cx->o->match_window,w,valid,sc,vr)
-                                       : srm_score_one(mf,ii,xr[ii],Pq[ii],ref_u,ref_r,K,nr,cx->o->match_window,w,valid,sc,NULL) ;
+       if( rc==SRM_OK ) rc = (pass==0) ? SRM_score_view(mv[ii],0,xr[ii],Pr[ii],ref_u,ref_r,K,nr,cx->o->match_window,w,valid,sc,vr)
+                                       : SRM_score_view(mf,ii,xr[ii],Pq[ii],ref_u,ref_r,K,nr,cx->o->match_window,w,valid,sc,NULL) ;
        if( rc==SRM_OK && pass==0 ) srm_score_levels(cx,res,ii,ff,nfold,col+na,nr,valid,mv[ii],0,xr[ii],Pr[ii],ref_u,ref_r,w) ;
        if( rc==SRM_OK && pass==0 ) srm_r2_note(cx,res,ii,nfold,col+na,nr,valid,mv[ii],0,ref_r) ;
        if( rc!=SRM_OK ) ERROR_exit("scoring Subj %s on run %d failed: %s",cx->sb[ii].label,ff+1,SRM_strerror(rc)) ;
@@ -2004,13 +1947,13 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
 
      unsigned char **otr=NULL , **ote=NULL ;
      for( ii=0 ; ii<nsub ; ii++ ){
-       srm_cols_out_into(cx->sb[ii].x,nvox[ii],T,col,len,xtr[ii]) ;
+       srm_cols_in_into(cx->sb[ii].x,nvox[ii],T,f->plan->train[ff],Ttr,xtr[ii]) ;
        srm_cols_in_into(cx->sb[ii].x,nvox[ii],T,col,len,xte[ii]) ;
        all[ii]=ii ;
      }
      if( cx->anymiss ){                               /* each subject's observed samples, in and out of the fold */
        otr=(unsigned char **)calloc((size_t)nsub,sizeof(unsigned char *)) ; ote=(unsigned char **)calloc((size_t)nsub,sizeof(unsigned char *)) ;
-       for( ii=0 ; ii<nsub ; ii++ ){ otr[ii]=srm_mask_cols(cx->sb[ii].obs,T,col,len,1) ; ote[ii]=srm_mask_cols(cx->sb[ii].obs,T,col,len,0) ; }
+       for( ii=0 ; ii<nsub ; ii++ ){ otr[ii]=srm_mask_cols(cx->sb[ii].obs,T,f->plan->train[ff],Ttr,0) ; ote[ii]=srm_mask_cols(cx->sb[ii].obs,T,col,len,0) ; }
        par.obs=(const unsigned char * const *)otr ;
      }
      if( par.coupling!=SRM_COUPLING_SHARED ){        /* the runs that remain, with their lengths */
@@ -2058,7 +2001,7 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
        }
        rc=SRM_shared_from_projections_obs(mf,no,oth,po,(const unsigned char * const *)oo,len,0,ref_u) ;
        if( rc==SRM_OK ) rc=SRM_shared_from_projections_obs(mf,no,oth,po,(const unsigned char * const *)oo,len,1,ref_r) ;
-       if( rc==SRM_OK ) rc=srm_score_one(mf,ii,xte[ii],P[ii],ref_u,ref_r,K,len,o->match_window,w,valid,sc,vr) ;
+       if( rc==SRM_OK ) rc=SRM_score_view(mf,ii,xte[ii],P[ii],ref_u,ref_r,K,len,o->match_window,w,valid,sc,vr) ;
        if( rc==SRM_OK ) srm_r2_note(cx,res,ii,f->nfold,col,len,valid,mf,ii,ref_r) ;
        if( rc==SRM_OK ) srm_score_levels(cx,res,ii,ff,f->nfold,col,len,valid,mf,ii,xte[ii],P[ii],ref_u,ref_r,w) ;
        free(oo) ; free(valid) ;
@@ -2079,7 +2022,7 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
    if( res->proj!=NULL ){
      for( ff=0 ; ff<f->nfold ; ff++ ){
        int len=f->len[ff] , *col=f->col[ff] , Ttr=T-len ; float R[1]={0} ;
-       float *Sfull_tr=srm_mat_cols_out(mfull->s,K,T,col,len) ; float *Rm=(float *)malloc(sizeof(float)*(size_t)K*K) ;
+       float *Sfull_tr=srm_cols_in(mfull->s,K,T,f->plan->train[ff],Ttr) ; float *Rm=(float *)malloc(sizeof(float)*(size_t)K*K) ;
        int rc=SRM_procrustes_rotation(S_tr[ff],Sfull_tr,K,Ttr,Rm) ;
        (void)R ;
        if( rc!=SRM_OK ) ERROR_exit("could not align the gauge of %s: %s",f->name[ff],SRM_strerror(rc)) ;
@@ -2150,7 +2093,7 @@ static void srm_cv_by_runs_own( const srm_ctx *cx , const SRM_model *mfull , con
          rc=SRM_shared_from_projections(mf,no,oth,po,len,0,ref_u) ;
          if( rc==SRM_OK ) rc=SRM_shared_from_projections(mf,no,oth,po,len,1,ref_r) ;
          free(po) ; }
-       if( rc==SRM_OK ) rc=srm_score_one(mf,ii,xte,P[ii],ref_u,ref_r,K,len,o->match_window,w,NULL,sc,vr) ;
+       if( rc==SRM_OK ) rc=SRM_score_view(mf,ii,xte,P[ii],ref_u,ref_r,K,len,o->match_window,w,NULL,sc,vr) ;
        if( rc==SRM_OK ) srm_r2_note(cx,res,ii,f->nfold,col,len,NULL,mf,ii,ref_r) ;
        if( rc==SRM_OK ) srm_score_levels(cx,res,ii,ff,f->nfold,col,len,NULL,mf,ii,xte,P[ii],ref_u,ref_r,w) ;
        if( rc!=SRM_OK ) ERROR_exit("scoring Subj %s on %s failed: %s",cx->sb[ii].label,tag,SRM_strerror(rc)) ;
@@ -2172,17 +2115,12 @@ static void srm_cv_by_runs_own( const srm_ctx *cx , const SRM_model *mfull , con
 /*! A subject's W against a fixed S (k x Ttr) from its training columns (x: V x Ttr, the data without the
     fold's columns col[0..len-1] of a T-column timeline), using only the samples it was observed at. */
 static int srm_fit_view_obs( const float *str , int K , int Ttr , const float *xtr , int V , int center ,
-                             const unsigned char *obs , int T , const int *col , int len , float *Wf , float *mu )
+                             const unsigned char *obs , int T , const int *col , int len , float *Wf , float *mu ,
+                             const int *train )
 {
-   unsigned char *ot=srm_mask_cols(obs,T,col,len,1) ; int *idx , n=0 , t , rc ;
-   float *xg , *sg ;
-   if( ot==NULL ) return SRM_fit_view(str,K,Ttr,xtr,V,center,Wf,NULL,mu) ;
-   idx=(int *)malloc(sizeof(int)*(size_t)Ttr) ;
-   for( t=0 ; t<Ttr ; t++ ) if( ot[t] ) idx[n++]=t ;
-   if( n<K ){ free(idx) ; free(ot) ; return SRM_ERR_NFEAT ; }
-   xg=srm_cols_in(xtr,V,Ttr,idx,n) ; sg=srm_cols_in(str,K,Ttr,idx,n) ;
-   rc=SRM_fit_view(sg,K,n,xg,V,center,Wf,NULL,mu) ;
-   free(idx) ; free(ot) ; free(xg) ; free(sg) ;
+   unsigned char *ot=train ? srm_mask_cols(obs,T,train,Ttr,0) : srm_mask_cols(obs,T,col,len,1) ;
+   int rc=SRM_fit_view_obs(str,K,Ttr,xtr,V,center,ot,Wf,NULL,mu) ;
+   free(ot) ;
    return rc ;
 }
 
@@ -2219,12 +2157,12 @@ static void srm_cv_loso( const srm_ctx *cx , const SRM_model *mfull , const srm_
      for( ff=0 ; ff<f->nfold ; ff++ ){                 /* folds within this subject */
        int len=(f->slen!=NULL) ? f->slen[ii][ff] : f->len[ff] , *col=(f->scol!=NULL) ? f->scol[ii][ff] : f->col[ff] ;
        int Ttr=T-len , V=cx->sb[ii].nvox ;
-       float *xtr=srm_cols_out(cx->sb[ii].x,V,T,col,len) , *xte=srm_cols_in(cx->sb[ii].x,V,T,col,len) ;
-       float *str=srm_mat_cols_out(ml->s,K,T,col,len) , *ste=srm_cols_in(ml->s,K,T,col,len) ;
+       float *xtr=srm_training_cols(f,ff,cx->sb[ii].x,V,T,col,len) , *xte=srm_cols_in(cx->sb[ii].x,V,T,col,len) ;
+       float *str=srm_training_cols(f,ff,ml->s,K,T,col,len) , *ste=srm_cols_in(ml->s,K,T,col,len) ;
        float *Wf=(float *)malloc(sizeof(float)*(size_t)V*K) , *P=(float *)malloc(sizeof(float)*(size_t)K*len) ;
        float *mu=cx->par.center ? (float *)malloc(sizeof(float)*(size_t)V) : NULL ; SRM_model *mv ;
        double *sc=res->score+((size_t)ii*f->nfold+ff)*NMET ; float *vr=(res->vr2!=NULL) ? (float *)malloc(sizeof(float)*(size_t)V) : NULL ;
-       rc=srm_fit_view_obs(str,K,Ttr,xtr,V,cx->par.center,cx->sb[ii].obs,T,col,len,Wf,mu) ;   /* W from the training columns only */
+       rc=srm_fit_view_obs(str,K,Ttr,xtr,V,cx->par.center,cx->sb[ii].obs,T,col,len,Wf,mu,f->plan ? f->plan->train[ff] : NULL) ;   /* W from the training columns only */
        if( rc!=SRM_OK ) ERROR_exit("Subj %s, %s: could not estimate W: %s",cx->sb[ii].label,f->name[ff],SRM_strerror(rc)) ;
        mv=SRM_model_from_w(V,K,Wf,mu) ;
        rc=SRM_project(mv,0,xte,len,P) ;
@@ -2232,7 +2170,7 @@ static void srm_cv_loso( const srm_ctx *cx , const SRM_model *mfull , const srm_
          rc=srm_adapt_known_s(cx,res,ii,ff,f->nfold,col,len,ste,xte,P,Wf,mu,mv,w,sc,vr) ;
        else
        { unsigned char *valid=srm_mask_cols(cx->sb[ii].obs,T,col,len,0) ;
-         if( rc==SRM_OK ) rc=srm_score_one(mv,0,xte,P,ste,ste,K,len,o->match_window,w,valid,sc,vr) ;
+         if( rc==SRM_OK ) rc=SRM_score_view(mv,0,xte,P,ste,ste,K,len,o->match_window,w,valid,sc,vr) ;
          if( rc==SRM_OK ) srm_r2_note(cx,res,ii,f->nfold,col,len,valid,mv,0,ste) ;
          if( rc==SRM_OK ) srm_score_levels(cx,res,ii,ff,f->nfold,col,len,valid,mv,0,xte,P,ste,ste,w) ;
          free(valid) ; }
@@ -2266,12 +2204,12 @@ static void srm_cv_frozen( const srm_ctx *cx , const SRM_model *m , const srm_fo
      for( ff=0 ; ff<f->nfold ; ff++ ){
        int len=(f->scol!=NULL) ? f->slen[ii][ff] : f->len[ff] , *col=(f->scol!=NULL) ? f->scol[ii][ff] : f->col[ff] ;
        int Ttr=T-len , V=cx->sb[ii].nvox , rc ;           /* a subject's own folds (randomized items) are fine: S is fixed */
-       float *xtr=srm_cols_out(cx->sb[ii].x,V,T,col,len) , *xte=srm_cols_in(cx->sb[ii].x,V,T,col,len) ;
-       float *str=srm_mat_cols_out(m->s,K,T,col,len) , *ste=srm_cols_in(m->s,K,T,col,len) ;
+       float *xtr=srm_training_cols(f,ff,cx->sb[ii].x,V,T,col,len) , *xte=srm_cols_in(cx->sb[ii].x,V,T,col,len) ;
+       float *str=srm_training_cols(f,ff,m->s,K,T,col,len) , *ste=srm_cols_in(m->s,K,T,col,len) ;
        float *Wf=(float *)malloc(sizeof(float)*(size_t)V*K) , *P=(float *)malloc(sizeof(float)*(size_t)K*len) ;
        float *mu=cx->par.center ? (float *)malloc(sizeof(float)*(size_t)V) : NULL ; SRM_model *mv ;
        double *sc=res->score+((size_t)ii*f->nfold+ff)*NMET ; float *vr=(res->vr2!=NULL) ? (float *)malloc(sizeof(float)*(size_t)V) : NULL ;
-       rc=srm_fit_view_obs(str,K,Ttr,xtr,V,cx->par.center,cx->sb[ii].obs,T,col,len,Wf,mu) ;
+       rc=srm_fit_view_obs(str,K,Ttr,xtr,V,cx->par.center,cx->sb[ii].obs,T,col,len,Wf,mu,f->plan ? f->plan->train[ff] : NULL) ;
        if( rc!=SRM_OK ) ERROR_exit("Subj %s, %s: could not estimate W: %s",cx->sb[ii].label,f->name[ff],SRM_strerror(rc)) ;
        mv=SRM_model_from_w(V,K,Wf,mu) ;
        if( mv==NULL ) ERROR_exit("out of memory scoring Subj %s",cx->sb[ii].label) ;
@@ -2280,7 +2218,7 @@ static void srm_cv_frozen( const srm_ctx *cx , const SRM_model *m , const srm_fo
          rc=srm_adapt_known_s(cx,res,ii,ff,f->nfold,col,len,ste,xte,P,Wf,mu,mv,w,sc,vr) ;
        else
        { unsigned char *valid=srm_mask_cols(cx->sb[ii].obs,T,col,len,0) ;
-         if( rc==SRM_OK ) rc=srm_score_one(mv,0,xte,P,ste,ste,K,len,o->match_window,w,valid,sc,vr) ;
+         if( rc==SRM_OK ) rc=SRM_score_view(mv,0,xte,P,ste,ste,K,len,o->match_window,w,valid,sc,vr) ;
          if( rc==SRM_OK ) srm_r2_note(cx,res,ii,f->nfold,col,len,valid,mv,0,ste) ;
          if( rc==SRM_OK ) srm_score_levels(cx,res,ii,ff,f->nfold,col,len,valid,mv,0,xte,P,ste,ste,w) ;
          free(valid) ; }
@@ -3850,12 +3788,10 @@ static void srm_make_item_folds( const srm_opts *o , const srm_data *d , srm_fol
    }
    if( f->nfold<2 ) ERROR_exit("%s '%s' has one level (%s); -cv needs at least 2 folds",
                                o->fold_col!=NULL?"-fold_column":"the run column",fc,f->name[0]) ;
-   f->len=(int *)calloc((size_t)f->nfold,sizeof(int)) ; f->col=(int **)malloc(sizeof(int *)*(size_t)f->nfold) ;
-   for( j=0 ; j<n ; j++ ) f->len[lev[j]]++ ;
-   for( q=0 ; q<f->nfold ; q++ ){
-     int c=0 ;
-     f->col[q]=(int *)malloc(sizeof(int)*(size_t)f->len[q]) ;
-     for( j=0 ; j<n ; j++ ) if( lev[j]==q ) f->col[q][c++]=j ;
+   { char **names=f->name; int nf=f->nfold;
+     srm_common_folds(f,n,lev,names,nf);
+     for(q=0;q<nf;q++)free(names[q]);
+     free(names);
    }
    free(lev) ;
 }
@@ -4098,6 +4034,38 @@ static void srm_check_new_file( const srm_opts *o , const char *suffix )
    if( THD_is_file(fn) ) ERROR_exit("'%s' already exists (use -overwrite)",fn) ;
 }
 
+/*! Peak bookkeeping for a common fold plan, including constructor scratch.
+    Use the input timeline as an upper bound before censoring/repeat averaging.
+    Subject-specific item folds still use their legacy representation. */
+static double srm_common_fold_bytes( const srm_opts *o , const srm_data *d )
+{
+   int nf=0,j,q,ss; double names=0.0,T=d->Tin;
+   if(d->axis_item){
+      const char *fc=o->fold_col ? o->fold_col : o->run_col;
+      int ic=THD_datatable_column(d->tab,(char *)fc);
+      const char **labels;
+      if(ic<0 || d->nsub<1)return 0.0; /* input validation reports this later */
+      for(j=0;j<d->nitem;j++)for(ss=1;ss<d->nsub;ss++)
+         if(strcmp(DT_CELL(d->tab,d->sb[0].irow[j],ic),DT_CELL(d->tab,d->sb[ss].irow[j],ic)))return 0.0;
+      labels=(const char **)malloc(sizeof(char *)*(size_t)d->nitem);
+      if(!labels)ERROR_exit("out of memory counting SRM folds");
+      for(j=0;j<d->nitem;j++){
+         const char *v=DT_CELL(d->tab,d->sb[0].irow[j],ic);
+         for(q=0;q<nf;q++)if(!strcmp(labels[q],v))break;
+         if(q==nf){labels[nf++]=v;names+=strlen(v)+1.0;}
+      }
+      free(labels);T=d->nitem;
+   }else{
+      nf=d->nrun>=2 ? d->nrun : o->cv_blocks;
+      /* Repeat averaging can change runs into blocks. Bound both counts. */
+      if(o->repeated_stimulus && o->cv_blocks>nf)nf=o->cv_blocks;
+      names=24.0*nf;
+      if(d->runname)for(j=0;j<d->nrun;j++)names+=strlen(d->runname[j])+1.0;
+   }
+   return sizeof(THD_foldplan)+sizeof(int)*T*(nf+5.0)
+          +nf*(4.0*sizeof(int)+4.0*sizeof(void *))+2.0*names+64.0;
+}
+
 /*! The memory contract, before the big allocations. */
 static void srm_memory_preflight( const srm_opts *o , const srm_data *d , int K , int do_cv , int nsegfit )
 {
@@ -4139,6 +4107,7 @@ static void srm_memory_preflight( const srm_opts *o , const srm_data *d , int K 
    }
    me.shared=SRM_estimate_bytes(d->nsub,nv0,d->Tin,K,o->par.algo,0)
             + Wb*(nsegfit>0 ? (double)nsegfit : 0.0) + (o->nstart>1 ? Wb : 0.0) ;
+   if(do_cv)me.shared+=srm_common_fold_bytes(o,d);
    me.system=(double)AFNI_get_memsize() ;
    me.limit=o->memory_limit_given ? o->memory_limit_gib*GIB : ((me.system>0.0) ? 0.80*me.system : 0.0) ;
    me.nthread=1 ; THD_memory_plan_finish(&me) ;
