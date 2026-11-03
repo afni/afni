@@ -136,8 +136,7 @@ fname_mask : str
                 return BAD_RETURN
 
         # (req) mask and infiles must have same grid
-        tmplist = copy.deepcopy(self.infiles)
-        tmplist.extend(self.fname_mask)
+        tmplist = copy.deepcopy(self.infiles) + [self.fname_mask]
         ndiff = au.check_all_dsets_same_grid(tmplist, 
                                              label='mask_and_infiles', 
                                              verb=self.verb)

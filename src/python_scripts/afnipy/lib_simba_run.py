@@ -358,6 +358,9 @@ inobj : InOpts object
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
 
+            if stat :
+                ab.EP("Cannot run 3drefit on dataset: {}".format(prefix))
+
             # add history
             all_opt = copy.deepcopy(self.user_inobj.argv)
             all_opt[0] = all_opt[0].split('/')[-1] # only name of prog
@@ -365,6 +368,9 @@ inobj : InOpts object
             cmd  = '3dNotes -h "{}" {}'.format(hist, prefix)
             com  = ab.shell_com(cmd, capture=1)
             stat = com.run()
+
+            if stat :
+                ab.EP("Cannot run 3dNotes dataset: {}".format(prefix))
 
         return 0
 
@@ -441,7 +447,7 @@ inobj : InOpts object
         
         # set up draw iterations and progress reporting rate
         ndraw      = ppc.shape[0]
-        nprog      = min(1, ndraw // 10)       # ensure >0
+        nprog      = max(1, ndraw // 10)       # ensure >0
         prog_old   = 0
         time_new   = time.time()
         start_time = time_new
@@ -646,6 +652,8 @@ inobj : InOpts object
         """Run through basic checks of what has been input, and fill in any
         further information that is needed (like wdir, etc.)"""
 
+        BAD_RETURN = -1
+
         # check basic requirements
 
         ab.IP("Start setup for SIMBA model: {}".format(self.model_pim))
@@ -658,16 +666,19 @@ inobj : InOpts object
             nfail = au.check_all_dsets_exist(self.infiles, label='infiles',
                                              verb=self.verb)
             if nfail :
-                ab.EP("Failed to load one or more infiles")
+                ab.EP1("Failed to load one or more infiles")
+                return BAD_RETURN
 
             ndiff = au.check_all_dsets_same_grid(self.infiles, label='infiles',
                                              verb=self.verb)
             if ndiff :
-                ab.EP("Grid mismatch of one or more infiles")
+                ab.EP1("Grid mismatch of one or more infiles")
+                return BAD_RETURN
 
             # make sure number of infiles is >1
             if not(self.ninfiles > 1) :
-                ab.EP("Must have >1 infile")
+                ab.EP1("Must have >1 infile")
+                return BAD_RETURN
 
         # (req) must have output name prefix
         if not(self.prefix) : 
@@ -682,17 +693,18 @@ inobj : InOpts object
 
         # (req) must have a mask
         if not(self.mask) : 
-            ab.EP("Need to provide a mask")
+            ab.EP1("Need to provide a mask")
+            return BAD_RETURN
         else:
             nfail = au.check_all_dsets_exist([self.mask], label='mask',
                                              verb=self.verb)
             if nfail :
-                ab.EP("Failed to load mask")
+                ab.EP1("Failed to load mask")
+                return BAD_RETURN
 
         # if using infiles and mask, make sure grids match
         if len(self.infiles) and self.mask :
-            tmplist = copy.deepcopy(self.infiles)
-            tmplist.extend(self.fname_mask)
+            tmplist = copy.deepcopy(self.infiles) + [self.mask]
             ndiff = au.check_all_dsets_same_grid(tmplist, 
                                                  label='mask_and_infiles2', 
                                                  verb=self.verb)
@@ -705,13 +717,15 @@ inobj : InOpts object
             nfail = au.check_all_dsets_exist([self.ulay], label='ulay',
                                              verb=self.verb)
             if nfail :
-                ab.EP("Failed to load ulay")
+                ab.EP1("Failed to load ulay")
+                return BAD_RETURN
 
         # model_pim must be an allowed one
         if self.model_pim not in DEF.LIST_all_simba_model_pim :
             msg = "Model PIM '{}' not in allowed list:".format(self.model_pim)
             msg+= "\n{}".format(all_simba_model_pim)
-            ab.EP(msg)
+            ab.EP1(msg)
+            return BAD_RETURN
 
         # allowed range of model length scales
         if self.model_ls <= DEF.RANGE_model_ls['lsmin'] or \
@@ -719,7 +733,8 @@ inobj : InOpts object
             msg = "model_ls '{}' not in allowed range:".format(self.model_ls)
             msg+= "\n({}, {})".format(DEF.RANGE_model_ls['lsmin'], 
                                       DEF.RANGE_model_ls['lsmax'])
-            ab.EP(msg)
+            ab.EP1(msg)
+            return BAD_RETURN
 
         # generate basic items
 
