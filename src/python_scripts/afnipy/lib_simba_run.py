@@ -644,7 +644,7 @@ inobj : InOpts object
 
         ab.IP("Start setup for SIMBA model: {}".format(self.model_pim))
 
-        # must have at least some input 
+        # (req) must have at least some input 
         if not(self.infiles) and self.inset is None :
             ab.EP("Need to provide input with either: -inset, -infiles")
         elif len(self.infiles) :
@@ -663,7 +663,7 @@ inobj : InOpts object
             if not(self.ninfiles > 1) :
                 ab.EP("Must have >1 infile")
 
-        # must have output name prefix
+        # (req) must have output name prefix
         if not(self.prefix) : 
             ab.EP("Need to provide a prefix")
         else:
@@ -675,7 +675,7 @@ inobj : InOpts object
                not((self.prefix_outset).endswith('.nii.gz')) :
                 self.prefix_outset+= '.nii.gz'
 
-        # must have a mask
+        # (req) must have a mask
         if not(self.mask) : 
             ab.EP("Need to provide a mask")
         else:
@@ -686,12 +686,14 @@ inobj : InOpts object
 
         # if using infiles and mask, make sure grids match
         if len(self.infiles) and self.mask :
-            ndiff = au.check_all_dsets_exist([self.infiles[0], self.mask], 
-                                             label='infiles+mask',
-                                             verb=self.verb)
+            tmplist = copy.deepcopy(self.infiles)
+            tmplist.extend(self.fname_mask)
+            ndiff = au.check_all_dsets_same_grid(tmplist, 
+                                                 label='mask_and_infiles2', 
+                                                 verb=self.verb)
             if ndiff :
-                ab.EP("Grid mismatch between infiles and mask")
-
+                ab.EP1("Failed having same grid among mask+infiles2")
+                return BAD_RETURN
 
         # if entered, make sure ulay exists
         if self.ulay :

@@ -9,14 +9,17 @@
 # ver 1.0 : start of main interface 
 # ============================================================================
 
-import sys, copy
+import os, sys, copy
 import torch
 
-import numpy    as np
+import numpy as np
 
 from   afnipy     import afni_base              as ab
 from   afnipy     import afni_util              as au
 from   communifti import lib_nibabel_read_nifti as lnrn
+
+# must have simba package in afnipy
+import afnipy.simba_model.utils  as su
 
 # ============================================================================
 
@@ -132,6 +135,16 @@ fname_mask : str
                 ab.EP1("Failed to load mask")
                 return BAD_RETURN
 
+        # (req) mask and infiles must have same grid
+        tmplist = copy.deepcopy(self.infiles)
+        tmplist.extend(self.fname_mask)
+        ndiff = au.check_all_dsets_same_grid(tmplist, 
+                                             label='mask_and_infiles', 
+                                             verb=self.verb)
+        if ndiff :
+            ab.EP1("Failed having same grid among mask+infiles")
+            return BAD_RETURN
+
         # (opt) check existence of ulay, if provided
         if self.fname_ulay :
             nfail = au.check_all_dsets_exist([self.fname_ulay], label='ulay', 
@@ -145,7 +158,7 @@ fname_mask : str
     def unpack_pickle(self):
         """Unpack the pickle object"""
 
-        ppp = load_pickle(self.fname_pickle)
+        ppp = su.load_pickle(self.fname_pickle)
 
         self.data = ppp['data']
         self.grid = ppp['S']
