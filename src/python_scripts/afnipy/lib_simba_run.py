@@ -491,7 +491,7 @@ inobj : InOpts object
         data_den.plot(alpha=1.0, color="black", label='Observed data')
 
         # have to make this adaptable, based on calcs of the curves
-        self.ppc_xlim = (-0.04, 0.04)   # ***TO DO***: use the IF cond 
+        #self.ppc_xlim = (-0.04, 0.04)   # ***TO DO***: use the IF cond 
         if self.ppc_xlim is None :
             xvals = data_den.var0.to_numpy()
             yvals = data_den.data[:]
@@ -797,10 +797,38 @@ B : array
 
 
 def calc_xlim_range(xvals, yvals, tail_perc=1):
-    """For a given set of xvals and yvals, estimate a reasonable pair of
-xlim values (i.e., min and max values for x-axis when plotting). This
-is primarily based on the size desired tail distribution percentiles,
-given by the tail_perc kwarg
+    """For a given set of xvals (which need not be uniformly spaced)
+and corresponding yvals, estimate a reasonable pair of x-axis plotting
+limits, [xmin, xmax].  The limits are selected by excluding
+approximately tail_perc percent of the total absolute y weight from
+each tail.
+
+Limits are determined from cumulative trapezoidal areas of absolute
+y values, accounting for uneven x spacing. Limits remain on sampled
+x coordinates; complete intervals are excluded only while their
+cumulative area does not exceed the requested tail percentage.
+
+Parameters
+----------
+xvals : array_like
+    Nonempty, 1D array of finite, strictly increasing x coordinates.
+    Must contain at least two values; spacing need not be uniform.
+yvals : array_like
+    1D array of finite values corresponding to xvals.
+    Must have the same length as xvals and should have a finite, positive
+    trapezoidal integral of its absolute values.
+tail_perc : float, optional
+    Percentage of total absolute y weight to exclude from each
+    tail, satisfying 0 <= tail_perc < 50. Default is 1, targeting
+    the central 98% of the weight.
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+xlim : list
+    Lower and upper plotting limits, [xmin, xmax], selected from
+    xvals. Empty if an input check fails.
 
     """
     
@@ -808,38 +836,74 @@ given by the tail_perc kwarg
 
     # basic checks
     try:
-        N = len(xvals)
-        M = len(yvals)
-        if N != M :
-            BASE.EP1("xvals and yvals must be equal length")
-            return BAD_RETURN
-    except:
-        BASE.EP1("xvals and yvals should each be iterable, like a list")
+        xvals = np.asarray(xvals, dtype=float)
+        yvals = np.asarray(yvals, dtype=float)
+        tail_perc = float(tail_perc)
+    except (TypeError, ValueError, OverflowError):
+        ab.EP1("xvals, yvals and tail_perc must be numeric")
         return BAD_RETURN
 
+    if xvals.ndim != 1 or yvals.ndim != 1:
+        ab.EP1("xvals and yvals must each be 1D")
+        return BAD_RETURN
+
+    N = len(xvals)
+    if N != len(yvals) or N < 2:
+        ab.EP1("xvals and yvals must have equal length, at least 2")
+        return BAD_RETURN
+
+    if not (np.all(np.isfinite(xvals)) and
+            np.all(np.isfinite(yvals))):
+        ab.EP1("xvals and yvals must contain only finite values")
+        return BAD_RETURN
+
+    # in case of non-evenly-spaced xvals
+    dx = np.diff(xvals)
+    if not np.all(np.isfinite(dx)) or np.any(dx <= 0):
+        ab.EP1("xvals must be strictly increasing with finite intervals")
+        return BAD_RETURN
+
+    # by definition, tail percentage must be less than half (and not NaN)
+    if not (0 <= tail_perc < 50):
+        ab.EP1("tail_perc must satisfy 0 <= tail_perc < 50")
+        return BAD_RETURN
+
+    # simple case
+    if tail_perc == 0:
+        return 0, [xvals[0], xvals[-1]]
+
+    # estimated mass in each interval between adjacent x coordinates
     yabs = np.abs(yvals)
-    totsum = np.sum(yabs)
+    mass = dx * (0.5 * yabs[:-1] + 0.5 * yabs[1:])
+    totsum = np.sum(mass)
 
-    # check cumulative sums: left tail
+    if not np.isfinite(totsum) or totsum <= 0:
+        ab.EP1("Need finite, positive total mass")
+        return BAD_RETURN
+
+    # define this, so searches on each tail are by fractional 'mass'
+    # (bc xvals might have non-constant intervals)
+    tail_mass = (tail_perc / 100.0) * totsum
+
+    # exclude complete intervals from the left tail
     lsum = 0.0
-    ll = 0
-    while ll < N :
-        lsum+= np.abs(yvabs[ll])
-        if lsum/totsum >= tail_perc :
+    ll   = 0
+    while ll < N - 1:
+        if lsum + mass[ll] > tail_mass:
             break
-        ll+=1
+        lsum += mass[ll]
+        ll += 1
 
-    # check cumulative sums: right tail
+    # exclude complete intervals from the right tail
     rsum = 0.0
-    rr = N-1
-    while rr >= 0 :
-        rsum+= np.abs(yvabs[rr])
-        if rsum/totsum >= tail_perc :
+    rr   = N - 1
+    while rr > 0:
+        if rsum + mass[rr-1] > tail_mass:
             break
-        rr-=1
+        rsum += mass[rr-1]
+        rr -= 1
 
-    # **** ADJUST
-    return 0, [-0.04, 0.04]
+    return 0, [xvals[ll], xvals[rr]]
 
 # ============================================================================
 
