@@ -51,7 +51,7 @@ inobj : InOpts object
         # ----- set up attributes
 
         # main input variables
-        self.status          = 0                       # not used
+        self.status          = 0                       # report errors, if nec
         self.user_opts       = DEF.DOPTS['user_opts']  # command the user ran
         self.user_inobj      = user_inobj
 
@@ -126,31 +126,31 @@ inobj : InOpts object
 
         # prelim stuff
         if user_inobj :
-            tmp = self.load_from_inopts()
-            if tmp : return
+            self.status = self.load_from_inopts()
+            if self.status : return
 
-            tmp = self.basic_setup()
-            if tmp : return
+            self.status = self.basic_setup()
+            if self.status : return
 
             # load in main data
             if self.inset :
-                tmp = self.load_simdata_from_inset_pickle()
-                if tmp : return
+                self.status = self.load_simdata_from_inset_pickle()
+                if self.status : return
 
             elif self.infiles :
-                tmp = self.load_simdata_from_infiles()
-                if tmp : return
+                self.status = self.load_simdata_from_infiles()
+                if self.status : return
 
             # do the work
             if self.simdata is not None :
-                tmp = self.specify_kernel_function()
-                if tmp : return
+                self.status = self.specify_kernel_function()
+                if self.status : return
 
-                tmp = self.run_model_general()
-                if tmp : return
+                self.status = self.run_model_general()
+                if self.status : return
 
-                tmp = self.make_outputs()
-                if tmp : return
+                self.status = self.make_outputs()
+                if self.status : return
 
     # ----- methods
 
@@ -530,6 +530,9 @@ inobj : InOpts object
                                           fname_mask   = self.mask, 
                                           fname_ulay   = self.ulay, 
                                           verb         = self.verb )
+        if self.simdata.status :
+            return -1
+
         return 0
 
     def load_simdata_from_infiles(self):
@@ -542,6 +545,9 @@ inobj : InOpts object
                                           fname_mask    = self.mask, 
                                           fname_ulay    = self.ulay, 
                                           verb          = self.verb )
+        if self.simdata.status :
+            return -1
+
         return 0
 
     def load_from_inopts(self):

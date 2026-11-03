@@ -755,7 +755,7 @@ def main():
 
     # use options to create main object
     mainobj = LSR.MainObj( user_inobj=inobj )
-    if not mainobj :  
+    if not mainobj.status :  
         return 1
 
     # write out log/history of what has been done (not done by default, to

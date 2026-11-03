@@ -48,6 +48,7 @@ fname_mask : str
 
         # general variables
         self.verb            = verb
+        self.status          = 0            # status check for error reporting
 
         # input variables
         self.fname_pickle    = fname_pickle # fname of pickle dset
@@ -72,27 +73,26 @@ fname_mask : str
 
         # ----- take action(s)
 
-        tmp = self.basic_setup()
-        if tmp : return
+        self.status = self.basic_setup()
+        if self.status : return
 
         # first dset to load, so we can get relevant shape/data info
-        tmp = self.unpack_mask()
-        if tmp : return
+        self.status = self.unpack_mask()
+        if self.status : return
 
-        tmp = self.set_dset_info_all()
-        if tmp : return
+        self.status = self.set_dset_info_all()
+        if self.status : return
 
         if len(self.infiles) :
-            tmp = self.unpack_infiles()
-            if tmp: return
+            self.status = self.unpack_infiles()
+            if self.status: return
         elif self.fname_pickle is not None :
-            tmp = self.unpack_pickle()
-            if tmp: return
+            self.status = self.unpack_pickle()
+            if self.status: return
 
         if self.fname_ulay : 
-            tmp = self.load_ulay()
-            if tmp: return
-
+            self.status = self.load_ulay()
+            if self.status: return
 
         # *****
 
@@ -176,7 +176,7 @@ fname_mask : str
         if self.verb > 1 : 
             print("++ Load {} dsets".format(self.ninfiles), flush=True)
 
-        # init torch tensor to hold all infile data, dims=(ndsets, nvox)
+        # init torch tensor to hold all infile data, dims=(ndset, nvox)
         self.data = torch.tensor( np.zeros((self.ninfiles, self.nvox), 
                                            dtype=np.float64) )
 
@@ -325,7 +325,7 @@ fname_mask : str
             self.ulay_data = arr[:,:,:,0,0]
         elif LS == 4 :
             self.ulay_data = arr[:,:,:,0]
-        elif LS == 4 :
+        elif LS == 3 :
             self.ulay_data = copy.deepcopy(arr)
         else:
             ab.EP1("Ulay shape is not 3D, 4D or 5D, but: {}".format(S))
@@ -354,7 +354,7 @@ fname_mask : str
     @property
     def ndset(self):
         """number of dsets in group object (from shape of data array)"""
-        if self.infiles is not None :
+        if len(self.infiles) :
             return len(self.infiles)
         elif self.data is not None :
             return self.data.shape[0]
