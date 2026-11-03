@@ -684,7 +684,8 @@ checks happen in a subsequent object.
             BASE.IP("Begin processing options")
 
         # required opt
-        if self.inset is None and self.infiles is None :
+        if (self.inset is None or not(self.inset)) and \
+           not(len(self.infiles)) :
             BASE.EP1("missing one of these input opts: -inset, -infiles")
             return -1
 
