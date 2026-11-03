@@ -441,7 +441,7 @@ inobj : InOpts object
         
         # set up draw iterations and progress reporting rate
         ndraw      = ppc.shape[0]
-        nprog      = ndraw // 10
+        nprog      = min(1, ndraw // 10)       # ensure >0
         prog_old   = 0
         time_new   = time.time()
         start_time = time_new
@@ -677,8 +677,7 @@ inobj : InOpts object
             anobj = ab.afni_name(self.prefix)
             self.prefix_noext = anobj.noext_input()
             self.prefix_outset = self.prefix
-            if not((self.prefix_outset).endswith('.nii')) or \
-               not((self.prefix_outset).endswith('.nii.gz')) :
+            if not((self.prefix_outset).endswith(('.nii', '.nii.gz'))) :
                 self.prefix_outset+= '.nii.gz'
 
         # (req) must have a mask
