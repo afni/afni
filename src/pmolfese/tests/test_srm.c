@@ -2863,6 +2863,54 @@ static int test_obs_metrics( void )
    return 0 ;
 }
 
+/* Extracted APIs must ignore masked garbage and agree with explicit subsets. */
+static int test_view_helpers( void )
+{
+   float s[12]={1,2,4,8,3,6, 3,1,5,2,9,4};
+   float x[18]={3,4,6,10,5,8, 2,0,4,1,8,3, 1,2,0,3,4,1};
+   float sg[8],xg[12],w[6],wg[6],mu[3],mg[3],vr[3],p[12];
+   unsigned char obs[6]={1,0,1,1,0,1},none[6]={0},few[6]={1,0,0,0,0,0};
+   double r,r2,a,b,out[SRM_SCORE_COUNT]; int i,f;
+   SRM_model *m=NULL,*adapt=NULL; SRM_score_request want={1,1,1,1};
+   SRM_gather_columns(s,2,6,obs,sg); SRM_gather_columns(x,3,6,obs,xg);
+   for(i=0;i<6;i++) if(!obs[i]){
+     for(f=0;f<2;f++) s[f*6+i]=NAN;
+     for(f=0;f<3;f++) x[f*6+i]=NAN;
+   }
+   CHECK(SRM_fit_view_obs(s,2,6,x,3,1,obs,w,&r,mu)==SRM_OK,"masked view fit");
+   CHECK(SRM_fit_view(sg,2,4,xg,3,1,wg,&r2,mg)==SRM_OK,"explicit subset fit");
+   CHECK(memcmp(w,wg,sizeof(w))==0 && memcmp(mu,mg,sizeof(mu))==0 && r==r2,"masked fit equals subset including means and noise");
+   CHECK(SRM_fit_view_obs(s,2,6,x,3,1,none,w,NULL,mu)==SRM_ERR_NFEAT,"too few observations refused");
+   CHECK(SRM_adapt_view(s,2,6,x,3,w,mu,1.0,none,&adapt)==SRM_OK,"empty adaptation uses anchor");
+   CHECK(memcmp(adapt->w[0],w,sizeof(w))==0 && memcmp(adapt->mu[0],mu,sizeof(mu))==0,"anchor and means preserved");
+   SRM_free_model(adapt); adapt=NULL;
+   CHECK(SRM_adapt_view(s,2,6,x,3,w,mu,1.0,obs,&adapt)==SRM_OK,"masked adaptation ignores garbage");
+   for(f=0;f<3;f++) for(i=0;i<4;i++) xg[f*4+i]-=mu[f];
+   { float *ww=wg; int n=4;
+     CHECK(SRM_fit_view_coupled(sg,2,4,xg,3,1,&n,w,1.0,&ww)==SRM_OK,"explicit adaptation"); }
+   CHECK(memcmp(adapt->w[0],wg,sizeof(wg))==0,"adaptation equals centered subset fit");
+   SRM_free_model(adapt); adapt=NULL;
+   m=SRM_model_from_w(3,2,w,mu); CHECK(m!=NULL,"scoring model");
+   for(i=0;i<12;i++) p[i]=s[i]+0.2f*(i%3);
+   CHECK(SRM_score_view(m,0,x,p,s,s,2,6,2,want,obs,out,vr)==SRM_OK,"masked scoring");
+   { float pg[8]; SRM_gather_columns(p,2,6,obs,pg);
+     SRM_gather_columns(x,3,6,obs,xg);
+     CHECK(SRM_component_corr(pg,sg,2,4,NULL,&a)==SRM_OK,"reference correlation");
+     CHECK(CLOSE(out[SRM_SCORE_ISC],a,1e-12),"masked correlation equals subset");
+     CHECK(SRM_item_identify(pg,sg,2,4,&a,&b)==SRM_OK,"reference identification");
+     CHECK(out[SRM_SCORE_MATCH]==a && out[SRM_SCORE_CHANCE]==b,"identification equals subset");
+     CHECK(SRM_reconstruction_r2(m,0,xg,sg,4,&a,NULL)==SRM_OK,"reference reconstruction");
+     CHECK(CLOSE(out[SRM_SCORE_R2],a,1e-12),"reconstruction equals subset"); }
+   CHECK(out[SRM_SCORE_NSAMP]==4,"observed sample count");
+   CHECK(SRM_score_view(m,0,x,p,s,s,2,6,2,want,few,out,vr)==SRM_OK,"too few scoring samples");
+   CHECK(isnan(out[SRM_SCORE_ISC]) && isnan(out[SRM_SCORE_R2]) && out[SRM_SCORE_NSAMP]==1 && vr[0]==0,"too few scoring semantics");
+   want.ident=0;
+   CHECK(SRM_score_view(m,0,x,p,s,s,2,6,3,want,obs,out,NULL)==SRM_OK && isnan(out[SRM_SCORE_MATCH]),"segment matching keeps gaps");
+   CHECK(SRM_score_view(NULL,0,x,p,s,s,2,6,2,want,obs,out,NULL)==SRM_ERR_ARG,"invalid model refused");
+   CHECK(SRM_adapt_view(s,2,6,x,3,w,mu,-1,obs,&adapt)==SRM_ERR_ARG && adapt==NULL,"invalid adaptation clears output");
+   SRM_free_model(m); return 0;
+}
+
 static int bench( void )
 {
    int nview=8 , nvox[8] , T=300 , k=50 , i ;
@@ -2882,6 +2930,7 @@ static int bench( void )
 int main( int argc , char **argv )
 {
    if( argc>1 && strcmp(argv[1],"bench")==0 ) return bench() ;
+   if( test_view_helpers()       ) return 1 ;
    if( test_kernels()            ) return 1 ;
    if( test_det()                ) return 1 ;
    if( test_prob()               ) return 1 ;

@@ -136,6 +136,10 @@ if(COMP_SUMA)
     target_link_libraries(3dRSA PRIVATE AFNI::SUMA AFNI::mrix)
     target_compile_definitions(3dRSA PRIVATE USE_SUMA)
   endif()
+  if(TARGET 3dMVPA)
+    target_link_libraries(3dMVPA PRIVATE AFNI::SUMA AFNI::mrix)
+    target_compile_definitions(3dMVPA PRIVATE USE_SUMA)
+  endif()
 endif()
 
 # Add_plugin targets

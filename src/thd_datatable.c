@@ -215,7 +215,7 @@ static int dt_finish( THD_datatable *dt )
 
 /*----------------------------------------------------------------------------*/
 
-THD_datatable * THD_read_datatable_file( char *fname )
+static THD_datatable *dt_read_table_file(char *fname,int finish)
 {
    THD_datatable *dt ; dt_line *ln ; int nline , ii , jj ;
 
@@ -252,8 +252,14 @@ THD_datatable * THD_read_datatable_file( char *fname )
    }
    free(ln) ;
 
-   if( !dt_finish(dt) ) ERROR_exit("dataTable: cannot allocate table metadata") ;
+   dt->icol_subj=dt->icol_input=-1;
+   if( finish && !dt_finish(dt) ) ERROR_exit("dataTable: cannot allocate table metadata") ;
    return dt ;
+}
+
+THD_datatable *THD_read_datatable_file(char *fname)
+{
+   return dt_read_table_file(fname,1);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -699,4 +705,97 @@ void THD_1D_print_token(FILE *fp,const char *text)
    for(p=text;*p;p++)if(isspace((unsigned char)*p) || *p=='"')quote=1;
    if(!quote){fputs(text,fp);return;}
    fputc('"',fp);for(p=text;*p;p++){if(*p=='"')fputc('"',fp);fputc(*p,fp);}fputc('"',fp);
+}
+
+void THD_free_labeled_matrix(THD_labeled_matrix *matrix)
+{
+   int i;
+   if(!matrix) return;
+   if(matrix->label){for(i=0;i<matrix->n;i++) free(matrix->label[i]);free(matrix->label);}
+   free(matrix->axis);free(matrix->kind);free(matrix->mat);free(matrix);
+}
+
+THD_labeled_matrix *THD_read_labeled_matrix(
+   char *filename,const char *axis,int norder,const char * const *order,
+   char *err,int nerr)
+{
+   THD_datatable *dt=NULL;
+   THD_labeled_matrix *out=NULL;
+   int *rows=NULL,*cols=NULL,n=0,i,j,k;
+   FILE *fp=NULL;char buf[16384];
+#define MATRIX_FAIL(...) do{if(err && nerr>0)snprintf(err,nerr,__VA_ARGS__);goto fail;}while(0)
+   if(err && nerr>0)err[0]='\0';
+   if(!filename || !axis || !*axis || norder<0 || (order==NULL)!=(norder==0))
+     MATRIX_FAIL("invalid labeled-matrix arguments");
+   /* Matrix labels may literally be Subj or InputFile. Read the same syntax
+      without attaching observation-table semantics to those labels. */
+   dt=dt_read_table_file(filename,0);
+   if(!dt || dt->nrow<1 || dt->ncol!=dt->nrow+1)
+     MATRIX_FAIL("'%s': labeled matrix must be square with one row-label column",filename);
+   if(strcmp(dt->cname[0],axis))
+     MATRIX_FAIL("'%s': first column must be '%s', got '%s'",filename,axis,dt->cname[0]);
+   n=dt->nrow;
+   if(n>INT_MAX/n || (size_t)n*n>SIZE_MAX/sizeof(float))
+     MATRIX_FAIL("'%s': labeled matrix is too large",filename);
+   if(order && n!=norder)
+     MATRIX_FAIL("'%s': has %d labels; expected %d",filename,n,norder);
+   out=(THD_labeled_matrix *)calloc(1,sizeof(*out));
+   rows=(int *)malloc(sizeof(int)*n);cols=(int *)malloc(sizeof(int)*n);
+   if(!out || !rows || !cols)MATRIX_FAIL("cannot allocate labeled matrix");
+   out->n=n;out->axis=strdup(axis);
+   out->label=(char **)calloc(n,sizeof(char *));
+   out->mat=(float *)malloc(sizeof(float)*(size_t)n*n);
+   if(!out->axis || !out->label || !out->mat)MATRIX_FAIL("cannot allocate labeled matrix");
+   for(i=0;i<n;i++){
+     const char *label=order?order[i]:dt->cname[i+1];
+     if(!label || !*label)MATRIX_FAIL("'%s': empty matrix label",filename);
+     for(j=0;j<i;j++)if(!strcmp(out->label[j],label))
+       MATRIX_FAIL("'%s': duplicate matrix label '%s'",filename,label);
+     out->label[i]=strdup(label);
+     if(!out->label[i])MATRIX_FAIL("cannot allocate matrix label");
+     rows[i]=cols[i]=-1;
+     for(j=0;j<n;j++){
+       if(!strcmp(label,DT_CELL(dt,j,0))){
+         if(rows[i]>=0)MATRIX_FAIL("'%s': duplicate row label '%s'",filename,label);
+         rows[i]=j;
+       }
+       if(!strcmp(label,dt->cname[j+1])){
+         if(cols[i]>=0)MATRIX_FAIL("'%s': duplicate column label '%s'",filename,label);
+         cols[i]=j+1;
+       }
+     }
+     if(rows[i]<0 || cols[i]<0)
+       MATRIX_FAIL("'%s': label '%s' must occur exactly once on both axes",filename,label);
+   }
+   for(i=0;i<n;i++)for(j=0;j<n;j++){
+     char *end,*cell=DT_CELL(dt,rows[i],cols[j]);double value=strtod(cell,&end);
+     if(end==cell || *end || !isfinite(value) || !isfinite((float)value))
+       MATRIX_FAIL("'%s': nonfinite or nonnumeric matrix cell at '%s', '%s'",filename,out->label[i],out->label[j]);
+     out->mat[(size_t)i*n+j]=(float)value;
+   }
+   /* The table tokenizer owns all label/value parsing. Retain this optional
+      semantic annotation as well, so callers cannot confuse dynamics
+      similarities with condition dissimilarities. */
+   fp=fopen(filename,"r");
+   if(!fp)MATRIX_FAIL("cannot reopen labeled matrix '%s'",filename);
+   while(fgets(buf,sizeof(buf),fp)){
+     char *p=buf,**tokens=NULL;int nt=0,rc;
+     while(isspace((unsigned char)*p))p++;
+     if(strncmp(p,"# matrix_kind",13) || (p[13] && !isspace((unsigned char)p[13])))continue;
+     rc=dt_split(p+13,&tokens,&nt);
+     if(rc || nt!=1 || out->kind ||
+        (strcmp(tokens[0],"similarity") && strcmp(tokens[0],"dissimilarity"))){
+       for(k=0;k<nt;k++)free(tokens[k]);free(tokens);
+       MATRIX_FAIL("'%s': invalid or repeated matrix_kind metadata",filename);
+     }
+     out->kind=strdup(tokens[0]);free(tokens[0]);free(tokens);
+     if(!out->kind)MATRIX_FAIL("cannot allocate matrix metadata");
+   }
+   if(ferror(fp))MATRIX_FAIL("cannot read labeled matrix metadata '%s'",filename);
+   fclose(fp);fp=NULL;
+   free(rows);free(cols);THD_free_datatable(dt);return out;
+fail:
+   if(fp)fclose(fp);
+   free(rows);free(cols);THD_free_datatable(dt);THD_free_labeled_matrix(out);return NULL;
+#undef MATRIX_FAIL
 }

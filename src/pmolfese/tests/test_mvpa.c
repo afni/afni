@@ -33,6 +33,222 @@ static void paired_three_fold_plan( THD_foldplan *p )
    p->train=tr ; p->test=te ; p->sample_test_fold=sample_fold ;
 }
 
+static int response_ridge_test(void)
+{
+   THD_ridge_workspace *multi=NULL,*single=NULL;THD_mvpa_ridge_workspace *w=NULL;
+   THD_nested_foldplan *nested=NULL;THD_foldplan plan;
+   THD_mvpa_frozen_ridge *frozen=NULL;float applied[24];
+   char err[1024];int fail=0,caseid,i,j,o,n,p;
+   float x[96],y[24],one[8],pred[24],ref[8],shared[24];double grid[]={100,.01,1},lambda[]={.25,100,.25};
+   for(caseid=0;caseid<2;caseid++){
+      n=caseid?4:6;p=caseid?8:2;
+      for(i=0;i<n;i++){
+         for(j=0;j<p;j++)x[i*p+j]=(float)((i*7+j*3+i*j)%11-5);
+         y[i*3]=2*x[i*p]+1;y[i*3+1]=x[i*p]-.7*x[i*p+1];y[i*3+2]=7;
+      }
+      multi=THD_ridge_alloc(n,caseid?p:6,3,err,sizeof(err));single=THD_ridge_alloc(n,caseid?p:6,1,err,sizeof(err));CHECK(multi && single,err);
+      CHECK(THD_ridge_fit_response_lambda(multi,x,y,n,p,3,lambda,caseid?THD_RIDGE_DUAL:THD_RIDGE_PRIMAL,err,sizeof(err)),err);
+      CHECK(THD_ridge_predict(multi,x,n,pred,err,sizeof(err)),err);
+      for(o=0;o<3;o++){
+         for(i=0;i<n;i++)one[i]=y[i*3+o];
+         CHECK(THD_ridge_fit(single,x,one,n,p,1,lambda[o],THD_RIDGE_AUTO,err,sizeof(err)),err);
+         CHECK(THD_ridge_predict(single,x,n,ref,err,sizeof(err)),err);
+         for(i=0;i<n;i++)CHECK(CLOSE(pred[i*3+o],ref[i]),"per-response primal/dual equals separate analytic ridge fits");
+      }
+      CHECK(THD_ridge_fit(multi,x,y,n,p,3,1,THD_RIDGE_AUTO,err,sizeof(err)),err);
+      CHECK(THD_ridge_predict(multi,x,n,shared,err,sizeof(err)),err);
+      {double same[]={1,1,1};CHECK(THD_ridge_fit_response_lambda(multi,x,y,n,p,3,same,THD_RIDGE_AUTO,err,sizeof(err)),err);}
+      CHECK(THD_ridge_predict(multi,x,n,pred,err,sizeof(err)),err);
+      CHECK(!memcmp(shared,pred,sizeof(float)*(size_t)n*3),"equal response penalties are bitwise shared fit");
+      {double bad[]={1,NAN,1};CHECK(!THD_ridge_fit_response_lambda(multi,x,y,n,p,3,bad,THD_RIDGE_AUTO,err,sizeof(err)),"reject nonfinite response penalty");}
+      CHECK(!THD_ridge_predict(multi,x,n,pred,err,sizeof(err)),"failed fit invalidates prediction");
+      THD_ridge_free(multi);multi=NULL;THD_ridge_free(single);single=NULL;
+   }
+   {int train[]={0,1,2,3,4,5},test[]={6,7},fold[]={-1,-1,-1,-1,-1,-1,0,0},groups[]={0,0,1,1,2,2,3,3};
+    double sign[]={1,-1,0,100};
+    for(i=0;i<8;i++){x[i]=i%2?1:-1;y[i*3]=x[i];y[i*3+1]=(float)(sign[i/2]*x[i]);y[i*3+2]=7;}
+    fixed_plan(&plan,8,train,6,test,2,fold);
+    nested=THD_nested_foldplan_grouped(&plan,groups,0,err,sizeof(err));CHECK(nested,err);
+    w=THD_mvpa_ridge_workspace_alloc(&plan,1,4,THD_PREP_NONE,err,sizeof(err));CHECK(w,err);
+    CHECK(!THD_mvpa_ridge_enable_response_lambda(w,err,sizeof(err)),"nested plan required");
+    CHECK(THD_mvpa_ridge_set_tuning(w,nested,grid,3,err,sizeof(err)),err);
+    CHECK(THD_mvpa_ridge_enable_response_lambda(w,err,sizeof(err)),err);
+    CHECK(THD_mvpa_run_ridge_cv(w,x,1,y,3,NULL,1,err,sizeof(err)),err);
+    CHECK(CLOSE(w->response_ridge->selected[0],.01) && CLOSE(w->response_ridge->selected[1],100) && CLOSE(w->response_ridge->selected[2],100),"analytic responses choose small, large and undefined-fallback penalties");
+    CHECK(CLOSE(w->prediction[6*3],-6/(6+.01)) && CLOSE(w->prediction[6*3+1],0) && CLOSE(w->prediction[6*3+2],7),"analytic heldout predictions");
+    CHECK(w->response_ridge->nvalid[0]==2 && isnan(w->selected_lambda[0]),"no fictitious shared selected penalty");
+    for(i=6;i<8;i++)for(o=0;o<3;o++)y[i*3+o]+=1000;
+    CHECK(THD_mvpa_run_ridge_cv(w,x,1,y,3,NULL,1,err,sizeof(err)),err);
+    CHECK(CLOSE(w->response_ridge->selected[0],.01) && CLOSE(w->response_ridge->selected[1],100),"heldout responses cannot change response penalties");
+    CHECK(!THD_mvpa_ridge_enable_response_lambda(w,err,sizeof(err)),"configure once");
+    frozen=THD_mvpa_ridge_freeze(w,err,sizeof(err));CHECK(frozen,err);
+    CHECK(THD_mvpa_frozen_predict(frozen,x,8,1,NULL,0,applied,err,sizeof(err)),err);
+    for(i=6;i<8;i++)for(o=0;o<3;o++)CHECK(applied[i*3+o]==w->prediction[i*3+o],"frozen per-response heldout prediction is exact");
+    CHECK(!THD_mvpa_frozen_predict(frozen,x,8,2,NULL,0,applied,err,sizeof(err)),"reject incompatible frozen features");
+    for(i=0;i<6;i++)y[i*3]=100;
+    CHECK(THD_mvpa_run_ridge_cv(w,x,1,y,3,NULL,1,err,sizeof(err)),err);
+    CHECK(THD_mvpa_frozen_predict(frozen,x,8,1,NULL,0,applied,err,sizeof(err)),err);
+    CHECK(CLOSE(applied[6*3],-6/(6+.01)),"frozen snapshot owns its fit independently of workspace refits");
+   }
+done:THD_mvpa_frozen_free(frozen);THD_ridge_free(multi);THD_ridge_free(single);THD_mvpa_ridge_workspace_free(w);THD_nested_foldplan_free(nested);return fail;
+}
+
+static int comparison_test(void)
+{
+   THD_mvpa_pair_row a[6]={{0}},b[6]={{0}};THD_mvpa_pair_result *r=NULL;
+   const char *names[]={"s0","s1","s2","s3","s4","train"};
+   int labels[]={0,0,0,1,1,1},pa[]={0,0,1,1,0,-1},pb[]={0,0,0,0,0,-1};
+   char err[1024];int i,fail=0;
+   for(i=0;i<6;i++){
+      a[i].unit_type="ROI";a[i].unit="7";a[i].response="Class";a[i].sample=names[i];
+      a[i].subject=i<3?"a":"b";a[i].run="run";a[i].item="NA";a[i].input_fold="NA";
+      a[i].fold=i<5?"heldout":"NA";a[i].stratum=i<5?"All":"NA";a[i].tested=i<5;
+      a[i].truth_class=labels[i];a[i].prediction_class=pa[i];
+      a[i].observed=i;a[i].predicted=i+1;a[i].baseline=0;
+      b[5-i]=a[i];b[5-i].prediction_class=pb[i];b[5-i].predicted=i;
+   }
+   r=THD_mvpa_compare_predictions(a,6,b,6,1,2,err,sizeof(err));CHECK(r,err);
+   CHECK(r->score[0].nsample==5 && r->nscore==5,"paired groups exclude training rows");
+   CHECK(CLOSE(r->score[0].a[0],.6) && CLOSE(r->score[0].b[0],.6),"paired accuracy");
+   CHECK(CLOSE(r->score[0].a[1],7./12) && CLOSE(r->score[0].b[1],.5),"paired BACC");
+   CHECK(!strcmp(a[r->row_a[0]].sample,b[r->row_b[0]].sample),"reordered pairing");
+   THD_mvpa_pair_result_free(r);r=NULL;
+   r=THD_mvpa_compare_predictions(a,6,b,6,0,0,err,sizeof(err));CHECK(r,err);
+   CHECK(CLOSE(r->score[0].a[THD_METRIC_RMSE],1) && CLOSE(r->score[0].b[THD_METRIC_RMSE],0),"paired RMSE");
+   CHECK(CLOSE(r->score[0].a[THD_METRIC_CROSS_VALIDATED_R2],1-5./30),"paired common-baseline R2");
+   THD_mvpa_pair_result_free(r);r=NULL;
+   b[1].baseline=1;CHECK(!THD_mvpa_compare_predictions(a,6,b,6,0,0,err,sizeof(err)) && strstr(err,"baseline mismatch"),"reject baseline mismatch");b[1].baseline=0;
+   b[0].observed=99;CHECK(!THD_mvpa_compare_predictions(a,6,b,6,0,0,err,sizeof(err)) && strstr(err,"outcome mismatch"),"check training-only truth");b[0].observed=5;
+   b[1].fold="other";CHECK(!THD_mvpa_compare_predictions(a,6,b,6,1,2,err,sizeof(err)) && strstr(err,"fold mismatch"),"reject fold mismatch");b[1].fold="heldout";
+   b[0].sample=b[1].sample;CHECK(!THD_mvpa_compare_predictions(a,6,b,6,1,2,err,sizeof(err)),"reject duplicate/missing sample");b[0].sample="train";
+   b[1].predicted=NAN;CHECK(!THD_mvpa_compare_predictions(a,6,b,6,0,0,err,sizeof(err)),"reject nonfinite predictions");b[1].predicted=4;
+   CHECK(!THD_mvpa_compare_predictions(a,6,b,5,1,2,err,sizeof(err)),"reject different row counts");
+   for(i=0;i<6;i++){a[i].observed=b[i].observed=0;a[i].baseline=b[i].baseline=0;a[i].predicted=b[i].predicted=0;}
+   r=THD_mvpa_compare_predictions(a,6,b,6,0,0,err,sizeof(err));CHECK(r,err);
+   CHECK(isnan(r->score[0].a[THD_METRIC_PEARSON]) && isnan(r->score[0].a[THD_METRIC_CROSS_VALIDATED_R2]),"undefined paired metrics stay NaN");
+done:THD_mvpa_pair_result_free(r);return fail;
+}
+
+static int pattern_test(void)
+{
+   THD_activation_patterns *w=NULL;char err[1024];int fail=0,i,j;
+   float x[]={-2,-1, 0,1, 0,-1, 2,1},shifted[8];
+   double single[]={-1,-1,1,1},joint[]={-1,1,-1,1,1,-1,1,-1};
+   w=THD_activation_patterns_alloc(4,2,3,2,err,sizeof(err));CHECK(w,err);
+   CHECK(THD_activation_patterns_fit(w,x,single,4,2,1,0,err,sizeof(err)),err);
+   CHECK(w->rank[0]==1 && CLOSE(w->pattern[0],1) && CLOSE(w->pattern[1],0),"Haufe suppressor example: nonzero backward noise weight has zero forward pattern");
+   CHECK(CLOSE(w->covariance[0],4.0/3) && CLOSE(w->inverse[0],.75),"sample score covariance normalization");
+   CHECK(THD_activation_patterns_fit(w,x,joint,4,2,2,1,err,sizeof(err)),err);
+   CHECK(w->rank[1]==1 && CLOSE(w->pattern[6],.5) && CLOSE(w->pattern[7],-.5) && CLOSE(w->pattern[8],0) && CLOSE(w->pattern[9],0),"joint rank-deficient class score patterns use pseudoinverse half-contrasts");
+   CHECK(CLOSE(w->inverse[9],3.0/16) && CLOSE(w->inverse[10],-3.0/16),"known singular covariance pseudoinverse");
+   for(i=0;i<4;i++){single[i]=3*single[i]+17;for(j=0;j<2;j++)shifted[i*2+j]=4*x[i*2+j]+11;}
+   CHECK(THD_activation_patterns_fit(w,shifted,single,4,2,1,0,err,sizeof(err)),err);
+   CHECK(CLOSE(w->pattern[0],4.0/3) && CLOSE(w->pattern[1],0),"patterns scale with feature units and inversely with score units; offsets cancel");
+   for(i=0;i<4;i++)single[i]=3;
+   CHECK(THD_activation_patterns_fit(w,x,single,4,2,1,0,err,sizeof(err)),err);
+   CHECK(w->rank[0]==0 && w->pattern[0]==0 && w->pattern[1]==0 && w->inverse[0]==0,"constant score gives explicit rank-zero pattern");
+   CHECK(!THD_activation_patterns_fit(w,x,single,1,2,1,0,err,sizeof(err)),"pattern covariance needs two training rows");
+   single[0]=NAN;CHECK(!THD_activation_patterns_fit(w,x,single,4,2,1,0,err,sizeof(err)),"nonfinite pattern scores fail");
+   THD_activation_patterns_free(w);w=THD_activation_patterns_alloc(4,2,6,1,err,sizeof(err));CHECK(w,err);
+   {
+      double many[24];int o;
+      for(i=0;i<4;i++)for(o=0;o<6;o++)many[i*6+o]=(i<2?-1:1)*(o+1);
+      CHECK(THD_activation_patterns_fit(w,x,many,4,2,6,0,err,sizeof(err)),err);
+      CHECK(w->rank[0]==1,"more outputs than samples retain only the identified score subspace");
+      for(o=0;o<6;o++)CHECK(CLOSE(w->pattern[o],(o+1)/91.0) && CLOSE(w->pattern[6+o],0),"known many-output minimum-norm pattern");
+   }
+
+ done:
+   THD_activation_patterns_free(w);return fail;
+}
+
+static int pca_test(void)
+{
+   THD_pca_model *m=NULL;THD_mvpa_ridge_workspace *w=NULL;THD_nested_foldplan *nested=NULL;
+   THD_foldplan plan;char err[1024];int fail=0,i,j,k,f,groups[]={0,0,1,1,2,2},counts[]={9,1},features[]={3,1};
+   float x[]={6,8,5, 8,6,5, 0,2,5, 2,0,5},scores[28],wide[28];
+   float cx[]={7,-1,-1, 7,1,1, 7,-1,-1, 7,1,1, 7,-1,-1, 7,1,1},y[]={3,3,3,3,3,3};
+   double penalties[]={1,10};
+   m=THD_pca_alloc(6,7,7,err,sizeof(err));CHECK(m,err);
+   CHECK(THD_pca_fit(m,x,4,3,9,err,sizeof(err)),err);
+   CHECK(m->rank==2 && m->count==2,"PCA clips to numerical rank");
+   CHECK(CLOSE(m->mean[0],4) && CLOSE(m->mean[1],4) && CLOSE(m->mean[2],5),"PCA training means");
+   CHECK(CLOSE(m->variance[0],24) && CLOSE(m->variance[1],8.0/3),"known PCA sample variances");
+   CHECK(CLOSE(m->loading[0],sqrt(.5)) && CLOSE(m->loading[1],sqrt(.5)),"known PCA direction");
+   memcpy(scores,x,sizeof(x));CHECK(THD_pca_apply(m,scores,4,err,sizeof(err)),err);
+   for(i=0;i<4;i++)for(j=0;j<3;j++){
+      double v=m->mean[j];for(k=0;k<2;k++)v+=scores[i*2+k]*m->loading[k*3+j];
+      CHECK(fabs(v-x[i*3+j])<2e-6,"full-rank PCA reconstruction");
+   }
+   /* Same nonconstant columns in the sample-space path. */
+   for(i=0;i<4;i++)for(j=0;j<7;j++)wide[i*7+j]=j<3?x[i*3+j]:j;
+   CHECK(THD_pca_fit(m,wide,4,7,9,err,sizeof(err)),err);
+   CHECK(m->count==2 && CLOSE(m->variance[0],24) && CLOSE(m->variance[1],8.0/3),"dual PCA matches feature-space PCA");
+   memcpy(scores,wide,sizeof(wide));CHECK(THD_pca_apply(m,scores,4,err,sizeof(err)),err);
+   for(i=0;i<4;i++)for(j=0;j<7;j++){
+      double v=m->mean[j];for(k=0;k<2;k++)v+=scores[i*2+k]*m->loading[k*7+j];
+      CHECK(fabs(v-wide[i*7+j])<2e-6,"dual PCA reconstruction");
+   }
+   for(i=0;i<28;i++)wide[i]=7;
+   CHECK(THD_pca_fit(m,wide,4,7,3,err,sizeof(err)),err);
+   CHECK(m->rank==0 && m->count==0,"constant patterns have rank zero");
+   CHECK(THD_pca_apply(m,wide,4,err,sizeof(err)),err);
+   for(i=0;i<4;i++)CHECK(wide[i]==0,"rank-zero PCA supplies zero estimator input");
+   CHECK(!THD_pca_fit(m,x,1,3,1,err,sizeof(err)),"PCA rejects one training observation");
+   CHECK(!THD_pca_fit(m,x,4,3,0,err,sizeof(err)),"PCA rejects zero requested count");
+   wide[0]=NAN;CHECK(!THD_pca_fit(m,wide,4,7,3,err,sizeof(err)),"PCA rejects nonfinite values");
+   CHECK(!THD_pca_apply(m,wide,4,err,sizeof(err)),"failed PCA fit invalidates projection");
+   paired_three_fold_plan(&plan);nested=THD_nested_foldplan_grouped(&plan,groups,0,err,sizeof(err));CHECK(nested,err);
+   w=THD_mvpa_ridge_workspace_alloc(&plan,3,1,THD_PREP_NONE,err,sizeof(err));CHECK(w,err);
+   CHECK(THD_mvpa_ridge_set_tuning(w,nested,penalties,2,err,sizeof(err)),err);
+   CHECK(THD_mvpa_ridge_set_selection(w,features,2,err,sizeof(err)),err);
+   CHECK(THD_mvpa_ridge_set_pca(w,counts,2,1,err,sizeof(err)),err);
+   CHECK(!THD_mvpa_ridge_set_selection(w,features,2,err,sizeof(err)),"selection cannot be reconfigured after PCA");
+   CHECK(THD_mvpa_run_ridge_cv(w,cx,3,y,1,NULL,1,err,sizeof(err)),err);
+   for(f=0;f<3;f++){
+      CHECK(w->selection->chosen[f]==1 && w->pca->chosen[f]==1 && w->selected_lambda[f]==10,"undefined objectives break feature/PCA/lambda ties deterministically");
+      CHECK(w->pca->rank[f]==0 && w->pca->count[f]==0,"constant selected feature has zero rank");
+   }
+   for(i=0;i<6;i++)CHECK(CLOSE(w->prediction[i],3),"constant-target PCR predicts training mean");
+ done:
+   THD_pca_free(m);THD_mvpa_ridge_workspace_free(w);THD_nested_foldplan_free(nested);return fail;
+}
+
+static int selection_test(void)
+{
+   THD_foldplan plan;THD_nested_foldplan *nested=NULL;
+   THD_mvpa_workspace *w=NULL;THD_mvpa_ridge_workspace *rw=NULL;
+   int classes[]={0,1,0,1,0,1},groups[]={0,0,1,1,2,2};
+   int counts[]={2,1},duplicate[]={1,1},zero=0,one=1,wide=99;
+   float x[]={7,-1,-1, 7,1,1, 7,-1,-1, 7,1,1, 7,-1,-1, 7,1,1};
+   float y[]={3,3,3,3,3,3};double lambda[]={1,10};int fail=0,f;char err[1024];
+   paired_three_fold_plan(&plan);
+   nested=THD_nested_foldplan_grouped(&plan,groups,0,err,sizeof(err));CHECK(nested,err);
+   w=THD_mvpa_workspace_alloc(&plan,3,2,THD_PREP_FEATURE_ZSCORE,NULL,err,sizeof(err));CHECK(w,err);
+   CHECK(!THD_mvpa_classification_set_selection(w,&zero,1,NULL,THD_METRIC_ACCURACY,err,sizeof(err)),"reject zero selection count");
+   CHECK(!THD_mvpa_classification_set_selection(w,duplicate,2,nested,THD_METRIC_ACCURACY,err,sizeof(err)),"reject duplicate counts");
+   CHECK(!THD_mvpa_classification_set_selection(w,counts,2,NULL,THD_METRIC_ACCURACY,err,sizeof(err)),"count grid requires nested folds");
+   CHECK(THD_mvpa_classification_set_selection(w,counts,2,nested,THD_METRIC_BALANCED_ACCURACY,err,sizeof(err)),err);
+   CHECK(!THD_mvpa_classification_set_ridge(w,1,NULL,NULL,0,err,sizeof(err)),"selection must follow estimator configuration");
+   CHECK(THD_mvpa_run_classification_cv(&plan,0,x,3,classes,NULL,w,err,sizeof(err)),err);
+   for(f=0;f<3;f++){
+      CHECK(w->selection->count[f]==1 && w->selection->chosen[f]==1,"count ties select smaller requested count");
+      CHECK(w->selection->indices[3*f]==1 && CLOSE(w->selection->scores[3*f],1),"tied informative features retain lower original column ID");
+   }
+   CHECK(CLOSE(w->score.accuracy,1),"selected signal perfectly classifies held-out rows");
+   CHECK(!THD_mvpa_classification_set_selection(w,&one,1,NULL,THD_METRIC_ACCURACY,err,sizeof(err)),"configure selection only once");
+   rw=THD_mvpa_ridge_workspace_alloc(&plan,3,1,THD_PREP_FEATURE_ZSCORE,err,sizeof(err));CHECK(rw,err);
+   CHECK(THD_mvpa_ridge_set_selection(rw,&wide,1,err,sizeof(err)),err);
+   CHECK(!THD_mvpa_ridge_set_tuning(rw,nested,lambda,2,err,sizeof(err)),"selection must follow penalty tuning");
+   CHECK(THD_mvpa_run_ridge_cv(rw,x,3,y,1,NULL,1,err,sizeof(err)),err);
+   for(f=0;f<3;f++){
+      CHECK(rw->selection->count[f]==3 && rw->selection->indices[3*f]==0,"clip count and break zero-score ties by original index");
+      CHECK(CLOSE(rw->selection->scores[3*f],0),"constant responses produce zero selection scores");
+   }
+done:
+   THD_mvpa_workspace_free(w);THD_mvpa_ridge_workspace_free(rw);THD_nested_foldplan_free(nested);return fail;
+}
+
 static int nuisance_test(void)
 {
    THD_foldplan plan;THD_mvpa_workspace *w=NULL;THD_nested_foldplan *nested=NULL;
@@ -138,23 +354,23 @@ static int svm_test(void)
    CHECK(!THD_mvpa_run_centroid_cv(&plan,0,cvx,1,cvclass,NULL,w,err,sizeof(err)),"centroid entry point refuses an SVM workspace");
    CHECK(THD_mvpa_run_classification_cv(&plan,0,cvx,1,cvclass,NULL,w,err,sizeof(err)),err);
    CHECK(CLOSE(w->score.balanced_accuracy,1),"SVM fold runner scores known separable held-out patterns");
-   for(i=0;i<3;i++)CHECK(w->svm_selected[i]==.01 && w->svm_loss[i*2]==0 && w->svm_loss[i*2+1]==0 &&
-     w->fold_svm_residual[i]<=1e-9 && w->fold_svm_iterations[i]>0,"nested SVM ties choose smaller C and outer fits report verified convergence");
-   memcpy(saved,w->decision,sizeof(saved));memcpy(losses,w->svm_loss,sizeof(losses));
+   for(i=0;i<3;i++)CHECK(w->class_selected[i]==.01 && w->class_loss[i*2]==0 && w->class_loss[i*2+1]==0 &&
+     w->fold_solver_residual[i]<=1e-9 && w->fold_solver_iterations[i]>0,"nested SVM ties choose smaller C and outer fits report verified convergence");
+   memcpy(saved,w->decision,sizeof(saved));memcpy(losses,w->class_loss,sizeof(losses));
    cvx[0]=-7;cvx[1]=9;
    CHECK(THD_mvpa_run_classification_cv(&plan,0,cvx,1,cvclass,NULL,w,err,sizeof(err)),err);
-   CHECK(w->svm_selected[0]==.01 && CLOSE(w->decision[0],7*saved[0]) && CLOSE(w->decision[2],9*saved[2]),
+   CHECK(w->class_selected[0]==.01 && CLOSE(w->decision[0],7*saved[0]) && CLOSE(w->decision[2],9*saved[2]),
          "outer held-out feature changes are transformed by unchanged training-only scaling and SVM fit");
    cvx[0]=-1;cvx[1]=1;
    cvclass[0]=1;cvclass[1]=0;
    CHECK(THD_mvpa_run_classification_cv(&plan,0,cvx,1,cvclass,NULL,w,err,sizeof(err)),err);
-   CHECK(w->svm_selected[0]==.01 && CLOSE(w->decision[0],saved[0]) && CLOSE(w->decision[1],saved[1]),
+   CHECK(w->class_selected[0]==.01 && CLOSE(w->decision[0],saved[0]) && CLOSE(w->decision[1],saved[1]),
          "outer held-out class changes cannot affect preprocessing, tuning, or model decisions for that fold");
    cvclass[0]=0;cvclass[1]=1;
    memset(&set,0,sizeof(set));set.nobs=6;set.nperm=2;set.perm=perm;set.sign=sign;
    CHECK(THD_mvpa_run_classification_permutations(&plan,0,cvx,1,cvclass,NULL,
       THD_METRIC_BALANCED_ACCURACY,&set,permuted,null_score,w,err,sizeof(err)),err);
-   CHECK(!memcmp(saved,w->decision,sizeof(saved)) && !memcmp(losses,w->svm_loss,sizeof(losses)),
+   CHECK(!memcmp(saved,w->decision,sizeof(saved)) && !memcmp(losses,w->class_loss,sizeof(losses)),
          "SVM permutations restore observed decisions and nested tuning audits exactly");
    for(i=0;i<2;i++){
       for(j=0;j<6;j++)permuted[j]=cvclass[perm[i*6+j]];
@@ -497,6 +713,196 @@ done:
    THD_lda_free(m);THD_mvpa_workspace_free(w);return fail;
 }
 
+static int logistic_test(void)
+{
+   int fail=0,cls[]={0,0,1,1},pred[6],i,j,obj;
+   float x[]={-1,-1,1,1},probe[]={-2,0,2},zero[18]={0};
+   int multi[]={0,1,1,2,2,2};double z[18],pr[18],ll,br,root=0;
+   char err[1024];THD_logistic_model *m=THD_logistic_alloc(6,3,2,err,sizeof(err)),*mm=NULL;
+   THD_mvpa_workspace *w=NULL;THD_foldplan plan;
+   CHECK(m,err);
+   CHECK(THD_logistic_fit(m,x,cls,4,1,.7,1e-10,1000,err,sizeof(err)),err);
+   for(i=0;i<30;i++){double q=1/(1+exp(2*root));root-=(.7*root-q)/(.7+2*q*(1-q));}
+   CHECK(THD_logistic_predict(m,probe,3,1,pred,z,pr,err,sizeof(err)),err);
+   CHECK(fabs(z[1]+2*root)<1e-8 && fabs(z[5]-2*root)<1e-8 && pred[1]==0,"binary symmetric softmax analytic solution and deterministic tie");
+   CHECK(THD_mvpa_probability_score(z+4,2,1,&ll,&br,err,sizeof(err)),err);
+   CHECK(fabs(ll+log(pr[5]))<1e-12 && fabs(br-2*pr[4]*pr[4])<1e-12,"binary Brier sums both classes");
+   {double extreme[]={1000,-1000,-1001};CHECK(THD_mvpa_probability_score(extreme,3,1,&ll,&br,err,sizeof(err)),err);CHECK(ll==2000 && br==2,"log loss stable when true probability underflows");}
+   CHECK(!THD_logistic_fit(m,x,cls,4,1,.0001,1e-12,1,err,sizeof(err)) && strstr(err,"converge"),"insufficient iterations fail explicitly");
+   CHECK(!THD_logistic_predict(m,probe,3,1,pred,z,pr,err,sizeof(err)),"failed fit invalidates earlier model");
+   CHECK(!THD_logistic_fit(m,x,cls,2,1,1,1e-6,100,err,sizeof(err)),"missing training class rejected");
+   CHECK(!THD_logistic_fit(m,x,cls,4,1,0,1e-6,100,err,sizeof(err)),"zero lambda rejected");
+   mm=THD_logistic_alloc(6,3,3,err,sizeof(err));CHECK(mm,err);
+   CHECK(THD_logistic_fit(mm,zero,multi,6,3,100,1e-10,100,err,sizeof(err)),err);
+   CHECK(THD_logistic_predict(mm,zero,6,3,pred,z,pr,err,sizeof(err)),err);
+   for(i=0;i<6;i++){double sum=0;for(j=0;j<3;j++){sum+=pr[i*3+j];CHECK(fabs(pr[i*3+j]-(j+1)/6.)<1e-12,"unpenalized intercept recovers imbalanced empirical priors on constant features");}CHECK(fabs(sum-1)<1e-12,"multiclass normalized probabilities");}
+   CHECK(THD_mvpa_logistic_objective(THD_TUNE_DEFAULT,&obj,err,sizeof(err)) && obj==THD_TUNE_LOG_LOSS,"logistic defaults to log loss tuning");
+   CHECK(!THD_mvpa_tune_objective_resolve(THD_TUNE_BRIER,1,0,0,&obj,err,sizeof(err)),"nonprobability classifier rejects Brier tuning");
+   {float xx[]={-2,2,-1,1,-3,3};int yy[]={0,1,0,1,0,1};int indices[]={0,1,2,3,4,5,1,0,2,3,4,5},permuted[6];float nulls[2];signed char signs[12]={1,1,1,1,1,1,1,1,1,1,1,1};PERM_set ps={0};double observed[12];
+    paired_three_fold_plan(&plan);w=THD_mvpa_workspace_alloc(&plan,1,2,THD_PREP_NONE,NULL,err,sizeof(err));CHECK(w,err);
+    CHECK(THD_mvpa_classification_set_logistic(w,1,1e-8,1000,THD_METRIC_ACCURACY,NULL,NULL,0,err,sizeof(err)),err);
+    CHECK(THD_mvpa_run_classification_cv(&plan,0,xx,1,yy,NULL,w,err,sizeof(err)),err);memcpy(observed,w->probability,sizeof(observed));
+    ps.nperm=2;ps.nobs=6;ps.perm=indices;ps.sign=signs;
+    CHECK(THD_mvpa_run_classification_permutations(&plan,0,xx,1,yy,NULL,THD_METRIC_ACCURACY,&ps,permuted,nulls,w,err,sizeof(err)),err);
+    CHECK(!memcmp(observed,w->probability,sizeof(observed)),"permutations restore observed logistic probabilities");
+   }
+ done:THD_logistic_free(m);THD_logistic_free(mm);THD_mvpa_workspace_free(w);return fail;
+}
+
+static int regression_test(void)
+{
+   int fail=0,i,j,method;char err[1024];THD_regression *m=NULL;
+   float x[]={-1,-1, -1,1, 1,-1, 1,1},y[8],out[8];double coef[4],intercept[2],parameter[]={.4,.5};
+   int groups[]={0,1};double penalties[]={2,4};
+   THD_regression_config cfg={THD_REG_ELASTIC_NET,1,0,2,10000,1e-10,parameter,NULL,NULL};
+   for(i=0;i<4;i++){y[2*i]=3+2*x[2*i];y[2*i+1]=-1+.1f*x[2*i+1];}
+   m=THD_regression_alloc(4,2,2,&cfg,err,sizeof(err));CHECK(m,err);
+   CHECK(THD_regression_fit(m,x,y,4,2,2,0,err,sizeof(err)),err);
+   CHECK(THD_regression_coefficients(m,coef,intercept,err,sizeof(err)),err);
+   CHECK(CLOSE(coef[0],1.5) && coef[1]==0 && coef[2]==0 && coef[3]==0 && CLOSE(intercept[0],3) && CLOSE(intercept[1],-1),"orthogonal elastic-net soft-threshold solution and independent-response sparsity");
+   CHECK(THD_regression_diagnostics(m)[0].residual<=1e-10,"elastic-net verified KKT");
+   CHECK(!THD_regression_fit(m,x,y,4,2,2,1,err,sizeof(err)) && !THD_regression_predict(m,x,4,out,err,sizeof(err)),"failed regression fit invalidates predictions");
+   THD_regression_free(m);m=NULL;
+   parameter[1]=0;m=THD_regression_alloc(4,2,2,&cfg,err,sizeof(err));CHECK(m,err);
+   CHECK(THD_regression_fit(m,x,y,4,2,2,0,err,sizeof(err)) && THD_regression_coefficients(m,coef,intercept,err,sizeof(err)),err);
+   CHECK(CLOSE(coef[0],2/1.4) && CLOSE(coef[3],.1/1.4),"zero L1 ratio matches ridge with lambda=N*alpha");
+   THD_regression_free(m);m=NULL;
+   parameter[1]=1;m=THD_regression_alloc(4,2,2,&cfg,err,sizeof(err));CHECK(m,err);
+   CHECK(THD_regression_fit(m,x,y,4,2,2,0,err,sizeof(err)) && THD_regression_coefficients(m,coef,intercept,err,sizeof(err)),err);
+   CHECK(CLOSE(coef[0],1.6) && coef[3]==0,"unit L1 ratio is lasso");THD_regression_free(m);m=NULL;
+   cfg.method=THD_REG_BANDED_RIDGE;cfg.ngroup=2;cfg.feature_group=groups;cfg.group_penalty=penalties;
+   m=THD_regression_alloc(4,2,2,&cfg,err,sizeof(err));CHECK(m,err);
+   CHECK(THD_regression_fit(m,x,y,4,2,2,0,err,sizeof(err)) && THD_regression_coefficients(m,coef,intercept,err,sizeof(err)),err);
+   CHECK(CLOSE(coef[0],8.0/6) && CLOSE(coef[3],.05),"known unequal block-penalty solution");THD_regression_free(m);m=NULL;
+   groups[1]=0;CHECK(!THD_regression_alloc(4,2,2,&cfg,err,sizeof(err)),"reject an empty predictor group");groups[1]=1;
+   cfg.method=THD_REG_PLS;cfg.ngroup=0;cfg.feature_group=NULL;cfg.group_penalty=NULL;parameter[0]=2;parameter[1]=0;
+   m=THD_regression_alloc(4,2,2,&cfg,err,sizeof(err));CHECK(m,err);
+   CHECK(THD_regression_fit(m,x,y,4,2,2,0,err,sizeof(err)) && THD_regression_predict(m,x,4,out,err,sizeof(err)),err);
+   for(i=0;i<8;i++)CHECK(CLOSE(out[i],y[i]),"full-rank PLS recovers orthogonal latent-factor responses");
+   CHECK(THD_regression_diagnostics(m)[0].components==2,"PLS component count");THD_regression_free(m);m=NULL;
+   /* p>n, exact rank one: all methods must remain finite; PLS clips rank. */
+   for(method=1;method<=4;method++){
+      float wide[24],response[8];double block[]={1,3};int ids[]={0,1,0,1,0,1};
+      cfg.method=method;parameter[0]=method==THD_REG_PLS?6:1;parameter[1]=.2;
+      cfg.nfeature=6;cfg.ngroup=method==THD_REG_BANDED_RIDGE?2:0;cfg.feature_group=ids;cfg.group_penalty=block;
+      for(i=0;i<4;i++){for(j=0;j<6;j++)wide[i*6+j]=i-1.5f;response[2*i]=2*i-1;response[2*i+1]=7;}
+      m=THD_regression_alloc(4,6,2,&cfg,err,sizeof(err));CHECK(m,err);
+      CHECK(THD_regression_fit(m,wide,response,4,6,2,0,err,sizeof(err)) && THD_regression_predict(m,wide,4,out,err,sizeof(err)),err);
+      for(i=0;i<8;i++)CHECK(isfinite(out[i]),"collinear high-dimensional regression predictions finite");
+      if(method==THD_REG_PLS)CHECK(THD_regression_diagnostics(m)[0].components==1,"PLS clips exact rank-one predictors");
+      for(i=0;i<24;i++)wide[i]=0;
+      CHECK(THD_regression_fit(m,wide,response,4,6,2,0,err,sizeof(err)) && THD_regression_predict(m,wide,4,out,err,sizeof(err)),err);
+      if(method==THD_REG_SVR){
+         /* Constant y=7: min b^2/2+4*C*(7-b-eps)^2 gives b=8*(7-eps)/9. */
+         CHECK(CLOSE(out[1],8*(7-.2)/9),"SVR penalized intercept has analytic constant-response solution");
+      }else{
+         CHECK(CLOSE(out[1],7),"constant-predictor fit retains response mean");
+         if(method==THD_REG_PLS)CHECK(THD_regression_diagnostics(m)[0].components==0,"zero-rank PLS mean-only model");
+      }
+      wide[0]=NAN;CHECK(!THD_regression_fit(m,wide,response,4,6,2,0,err,sizeof(err)) && !THD_regression_diagnostics(m),"nonfinite fit invalidates diagnostics");
+      THD_regression_free(m);m=NULL;
+   }
+done:THD_regression_free(m);return fail;
+}
+
+static int contract_test(void)
+{
+   int tr[4]={2,3,4,5},te[2]={0,1},sf[6]={0,0,-1,-1,-1,-1};
+   int classes[6]={0,1,1,0,1,0},original[6],groups[6]={7,7,7,7,7,7},fail=0;
+   char *labels[2]={"A","B"},err[512];THD_foldplan p;
+   fixed_plan(&p,6,tr,4,te,2,sf);
+   CHECK(THD_mvpa_validate_fold_inputs(&p,classes,2,groups,1,"outer",err,sizeof(err)),err);
+   CHECK(THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)),err);
+   CHECK(!strcmp(labels[0],"B") && !strcmp(labels[1],"A") &&
+         classes[0]==1 && classes[1]==0 && classes[2]==0 && classes[3]==1,
+         "first training occurrence orders classes even when test rows come first");
+   classes[0]=0;classes[1]=1;
+   CHECK(THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)) &&
+         !strcmp(labels[0],"B") && classes[2]==0,
+         "changing only held-out classes cannot change the training tie order");
+   groups[0]=99;
+   CHECK(!THD_mvpa_validate_fold_inputs(&p,classes,2,groups,0,"inner folds of outer f1",err,sizeof(err)) &&
+         strstr(err,"inner folds of outer f1") && strstr(err,"absent from training"),
+         "local fold group validation preserves diagnostic context");
+   groups[0]=7;
+   classes[2]=classes[3]=classes[4]=classes[5]=0;
+   memcpy(original,classes,sizeof(classes));
+   CHECK(!THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)) &&
+         strstr(err,"absent from training") && !memcmp(classes,original,sizeof(classes)) &&
+         !strcmp(labels[0],"B") && !strcmp(labels[1],"A"),
+         "missing training class fails without partially recoding samples or labels");
+   CHECK(!THD_mvpa_validate_fold_inputs(&p,classes,2,NULL,0,"outer",err,sizeof(err)) &&
+         strstr(err,"outer: fold test has no class"),"coverage failures include scope");
+   classes[0]=2;memcpy(original,classes,sizeof(classes));
+   CHECK(!THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)) &&
+         !memcmp(classes,original,sizeof(classes)),"invalid class index is rejected atomically");
+   {
+      int tr2[2]={0,1},te2[4]={2,3,4,5},sf2[6]={-1,-1,0,0,0,0};
+      int cls[6]={0,1,0,1,0,1};
+      fixed_plan(&p,6,tr2,2,te2,4,sf2);
+      CHECK(!THD_mvpa_validate_fold_inputs(&p,cls,2,NULL,1,"outer",err,sizeof(err)) &&
+            strstr(err,"more training rows than classes"),"LDA requires residual training degrees of freedom");
+      CHECK(THD_mvpa_validate_fold_inputs(&p,NULL,0,NULL,0,NULL,err,sizeof(err)),
+            "continuous validation permits omitted class and group arrays");
+   }
+done:return fail;
+}
+
+static int descriptive_refit_test(void)
+{
+   THD_mvpa_refit_workspace *w=NULL;const THD_mvpa_refit_result *r;
+   float x[12]={-1,-2,0,0,1,2,-1,-2,0,0,1,2};
+   float y[12]={8,23,10,20,12,17,8,23,10,20,12,17};
+   float oldx[12],oldy[12],xz[12],ys[6]={8,10,12,8,10,12};
+   int groups[6]={10,10,10,20,20,20},i,j,fail=0;char err[512];
+   memcpy(oldx,x,sizeof(x));memcpy(oldy,y,sizeof(y));
+   w=THD_mvpa_refit_alloc(6,8,2,err,sizeof(err));CHECK(w!=NULL,err);
+   r=THD_mvpa_refit_ridge(w,x,y,6,2,2,THD_PREP_NONE,NULL,1,err,sizeof(err));
+   CHECK(r!=NULL,err);
+   CHECK(r->nsample==6 && r->nfeature==2 && r->nresponse==2 && r->prep->nfit==6,
+         "descriptive result identifies the full-data fit dimensions");
+   CHECK(CLOSE(r->coef[0],8.0/21) && CLOSE(r->coef[1],-12.0/21) &&
+         CLOSE(r->coef[2],16.0/21) && CLOSE(r->coef[3],-24.0/21) &&
+         CLOSE(r->intercept[0],10) && CLOSE(r->intercept[1],20),
+         "multiresponse full-data ridge matches closed-form coefficients/intercepts");
+   CHECK(!memcmp(oldx,x,sizeof(x)) && !memcmp(oldy,y,sizeof(y)),"refit does not mutate input matrices");
+   for(i=0;i<6;i++){xz[2*i]=x[2*i];xz[2*i+1]=5;}
+   r=THD_mvpa_refit_ridge(w,xz,ys,6,2,1,THD_PREP_FEATURE_ZSCORE,NULL,1,err,sizeof(err));
+   CHECK(r!=NULL,err);
+   CHECK(CLOSE(r->coef[0],8/(7*sqrt(2.0/3))) && r->coef[1]==0 &&
+         CLOSE(r->intercept[0],10) && CLOSE(r->prep->scale[0],sqrt(2.0/3)) &&
+         r->prep->center[1]==5 && r->prep->constant[1] && r->prep->scale[1]==1,
+         "coefficients use transformed units and return constant-feature metadata");
+   r=THD_mvpa_refit_ridge(w,x,ys,6,2,1,THD_PREP_SAMPLE_CENTER,NULL,1,err,sizeof(err));
+   CHECK(r && CLOSE(r->coef[0],-4.0/3) && CLOSE(r->coef[1],4.0/3),"sample-centered refit matches closed form");
+   {
+      float xr[6]={-1,0,1,9,10,11};
+      r=THD_mvpa_refit_ridge(w,xr,ys,6,1,1,THD_PREP_RUN_CENTER,groups,1,err,sizeof(err));
+      CHECK(r && CLOSE(r->coef[0],1.6) && CLOSE(r->intercept[0],10) &&
+            r->prep->ngroup==2 && r->prep->group_value[0]==10 && r->prep->group_value[1]==20 &&
+            r->prep->center[0]==0 && r->prep->center[1]==10,
+            "run-centered metadata belongs to the current full-data fit");
+      CHECK(!THD_mvpa_refit_ridge(w,xr,ys,6,1,1,THD_PREP_RUN_CENTER,NULL,1,err,sizeof(err)),
+            "missing run groups fail without returning stale results");
+   }
+   /* Shrink active n, grow p: AUTO now uses the dual system in the same workspace. */
+   {
+      float xd[24],yd[3]={8,10,12};
+      for(i=0;i<3;i++)for(j=0;j<8;j++)xd[i*8+j]=(i-1)*(j+1);
+      r=THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err));CHECK(r!=NULL,err);
+      for(j=0;j<8;j++)CHECK(CLOSE(r->coef[j],4.0*(j+1)/409),"dual refit matches rank-one closed form");
+      CHECK(CLOSE(r->intercept[0],10) && r->prep->nfit==3,"workspace reuse resets the sample count and preprocessing");
+      CHECK(!THD_mvpa_refit_ridge(w,xd,yd,7,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err)),"capacity overflow rejected before reading input");
+      CHECK(!THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,0,err,sizeof(err)),"nonpositive penalty rejected");
+      yd[0]=NAN;
+      CHECK(!THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err)),"nonfinite response rejected");
+      yd[0]=8;
+      CHECK(THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err)),"workspace recovers after failed fits");
+   }
+   CHECK(!THD_mvpa_refit_alloc(0,2,1,err,sizeof(err)),"invalid allocation dimensions rejected");
+done:THD_mvpa_refit_free(w);return fail;
+}
+
 int main( void )
 {
    float zmat[]={ 1,10,5, 3,14,5, 102,212,500, -98,-188,-500 } ;
@@ -739,6 +1145,6 @@ done:
    THD_mvpa_workspace_free(ws) ;
    THD_centroid_free(cm) ;
    THD_preprocess_free(p) ;
-   if( fail || nuisance_test() || svm_test() || ridge_test() || nested_ridge_test() || ridge_permutation_test() || ridge_classification_test() || lda_test() ) return 1 ;
+   if( fail || descriptive_refit_test() || contract_test() || regression_test() || logistic_test() || response_ridge_test() || comparison_test() || pattern_test() || pca_test() || selection_test() || nuisance_test() || svm_test() || ridge_test() || nested_ridge_test() || ridge_permutation_test() || ridge_classification_test() || lda_test() ) return 1 ;
    puts("PASS thd_mvpa preprocessing, metrics, classifiers, CV, and permutation runner") ; return 0 ;
 }

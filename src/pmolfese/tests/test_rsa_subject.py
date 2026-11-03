@@ -140,8 +140,8 @@ def main():
             (work/cf).write_text(''.join(f'c{c}\n' for c in order))
             reordered.append(f's{s} r{r} {fn} {cf}')
     (work/'reordered.txt').write_text('\n'.join(reordered)+'\n')
-    reord,_ = run('reordered',['-runwiseTable','reordered.txt','-subject_outcome','stability'])
-    for a,b in zip(rows,reord):
+    reordered_rows,_ = run('reordered',['-runwiseTable','reordered.txt','-subject_outcome','stability'])
+    for a,b in zip(rows,reordered_rows):
         close([float(a[v]) for v in ['beta','SE','t','p']], [float(b[v]) for v in ['beta','SE','t','p']], 'ID/condition matching')
 
     # Confounded score: correlated with outcomes only through nuisance Age.

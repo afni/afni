@@ -13,8 +13,9 @@ from check_1dXmatTool import write, header, ints, table
 p=argparse.ArgumentParser()
 p.add_argument('--tool',required=True)
 p.add_argument('--cat',required=True)
+p.add_argument('--mvpa',required=True)
 a=p.parse_args()
-programs={k:str(Path(getattr(a,k)).resolve()) for k in ['tool','cat']}
+programs={k:str(Path(getattr(a,k)).resolve()) for k in ['tool','cat','mvpa']}
 env=dict(os.environ,OMP_NUM_THREADS='2',OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',VECLIB_MAXIMUM_THREADS='1')
 with tempfile.TemporaryDirectory(prefix='xmat-features-') as tmp:
     w=Path(tmp)
@@ -141,10 +142,18 @@ with tempfile.TemporaryDirectory(prefix='xmat-features-') as tmp:
     for field in ['Run','Item','Volume']:
         assert [row[field] for row in selected_rows]==[row[field] for row in rows]
     assert 'Xmat' not in selected_fields and 'XColumn' not in selected_fields
+    # Create beta fixtures so the exported files can be read by 3dMVPA.
+    import nibabel as nib
+    nib.save(nib.Nifti1Image(np.ones((2,2,2),dtype='uint8'),np.eye(4)),w/'mask.nii.gz')
+    for i,n in [(1,2),(2,3)]:
+        nib.save(nib.Nifti1Image(rng.normal(size=(2,2,2,n)).astype('float32'),np.eye(4)),w/f'run-{i:02d}.nii.gz')
+    base=['-mode','classify','-target_column','Condition','-cv_column','Run','-mask','mask.nii.gz','-validate_only']
+    run(base+['-trial_manifest','manifest.trials.1D'],prog='mvpa',contains='Validation PASS')
+    run(base+['-dataTableFile','selected.trials.1D'],prog='mvpa',contains='Validation PASS')
     (w/'events.1D').write_text('# Columns: Run Volume Condition Item\n'+'\n'.join(events+events[:1])+'\n')
     run(common+['-prefix','bad_manifest'],code=1,contains='duplicate')
     assert not (w/'bad_manifest.trials.1D').exists()
     (w/'events.1D').write_text('Run Volume Condition\n1 0 A\n')
     run(common+['-prefix','bad_manifest'],code=1,contains='missing event')
     assert not (w/'bad_manifest.trials.1D').exists()
-    print('1dXmatTool features passed: SVD, numeric 1D readers, selection, compare, manifests')
+    print('1dXmatTool features passed: SVD, numeric 1D readers, selection, compare, manifests, MVPA ingestion')

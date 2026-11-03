@@ -167,6 +167,28 @@ extern void THD_datatable_print( THD_datatable *dt , FILE *fp ) ;
 
 extern void THD_free_datatable( THD_datatable *dt ) ;
 
+/* A square numeric table with independently labeled rows and columns.
+   Both axes are aligned to label[], using exact, case-sensitive identities.
+   Values are finite floats; symmetry/diagonal semantics belong to the caller.
+   kind is optional # matrix_kind metadata (similarity or dissimilarity). */
+typedef struct {
+   int n;
+   char *axis, **label, *kind;
+   float *mat;                 /* row major, in label order */
+} THD_labeled_matrix;
+
+/* Read through the ordinary datatable tokenizer, including # Columns: and
+   quoted/doubled-quote labels. The first column must be axis (case-sensitive).
+   With order==NULL, norder must be zero and the column labels establish order.
+   Otherwise both label sets must equal order exactly, without duplicates.
+   Returns NULL with a bounded diagnostic for matrix-contract errors; ordinary
+   table syntax/I/O errors retain THD_read_datatable_file's fatal diagnostics.
+   Storage is owned by the result. No source table or file is modified. */
+extern THD_labeled_matrix *THD_read_labeled_matrix(
+   char *filename, const char *axis, int norder, const char * const *order,
+   char *err, int nerr);
+extern void THD_free_labeled_matrix(THD_labeled_matrix *matrix);
+
 /* Quoted whitespace-table token; doubled quotes preserve literal quotes. */
 extern void THD_1D_print_token(FILE *,const char *);
 

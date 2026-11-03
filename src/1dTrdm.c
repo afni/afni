@@ -98,6 +98,8 @@ static void usage_1dTrdm(int detail)
 "Usage:\n"
 "  1dTrdm -dataTable DATA.txt -time_axis TIME.txt -feature_axis FEAT.txt \\\n"
 "         -metric corr|cosine|euclid|crossnobis -prefix OUT [options]\n"
+"  1dTrdm -dataTable DATA.txt -input_format labeled \\\n"
+"         -metric corr|cosine|euclid|crossnobis -prefix OUT [options]\n"
 "\n"
 "DATA.txt has one independently estimated observation per row:\n"
 "\n"
@@ -120,6 +122,31 @@ static void usage_1dTrdm(int detail)
 "feature_label column. Optional metadata are retained but never treated as\n"
 "implicit adjacency; -feature_neighborhoods supplies the explicit graph.\n"
 "\n"
+"LABELED OBSERVATION SHORTCUT\n"
+"With -input_format labeled, each InputFile is a whitespace-delimited table:\n"
+"\n"
+"  time_value time_unit time_label Fz  Cz  Pz\n"
+"  -100       ms        m100       0.2 0.5 0.1\n"
+"   -98       ms        m098       0.3 0.4 0.2\n"
+"\n"
+"The header may also be written as '# Columns: ...'. time_value and time_unit\n"
+"are required. time_label is optional; absent labels inherit the established\n"
+"axis, or are generated as numeric value plus unit (e.g., -100ms). Optional\n"
+"time_index must be zero-based and contiguous; otherwise it is generated.\n"
+"Every remaining column is a numeric feature. Column names must be unique\n"
+"even ignoring case; feature identities match exactly, including case.\n"
+"Subj and InputFile are reserved for the observation table. Names, time units,\n"
+"and time labels must be nonempty single tokens. Values must be finite.\n"
+"\n"
+"-time_axis and -feature_axis may each be omitted in this format. The first\n"
+"observation establishes each omitted axis. Later files must have identical\n"
+"time values/units and the same feature names; feature columns are reordered\n"
+"by name. No time sorting, resampling, unit conversion, or missing-feature\n"
+"filling is performed. Supplied axis files establish the canonical axes:\n"
+"embedded values and any explicit time labels must agree with them.\n"
+"The observation table still supplies Subj, Observation, Condition, Partition\n"
+"(when needed), and InputFile. Outputs retain the resolved axes and sources.\n"
+"\n"
 "NEIGH.txt is a strict two-column membership graph; overlaps are allowed:\n"
 "\n"
 "  Neighborhood   Feature\n"
@@ -140,6 +167,9 @@ static void usage_1dTrdm(int detail)
 "Options:\n"
 "  -dataTable FILE       observation table (required); columns are Subj,\n"
 "                        Observation, Condition, optional Partition, and InputFile\n"
+"  -input_format numeric|labeled\n"
+"                        numeric [default] requires separate time/feature axes;\n"
+"                        labeled reads those axes from observation tables\n"
 "  -prefix OUT           output filename prefix (required)\n"
 "  -window_width N       samples per output window [1]\n"
 "  -window_step N        samples between window starts [1]\n"
@@ -185,6 +215,12 @@ static void usage_1dTrdm(int detail)
 "  -seed S               random-draw seed [1234567]\n"
 "  -subject_matrices yes|no\n"
 "                        also write each subject/window square matrix [yes]\n"
+"  -matrix_format numeric|labeled\n"
+"                        square output format [numeric]. labeled writes a\n"
+"                        Condition header and row labels for RDMs, or a Time\n"
+"                        header and window labels for dynamics matrices.\n"
+"                        Applies to subject, neighborhood, group and LOO\n"
+"                        matrices; does not change long tables or input format.\n"
 "  -jobs N               OpenMP workers when available [runtime default]\n"
 "  -quiet                suppress informational messages\n"
 "  -help                 show this help\n"
@@ -218,6 +254,25 @@ static void usage_1dTrdm(int detail)
 "OUT.trdm.neighborhood_dynamics.1D        | graph + dynamics   | recurrence within each graph\n"
 "OUT.trdm.neighborhood_cross_time_...1D   | graph + cross-time | crossnobis within each graph\n"
 "\n"
+"With -matrix_format labeled, square files retain their usual filenames but\n"
+"contain a labeled table, for example (illustrative distances):\n"
+"  # matrix_format labeled\n"
+"  # matrix_kind dissimilarity\n"
+"  # Columns: Condition face house tool\n"
+"  face   0   0.8 0.6\n"
+"  house  0.8 0   0.3\n"
+"  tool   0.6 0.3 0\n"
+"Both axes carry the exact condition labels, with quoting when necessary.\n"
+"Values use nine significant digits to preserve float precision, including\n"
+"negative crossnobis estimates. Dynamics tables have matrix_kind similarity\n"
+"and Time axes; their diagonal is similarity, not a zero RDM diagonal.\n"
+"3dRSA reads these labeled condition matrices through -input_rdm for\n"
+"nonspatial IS-RSA, or -model_rdm LABEL COLUMN beside fMRI InputFile entries\n"
+"for classic/IS-RSA fusion. See 3dRSA examples 3 and 6 for both workflows.\n"
+"Model-series manifests point to the selected format. Use numeric for\n"
+"3dRSA -model_series, -model_series_subjects and -model_mat: those readers\n"
+"still require numeric matrices in the declared analysis order.\n"
+"\n"
 "MODEL_CONDITIONS.1D is a strict two-column table in MODEL.1D row order:\n"
 "  ConditionIndex Condition\n"
 "  0              face\n"
@@ -228,7 +283,96 @@ static void usage_1dTrdm(int detail)
 "family, or the complete time x neighborhood family when a graph is supplied;\n"
 "PFWE uses one synchronized maximum-statistic null over every declared cell.\n"
 "\n"
-"EXAMPLE: EEG/MEG RDM MOVIE -> fMRI RSA\n"
+"EXAMPLE 1: LABELED EEG TRIALS -> LABELED CONDITION RDMs\n"
+"---------------------------------------------------\n"
+"Keep trial identity and experimental design in eeg_observations.txt:\n"
+"\n"
+"  Subj Observation Condition InputFile\n"
+"  s01  trial001    face      s01_face_01.1D\n"
+"  s01  trial002    house     s01_house_01.1D\n"
+"  s01  trial003    tool      s01_tool_01.1D\n"
+"  s01  trial004    face      s01_face_02.1D\n"
+"\n"
+"Add further trials/subjects as appropriate. Each subject needs every\n"
+"condition. Paths resolve beside eeg_observations.txt. A trial file contains\n"
+"one row per latency and one measurement column per sensor, for example:\n"
+"\n"
+"  time_value time_unit time_label Fz   Cz   Pz\n"
+"  -100       ms        m100       0.2  0.5  0.1\n"
+"     0       ms        zero       0.4  0.1  0.3\n"
+"   100       ms        p100       1.2  0.7  0.2\n"
+"\n"
+"These three rows illustrate the format; real epochs include every desired\n"
+"sample. Use the same time values, units and labels in every trial. Reordered\n"
+"sensor columns are matched by name; missing sensors are errors.\n"
+"\n"
+"  1dTrdm -dataTable eeg_observations.txt -input_format labeled \\\n"
+"    -metric corr -matrix_format labeled -prefix eeg\n"
+"\n"
+"The program averages trials within condition and subject, then compares\n"
+"sensor patterns at each latency. eeg_s0000_s01_t0002.1D is a labeled\n"
+"face/house/tool RDM for 100 ms. eeg.trdm.1D also records the explicit p100\n"
+"label. Subject indices follow lexical subject order.\n"
+"\n"
+"EXAMPLE 2: MEG WITH GENERATED TIME LABELS AND INDEPENDENT RUNS\n"
+"----------------------------------------------------------\n"
+"A prepared MEG observation can omit time_label and time_index:\n"
+"\n"
+"  # Columns: time_value time_unit MEG0111 MEG0121 MEG0131\n"
+"  -100 ms  1.2e-13  0.5e-13 -0.3e-13\n"
+"     0 ms  1.4e-13 -0.2e-13  0.7e-13\n"
+"   100 ms  2.1e-13  0.9e-13  0.1e-13\n"
+"\n"
+"Generated labels are -100ms, 0ms, 100ms. Use consistently scaled channels;\n"
+"mixing sensor types with different units requires upstream preparation.\n"
+"For crossnobis, the observation table also identifies independent partitions:\n"
+"\n"
+"  Subj Observation Condition Partition InputFile\n"
+"  s01  trial001    face      run1      s01_r1_face.1D\n"
+"  s01  trial002    house     run1      s01_r1_house.1D\n"
+"  s01  trial003    tool      run1      s01_r1_tool.1D\n"
+"  s01  trial004    face      run2      s01_r2_face.1D\n"
+"  s01  trial005    house     run2      s01_r2_house.1D\n"
+"  s01  trial006    tool      run2      s01_r2_tool.1D\n"
+"\n"
+"  1dTrdm -dataTable meg_observations.txt -input_format labeled \\\n"
+"    -metric crossnobis -matrix_format labeled -prefix meg\n"
+"\n"
+"Every subject/partition must contain every condition; multiple trials per\n"
+"cell are averaged within partition. Crossnobis here is crossvalidated squared\n"
+"Euclidean distance, without estimated noise whitening. Negative estimates\n"
+"are retained. Run labels must reflect independent estimates, not duplicate\n"
+"copies of the same trial.\n"
+"\n"
+"EXAMPLE 3: WINDOWS, SENSOR GROUPS, AND EXISTING AXIS FILES\n"
+"------------------------------------------------------\n"
+"For data sampled every 2 ms, this averages five samples per window and\n"
+"advances one sample at a time (window options count SAMPLES, not ms):\n"
+"\n"
+"  1dTrdm -dataTable eeg_observations.txt -input_format labeled \\\n"
+"    -metric corr -window_width 5 -window_step 1 -window_reduce mean \\\n"
+"    -feature_neighborhoods sensor_groups.txt \\\n"
+"    -matrix_format labeled -prefix eeg_windows\n"
+"\n"
+"sensor_groups.txt explicitly names sensor membership, including overlaps:\n"
+"\n"
+"  Neighborhood Feature\n"
+"  frontocentral Fz\n"
+"  frontocentral Cz\n"
+"  centroparietal Cz\n"
+"  centroparietal Pz\n"
+"\n"
+"Window labels become w0000, w0001, ...; the time sidecar preserves the\n"
+"original sample bounds and mean time. Source-vertex or sensor-frequency\n"
+"features work the same way: use unique column names such as lh_v001 or\n"
+"Fz_alpha, with identical feature definitions across observations.\n"
+"To enforce an existing axis convention, add -time_axis TIME.txt and/or\n"
+"-feature_axis FEAT.txt. Embedded labels/values must agree. To keep legacy\n"
+"numeric observations, omit -input_format labeled and supply both axis files.\n"
+"Input and output formats are independent: labeled input can still write\n"
+"numeric square matrices, and numeric input can write labeled matrices.\n"
+"\n"
+"EXAMPLE 4: EEG/MEG RDM MOVIE -> fMRI RSA\n"
 "--------------------------------------\n"
 "First, turn an independently sampled EEG/MEG observation set into an ordered\n"
 "fixed RDM series. The literal 'independent' assertion documents that these\n"
@@ -249,7 +393,7 @@ static void usage_1dTrdm(int detail)
 "EEG/MEG and fMRI subjects overlap, use one of these dependent workflows.\n"
 "Subject labels in the 1dTrdm and 3dRSA data tables must match exactly.\n"
 "\n"
-"EXAMPLE: PAIRED EEG/MEG -> fMRI RSA (SAME SUBJECTS)\n"
+"EXAMPLE 5: PAIRED EEG/MEG -> fMRI RSA (SAME SUBJECTS)\n"
 "---------------------------------------------------\n"
 "Each subject's EEG/MEG RDM is paired with that same subject's fMRI RDM:\n"
 "\n"
@@ -264,7 +408,7 @@ static void usage_1dTrdm(int detail)
 "    -metric spearman -classic_null subjects -nperm 10000 \\\n"
 "    -prefix paired_meg_fmri_fusion\n"
 "\n"
-"EXAMPLE: LEAVE-ONE-SUBJECT-OUT EEG/MEG -> fMRI RSA\n"
+"EXAMPLE 6: LEAVE-ONE-SUBJECT-OUT EEG/MEG -> fMRI RSA\n"
 "-------------------------------------------------\n"
 "Each fMRI subject is tested against the mean EEG/MEG RDM from every other\n"
 "subject, so that subject never contributes to their own model:\n"
@@ -549,6 +693,92 @@ static void load_obs_data(TRDM_obs *o,int nt,int nf)
    }
 }
 
+/* Labeled observations resolve to the same time-major arrays as numeric
+   observations. Only the first file may establish an axis; later files must
+   agree, with feature columns matched by their exact labels. */
+static void load_labeled_obs_data(TRDM_obs *o,TRDM_time **time,TRDM_feat **feat)
+{
+   int i,j,k,t; o->x=(float **)calloc(o->nrow,sizeof(float *));
+   for(i=0;i<o->nrow;i++){
+     char *fn=o->file[i],*end,err[512];
+     THD_datatable *dt=THD_read_datatable_file(fn);
+     TRDM_time *ta=*time; TRDM_feat *fa=*feat;
+     int cv,cu,cl,ci,nf=0; char **labels;
+     if(dt==NULL||dt->nrow<1)ERROR_exit("1dTrdm: cannot read labeled InputFile '%s'",fn);
+     for(j=0;j<dt->ncol;j++){
+       if(!dt->cname[j][0]||strpbrk(dt->cname[j]," \t\r\n"))
+         ERROR_exit("1dTrdm: labeled InputFile '%s' needs nonempty single-token column names",fn);
+       for(k=0;k<j;k++)if(!strcasecmp(dt->cname[j],dt->cname[k]))
+         ERROR_exit("1dTrdm: labeled InputFile '%s' has duplicate column '%s'",fn,dt->cname[j]);
+     }
+     cv=THD_datatable_column(dt,"time_value");cu=THD_datatable_column(dt,"time_unit");
+     cl=THD_datatable_column(dt,"time_label");ci=THD_datatable_column(dt,"time_index");
+     if(cv<0||cu<0)ERROR_exit("1dTrdm: labeled InputFile '%s' requires time_value and time_unit columns",fn);
+     if(dt->icol_subj>=0||dt->icol_input>=0)
+       ERROR_exit("1dTrdm: labeled InputFile '%s': Subj and InputFile belong in -dataTable, not feature columns",fn);
+     labels=(char **)calloc(dt->ncol,sizeof(char *));
+     for(j=0;j<dt->ncol;j++)if(j!=cv&&j!=cu&&j!=cl&&j!=ci)labels[nf++]=dt->cname[j];
+     if(nf<1)ERROR_exit("1dTrdm: labeled InputFile '%s' has no feature columns",fn);
+     if(fa==NULL){
+       fa=(TRDM_feat *)calloc(1,sizeof(TRDM_feat));fa->n=nf;fa->source=strdup(fn);
+       fa->label=(char **)calloc(nf,sizeof(char *));
+       for(j=0;j<nf;j++)fa->label[j]=strdup(labels[j]);
+       *feat=fa;
+     }
+     if(nf!=fa->n)ERROR_exit("1dTrdm: labeled InputFile '%s' has %d features; expected %d",fn,nf,fa->n);
+     for(j=0;j<fa->n;j++)if(find_label(labels,nf,fa->label[j])<0)
+       ERROR_exit("1dTrdm: labeled InputFile '%s' is missing feature '%s'",fn,fa->label[j]);
+     free(labels);
+     if(ta==NULL){
+       ta=(TRDM_time *)calloc(1,sizeof(TRDM_time));ta->n=dt->nrow;ta->source=strdup(fn);
+       ta->index=(int *)malloc(sizeof(int)*ta->n);ta->value=(double *)malloc(sizeof(double)*ta->n);
+       ta->label=(char **)calloc(ta->n,sizeof(char *));ta->unit=strdup(DT_CELL(dt,0,cu));
+       /* NULL labels distinguish new axis entries from supplied ones. */
+       *time=ta;
+     }
+     if(dt->nrow!=ta->n)ERROR_exit("1dTrdm: labeled InputFile '%s' has %d time rows; expected %d",fn,dt->nrow,ta->n);
+     for(t=0;t<ta->n;t++){
+       char generated[1024],*cell=DT_CELL(dt,t,cv),*unit=DT_CELL(dt,t,cu),*label;
+       double value=strtod(cell,&end);
+       if(end==cell||*end||!isfinite(value))
+         ERROR_exit("1dTrdm: labeled InputFile '%s' row %d has invalid time_value",fn,t+1);
+       if(!unit[0]||strlen(unit)>128||strpbrk(unit," \t\r\n")||strcmp(unit,ta->unit))
+         ERROR_exit("1dTrdm: labeled InputFile '%s' row %d has invalid or mismatched time_unit",fn,t+1);
+       if(ci>=0){
+         long ix;cell=DT_CELL(dt,t,ci);ix=strtol(cell,&end,10);
+         if(end==cell||*end||ix!=t)
+           ERROR_exit("1dTrdm: labeled InputFile '%s' row %d needs time_index %d",fn,t+1,t);
+       }
+       if(ta->label[t]==NULL){
+         int precision;
+         if(t>0&&value<=ta->value[t-1])
+           ERROR_exit("1dTrdm: labeled InputFile '%s': time_value must be strictly increasing",fn);
+         ta->index[t]=t;ta->value[t]=value;
+         /* Keep common latencies readable without merging distinct doubles. */
+         for(precision=6;precision<17;precision++){
+           snprintf(generated,sizeof(generated),"%.*g",precision,value);
+           if(strtod(generated,NULL)==value)break;
+         }
+         snprintf(generated,sizeof(generated),"%.*g%s",precision,value,unit);
+         label=cl>=0?DT_CELL(dt,t,cl):generated;
+         if(!label[0]||strlen(label)>511||strpbrk(label," \t\r\n"))
+           ERROR_exit("1dTrdm: labeled InputFile '%s' row %d needs a single-token time_label (max 511 characters)",fn,t+1);
+         if(find_label(ta->label,t,label)>=0)
+           ERROR_exit("1dTrdm: labeled InputFile '%s' repeats time_label '%s'",fn,label);
+         ta->label[t]=strdup(label);
+       } else {
+         if(value!=ta->value[t])
+           ERROR_exit("1dTrdm: labeled InputFile '%s' row %d time_value disagrees with axis '%s'",fn,t+1,ta->source);
+         if(cl>=0&&strcmp(DT_CELL(dt,t,cl),ta->label[t]))
+           ERROR_exit("1dTrdm: labeled InputFile '%s' row %d time_label disagrees with axis '%s'",fn,t+1,ta->source);
+       }
+     }
+     o->x[i]=THD_datatable_numeric_columns(dt,(const char * const *)fa->label,fa->n,NULL,dt->nrow,err,sizeof(err));
+     if(o->x[i]==NULL)ERROR_exit("1dTrdm: labeled InputFile '%s': %s",fn,err);
+     THD_free_datatable(dt);
+   }
+}
+
 static void validate_crossnobis(TRDM_obs *o)
 {
    int s,p,c,i;for(s=0;s<o->nsub;s++){
@@ -665,10 +895,27 @@ static float cross_time_crossnobis_value(float **pa,float **pb,int np,int nc,
    return (float)(z/((double)np*(np-1)*nf));
 }
 
-static void write_matrix_checked(char *fname,THD_simmat *sm)
+static void write_matrix_checked(char *fname,THD_simmat *sm,int labeled,
+                                 char *axis,char **labels)
 {
+   FILE *fp;int i,j,failed;
    if(!THD_ok_overwrite()&&THD_is_file(fname))ERROR_exit("1dTrdm: output file '%s' already exists",fname);
-   if(!THD_simmat_write_1D(fname,sm))ERROR_exit("1dTrdm: cannot write '%s'",fname);
+   if(!labeled){
+     if(!THD_simmat_write_1D(fname,sm))ERROR_exit("1dTrdm: cannot write '%s'",fname);
+     return;
+   }
+   fp=fopen(fname,"w");if(fp==NULL)ERROR_exit("1dTrdm: cannot write '%s'",fname);
+   fprintf(fp,"# matrix_format labeled\n# matrix_kind %s\n# Columns: %s",
+           sm->is_dist?"dissimilarity":"similarity",axis);
+   for(j=0;j<sm->n;j++){fputc(' ',fp);THD_1D_print_token(fp,labels[j]);}
+   fputc('\n',fp);
+   for(i=0;i<sm->n;i++){
+     THD_1D_print_token(fp,labels[i]);
+     for(j=0;j<sm->n;j++)fprintf(fp," %.9g",sm->mat[(size_t)i*sm->n+j]);
+     fputc('\n',fp);
+   }
+   failed=ferror(fp);if(fclose(fp)!=0)failed=1;
+   if(failed)ERROR_exit("1dTrdm: cannot write '%s'",fname);
 }
 
 static void check_available(char *fname)
@@ -830,7 +1077,7 @@ static TRDM_infer *run_inference(THD_simmat ***rdm,TRDM_obs *o,int nwin,
 int main(int argc,char **argv)
 {
    char *obsfile=NULL,*timefile=NULL,*featfile=NULL,*neighfile=NULL,*prefix=NULL,*metric_s=NULL,*modelfile=NULL,*modelaxis=NULL;
-   int metric=0,width=1,step=1,reduce=REDUCE_MEAN,center=CENTER_NONE,series=SERIES_NONE,quiet=0,jobs=0,matrices=1;
+   int metric=0,width=1,step=1,reduce=REDUCE_MEAN,center=CENTER_NONE,series=SERIES_NONE,quiet=0,jobs=0,matrices=1,labeled=0,matrix_labeled=0;
    int cmp=CMP_SPEARMAN,dyn_cmp=0,cross_time=0,null_type=TNULL_SUBJECTS,nperm=10000,infer_opt=0;
    long seed=1234567L;
    int i,s,t,c,a,b,nwin,nfout;TRDM_obs *o;TRDM_time *ta;TRDM_feat *fa;TRDM_neigh *ng=NULL;
@@ -841,6 +1088,20 @@ int main(int argc,char **argv)
    for(i=1;i<argc;){
      if(strcmp(argv[i],"-help")==0||strcmp(argv[i],"-h")==0){usage_1dTrdm(2);return 0;}
      if(strcmp(argv[i],"-dataTable")==0){if(++i>=argc)ERROR_exit("need FILE after -dataTable");obsfile=argv[i++];continue;}
+     if(strcmp(argv[i],"-input_format")==0){
+       if(++i>=argc)ERROR_exit("need numeric|labeled after -input_format");
+       if(strcmp(argv[i],"numeric")==0)labeled=0;
+       else if(strcmp(argv[i],"labeled")==0)labeled=1;
+       else ERROR_exit("1dTrdm: -input_format must be numeric or labeled");
+       i++;continue;
+     }
+     if(strcmp(argv[i],"-matrix_format")==0){
+       if(++i>=argc)ERROR_exit("need numeric|labeled after -matrix_format");
+       if(strcmp(argv[i],"numeric")==0)matrix_labeled=0;
+       else if(strcmp(argv[i],"labeled")==0)matrix_labeled=1;
+       else ERROR_exit("1dTrdm: -matrix_format must be numeric or labeled");
+       i++;continue;
+     }
      if(strcmp(argv[i],"-time_axis")==0){if(++i>=argc)ERROR_exit("need FILE after -time_axis");timefile=argv[i++];continue;}
      if(strcmp(argv[i],"-feature_axis")==0){if(++i>=argc)ERROR_exit("need FILE after -feature_axis");featfile=argv[i++];continue;}
      if(strcmp(argv[i],"-feature_neighborhoods")==0){if(++i>=argc)ERROR_exit("need FILE after -feature_neighborhoods");neighfile=argv[i++];continue;}
@@ -871,21 +1132,26 @@ int main(int argc,char **argv)
      if(strcmp(argv[i],"-quiet")==0){quiet=1;i++;continue;}
      ERROR_message("1dTrdm: illegal option '%s'",argv[i]);suggest_best_prog_option(argv[0],argv[i]);return 1;
    }
-   if(!obsfile||!timefile||!featfile||!metric_s||!prefix)ERROR_exit("1dTrdm: need -dataTable, -time_axis, -feature_axis, -metric, and -prefix");
+   if(!obsfile||!metric_s||!prefix)ERROR_exit("1dTrdm: need -dataTable, -metric, and -prefix");
+   if(!labeled&&(!timefile||!featfile))ERROR_exit("1dTrdm: numeric input needs -time_axis and -feature_axis");
    if((modelfile==NULL)!=(modelaxis==NULL))ERROR_exit("1dTrdm: -model_mat and -model_conditions are required together");
    if(infer_opt&&modelfile==NULL)ERROR_exit("1dTrdm: -compare, -temporal_null, -nperm, and -seed require -model_mat/-model_conditions");
    if(strcmp(metric_s,"corr")==0)metric=SIM_PEARSON;else if(strcmp(metric_s,"cosine")==0)metric=SIM_COSINE;else if(strcmp(metric_s,"euclid")==0)metric=SIM_EUCLID;else if(strcmp(metric_s,"crossnobis")==0)metric=MET_CROSSNOBIS;else ERROR_exit("1dTrdm: -metric must be corr, cosine, euclid, or crossnobis");
    if(metric==MET_CROSSNOBIS&&center==CENTER_SUBJ)ERROR_exit("1dTrdm: crossnobis condition centering is partition, not subject");
    if(metric!=MET_CROSSNOBIS&&center==CENTER_PART)ERROR_exit("1dTrdm: partition centering applies only to crossnobis");
    if(cross_time&&metric!=MET_CROSSNOBIS)ERROR_exit("1dTrdm: -cross_time_crossnobis requires -metric crossnobis");
-   ta=read_time_axis(timefile);fa=read_feat_axis(featfile);if(neighfile)ng=read_neighborhoods(neighfile,fa);o=read_obs(obsfile,metric==MET_CROSSNOBIS);
+   ta=timefile?read_time_axis(timefile):NULL;fa=featfile?read_feat_axis(featfile):NULL;
+   o=read_obs(obsfile,metric==MET_CROSSNOBIS);
+   if(labeled)load_labeled_obs_data(o,&ta,&fa);
+   if(neighfile)ng=read_neighborhoods(neighfile,fa);
    if(modelfile)model=read_model_aligned(modelfile,modelaxis,o);
    if(width>ta->n)ERROR_exit("1dTrdm: window width %d exceeds %d input samples",width,ta->n);
    if(fa->n>INT_MAX/width)ERROR_exit("1dTrdm: window_width x feature count exceeds the supported integer range");
    if(metric!=MET_CROSSNOBIS&&((reduce==REDUCE_CONCAT)?width*fa->n:fa->n)<2)ERROR_exit("1dTrdm: ordinary RDM metrics need at least 2 output features");
    if(ng&&metric!=MET_CROSSNOBIS)for(i=0;i<ng->n;i++)if(((reduce==REDUCE_CONCAT)?width*ng->nfeat[i]:ng->nfeat[i])<2)
      ERROR_exit("1dTrdm: neighborhood '%s' has too few output features for an ordinary RDM",ng->label[i]);
-   load_obs_data(o,ta->n,fa->n);if(metric==MET_CROSSNOBIS)validate_crossnobis(o);else validate_ordinary(o);
+   if(!labeled)load_obs_data(o,ta->n,fa->n);
+   if(metric==MET_CROSSNOBIS)validate_crossnobis(o);else validate_ordinary(o);
    nwin=1+(ta->n-width)/step;nfout=(reduce==REDUCE_CONCAT)?width*fa->n:fa->n;
    if(ng&&ng->n>INT_MAX/nwin)ERROR_exit("1dTrdm: neighborhood x window cell count exceeds the supported integer range");
    if(series&&nwin<2)ERROR_exit("1dTrdm: -model_series_out needs at least 2 output windows for 3dRSA -model_series");
@@ -930,7 +1196,7 @@ int main(int argc,char **argv)
    preflight_outputs(prefix,o,nwin,series,matrices,(inf!=NULL||ninf!=NULL),dyn_cmp!=0,cross_time,ng);
    {char fn[THD_MAX_NAME];FILE *fp;
     snprintf(fn,sizeof(fn),"%s.trdm.1D",prefix);fp=open_output(fn);
-    fprintf(fp,"# 1dTrdm output version %s\n# observation table: %s\n# time axis: %s\n# feature axis: %s\n",TRDM_VERSION,obsfile,timefile,featfile);
+    fprintf(fp,"# 1dTrdm output version %s\n# observation table: %s\n# time axis: %s\n# feature axis: %s\n",TRDM_VERSION,obsfile,ta->source,fa->source);
     fprintf(fp,"# estimator: %s; windows width=%d step=%d reduction=%s; output features=%d\n",metric_s,width,step,(reduce==REDUCE_MEAN)?"mean":"concat",nfout);
     fprintf(fp,"# condition centering: %s\n# subjects=%d conditions=%d input_time=%d input_features=%d output_windows=%d\n",center==CENTER_NONE?"none":center==CENTER_SUBJ?"subject":"partition",o->nsub,o->ncond,ta->n,fa->n,nwin);
     fprintf(fp,"Subj TimeIndex TimeValue TimeUnit TimeLabel ConditionA ConditionB Dissimilarity\n");
@@ -945,7 +1211,9 @@ int main(int argc,char **argv)
       else{int n=0;for(i=0;i<o->nrow;i++)if(o->isub[i]==s&&o->icond[i]==c)n++;fprintf(fp,"%s %s all %d\n",o->subj[s],o->cond[c],n);}
     }
     fclose(fp);
-    snprintf(fn,sizeof(fn),"%s.trdm.meta",prefix);fp=open_output(fn);fprintf(fp,"format 1dTrdm\nversion %s\nobservation_table %s\ntime_axis %s\nfeature_axis %s\nmetric %s\nwindow_width %d\nwindow_step %d\nwindow_reduce %s\ncondition_centering %s\nsubjects %d\nconditions %d\ninput_time %d\ninput_features %d\noutput_windows %d\nsubject_matrices %s\nmodel_series %s\ninference %s\n",TRDM_VERSION,obsfile,timefile,featfile,metric_s,width,step,reduce==REDUCE_MEAN?"mean":"concat",center==CENTER_NONE?"none":center==CENTER_SUBJ?"subject":"partition",o->nsub,o->ncond,ta->n,fa->n,nwin,matrices?"written":"not written",series==SERIES_INDEPENDENT?"independent-sample group mean":series==SERIES_PAIRED?"paired subject-indexed":series==SERIES_LOO?"leave-one-subject-out group mean":"not written",inf?"temporal model comparison":ninf?"time-x-neighborhood model comparison":"not requested");
+    snprintf(fn,sizeof(fn),"%s.trdm.meta",prefix);fp=open_output(fn);fprintf(fp,"format 1dTrdm\nversion %s\nobservation_table %s\ntime_axis %s\nfeature_axis %s\nmetric %s\nwindow_width %d\nwindow_step %d\nwindow_reduce %s\ncondition_centering %s\nsubjects %d\nconditions %d\ninput_time %d\ninput_features %d\noutput_windows %d\nsubject_matrices %s\nmodel_series %s\ninference %s\n",TRDM_VERSION,obsfile,ta->source,fa->source,metric_s,width,step,reduce==REDUCE_MEAN?"mean":"concat",center==CENTER_NONE?"none":center==CENTER_SUBJ?"subject":"partition",o->nsub,o->ncond,ta->n,fa->n,nwin,matrices?"written":"not written",series==SERIES_INDEPENDENT?"independent-sample group mean":series==SERIES_PAIRED?"paired subject-indexed":series==SERIES_LOO?"leave-one-subject-out group mean":"not written",inf?"temporal model comparison":ninf?"time-x-neighborhood model comparison":"not requested");
+    fprintf(fp,"matrix_format %s\n",matrix_labeled?"labeled":"numeric");
+    fprintf(fp,"input_format %s\ntime_axis_origin %s\nfeature_axis_origin %s\n",labeled?"labeled":"numeric",timefile?"external":"embedded",featfile?"external":"embedded");
     fprintf(fp,"feature_neighborhoods %s\nneighborhood_count %d\nneighborhood_overlap allowed\nneighborhood_column_adjacency ignored\n",ng?neighfile:"not requested",ng?ng->n:0);
     if(ng)fprintf(fp,"neighborhood_time_cells %d\nneighborhood_cross_temporal_unique_cells %d\n",ng->n*nwin,ng->n*nwin*(nwin+1)/2);
     fprintf(fp,"rdm_dynamics %s\ncross_time_crossnobis %s\ncross_temporal_symmetry unique-triangle-A<=B\ncross_temporal_unique_cells %d\ncross_temporal_inference descriptive-only-not-performed\n",dyn_cmp==CMP_PEARSON?"pearson":dyn_cmp==CMP_SPEARMAN?"spearman":"not requested",cross_time?"balanced-ordered-independent-partition-pairs":"not requested",nwin*(nwin+1)/2);
@@ -1025,12 +1293,12 @@ int main(int argc,char **argv)
      }
      fclose(fp);
    }
-   if(matrices)for(s=0;s<o->nsub;s++){char *ss=safe_label(o->subj[s]);for(t=0;t<nwin;t++){char fn[THD_MAX_NAME];snprintf(fn,sizeof(fn),"%s_s%04d_%s_t%04d.1D",prefix,s,ss,t);write_matrix_checked(fn,rdm[s][t]);}free(ss);}
-   if(matrices&&dyn_cmp)for(s=0;s<o->nsub;s++){char fn[THD_MAX_NAME],*ss=safe_label(o->subj[s]);snprintf(fn,sizeof(fn),"%s_s%04d_%s_dynamics.1D",prefix,s,ss);write_matrix_checked(fn,dyn[s]);free(ss);}
-   if(matrices&&ng)for(s=0;s<o->nsub;s++){char *ss=safe_label(o->subj[s]);for(c=0;c<ng->n;c++){char *gg=safe_label(ng->label[c]);for(t=0;t<nwin;t++){char fn[THD_MAX_NAME];snprintf(fn,sizeof(fn),"%s_s%04d_%s_n%04d_%s_t%04d.1D",prefix,s,ss,c,gg,t);write_matrix_checked(fn,nrdm[s][c][t]);}if(dyn_cmp){char fn[THD_MAX_NAME];snprintf(fn,sizeof(fn),"%s_s%04d_%s_n%04d_%s_dynamics.1D",prefix,s,ss,c,gg);write_matrix_checked(fn,ndyn[s][c]);}free(gg);}free(ss);}
-   if(series==SERIES_INDEPENDENT){char list[THD_MAX_NAME];FILE *lf;snprintf(list,sizeof(list),"%s.model_series.1D",prefix);lf=open_output(list);fprintf(lf,"# independent-sample group mean from 1dTrdm; do not use for same-subject fusion\nTime ModelFile\n");for(t=0;t<nwin;t++){THD_simmat *gm=THD_simmat_new(o->ncond);char fn[THD_MAX_NAME],*base;for(a=0;a<o->ncond*o->ncond;a++){double z=0.0;for(s=0;s<o->nsub;s++)z+=rdm[s][t]->mat[a];gm->mat[a]=(float)(z/o->nsub);}gm->is_dist=1;snprintf(fn,sizeof(fn),"%s_group_t%04d.1D",prefix,t);write_matrix_checked(fn,gm);base=strrchr(fn,'/');fprintf(lf,"%s %s\n",wlabel[t],base?base+1:fn);THD_simmat_free(gm);}fclose(lf);}
+   if(matrices)for(s=0;s<o->nsub;s++){char *ss=safe_label(o->subj[s]);for(t=0;t<nwin;t++){char fn[THD_MAX_NAME];snprintf(fn,sizeof(fn),"%s_s%04d_%s_t%04d.1D",prefix,s,ss,t);write_matrix_checked(fn,rdm[s][t],matrix_labeled,"Condition",o->cond);}free(ss);}
+   if(matrices&&dyn_cmp)for(s=0;s<o->nsub;s++){char fn[THD_MAX_NAME],*ss=safe_label(o->subj[s]);snprintf(fn,sizeof(fn),"%s_s%04d_%s_dynamics.1D",prefix,s,ss);write_matrix_checked(fn,dyn[s],matrix_labeled,"Time",wlabel);free(ss);}
+   if(matrices&&ng)for(s=0;s<o->nsub;s++){char *ss=safe_label(o->subj[s]);for(c=0;c<ng->n;c++){char *gg=safe_label(ng->label[c]);for(t=0;t<nwin;t++){char fn[THD_MAX_NAME];snprintf(fn,sizeof(fn),"%s_s%04d_%s_n%04d_%s_t%04d.1D",prefix,s,ss,c,gg,t);write_matrix_checked(fn,nrdm[s][c][t],matrix_labeled,"Condition",o->cond);}if(dyn_cmp){char fn[THD_MAX_NAME];snprintf(fn,sizeof(fn),"%s_s%04d_%s_n%04d_%s_dynamics.1D",prefix,s,ss,c,gg);write_matrix_checked(fn,ndyn[s][c],matrix_labeled,"Time",wlabel);}free(gg);}free(ss);}
+   if(series==SERIES_INDEPENDENT){char list[THD_MAX_NAME];FILE *lf;snprintf(list,sizeof(list),"%s.model_series.1D",prefix);lf=open_output(list);fprintf(lf,"# independent-sample group mean from 1dTrdm; do not use for same-subject fusion\nTime ModelFile\n");for(t=0;t<nwin;t++){THD_simmat *gm=THD_simmat_new(o->ncond);char fn[THD_MAX_NAME],*base;for(a=0;a<o->ncond*o->ncond;a++){double z=0.0;for(s=0;s<o->nsub;s++)z+=rdm[s][t]->mat[a];gm->mat[a]=(float)(z/o->nsub);}gm->is_dist=1;snprintf(fn,sizeof(fn),"%s_group_t%04d.1D",prefix,t);write_matrix_checked(fn,gm,matrix_labeled,"Condition",o->cond);base=strrchr(fn,'/');fprintf(lf,"%s %s\n",wlabel[t],base?base+1:fn);THD_simmat_free(gm);}fclose(lf);}
    if(series==SERIES_PAIRED){char list[THD_MAX_NAME];FILE *lf;snprintf(list,sizeof(list),"%s.paired_model_series.1D",prefix);lf=open_output(list);fprintf(lf,"# mode paired: each subject's own temporal RDM\nSubj Time ModelFile\n");for(s=0;s<o->nsub;s++){char *ss=safe_label(o->subj[s]);for(t=0;t<nwin;t++){char fn[THD_MAX_NAME];snprintf(fn,sizeof(fn),"%s_s%04d_%s_t%04d.1D",prefix,s,ss,t);{char *base=strrchr(fn,'/');fprintf(lf,"%s %s %s\n",o->subj[s],wlabel[t],base?base+1:fn);}}free(ss);}fclose(lf);}
-   if(series==SERIES_LOO){char list[THD_MAX_NAME];FILE *lf;snprintf(list,sizeof(list),"%s.loo_model_series.1D",prefix);lf=open_output(list);fprintf(lf,"# mode loo: each model is the mean temporal RDM of every other subject\nSubj Time ModelFile\n");for(s=0;s<o->nsub;s++){char *ss=safe_label(o->subj[s]);for(t=0;t<nwin;t++){THD_simmat *gm=THD_simmat_new(o->ncond);char fn[THD_MAX_NAME],*base;for(a=0;a<o->ncond*o->ncond;a++){double z=0.0;for(i=0;i<o->nsub;i++)if(i!=s)z+=rdm[i][t]->mat[a];gm->mat[a]=(float)(z/(o->nsub-1));}gm->is_dist=1;snprintf(fn,sizeof(fn),"%s_loo_s%04d_%s_t%04d.1D",prefix,s,ss,t);write_matrix_checked(fn,gm);base=strrchr(fn,'/');fprintf(lf,"%s %s %s\n",o->subj[s],wlabel[t],base?base+1:fn);THD_simmat_free(gm);}free(ss);}fclose(lf);}
+   if(series==SERIES_LOO){char list[THD_MAX_NAME];FILE *lf;snprintf(list,sizeof(list),"%s.loo_model_series.1D",prefix);lf=open_output(list);fprintf(lf,"# mode loo: each model is the mean temporal RDM of every other subject\nSubj Time ModelFile\n");for(s=0;s<o->nsub;s++){char *ss=safe_label(o->subj[s]);for(t=0;t<nwin;t++){THD_simmat *gm=THD_simmat_new(o->ncond);char fn[THD_MAX_NAME],*base;for(a=0;a<o->ncond*o->ncond;a++){double z=0.0;for(i=0;i<o->nsub;i++)if(i!=s)z+=rdm[i][t]->mat[a];gm->mat[a]=(float)(z/(o->nsub-1));}gm->is_dist=1;snprintf(fn,sizeof(fn),"%s_loo_s%04d_%s_t%04d.1D",prefix,s,ss,t);write_matrix_checked(fn,gm,matrix_labeled,"Condition",o->cond);base=strrchr(fn,'/');fprintf(lf,"%s %s %s\n",o->subj[s],wlabel[t],base?base+1:fn);THD_simmat_free(gm);}free(ss);}fclose(lf);}
    if(!quiet)INFO_message("1dTrdm: wrote %d subject x %d window RDMs, %d conditions, to prefix %s%s%s%s%s%s",o->nsub,nwin,o->ncond,prefix,series==SERIES_INDEPENDENT?" plus independent model series":series==SERIES_PAIRED?" plus paired subject model series":series==SERIES_LOO?" plus LOO subject model series":"",(inf||ninf)?" plus temporal inference":"",dyn_cmp?" plus RDM dynamics":"",cross_time?" plus cross-time crossnobis":"",ng?" plus feature neighborhoods":"");
    for(s=0;s<o->nsub;s++){for(t=0;t<nwin;t++)THD_simmat_free(rdm[s][t]);free(rdm[s]);}free(rdm);
    if(dyn){for(s=0;s<o->nsub;s++)THD_simmat_free(dyn[s]);free(dyn);}

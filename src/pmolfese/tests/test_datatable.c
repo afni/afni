@@ -163,6 +163,61 @@ static int check_numeric_columns(const char *fn)
    return 0;
 }
 
+static int check_labeled_matrix(const char *filename)
+{
+   const char *order[]={"place #1","face \"A\"","Subj"};
+   const char *missing[]={"place #1","face \"A\"","missing"};
+   THD_labeled_matrix *m;char err[512],tiny[2];FILE *fp;int i;
+   const float want[]={0,2,-3,2,0,4,-3,4,0};
+   fp=fopen(filename,"w");CHECK(fp,"open labeled matrix fixture");
+   fputs("# matrix_format labeled\n# matrix_kind dissimilarity\n"
+         "# Columns: Condition Subj \"face \"\"A\"\"\" \"place #1\"\n"
+         "\"place #1\" -3 2 0\nSubj 0 4 -3\n\"face \"\"A\"\"\" 4 0 2\n",fp);
+   fclose(fp);
+   m=THD_read_labeled_matrix((char *)filename,"Condition",3,order,err,sizeof(err));
+   CHECK(m && !err[0],"read labeled matrix with explicit order");
+   CHECK(m->n==3 && !strcmp(m->kind,"dissimilarity"),"matrix shape and kind");
+   for(i=0;i<9;i++)CHECK(m->mat[i]==want[i],"independent row/column alignment and negative values");
+   for(i=0;i<3;i++)CHECK(!strcmp(m->label[i],order[i]),"quoted labels preserve exact identity");
+   THD_free_labeled_matrix(m);
+   m=THD_read_labeled_matrix((char *)filename,"Condition",0,NULL,err,sizeof(err));
+   CHECK(m && !strcmp(m->label[0],"Subj") && m->mat[1]==4,"default order follows columns, including reserved table names");
+   THD_free_labeled_matrix(m);
+   CHECK(!THD_read_labeled_matrix((char *)filename,"Condition",3,missing,err,sizeof(err)) && strstr(err,"missing"),"reject missing condition");
+   CHECK(!THD_read_labeled_matrix((char *)filename,"Time",0,NULL,tiny,sizeof(tiny)) && !tiny[1],"reject wrong axis with bounded diagnostic");
+   CHECK(!THD_read_labeled_matrix((char *)filename,"Condition",2,order,err,sizeof(err)),"reject different condition count");
+   {
+     const char *bad[]={
+       "Condition A A\nA 0 1\nB 1 0\n",
+       "Condition A B\nA 0 1\nA 1 0\n",
+       "Condition A B\nA 0 1\nb 1 0\n",
+       "Condition A B\nA 0 nan\nB 1 0\n",
+       "Condition A B\nA 0 1e99\nB 1 0\n",
+       "Condition A B\nA 0 1x\nB 1 0\n",
+       "Condition A B\nA 0 1\n",
+       "# matrix_kind unknown\nCondition A B\nA 0 1\nB 1 0\n",
+       "# matrix_kind\nCondition A B\nA 0 1\nB 1 0\n",
+       "# matrix_kind similarity\n# matrix_kind dissimilarity\nCondition A B\nA 0 1\nB 1 0\n"
+     };
+     for(i=0;i<(int)(sizeof(bad)/sizeof(bad[0]));i++){
+       fp=fopen(filename,"w");CHECK(fp,"open malformed matrix fixture");fputs(bad[i],fp);fclose(fp);
+       CHECK(!THD_read_labeled_matrix((char *)filename,"Condition",0,NULL,err,sizeof(err)) && err[0],"reject malformed matrix contract");
+     }
+   }
+   fp=fopen(filename,"w");CHECK(fp,"open similarity matrix fixture");
+   fputs("# matrix_kind similarity\nCondition A B\nB 0.25 1\nA 1 0.25\n",fp);fclose(fp);
+   m=THD_read_labeled_matrix((char *)filename,"Condition",0,NULL,err,sizeof(err));
+   CHECK(m && !strcmp(m->kind,"similarity") && m->mat[0]==1,"generic reader retains similarity semantics for caller");
+   THD_free_labeled_matrix(m);
+   fp=fopen(filename,"w");CHECK(fp,"open reserved-name matrix fixture");
+   fputs("Condition InputFile Subj\nSubj 2 0\nInputFile 0 2\n",fp);fclose(fp);
+   m=THD_read_labeled_matrix((char *)filename,"Condition",0,NULL,err,sizeof(err));
+   CHECK(m && !strcmp(m->label[0],"InputFile") && m->mat[1]==2,
+         "matrix InputFile labels do not acquire dataset-path semantics");
+   THD_free_labeled_matrix(m);
+   return 0;
+}
+
 int main( int argc , char **argv )
 {
    char fn[512],printed[512],*dir=getenv("TMPDIR") ;
@@ -196,6 +251,7 @@ int main( int argc , char **argv )
    THD_free_datatable(roundtrip);
    CHECK(check_concat(printed)==0,"shared row concatenation");
    CHECK(check_numeric_columns(printed)==0,"shared numeric column extraction");
+   CHECK(check_labeled_matrix(printed)==0,"labeled square matrix reading and alignment");
    remove(printed) ; remove(fn) ;
    (void)argc ; (void)argv ;
    printf("thd_datatable tests passed\n") ;

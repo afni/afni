@@ -1,6 +1,7 @@
 #include "thd_rsa.h"
 
 #include <math.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -320,12 +321,225 @@ static int participant_outcome_test( void )
    return fail;
 }
 
+/* Direct library contracts: folds exclude held data, resampling preserves
+   multiplicity without artificial diagonals, and paired nulls stay centered. */
+static int fitted_workflow_test(void)
+{
+   int fold[6]={0,0,0,1,1,1},comp=0,s,i,j,k,fail=0;
+   float triangles[45],z[6],weights[1],base[6],r;
+   unsigned char valid[6];
+   THD_simmat *model=THD_simmat_new(6),*models[1]={model};
+   THD_rsa_fitmodel fit={1,&comp,0.1f};
+   THD_rsa_condfold folds={6,2,fold};
+   THD_rsa_fitws *ws=THD_rsa_fitws_new(THD_RSA_CONDITIONS,3,6,1);
+   if(!model || !ws) return 1;
+   for(i=0,k=0;i<6;i++)for(j=i+1;j<6;j++,k++){
+      float v=(float)(i*i+j+1);
+      model->mat[i*6+j]=model->mat[j*6+i]=v;
+      for(s=0;s<3;s++)triangles[s*15+k]=v*(s+1)+s;
+   }
+   r=THD_rsa_fit_cv(THD_RSA_CONDITIONS,3,6,triangles,NULL,&fit,models,NULL,&folds,ws,weights,z,valid);
+   if(r<0.99f || !closef(weights[0],1)) fail=1;
+   for(i=0;i<6;i++){ if(!valid[i]) fail=1; base[i]=z[i]; }
+   /* Cross-boundary dyads must enter neither training nor scoring. */
+   for(i=0,k=0;i<6;i++)for(j=i+1;j<6;j++,k++)if(fold[i]!=fold[j])
+      for(s=0;s<3;s++)triangles[s*15+k]=10000*(k+1);
+   THD_rsa_fit_cv(THD_RSA_CONDITIONS,3,6,triangles,NULL,&fit,models,NULL,&folds,ws,weights,z,valid);
+   for(i=0;i<6;i++)if(!valid[i] || z[i]!=base[i])fail=1;
+   for(i=0;i<45;i++)triangles[i]=1;
+   THD_rsa_fit_cv(THD_RSA_CONDITIONS,3,6,triangles,NULL,&fit,models,NULL,&folds,ws,weights,z,valid);
+   for(i=0;i<6;i++)if(valid[i])fail=1;
+   THD_rsa_fitws_free(ws);THD_simmat_free(model);
+   if(THD_rsa_fitws_new(99,3,6,1)!=NULL)fail=1;
+   if(THD_rsa_fitws_new(THD_RSA_CONDITIONS,3,6,0)!=NULL)fail=1;
+   if(THD_rsa_fitws_new(THD_RSA_CONDITIONS,INT_MAX,INT_MAX,1)!=NULL)fail=1;
+   if(fail)fprintf(stderr,"FAIL fitted workflow fold isolation/degeneracy\n");
+   return fail;
+}
+
+static int resample_workflow_test(void)
+{
+   int group[6]={0,0,1,1,1,2},b,i,j,fail=0;char err[256];
+   THD_rsa_cond_resample *a=THD_rsa_cond_resample_build(6,3,group,101,19,err,sizeof(err));
+   THD_rsa_cond_resample *bset=THD_rsa_cond_resample_build(6,3,group,101,19,err,sizeof(err));
+   if(!a || !bset){fprintf(stderr,"FAIL condition resampling: %s\n",err);return 1;}
+   if(a->offset[101]!=bset->offset[101] || memcmp(a->index,bset->index,a->offset[101]*sizeof(int)))fail=1;
+   for(b=0;b<101;b++){
+      int count[6]={0},unique=0;
+      for(i=a->offset[b];i<a->offset[b+1];i++)count[a->index[i]]++;
+      if(count[0]!=count[1] || count[2]!=count[3] || count[3]!=count[4])fail=1;
+      for(i=0;i<6;i++)unique+=count[i]>0;
+      if(a->valid[b]!=(unique>=3))fail=1;
+   }
+   THD_rsa_cond_resample_free(a);THD_rsa_cond_resample_free(bset);
+   group[0]=-1;
+   a=THD_rsa_cond_resample_build(6,3,group,101,19,err,sizeof(err));
+   if(a){fail=1;THD_rsa_cond_resample_free(a);}
+   /* Explicit duplicate draw [0,0,1,2]: retain repeated real dyads. */
+   {
+      int ix[4]={0,0,1,2},off[2]={0,4},ni=4;
+      float tri[3]={2,5,9},y[6],xv[6],*x[]={xv},want[5]={2,5,2,5,9};
+      THD_simmat *m=triangle_matrix(tri,0),*models[]={m};
+      THD_rsa_cond_resample draw={0};draw.ncond=3;draw.index=ix;draw.offset=off;draw.nitem=&ni;
+      if(THD_rsa_cond_boot_tri(tri,1,models,&draw,0,y,x)!=5)fail=1;
+      for(j=0;j<5;j++)if(y[j]!=want[j] || xv[j]!=want[j])fail=1;
+      THD_simmat_free(m);
+   }
+   if(fail)fprintf(stderr,"FAIL grouped resampling/missing diagonals\n");
+   return fail;
+}
+
+static int bootstrap_workflow_test(void)
+{
+   int ix[9]={0,1,2, 0,0,0, 2,2,2},fail=0;
+   THD_resample_set rs={0};
+   float za[3]={1,2,3},zb[3]={0,0,0},draw[3],nullabs[3],lo,hi;
+   unsigned char valid[3]={1,1,1};THD_permstat ps;
+   rs.nobs=3;rs.nresample=3;rs.index=ix;
+   THD_rsa_boot_subject_mean(3,za,&rs,0,0.5f,draw,&lo,&hi);
+   if(lo!=1.5f || hi!=2.5f)fail=1;
+   ps=THD_rsa_fit_superiority_test(3,1,za,valid,zb,valid,&rs,draw,nullabs);
+   if(ps.stat!=2 || ps.pval!=0.25f || nullabs[0]!=0 || nullabs[1]!=1 || nullabs[2]!=1)fail=1;
+   valid[0]=valid[1]=valid[2]=0;
+   ps=THD_rsa_fit_superiority_test(3,1,za,valid,zb,valid,&rs,draw,nullabs);
+   if(ps.pval!=-1 || ps.stat!=0)fail=1;
+   if(fail)fprintf(stderr,"FAIL bootstrap interval/paired centered null\n");
+   return fail;
+}
+
+/* Opposite run effects must cancel before absolute null statistics are formed.
+   A run-varying model overrides the fixed fallback; no-permutation calls retain
+   effects but mark all p-values unavailable. */
+static int runresolved_test(void)
+{
+   int perm[12]={0,1,2,3, 1,0,2,3, 3,2,1,0},i,fail=0,nge[2],cnge[1];
+   signed char signs[12]={1,1,1,1,1,1,1,1,1,1,1,1};
+   PERM_set ps={3,4,0,perm,signs};
+   float tri[6]={1,2,4,8,16,32},neg[6],nt[12],weight[2]={1,-1};
+   float r[2],p[2],z[2],mean,mp,mz,c,cp,cz,rn[6],mn[3],cn[3],csum;
+   float pr[2],mpr,cpr;
+   THD_simmat *a=THD_simmat_new(4),*b=THD_simmat_new(4),*neural[2],*vary[2];
+   THD_rdm_ws *ws=THD_rdm_ws_new(4,1);
+   THD_rsa_run_model model;
+   if(!a || !b || !ws){fail=1;goto done;}
+   for(i=0;i<6;i++)neg[i]=-tri[i];
+   THD_tri_to_simmat(4,tri,a);THD_tri_to_simmat(4,neg,b);
+   neural[0]=a;neural[1]=b;vary[0]=a;vary[1]=b;
+   THD_rsa_runresolved_mantel(neural,2,a,NULL,CMP_PEARSON,&ps,ws,nt,
+      r,p,z,&mean,&mp,&mz,rn,mn,nge,1,weight,&c,&cp,&cz,cn,cnge,&csum);
+   if(!closef(r[0],1) || !closef(r[1],-1) || !closef(mean,0) || mp!=1 || !closef(c,2))fail=1;
+   for(i=0;i<3;i++)if(!closef(mn[i],0) || !closef(cn[i],2*rn[i]))fail=1;
+   THD_rsa_runresolved_mantel(neural,2,a,vary,CMP_PEARSON,NULL,ws,nt,
+      r,p,z,&mean,&mp,&mz,NULL,NULL,NULL,1,weight,&c,&cp,&cz,NULL,NULL,NULL);
+   if(!closef(mean,1) || !closef(c,0) || p[0]!=-1 || p[1]!=-1 || mp!=-1 || cp!=-1)fail=1;
+
+   model.mat=a;model.run_mat=NULL;
+   if(THD_rsa_runresolved_regress(neural,2,&model,1,CMP_PEARSON,&ps,ws,
+      1,weight,r,pr,p,z,&mean,&mpr,&mp,&mz,&c,&cpr,&cp,&cz,rn,mn,cn))fail=1;
+   if(!closef(r[0],1) || !closef(r[1],-1) || !closef(mean,0) || mp!=1 || !closef(c,2))fail=1;
+   for(i=0;i<3;i++)if(!closef(mn[i],0) || !closef(cn[i],2*rn[i]))fail=1;
+   model.run_mat=vary;
+   if(THD_rsa_runresolved_regress(neural,2,&model,1,CMP_PEARSON,NULL,ws,
+      1,weight,r,pr,p,z,&mean,&mpr,&mp,&mz,&c,&cpr,&cp,&cz,NULL,NULL,NULL))fail=1;
+   if(!closef(mean,1) || !closef(c,0) || p[0]!=-1 || p[1]!=-1 || mp!=-1 || cp!=-1)fail=1;
+   if(THD_rsa_runresolved_regress(neural,2,&model,1,CMP_PEARSON,&ps,ws,
+      0,NULL,r,pr,p,z,&mean,&mpr,&mp,&mz,NULL,NULL,NULL,NULL,NULL,mn,NULL))fail=1;
+   if(!closef(mean,1))fail=1;
+done:
+   THD_simmat_free(a);THD_simmat_free(b);THD_rdm_ws_free(ws);
+   if(fail)fprintf(stderr,"FAIL run-resolved signed aggregation/model views\n");
+   return fail;
+}
+
+/* Independent O(T^2) DFT checks odd/even phase-surrogate power, DC/Nyquist,
+   identity reconstruction, deterministic draws, and immutable cached spectra. */
+static int phase_surrogate_test(void)
+{
+   int nt,s,t,k,fail=0; const double pi=acos(-1.0);
+   for(nt=7;nt<=8;nt++){
+      float input[32],out[32],again[32],sc1[8],sc2[8];
+      THD_rsa_complex spec[32],saved[32],work[8];
+      THD_phase_set *ps=THD_phase_set_build(4,nt,5,73);
+      THD_simmat *sm=THD_simmat_new(4);
+      if(!ps || !sm)return 1;
+      for(s=0;s<4;s++)for(t=0;t<nt;t++)
+         input[s*nt+t]=(float)(s+2+sin(2*pi*t/nt+s)+0.3*cos(4*pi*t/nt)+0.2*(t%2?1:-1));
+      if(THD_rsa_phase_prepare(4,nt,input,spec))fail=1;
+      memcpy(saved,spec,4*nt*sizeof(*spec));
+      if(THD_rsa_phase_draw(ps,0,spec,work,out,sm,SIM_PEARSON,sc1,sc2))fail=1;
+      for(t=0;t<4*nt;t++)if(fabsf(input[t]-out[t])>2e-5f)fail=1;
+      if(THD_rsa_phase_draw(ps,1,spec,work,out,sm,SIM_PEARSON,sc1,sc2))fail=1;
+      if(THD_rsa_phase_draw(ps,1,spec,work,again,sm,SIM_PEARSON,sc1,sc2))fail=1;
+      if(memcmp(out,again,4*nt*sizeof(float)) || memcmp(saved,spec,4*nt*sizeof(*spec)))fail=1;
+      for(s=0;s<4;s++)for(k=0;k<nt;k++){
+         double ar=0,ai=0,br=0,bi=0;
+         for(t=0;t<nt;t++){
+            double co=cos(2*pi*k*t/nt),si=sin(2*pi*k*t/nt);
+            ar+=input[s*nt+t]*co;ai+=input[s*nt+t]*si;
+            br+=out[s*nt+t]*co;bi+=out[s*nt+t]*si;
+         }
+         if(fabs(hypot(ar,ai)-hypot(br,bi))>1e-4)fail=1;
+         if(k==0 || (nt%2==0 && k==nt/2))
+            if(fabs(ar-br)>1e-4 || fabs(ai-bi)>1e-4)fail=1;
+      }
+      THD_phase_set_free(ps);THD_simmat_free(sm);
+   }
+   if(fail)fprintf(stderr,"FAIL phase surrogate identity/power/DC/Nyquist\n");
+   return fail;
+}
+
+/* Direct shifted-series oracle for synchronized primary and paired nulls. */
+static int temporal_inference_test(void)
+{
+   int s,t,d,m,fail=0,ge[2]={0},cge=0;
+   float input[32],shifted[32],tri[6]={1,2,3,5,4,6},neg[6];
+   float sc1[8],sc2[8],y[6],a[6],b[6],r[2],effect[2],p[2],z[2],nulls[10];
+   float contrast,cp,cz,cn[5],lag[48],prep[32],norm[4];
+   THD_simmat *neural=THD_simmat_new(4),*scratch=THD_simmat_new(4);
+   THD_simmat *models[2]={THD_simmat_new(4),THD_simmat_new(4)};
+   THD_timeshift_set *ts=THD_timeshift_set_build(4,8,5,1,61);
+   THD_rdm_ws *ws=THD_rdm_ws_new(4,2);
+   THD_rsa_contrast pair={0,1};
+   THD_rsa_temporal_workspace tw={0};
+   if(!neural || !scratch || !models[0] || !models[1] || !ts || !ws)return 1;
+   for(s=0;s<4;s++)for(t=0;t<8;t++)input[s*8+t]=(float)(sin(t*(s+1)*0.71)+cos(t*0.42+s));
+   for(t=0;t<6;t++)neg[t]=-tri[t];
+   THD_tri_to_simmat(4,tri,models[0]);THD_tri_to_simmat(4,neg,models[1]);
+   THD_simmat_fill_from_features(neural,8,input,SIM_PEARSON,sc1,sc2);
+   tw.lagtab=lag;tw.prep=prep;tw.norm=norm;tw.nullmat=scratch;
+   THD_rsa_temporal_infer(neural,2,models,0,NULL,0,1,&pair,input,SIM_PEARSON,
+      CMP_PEARSON,ts,NULL,ws,&tw,r,effect,p,z,nulls,&contrast,&cp,&cz,cn);
+   for(d=0;d<5;d++){
+      float corr[2];
+      for(s=0;s<4;s++)for(t=0;t<8;t++)shifted[s*8+t]=input[s*8+(t+ts->offset[d*4+s])%8];
+      THD_simmat_fill_from_features(scratch,8,shifted,SIM_PEARSON,sc1,sc2);
+      THD_simmat_to_tri(scratch,y);
+      for(m=0;m<2;m++){
+         corr[m]=THD_tri_corr(6,y,m?neg:tri,CMP_PEARSON,a,b);
+         if(fabsf(nulls[m*5+d]-fabsf(corr[m]))>1e-5f)fail=1;
+         if(d==0 && (fabsf(r[m]-corr[m])>1e-5f || r[m]!=effect[m]))fail=1;
+         if(fabsf(corr[m])>=fabsf(r[m])-1e-6f)ge[m]++;
+      }
+      if(fabsf(cn[d]-fabsf(corr[0]-corr[1]))>1e-5f)fail=1;
+      if(fabsf(corr[0]-corr[1])>=fabsf(contrast)-1e-6f)cge++;
+   }
+   for(m=0;m<2;m++)if(!closef(p[m],ge[m]/5.0f))fail=1;
+   if(!closef(cp,cge/5.0f) || !closef(contrast,r[0]-r[1]))fail=1;
+   THD_simmat_free(neural);THD_simmat_free(scratch);
+   THD_simmat_free(models[0]);THD_simmat_free(models[1]);
+   THD_timeshift_set_free(ts);THD_rdm_ws_free(ws);
+   if(fail)fprintf(stderr,"FAIL temporal inference shifted-series oracle\n");
+   return fail;
+}
+
 int main( void )
 {
    int fail=condition_rdm_test()+second_order_test()+masked_rdm_test()+noise_failure_test()
            +pearson_tie_precision_test()+pearson_lag_precision_test()
-           +participant_outcome_test() ;
+           +participant_outcome_test()+fitted_workflow_test()
+           +resample_workflow_test()+bootstrap_workflow_test()+runresolved_test()
+           +phase_surrogate_test()+temporal_inference_test() ;
    if( fail ) return 1 ;
-   puts("PASS thd_rsa condition, subject, mean, and second-order RDM construction") ;
+   puts("PASS thd_rsa geometry, fitted CV, grouped resampling, bootstrap, run-resolved and temporal inference") ;
    return 0 ;
 }

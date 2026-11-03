@@ -2,6 +2,7 @@
 """Independent numeric and contract regression gate for 1dTrdm."""
 
 import argparse
+import csv
 import os
 import shutil
 import subprocess
@@ -304,6 +305,262 @@ def trdm_cmd(binary, fx, prefix, metric, width=1, step=1, reduce="mean",
     return cmd
 
 
+def check_labeled_inputs(binary, fx, work, check):
+    """Exercise the labeled loader against the existing numeric input path."""
+    import numpy as np
+    records = []
+    for i, row in enumerate(fx["records"]):
+        path = "labeled_" + row[-1]
+        values = [line.split() for line in open(os.path.join(work, row[-1]))]
+        # Establish the familiar order in the first file, shuffle subsequent
+        # files independently, and move the time columns among the features.
+        order = list(range(fx["nf"]))
+        if i:
+            order = np.random.default_rng(i).permutation(fx["nf"]).tolist()
+        with open(os.path.join(work, path), "w") as f:
+            f.write(("# Columns: " if i % 2 else "") +
+                    "time_value " + " ".join("f%02d" % j for j in order) +
+                    " time_unit time_label time_index\n")
+            for t, vals in enumerate(values):
+                f.write("%.6f %s s t%03d %d\n" %
+                        (-0.1 + 0.05 * t, " ".join(vals[j] for j in order), t, t))
+        records.append(row[:-1] + (path,))
+
+    obs = os.path.join(work, "labeled_observations.txt")
+
+    def write_records(path, rows):
+        with open(path, "w") as f:
+            f.write("Subj Observation Condition Partition InputFile\n")
+            for row in rows:
+                f.write("%s %s %s %s %s\n" % row)
+
+    write_records(obs, records)
+
+    def command(prefix, metric="corr", table=obs, axes=(), **kwargs):
+        cmd = trdm_cmd(binary, fx, prefix, metric, obs=table, **kwargs)
+        for opt in ("-time_axis", "-feature_axis"):
+            if opt not in axes:
+                ix = cmd.index(opt)
+                del cmd[ix:ix + 2]
+        return cmd + ["-input_format", "labeled"]
+
+    cases = [("corr", 1, "mean", "none"), ("cosine", 2, "mean", "subject"),
+             ("euclid", 2, "concat", "none"), ("crossnobis", 2, "concat", "partition")]
+    for metric, width, reduce, center in cases:
+        old = os.path.join(work, "labeled_reference_" + metric)
+        new = os.path.join(work, "labeled_result_" + metric)
+        extra = ["-model_mat", fx["modelfile"], "-model_conditions", fx["modelaxis"],
+                 "-nperm", "16", "-seed", "123", "-rdm_dynamics", "pearson"]
+        rc, out = run(trdm_cmd(binary, fx, old, metric, width=width, reduce=reduce,
+                              center=center) + extra)
+        rn, on = run(command(new, metric, width=width, reduce=reduce, center=center) + extra,
+                     cwd=os.path.dirname(work))
+        suffixes = [".trdm.1D", ".trdm.time.1D", ".trdm.features.1D",
+                    ".trdm.fits.1D", ".trdm.inference.1D", ".trdm.dynamics.1D"]
+        check("labeled %s equals numeric RDMs, inference, dynamics and axes" % metric,
+              rc == rn == 0 and all(read_long(old + suf) == read_long(new + suf)
+                                    for suf in suffixes), (out + on)[-500:])
+
+    reference_rows = read_long(os.path.join(work, "labeled_reference_corr.trdm.1D"))
+    for ix, axes in enumerate([("-time_axis",), ("-feature_axis",),
+                               ("-time_axis", "-feature_axis")]):
+        prefix = os.path.join(work, "labeled_external_%d" % ix)
+        rc, out = run(command(prefix, axes=axes))
+        check("labeled agrees with supplied " + ", ".join(axes),
+              rc == 0 and read_long(prefix + ".trdm.1D") == reference_rows, out[-500:])
+
+    # A supplied feature axis controls order, including neighborhood lookup.
+    reverse_axis = os.path.join(work, "labeled_reverse_features.txt")
+    with open(reverse_axis, "w") as f:
+        f.write("feature_label\n" + "\n".join("f%02d" % j for j in reversed(range(fx["nf"]))) + "\n")
+    prefix = os.path.join(work, "labeled_reverse_axis")
+    rc, out = run(command(prefix) + ["-feature_axis", reverse_axis,
+                                    "-feature_neighborhoods", fx["neighborhoods"]])
+    got = read_neighborhood_rdms(prefix + ".trdm.neighborhoods.1D", fx, fx["nt"]) if rc == 0 else None
+    check("labeled external feature order and neighborhood membership",
+          rc == 0 and [r["FeatureLabel"] for r in read_long(prefix + ".trdm.features.1D")] ==
+          ["f%02d" % j for j in reversed(range(fx["nf"]))] and
+          all(np.allclose(got[:, g], reference(fx, "corr", features=features), atol=3e-6)
+              for g, features in enumerate(fx["neighborhood_features"])), out[-500:])
+
+    minimal = []
+    for row in records:
+        lines = open(os.path.join(work, row[-1])).read().splitlines()
+        header = lines[0].removeprefix("# Columns: ").split()
+        src = [dict(zip(header, line.split())) for line in lines[1:]]
+        path = "minimal_" + row[-1]
+        with open(os.path.join(work, path), "w") as f:
+            f.write("time_value time_unit " + " ".join("f%02d" % j for j in range(fx["nf"])) + "\n")
+            for cell in src:
+                f.write("%s s %s\n" % (cell["time_value"],
+                        " ".join(cell["f%02d" % j] for j in range(fx["nf"]))))
+        minimal.append(row[:-1] + (path,))
+    minimal_obs = os.path.join(work, "labeled_minimal.txt")
+    write_records(minimal_obs, minimal)
+    for external in (False, True):
+        prefix = os.path.join(work, "labeled_minimal_%d" % external)
+        rc, out = run(command(prefix, table=minimal_obs, axes=("-time_axis",) if external else ()))
+        times = read_long(prefix + ".trdm.time.1D") if rc == 0 else []
+        labels = [r["TimeLabel"] for r in times]
+        check("labeled optional index/labels: " + ("inherit external axis" if external else "generate labels"),
+              rc == 0 and labels == (["t%03d" % t for t in range(fx["nt"])] if external else
+                                     [format(float("%.6f" % (-0.1 + 0.05*t)), ".6g") + "s"
+                                      for t in range(fx["nt"])]), out[-500:])
+        if rc == 0:
+            meta = open(prefix + ".trdm.meta").read()
+            check("labeled resolved axis provenance %d" % external,
+                  "input_format labeled" in meta and "(null)" not in meta and
+                  "feature_axis_origin embedded" in meta)
+
+    original = open(os.path.join(work, records[-1][-1])).read()
+    failures = [
+        ("duplicate feature", original.replace("f01", "f00"), "duplicate column"),
+        ("case-colliding feature", original.replace("f01", "F00"), "duplicate column"),
+        ("unknown feature", original.replace("f01", "other"), "missing feature"),
+        ("feature case mismatch", original.replace("f01", "F01"), "missing feature"),
+        ("missing time column", original.replace("time_value", "latency"), "requires time_value"),
+        ("time mismatch", original.replace("-0.100000", "-0.110000"), "time_value disagrees"),
+        ("unit mismatch", original.replace(" s ", " ms "), "time_unit"),
+        ("label mismatch", original.replace("t000", "early"), "time_label disagrees"),
+        ("invalid index", original.replace("t000 0", "t000 1"), "time_index"),
+        ("nonfinite time", original.replace("-0.100000", "nan"), "invalid time_value"),
+        ("missing time row", "\n".join(original.splitlines()[:-1]) + "\n", "time rows"),
+    ]
+    for bad in ("nan", "inf", "1e100", "text"):
+        lines = original.splitlines()
+        cells = lines[1].split(); cells[1] = bad; lines[1] = " ".join(cells)
+        failures.append(("invalid feature " + bad, "\n".join(lines) + "\n", "column"))
+    for ix, (name, contents, message) in enumerate(failures):
+        badpath = "labeled_bad_%d.1D" % ix
+        with open(os.path.join(work, badpath), "w") as f:
+            f.write(contents)
+        badobs = os.path.join(work, "labeled_bad_%d.txt" % ix)
+        write_records(badobs, records[:-1] + [records[-1][:-1] + (badpath,)])
+        rc, out = run(command(os.path.join(work, "labeled_bad_out_%d" % ix), table=badobs))
+        check("labeled rejects " + name, rc != 0 and message in out and badpath in out, out[-500:])
+
+    # The first observation must validate inferred axes, not merely establish
+    # a malformed reference that every later file is compared against.
+    original = open(os.path.join(work, records[0][-1])).read()
+    failures = [
+        ("duplicate time labels", original.replace("t001", "t000"), "repeats time_label"),
+        ("nonincreasing times", original.replace("-0.050000", "-0.200000"), "strictly increasing"),
+        ("empty unit", original.replace(" s ", ' "" '), "time_unit"),
+        ("empty label", original.replace("t000", '""'), "single-token time_label"),
+    ]
+    for ix, (name, contents, message) in enumerate(failures):
+        badpath = "labeled_bad_axis_%d.1D" % ix
+        with open(os.path.join(work, badpath), "w") as f:
+            f.write(contents)
+        badobs = os.path.join(work, "labeled_bad_axis_%d.txt" % ix)
+        write_records(badobs, [records[0][:-1] + (badpath,)] + records[1:])
+        rc, out = run(command(os.path.join(work, "labeled_bad_axis_out_%d" % ix), table=badobs))
+        check("labeled rejects " + name, rc != 0 and message in out and badpath in out, out[-500:])
+
+
+def read_labeled_square(path):
+    """Read the documented square-table contract independently of AFNI."""
+    import numpy as np
+    header, labels, values, kind = None, [], [], None
+    with open(path) as stream:
+        for line in stream:
+            if line.startswith("# matrix_kind "):
+                kind = line.split()[-1]
+            elif line.startswith("# Columns: "):
+                header = next(csv.reader([line[len("# Columns: "):].strip()],
+                                        delimiter=" ", skipinitialspace=True))
+            elif line.strip() and not line.startswith("#"):
+                fields = next(csv.reader([line.strip()], delimiter=" ", skipinitialspace=True))
+                labels.append(fields[0]); values.append([float(x) for x in fields[1:]])
+    if header is None or len(values) != len(header) - 1:
+        raise AssertionError("invalid labeled square table: " + path)
+    return header[0], header[1:], labels, np.asarray(values, dtype=np.float32), kind
+
+
+def check_labeled_matrices(binary, fx, work, check):
+    import numpy as np
+    cond = ["c%02d" % c for c in range(fx["nc"])]
+    for mode in ("independent", "paired", "loo", "neighborhood"):
+        prefix = os.path.join(work, "square_labeled_" + mode)
+        cmd = trdm_cmd(binary, fx, prefix, "crossnobis", width=2,
+                       reduce="concat", center="partition",
+                       series=False if mode == "neighborhood" else mode)
+        cmd += ["-matrix_format", "labeled", "-rdm_dynamics", "pearson"]
+        if mode == "neighborhood":
+            cmd += ["-feature_neighborhoods", fx["neighborhoods"]]
+        rc, out = run(cmd)
+        if rc:
+            check("labeled square " + mode, False, out[-500:])
+            continue
+        nwin = fx["nt"] - 1
+        ref = reference(fx, "crossnobis", width=2, reduce="concat", center="partition")
+        windows = ["w%04d" % t for t in range(nwin)]
+        good = True
+        for s in range(fx["ns"]):
+            for t in range(nwin):
+                path = "%s_s%04d_s%02d_t%04d.1D" % (prefix, s, s, t)
+                axis, cols, rows, mat, kind = read_labeled_square(path)
+                good &= (axis == "Condition" and cols == rows == cond and kind == "dissimilarity"
+                         and np.allclose(mat, ref[s, t], atol=3e-6, rtol=3e-6))
+            axis, cols, rows, mat, kind = read_labeled_square("%s_s%04d_s%02d_dynamics.1D" % (prefix, s, s))
+            good &= (axis == "Time" and cols == rows == windows and kind == "similarity"
+                     and np.allclose(mat, dynamics_reference(ref, "pearson")[s], atol=3e-6))
+        check("labeled subject RDM and window-dynamics axes: " + mode, good)
+        if mode == "neighborhood":
+            good = True
+            for g, name in enumerate(fx["neighborhood_labels"]):
+                nr = reference(fx, "crossnobis", width=2, reduce="concat", center="partition",
+                               features=fx["neighborhood_features"][g])
+                for s in range(fx["ns"]):
+                    stem = "%s_s%04d_s%02d_n%04d_%s" % (prefix, s, s, g, name)
+                    for t in range(nwin):
+                        axis, cols, rows, mat, kind = read_labeled_square(stem + "_t%04d.1D" % t)
+                        good &= cols == rows == cond and np.allclose(mat, nr[s, t], atol=3e-6, rtol=3e-6)
+                    axis, cols, rows, mat, kind = read_labeled_square(stem + "_dynamics.1D")
+                    good &= cols == rows == windows and np.allclose(mat, dynamics_reference(nr, "pearson")[s], atol=3e-6)
+            check("labeled neighborhood RDMs and dynamics", good)
+        else:
+            suffix = ".model_series.1D" if mode == "independent" else ".%s_model_series.1D" % mode
+            manifest = read_long(prefix + suffix)
+            good = True
+            for row in manifest:
+                t = windows.index(row["Time"])
+                axis, cols, rows, mat, kind = read_labeled_square(os.path.join(work, row["ModelFile"]))
+                if mode == "independent":
+                    expected = ref.mean(axis=0)[t]
+                else:
+                    s = int(row["Subj"][1:])
+                    expected = ref[s, t] if mode == "paired" else np.delete(ref, s, axis=0).mean(axis=0)[t]
+                good &= cols == rows == cond and np.allclose(mat, expected, atol=3e-6, rtol=3e-6)
+            check("labeled " + mode + " manifest resolves to correct matrices", good)
+        check("square format recorded in provenance: " + mode,
+              "matrix_format labeled" in open(prefix + ".trdm.meta").read())
+        rc, out = run(cmd)
+        check("labeled square overwrite protection: " + mode, rc != 0 and "exists" in out)
+
+    # Exercise quoting and preserve negative crossnobis estimates with a tiny,
+    # deliberately opposing pair of independent partition contrasts.
+    names = ['face one', '#house', 'say "hi"']
+    obs = os.path.join(work, "square_labels.txt")
+    with open(obs, "w") as stream:
+        writer = csv.writer(stream, delimiter=" ", lineterminator="\n", quoting=csv.QUOTE_ALL)
+        writer.writerow(["Subj", "Observation", "Condition", "Partition", "InputFile"])
+        for p in range(2):
+            for c, name in enumerate(names):
+                path = "square_p%d_c%d.1D" % (p, c)
+                np.savetxt(os.path.join(work, path), np.full((fx["nt"], fx["nf"]), (-1)**p*c))
+                writer.writerow(["s00", "p%d_c%d" % (p, c), name, "p%d" % p, path])
+    prefix = os.path.join(work, "square_quoted")
+    rc, out = run(trdm_cmd(binary, fx, prefix, "crossnobis", obs=obs) + ["-matrix_format", "labeled"])
+    if rc == 0:
+        axis, cols, rows, mat, kind = read_labeled_square(prefix + "_s0000_s00_t0000.1D")
+        check("quoted labels and negative crossnobis survive square output",
+              cols == rows == sorted(names) and np.all(mat[np.triu_indices(3, 1)] < 0)
+              and np.array_equal(mat, mat.T) and np.all(np.diag(mat) == 0))
+    else:
+        check("quoted labels and negative crossnobis survive square output", False, out[-500:])
+
+
 def bh_ref(p):
     import numpy as np
     p = np.asarray(p, float); order = np.argsort(p); q = np.empty_like(p); qmin = 1.0
@@ -420,6 +677,8 @@ def main():
 
     try:
         fx = make_fixture(work)
+        check_labeled_inputs(args.bin, fx, work, check)
+        check_labeled_matrices(args.bin, fx, work, check)
         rch, helptext = run([args.bin, "-help"])
         rcn, noargtext = run([args.bin])
         help_contract = ["especially useful for EEG and MEG analyses",
@@ -427,6 +686,10 @@ def main():
                          "EXAMPLE: EEG/MEG RDM MOVIE -> fMRI RSA",
                          "EXAMPLE: PAIRED EEG/MEG -> fMRI RSA",
                          "EXAMPLE: LEAVE-ONE-SUBJECT-OUT EEG/MEG -> fMRI RSA",
+                         "EXAMPLE: LABELED EEG TRIALS -> LABELED CONDITION RDMs",
+                         "EXAMPLE: MEG WITH GENERATED TIME LABELS AND INDEPENDENT RUNS",
+                         "EXAMPLE: WINDOWS, SENSOR GROUPS, AND EXISTING AXIS FILES",
+                         "-matrix_format numeric|labeled",
                          "-model_series_subjects paired",
                          "-model_series_subjects loo",
                          "3dRSA -mode RSA", "-dataTable FILE", "-prefix OUT",

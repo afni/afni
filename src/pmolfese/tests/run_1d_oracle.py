@@ -440,6 +440,222 @@ def run_classic_long(binary, work, nroi, expected):
     return observed
 
 
+def run_compact_condition_contrasts(binary, work, nroi):
+    """Declaring the compact brick axis preserves paired model contrasts."""
+    order = ",".join("c%02d" % c for c in range(N_CONDITIONS))
+    model = read_matrix(os.path.join(work, "model_conditions.1D"))
+    permutation = [2, 0, 5, 1, 4, 3]
+    write_1d(os.path.join(work, "alternative.1D"),
+             [[model[i][j] for j in permutation] for i in permutation])
+    common = [binary, "-mask", "atlas.1D'", "-mode", "RSA",
+              "-model_mat", "A", "model_conditions.1D",
+              "-model_mat", "B", "alternative.1D", "-model_contrast", "A-B",
+              "-neural_metric", "euclid", "-metric", "pearson",
+              "-nperm", "127", "-seed", "902", "-quiet", "-no_dset"]
+    for null, hypothesis in [("subjects", "superiority"), ("conditions", "alignment")]:
+        tables = []
+        for layout in ["legacy", "compact", "long"]:
+            prefix = "declared_%s_%s_%02d" % (null, layout, nroi)
+            command = common + ["-classic_null", null, "-contrast_hypothesis", hypothesis,
+                                "-dataTableFile", "classic_long.tbl" if layout == "long" else "classic.tbl",
+                                "-prefix", prefix]
+            if layout != "legacy":
+                command += ["-condition_order", order]
+            if layout == "long":
+                command += ["-condition_column", "Condition"]
+            run(command, work, 1)
+            path = os.path.join(work, prefix + ".rsa.1D")
+            tables.append(read_rsa_table(path))
+            if layout != "legacy":
+                with open(path) as stream:
+                    assert "# condition order: " + order.replace(",", " ") in stream.read()
+        assert tables[0] == tables[1] == tables[2], (null, nroi, tables)
+        assert "A-B_zDiff" in tables[0][0]
+    for labels, error in [("c00,c01", "has 2 labels"),
+                          ("c00,c00,c02,c03,c04,c05", "duplicate condition"),
+                          ("c00,,c02,c03,c04,c05", "empty label"),
+                          ("", "has 0 labels")]:
+        expect_failure(common + ["-dataTableFile", "classic.tbl", "-condition_order", labels,
+                                 "-prefix", "invalid_axis"], work, error)
+
+
+def run_personal_condition_ratings(binary, work, nroi):
+    """Subject x condition ratings, checked against independent arithmetic."""
+    if nroi != 2:
+        return
+    scores = [[[((c*3+s*2+k) % 7)+0.13*c*s+0.19*k*c*c
+                for c in range(6)] for s in range(6)] for k in range(2)]
+    models = []
+    for ratings in scores:
+        models.append([[[1-abs(x-y)/(max(v)-min(v)) for y in v] for x in v] for v in ratings])
+    neural = []
+    for roi in range(nroi):
+        by_subject = []
+        for s in range(6):
+            rows = [r[roi*4:(roi+1)*4] for r in classic_subject(s, nroi)]
+            by_subject.append(triangle([[pearson(a, b) for b in rows] for a in rows]))
+        neural.append(by_subject)
+    rows = ["Subj Condition Happy Arousal Category InputFile"]
+    for s in reversed(range(6)):
+        for c in [3, 0, 5, 2, 4, 1]:
+            rows.append("s%02d c%02d %.9g %.9g %s long_s%02d_c%02d.1D'" %
+                        (s, c, scores[0][s][c], scores[1][s][c],
+                         "yes" if (s+c) % 3 == 0 else "no", s, c))
+    path = os.path.join(work, "personal.tbl")
+    with open(path, "w") as stream:
+        stream.write("\n".join(rows)+"\n")
+
+    common = [binary, "-mask", "atlas.1D'", "-mode", "RSA", "-dataTableFile", "personal.tbl",
+              "-condition_column", "Condition", "-condition_order", ",".join("c%02d" % c for c in range(6)),
+              "-model", "happy", "Happy:euclid", "-model", "arousal", "Arousal:euclid",
+              "-model", "category", "Category:match", "-model_mat", "fixed", "model_conditions.1D",
+              "-model_contrast", "happy-arousal", "-model_contrast", "happy-fixed",
+              "-metric", "pearson", "-neural_metric", "corr", "-seed", "902", "-no_dset"]
+    fixed = read_matrix(os.path.join(work, "model_conditions.1D"))
+
+    def differences(roi, perm, other):
+        values = []
+        for s in range(6):
+            a = triangle([[models[0][s][i][j] for j in perm] for i in perm])
+            bm = models[1][s] if other == "arousal" else fixed
+            b = triangle([[bm[i][j] for j in perm] for i in perm])
+            values.append(math.atanh(pearson(neural[roi][s], a))-
+                          math.atanh(pearson(neural[roi][s], b)))
+        return values
+
+    def tstat(values):
+        mean = sum(values)/len(values)
+        se = math.sqrt(sum((v-mean)**2 for v in values)/(len(values)*(len(values)-1)))
+        return mean/se
+
+    for null, hypothesis in [("subjects", "superiority"), ("conditions", "alignment")]:
+        prefix = "personal_"+null
+        run(common+["-classic_null", null, "-contrast_hypothesis", hypothesis,
+                    "-nperm", "720", "-prefix", prefix], work, 2)
+        _, actual = read_rsa_table(os.path.join(work, prefix+".rsa.1D"))
+        for roi, row in enumerate(actual):
+            for k, name in enumerate(["happy", "arousal"]):
+                fits = [pearson(neural[roi][s], triangle(models[k][s])) for s in range(6)]
+                assert_close(float(row[name+"_r"]), fisher_mean(fits), "personal "+name)
+            category_fits = []
+            for s in range(6):
+                cm = [[float(((s+i) % 3 == 0) == ((s+j) % 3 == 0))
+                       for j in range(6)] for i in range(6)]
+                category_fits.append(pearson(neural[roi][s], triangle(cm)))
+            assert_close(float(row['category_r']), fisher_mean(category_fits), 'personal category')
+        for other in ["arousal", "fixed"]:
+            observed = [differences(roi, list(range(6)), other) for roi in range(nroi)]
+            if null == "subjects":
+                stats = [[tstat([a*b for a, b in zip(v, signs)]) for v in observed]
+                         for signs in itertools.product([1, -1], repeat=6)]
+                identity = [tstat(v) for v in observed]
+            else:
+                stats = [[sum(differences(roi, perm, other))/6 for roi in range(nroi)]
+                         for perm in itertools.permutations(range(6))]
+                identity = [sum(v)/6 for v in observed]
+            for roi, row in enumerate(actual):
+                label = "happy-"+other
+                assert_close(float(row[label+"_zDiff"]), sum(observed[roi])/6, "personal zDiff")
+                p = sum(abs(v[roi]) >= abs(identity[roi])-1e-7 for v in stats)/len(stats)
+                fwe = sum(max(map(abs, v)) >= abs(identity[roi])-1e-7 for v in stats)/len(stats)
+                assert_close(float(row[label+"_p"]), p, "personal paired p")
+                assert_close(float(row[label+"_pfwe"]), fwe, "personal paired FWE")
+        if null == "subjects":
+            for option in ['-bootstrap', '-cond_bootstrap']:
+                bp = 'personal_'+option[1:]
+                run(common+['-classic_null', null, '-contrast_hypothesis', hypothesis,
+                            '-nperm', '720', option, '40', '-prefix', bp], work, 1)
+                _, boot = read_rsa_table(os.path.join(work, bp+'.rsa.1D'))
+                for a, b in zip(actual, boot):
+                    for key in a:
+                        assert a[key] == b[key], (option, key, a, b)
+    # A different subject/condition count catches using the wrong axis length.
+    with open(path, 'w') as stream:
+        stream.write('\n'.join([rows[0]]+[r for r in rows[1:] if not r.startswith('s05 ')])+'\n')
+    run(common+['-nperm', '0', '-prefix', 'personal_five'], work, 1)
+    _, five = read_rsa_table(os.path.join(work, 'personal_five.rsa.1D'))
+    for roi, row in enumerate(five):
+        fits = [pearson(neural[roi][s], triangle(models[0][s])) for s in range(5)]
+        assert_close(float(row['happy_r']), fisher_mean(fits), 'five subjects, six conditions')
+    for value, error in [("invalid", "must be numeric"), ("nan", "non-finite")]:
+        bad = rows[:]
+        cells = bad[1].split(); cells[2] = value; bad[1] = " ".join(cells)
+        with open(path, "w") as stream:
+            stream.write("\n".join(bad)+"\n")
+        expect_failure(common+["-prefix", "bad_rating"], work, error)
+    with open(path, "w") as stream:
+        stream.write("\n".join(rows)+"\n")
+
+    # Models constructed solely from columns can infer the long-table axis.
+    column_only = common[:]
+    for option, value, count in [('-model_mat', 'fixed', 3), ('-model_contrast', 'happy-fixed', 2)]:
+        ix = next(i for i, x in enumerate(column_only[:-1]) if x == option and column_only[i+1] == value)
+        del column_only[ix:ix+count]
+    inferred = column_only[:]
+    ix = inferred.index('-condition_order'); del inferred[ix:ix+2]
+    shared = ['-nperm', '720', '-contrast_hypothesis', 'superiority']
+    run(column_only+shared+['-prefix', 'ratings_explicit'], work, 1)
+    run(inferred+shared+['-prefix', 'ratings_inferred'], work, 2)
+    assert read_rsa_table(os.path.join(work, 'ratings_explicit.rsa.1D')) == read_rsa_table(os.path.join(work, 'ratings_inferred.rsa.1D'))
+    positional = common[:]
+    ix = positional.index('-condition_order'); del positional[ix:ix+2]
+    expect_failure(positional+['-prefix', 'missing_numeric_order'], work, 'axes cannot be inferred')
+
+
+def run_long_condition_groups(binary, work, nroi):
+    if nroi != 2:
+        return
+    order = ','.join('c%02d' % c for c in range(6))
+    common = [binary, '-mode', 'RSA', '-mask', "atlas.1D'", '-no_dset', '-quiet',
+              '-metric', 'pearson', '-nperm', '720', '-seed', '902']
+    long_input = ['-dataTableFile', 'classic_long.tbl', '-condition_column', 'Condition']
+    groups = ['-condition_group', 'first', 'c00,c01', '-condition_group', 'second', 'c02,c03']
+    for metric in ['corr', 'euclid']:
+        model = []
+        for i in range(6):
+            row = []
+            for j in range(6):
+                if i == j:
+                    value = 1 if metric == 'corr' else 0
+                elif i >= 4 or j >= 4:
+                    value = '.'
+                else:
+                    distance = int((i < 2) != (j < 2))
+                    value = 1-distance if metric == 'corr' else distance
+                row.append(str(value))
+            model.append(' '.join(row))
+        with open(os.path.join(work, 'focused.1D'), 'w') as stream:
+            stream.write('\n'.join(model)+'\n')
+        for null in ['subjects', 'conditions']:
+            flags = common+['-neural_metric', metric, '-classic_null', null]
+            outputs = []
+            layouts = [long_input+groups+['-contrast', 'Focus', 'SYM: +first -second'],
+                       long_input+groups+['-contrast', 'Focus', 'SYM: -first +second'],
+                       ['-dataTableFile', 'classic.tbl', '-condition_order', order]+groups+['-contrast', 'Focus', 'SYM: +first -second'],
+                       long_input+['-condition_order', order, '-model_mat', 'Focus', 'focused.1D']]
+            for i, layout in enumerate(layouts):
+                prefix = 'groups_%s_%s_%d' % (metric, null, i)
+                run(flags+layout+['-prefix', prefix], work, 1)
+                outputs.append(read_rsa_table(os.path.join(work, prefix+'.rsa.1D')))
+            assert all(x == outputs[0] for x in outputs), (metric, null, outputs)
+    # Omnibus group models use every condition; focused models may omit some.
+    full = groups+['-condition_group', 'third', 'c04,c05', '-model_groups', 'All', 'first,second,third']
+    run(common+long_input+full+['-prefix', 'groups_all'], work, 1)
+    mixed = common+['-dataTableFile', 'personal.tbl', '-condition_column', 'Condition',
+                    '-model', 'happy', 'Happy:euclid', '-model', 'arousal', 'Arousal:euclid',
+                    '-model', 'category', 'Category:match', '-neural_metric', 'corr']
+    run(mixed+groups+['-contrast', 'Focus', 'SYM: +first -second', '-prefix', 'groups_with_ratings'], work, 2)
+    _, actual = read_rsa_table(os.path.join(work, 'groups_with_ratings.rsa.1D'))
+    _, baseline = read_rsa_table(os.path.join(work, 'groups_corr_subjects_0.rsa.1D'))
+    for a, b in zip(actual, baseline):
+        for key in ['Focus_r', 'Focus_p', 'Focus_q', 'Focus_pfwe']:
+            assert a[key] == b[key], (key, a, b)
+    for flag, error in [(['-condition_group', 'bad', 'unknown', '-contrast', 'Bad', 'SYM: +first -bad'], 'condition axis'),
+                        (['-condition_group', 'overlap', 'c00,c02', '-contrast', 'Bad', 'SYM: +first -overlap'], 'more than one code'),
+                        (['-model_groups', 'Bad', 'first,second'], 'does not assign')]:
+        expect_failure(common+long_input+groups+flag+['-prefix', 'invalid_groups'], work, error)
+
+
 def make_runwise_tables(work, nroi):
     """Write balanced and ConditionFile-mapped crossnobis fixtures."""
     plain, mapped = [], []
@@ -754,6 +970,9 @@ def exercise(binary, root, nroi):
     c1 = run_classic(binary, work, nroi, 1, classic_expected)
     c2 = run_classic(binary, work, nroi, 2, classic_expected)
     cl = run_classic_long(binary, work, nroi, classic_expected)
+    run_compact_condition_contrasts(binary, work, nroi)
+    run_personal_condition_ratings(binary, work, nroi)
+    run_long_condition_groups(binary, work, nroi)
     for tag, table, model in (("invariant_scaled_small", scaled_small, "model_conditions.1D"),
                               ("invariant_scaled_large", scaled_large, "model_conditions.1D"),
                               ("invariant_translated", translated, "model_conditions.1D"),

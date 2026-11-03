@@ -1,6 +1,8 @@
 #include "thd_crossval.h"
 
 #include <stdarg.h>
+#include <limits.h>
+#include <math.h>
 
 static int cv_error( char *err, int nerr, const char *fmt, ... )
 {
@@ -95,7 +97,7 @@ static char * cv_fold_name( const char *stratum, const char *fold, int stratifie
 
 int THD_foldplan_validate( const THD_foldplan *p, char *err, int nerr )
 {
-   int ff,ii,*seen,*ntest ;
+   int ff,ii,*seen,*ntest,*nuse ;
    if( err!=NULL && nerr>0 ) err[0]='\0' ;
    if( p==NULL || p->nsample<1 || p->nfold<1 ) return cv_error(err,nerr,"empty fold plan") ;
    if( p->kind<THD_CV_LEAVE_GROUP_OUT || p->kind>THD_CV_FIXED || p->nstratum<1 )
@@ -107,46 +109,93 @@ int THD_foldplan_validate( const THD_foldplan *p, char *err, int nerr )
    for( ii=0 ; ii<p->nstratum ; ii++ ) if( p->stratum_label[ii]==NULL )
      return cv_error(err,nerr,"fold plan has an unnamed stratum") ;
    seen=(int *)malloc(sizeof(int)*(size_t)p->nsample) ; ntest=(int *)calloc((size_t)p->nsample,sizeof(int)) ;
-   if( seen==NULL || ntest==NULL ){ free(seen) ; free(ntest) ; return cv_error(err,nerr,"out of memory validating folds") ; }
+   nuse=(int *)calloc((size_t)p->nsample,sizeof(int));
+   if( seen==NULL || ntest==NULL || nuse==NULL ){ free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"out of memory validating folds") ; }
    for( ff=0 ; ff<p->nfold ; ff++ ){
      if( p->fold_stratum[ff]<0 || p->fold_stratum[ff]>=p->nstratum ){
-       free(seen) ; free(ntest) ; return cv_error(err,nerr,"fold %d has an invalid stratum",ff+1) ;
+       free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %d has an invalid stratum",ff+1) ;
      }
      if( p->name[ff]==NULL || p->train[ff]==NULL || p->test[ff]==NULL ){
-       free(seen) ; free(ntest) ; return cv_error(err,nerr,"fold %d is incomplete",ff+1) ;
+       free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %d is incomplete",ff+1) ;
      }
      if( p->ntrain[ff]<1 || p->ntest[ff]<1 ){
-       free(seen) ; free(ntest) ; return cv_error(err,nerr,"fold %s has %d training and %d test samples",
+       free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %s has %d training and %d test samples",
                                                   p->name[ff],p->ntrain[ff],p->ntest[ff]) ;
      }
      memset(seen,0,sizeof(int)*(size_t)p->nsample) ;
      for( ii=0 ; ii<p->ntrain[ff] ; ii++ ){
        int s=p->train[ff][ii] ;
        if( s<0 || s>=p->nsample || seen[s] ){
-         free(seen) ; free(ntest) ; return cv_error(err,nerr,"fold %s has an invalid or duplicate training sample",p->name[ff]) ;
+         free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %s has an invalid or duplicate training sample",p->name[ff]) ;
        }
-       seen[s]=1 ;
+       seen[s]=1 ; nuse[s]++ ;
      }
      for( ii=0 ; ii<p->ntest[ff] ; ii++ ){
        int s=p->test[ff][ii] ;
        if( s<0 || s>=p->nsample || seen[s] ){
-         free(seen) ; free(ntest) ; return cv_error(err,nerr,"fold %s has an invalid, duplicate, or training-overlap test sample",p->name[ff]) ;
+         free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %s has an invalid, duplicate, or training-overlap test sample",p->name[ff]) ;
        }
-       seen[s]=2 ; ntest[s]++ ;
+       seen[s]=2 ; ntest[s]++ ; nuse[s]++ ;
        if( p->sample_test_fold[s]!=ff ){
-         free(seen) ; free(ntest) ; return cv_error(err,nerr,"fold %s disagrees with sample_test_fold for sample %d",p->name[ff],s+1) ;
+         free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %s disagrees with sample_test_fold for sample %d",p->name[ff],s+1) ;
        }
-     }
-     if( p->kind==THD_CV_FIXED ) for( ii=0 ; ii<p->nsample ; ii++ ) if( !seen[ii] ){
-       free(seen) ; free(ntest) ; return cv_error(err,nerr,"fixed fold omits sample %d",ii+1) ;
      }
    }
+   if(p->kind==THD_CV_FIXED)for(ii=0;ii<p->nsample;ii++)
+     if(nuse[ii]!=1 || (!ntest[ii] && p->sample_test_fold[ii]!=-1)){
+       free(seen);free(ntest);free(nuse);
+       return cv_error(err,nerr,"fixed folds must assign sample %d exactly once to training or test",ii+1);
+     }
    if( p->kind!=THD_CV_FIXED ) for( ii=0 ; ii<p->nsample ; ii++ ) if( ntest[ii]!=1 ){
      int count=ntest[ii] ;
-     free(seen) ; free(ntest) ;
+     free(seen) ; free(ntest) ; free(nuse) ;
      return cv_error(err,nerr,"sample %d occurs in %d test folds; expected exactly one",ii+1,count) ;
    }
-   free(seen) ; free(ntest) ; return 1 ;
+   free(seen) ; free(ntest) ; free(nuse) ; return 1 ;
+}
+
+THD_foldplan *THD_foldplan_from_assignments(
+   int nsample, int nfold, const int *test_fold, const char * const *fold_name,
+   char *err, int nerr)
+{
+   THD_foldplan *p; char *stratum[]={(char *)"All"}; int f,i,j;
+   if(err && nerr>0)err[0]='\0';
+   if(nsample<2 || nfold<2 || nfold>nsample || !test_fold || !fold_name){
+      cv_error(err,nerr,"assigned folds need samples, names and 2 <= nfold <= nsample");
+      return NULL;
+   }
+   for(f=0;f<nfold;f++){
+      if(!fold_name[f] || !fold_name[f][0]){
+         cv_error(err,nerr,"assigned fold %d has no name",f+1);return NULL;
+      }
+      for(j=0;j<f;j++)if(!strcmp(fold_name[f],fold_name[j])){
+         cv_error(err,nerr,"duplicate assigned fold name '%s'",fold_name[f]);return NULL;
+      }
+   }
+   p=cv_alloc(THD_CV_LEAVE_GROUP_OUT,nsample,nfold,1,NULL,NULL,stratum,err,nerr);
+   if(!p)return NULL;
+   for(i=0;i<nsample;i++){
+      f=test_fold[i];
+      if(f<0 || f>=nfold)return cv_fail(p,err,nerr,"sample %d has invalid fold ID %d",i+1,f);
+      p->sample_test_fold[i]=f;p->ntest[f]++;
+   }
+   for(f=0;f<nfold;f++){
+      int tr=0,te=0;
+      p->ntrain[f]=nsample-p->ntest[f];
+      if(!p->ntest[f] || !p->ntrain[f])
+         return cv_fail(p,err,nerr,"fold %s needs nonempty training and test sets",fold_name[f]);
+      p->name[f]=strdup(fold_name[f]);
+      p->train[f]=malloc(sizeof(int)*(size_t)p->ntrain[f]);
+      p->test[f]=malloc(sizeof(int)*(size_t)p->ntest[f]);
+      if(!p->name[f] || !p->train[f] || !p->test[f])
+         return cv_fail(p,err,nerr,"out of memory filling assigned fold %d",f+1);
+      for(i=0;i<nsample;i++){
+         if(test_fold[i]==f)p->test[f][te++]=i;
+         else p->train[f][tr++]=i;
+      }
+   }
+   if(!THD_foldplan_validate(p,err,nerr)){THD_foldplan_free(p);return NULL;}
+   return p;
 }
 
 THD_foldplan * THD_foldplan_leave_group_out( const THD_sampleset *ss,
@@ -351,36 +400,76 @@ void THD_nested_foldplan_print(const THD_nested_foldplan *p,const THD_sampleset 
    }
 }
 
-THD_foldplan * THD_foldplan_fixed( const THD_sampleset *ss,
-                                    const char *partition_column,
-                                    const char *train_value,
-                                    const char *test_value,
-                                    char *err, int nerr )
+THD_foldplan *THD_foldplan_fixed_within(const THD_sampleset *ss,
+ const char *column,const char *train_value,const char *test_value,
+ const char *within,char *err,int nerr)
 {
-   THD_foldplan *p ; THD_datatable *dt ; int icol,ii,ntr=0,nte=0,qtr=0,qte=0 ; char *slab[1]={"All"} ;
-   if( err!=NULL && nerr>0 ) err[0]='\0' ;
-   if( ss==NULL || ss->metadata==NULL || ss->nsample<1 || partition_column==NULL ||
-       train_value==NULL || test_value==NULL || *train_value=='\0' || *test_value=='\0' ||
-       !strcmp(train_value,test_value) ){
-     cv_error(err,nerr,"fixed CV needs a partition column and distinct train/test values") ; return NULL ;
+   THD_foldplan *p=NULL;int col,i,f,ns=0,*stratum=NULL,*side=NULL;char **labels=NULL;
+   if(!ss || !ss->metadata || ss->nsample<1 || !column || !train_value || !*train_value ||
+      !test_value || !*test_value || !strcmp(train_value,test_value)){
+      cv_error(err,nerr,"fixed CV needs a partition column and distinct train/test values");return NULL;
    }
-   dt=ss->metadata ; icol=THD_datatable_column(dt,(char *)partition_column) ;
-   if( icol<0 ){ cv_error(err,nerr,"dataTable (%s): column '%s' is missing",dt->source?dt->source:"?",partition_column) ; return NULL ; }
-   for( ii=0 ; ii<ss->nsample ; ii++ ){
-     const char *v=DT_CELL(dt,ii,icol) ;
-     if( !strcmp(v,train_value) ) ntr++ ; else if( !strcmp(v,test_value) ) nte++ ;
-     else { cv_error(err,nerr,"dataTable (%s), row %d: '%s' is '%s'; fixed CV accepts only '%s' and '%s'",
-                     dt->source?dt->source:"?",ii+1,partition_column,v,train_value,test_value) ; return NULL ; }
+   col=THD_datatable_column(ss->metadata,(char *)column);
+   if(col<0){cv_error(err,nerr,"fixed CV column '%s' is missing",column);return NULL;}
+   if(!cv_encode_strata(ss,within,&stratum,&labels,&ns,err,nerr))return NULL;
+   side=malloc(sizeof(int)*(size_t)ss->nsample);
+   if(!side){cv_error(err,nerr,"cannot allocate fixed partition roles");goto done;}
+   for(i=0;i<ss->nsample;i++){
+      int row=ss->table_row?ss->table_row[i]:i;
+      const char *value;
+      if(row<0 || row>=ss->metadata->nrow){cv_error(err,nerr,"invalid fixed partition table row");goto done;}
+      value=DT_CELL(ss->metadata,row,col);
+      if(!strcmp(value,train_value))side[i]=0;
+      else if(!strcmp(value,test_value))side[i]=1;
+      else {cv_error(err,nerr,"sample %d: fixed CV accepts only '%s' and '%s' in '%s' (got '%s')",i+1,train_value,test_value,column,value);goto done;}
    }
-   if( ntr<1 || nte<1 ){ cv_error(err,nerr,"fixed CV has %d training and %d test samples",ntr,nte) ; return NULL ; }
-   p=cv_alloc(THD_CV_FIXED,ss->nsample,1,1,partition_column,NULL,slab,err,nerr) ; if( p==NULL ) return NULL ;
-   p->name[0]=strdup(test_value) ; p->ntrain[0]=ntr ; p->ntest[0]=nte ;
-   p->train[0]=(int *)malloc(sizeof(int)*(size_t)ntr) ; p->test[0]=(int *)malloc(sizeof(int)*(size_t)nte) ;
-   if( p->name[0]==NULL || p->train[0]==NULL || p->test[0]==NULL ) return cv_fail(p,err,nerr,"out of memory filling fixed CV") ;
-   for( ii=0 ; ii<ss->nsample ; ii++ ) if( !strcmp(DT_CELL(dt,ii,icol),train_value) ) p->train[0][qtr++]=ii ;
-   else { p->test[0][qte++]=ii ; p->sample_test_fold[ii]=0 ; }
-   if( !THD_foldplan_validate(p,err,nerr) ){ THD_foldplan_free(p) ; return NULL ; }
-   return p ;
+   p=cv_alloc(THD_CV_FIXED,ss->nsample,ns,ns,column,within,labels,err,nerr);if(!p)goto done;
+   for(f=0;f<ns;f++){
+      int tr=0,te=0;
+      p->name[f]=cv_fold_name(labels[f],test_value,within!=NULL);p->fold_stratum[f]=f;
+      for(i=0;i<ss->nsample;i++)if(stratum[i]==f){if(side[i])p->ntest[f]++;else p->ntrain[f]++;}
+      if(!p->ntrain[f] || !p->ntest[f]){
+         cv_error(err,nerr,"fixed stratum '%s' has %d training and %d test samples; both domains are required",labels[f],p->ntrain[f],p->ntest[f]);goto bad;
+      }
+      p->train[f]=malloc(sizeof(int)*(size_t)p->ntrain[f]);p->test[f]=malloc(sizeof(int)*(size_t)p->ntest[f]);
+      if(!p->name[f] || !p->train[f] || !p->test[f]){cv_error(err,nerr,"cannot allocate fixed fold rows");goto bad;}
+      for(i=0;i<ss->nsample;i++)if(stratum[i]==f){
+         if(side[i]){p->test[f][te++]=i;p->sample_test_fold[i]=f;}else p->train[f][tr++]=i;
+      }
+   }
+   if(!THD_foldplan_validate(p,err,nerr))goto bad;
+   goto done;
+bad:THD_foldplan_free(p);p=NULL;
+done:free(side);free(stratum);THD_sampleset_free_levels(labels,ns);return p;
+}
+THD_foldplan *THD_foldplan_fixed(const THD_sampleset *ss,const char *column,
+ const char *train_value,const char *test_value,char *err,int nerr)
+{return THD_foldplan_fixed_within(ss,column,train_value,test_value,NULL,err,nerr);}
+
+typedef struct {int scope,key,side;} cv_overlap_key;
+static int cv_overlap_order(const void *aa,const void *bb)
+{
+   const cv_overlap_key *a=aa,*b=bb;
+   if(a->scope!=b->scope)return (a->scope>b->scope)-(a->scope<b->scope);
+   return (a->key>b->key)-(a->key<b->key);
+}
+int THD_foldplan_overlap_count(const THD_sampleset *ss,const THD_foldplan *p,
+ const char *column,const char *scope,int *count,char *err,int nerr)
+{
+   int *keys=NULL,*scopes=NULL,nk=0,ns=0,i,ok=0;char **kl=NULL,**sl=NULL;cv_overlap_key *rows=NULL;
+   if(count)*count=0;
+   if(!ss || !p || !count || p->kind!=THD_CV_FIXED || ss->nsample!=p->nsample || !THD_foldplan_validate(p,err,nerr))
+      return cv_error(err,nerr,"overlap checks need a valid fixed fold plan and matching samples");
+   if(!THD_sampleset_encode_column(ss,column,&keys,&kl,&nk,err,nerr) ||
+      !cv_encode_strata(ss,scope,&scopes,&sl,&ns,err,nerr))goto done;
+   rows=malloc(sizeof(*rows)*(size_t)p->nsample);if(!rows){cv_error(err,nerr,"cannot allocate overlap keys");goto done;}
+   for(i=0;i<p->nsample;i++){rows[i].scope=scopes[i];rows[i].key=keys[i];rows[i].side=p->sample_test_fold[i]>=0?2:1;}
+   qsort(rows,(size_t)p->nsample,sizeof(*rows),cv_overlap_order);
+   for(i=0;i<p->nsample;){int j=i+1,seen=rows[i].side;
+      while(j<p->nsample && !cv_overlap_order(rows+i,rows+j))seen|=rows[j++].side;
+      if(seen==3)(*count)++;i=j;
+   }ok=1;
+done:free(rows);free(keys);free(scopes);THD_sampleset_free_levels(kl,nk);THD_sampleset_free_levels(sl,ns);return ok;
 }
 
 int THD_foldplan_check_classes( const THD_foldplan *p, const int *class_id,
@@ -423,4 +512,89 @@ void THD_foldplan_print( const THD_foldplan *p, const THD_sampleset *ss, FILE *f
        fprintf(fp,"%s\t%s\ttest\t%d\t%s\n",p->name[ff],p->stratum_label[p->fold_stratum[ff]],s+1,lab) ;
      }
    }
+}
+
+int THD_nested_candidate_search(const THD_nested_foldplan *plan,int outer,
+ int nsetup,int ncandidate,const THD_cv_candidate_ops *ops,void *context,
+ int *train,int *test,double *losses,int *winner,int *winner_nvalid,char *err,int nerr)
+{
+   const THD_foldplan *in,*out;int a,b,f,i,best=-1,valid_best=0;
+   double bestloss=NAN;char why[512];
+   if(winner)*winner=-1;
+   if(!plan || !plan->outer || !plan->inner || outer<0 || outer>=plan->outer->nfold ||
+      nsetup<1 || ncandidate<1 || nsetup>INT_MAX/ncandidate || !ops ||
+      !ops->setup || !ops->prepare || !ops->evaluate || !ops->finish || !ops->prefer ||
+      !train || !test || train==test || !losses || !winner || !winner_nvalid)
+      return cv_error(err,nerr,"invalid grouped candidate search arguments");
+   out=plan->outer;in=plan->inner[outer];
+   if(!in || in->nsample!=out->ntrain[outer] || in->nfold<2 || in->kind==THD_CV_FIXED)
+      return cv_error(err,nerr,"candidate search needs grouped inner folds over outer training rows");
+   for(a=0;a<nsetup;a++){
+      why[0]='\0';
+      if(!ops->setup(context,a,why,sizeof(why)))return cv_error(err,nerr,"candidate setup %d: %s",a,why);
+      for(f=0;f<in->nfold;f++){
+         int nt=in->ntrain[f],ne=in->ntest[f];
+         if(nt<1 || ne<1 || nt>in->nsample || ne>in->nsample)
+            return cv_error(err,nerr,"invalid inner candidate fold size");
+         for(i=0;i<nt;i++){
+            int row=in->train[f][i];
+            if(row<0 || row>=in->nsample)return cv_error(err,nerr,"invalid inner training index");
+            train[i]=out->train[outer][row];
+         }
+         for(i=0;i<ne;i++){
+            int row=in->test[f][i];
+            if(row<0 || row>=in->nsample)return cv_error(err,nerr,"invalid inner testing index");
+            test[i]=out->train[outer][row];
+         }
+         if(!ops->prepare(context,a,train,nt,test,ne,why,sizeof(why)))
+            return cv_error(err,nerr,"outer fold %s, inner fold %s setup %d: %s",out->name[outer],in->name[f],a,why);
+         for(b=0;b<ncandidate;b++)if(!ops->evaluate(context,a,b,train,nt,test,ne,why,sizeof(why)))
+            return cv_error(err,nerr,"outer fold %s, inner fold %s candidate %d: %s",out->name[outer],in->name[f],a*ncandidate+b,why);
+      }
+      for(b=0;b<ncandidate;b++){
+         double loss;int valid,id=a*ncandidate+b;
+         if(!ops->finish(context,a,b,&loss,&valid,why,sizeof(why)))
+            return cv_error(err,nerr,"candidate %d scoring: %s",id,why);
+         if(valid<0 || isinf(loss) || (valid==0)!=(isnan(loss)!=0))
+            return cv_error(err,nerr,"candidate %d has inconsistent loss/valid-component count",id);
+         losses[id]=loss;
+         if(best<0 || (valid && (!valid_best || loss<bestloss)) ||
+            (((!valid && !valid_best) || (valid && valid_best && loss==bestloss)) && ops->prefer(context,id,best))){
+            best=id;bestloss=loss;valid_best=valid;
+         }
+      }
+   }
+   *winner=best;*winner_nvalid=valid_best;return 1;
+}
+
+int THD_foldplan_check_permutation_blocks(const THD_foldplan *plan,
+   const int *blocks,int nblock,const int *strata,THD_cv_block_conflict *conflict,
+   char *err,int nerr)
+{
+   int i,*side=NULL,*owner=NULL,ok=0;
+   if(conflict){conflict->block=-1;conflict->kind=0;}
+   if(!THD_foldplan_validate(plan,err,nerr))return 0;
+   if(plan->kind!=THD_CV_FIXED || !blocks || nblock<1)
+      return cv_error(err,nerr,"permutation block checks need a fixed plan and block IDs");
+   for(i=0;i<plan->nsample;i++)
+      if(blocks[i]<0 || blocks[i]>=nblock || (strata && strata[i]<0))
+         return cv_error(err,nerr,"sample %d has an invalid block or stratum index",i+1);
+   side=malloc(sizeof(int)*(size_t)nblock);
+   if(strata)owner=malloc(sizeof(int)*(size_t)nblock);
+   if(!side || (strata && !owner)){cv_error(err,nerr,"cannot validate permutation blocks");goto done;}
+   for(i=0;i<nblock;i++){side[i]=-1;if(owner)owner[i]=-1;}
+   for(i=0;i<plan->nsample;i++){
+      int b=blocks[i],test=plan->sample_test_fold[i]>=0,kind=0;
+      if(side[b]>=0 && side[b]!=test)kind=THD_CV_BLOCK_PARTITION;
+      else if(owner && owner[b]>=0 && owner[b]!=strata[i])kind=THD_CV_BLOCK_STRATUM;
+      if(kind){
+         if(conflict){conflict->block=b;conflict->kind=kind;}
+         cv_error(err,nerr,"permutation block %d crosses %s",b,
+                  kind==THD_CV_BLOCK_PARTITION?"train/test partition":"strata");goto done;
+      }
+      side[b]=test;if(owner)owner[b]=strata[i];
+   }
+   ok=1;
+done:
+   free(side);free(owner);return ok;
 }
