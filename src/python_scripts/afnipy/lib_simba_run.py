@@ -497,11 +497,14 @@ inobj : InOpts object
         data_den.plot(alpha=1.0, color="black", label='Observed data')
 
         # have to make this adaptable, based on calcs of the curves
-        #self.ppc_xlim = (-0.04, 0.04)   # ***TO DO***: use the IF cond 
+        #self.ppc_xlim = (-0.04, 0.04)
         if self.ppc_xlim is None :
             xvals = data_den.var0.to_numpy()
             yvals = data_den.data[:]
-            _tmp, self.ppc_xlim = calc_xlim_range(xvals, yvals)
+            is_fail, self.ppc_xlim = calc_xlim_range(xvals, yvals)
+            if is_fail :
+                plt.close()
+                return -1
 
         plt.xlim(self.ppc_xlim[0], self.ppc_xlim[1])  
         plt.ylabel('')
@@ -735,6 +738,40 @@ inobj : InOpts object
                                       DEF.RANGE_model_ls['lsmax'])
             ab.EP1(msg)
             return BAD_RETURN
+
+
+        # checks on input parameters
+
+        # VI iteration count must be positive
+        if self.model_VI_max_iter <= 0:
+            ab.EP1("model_VI_max_iter must be > 0, got: {}".format(
+                self.model_VI_max_iter))
+            return BAD_RETURN
+
+        # Gibbs burn-in can be zero, but not negative
+        if self.model_Gibbs_burnin < 0:
+            ab.EP1("model_Gibbs_burnin must be >= 0, got: {}".format(
+                self.model_Gibbs_burnin))
+            return BAD_RETURN
+
+        # Gibbs retained sample count must be positive
+        if self.model_Gibbs_mcmc_sample <= 0:
+            ab.EP1("model_Gibbs_mcmc_sample must be > 0, got: {}".format(
+                self.model_Gibbs_mcmc_sample))
+            return BAD_RETURN
+
+        # Gibbs thinning interval must be positive
+        if self.model_Gibbs_thin <= 0:
+            ab.EP1("model_Gibbs_thin must be > 0, got: {}".format(
+                self.model_Gibbs_thin))
+            return BAD_RETURN
+
+        # PPC draw count must be positive
+        if self.ppc_n_mcmc <= 0:
+            ab.EP1("ppc_n_mcmc must be > 0, got: {}".format(
+                self.ppc_n_mcmc))
+            return BAD_RETURN
+
 
         # generate basic items
 
