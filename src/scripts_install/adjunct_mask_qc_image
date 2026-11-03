@@ -16,7 +16,7 @@
 set version   = "0.3";  set rev_dat   = "July 7, 2026"
 # + ignore overwrite opt, but allow it
 #
- ----------------------------------------------------------------
+# ----------------------------------------------------------------
 
 set this_prog = "adjunct_mask_qc_image"
 set prog_abbr = "AMQI"
