@@ -224,7 +224,7 @@ fname_mask : str
         BAD_RETURN = -3
 
         if self.mask_data is None or self.mask_hdr is None :
-            ab.EPI1("Cannot get dset_info_all without mask input")
+            ab.EP1("Cannot get dset_info_all without mask input")
             return BAD_RETURN
 
         tmp = self.set_ijk_coords()
