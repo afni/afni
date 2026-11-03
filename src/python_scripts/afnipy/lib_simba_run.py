@@ -683,9 +683,9 @@ inobj : InOpts object
             ab.EP1("Need to provide input with either: -inset, -infiles")
             return BAD_RETURN
         elif bool(self.inset) == bool(self.infiles):
-            BASE.EP1("Provide exactly one input option: -inset or -infiles")
+            ab.EP1("Provide exactly one input option: -inset or -infiles")
             return BAD_RETURN
-        return -1        elif len(self.infiles) :
+        elif len(self.infiles) :
             # all infiles exist and have same grid
             nfail = au.check_all_dsets_exist(self.infiles, label='infiles',
                                              verb=self.verb)
@@ -693,8 +693,9 @@ inobj : InOpts object
                 ab.EP1("Failed to load one or more infiles")
                 return BAD_RETURN
 
-            ndiff = au.check_all_dsets_same_grid(self.infiles, label='infiles',
-                                             verb=self.verb)
+            ndiff = au.check_all_dsets_same_grid(self.infiles, 
+                                                 label='infiles',
+                                                 verb=self.verb)
             if ndiff :
                 ab.EP1("Grid mismatch of one or more infiles")
                 return BAD_RETURN
