@@ -136,13 +136,14 @@ fname_mask : str
                 return BAD_RETURN
 
         # (req) mask and infiles must have same grid
-        tmplist = copy.deepcopy(self.infiles) + [self.fname_mask]
-        ndiff = au.check_all_dsets_same_grid(tmplist, 
-                                             label='mask_and_infiles', 
-                                             verb=self.verb)
-        if ndiff :
-            ab.EP1("Failed having same grid among mask+infiles")
-            return BAD_RETURN
+        if len(self.infiles) :
+            tmplist = copy.deepcopy(self.infiles) + [self.fname_mask]
+            ndiff = au.check_all_dsets_same_grid(tmplist, 
+                                                 label='mask_and_infiles', 
+                                                 verb=self.verb)
+            if ndiff :
+                ab.EP1("Failed having same grid among mask+infiles")
+                return BAD_RETURN
 
         # (opt) check existence of ulay, if provided
         if self.fname_ulay :

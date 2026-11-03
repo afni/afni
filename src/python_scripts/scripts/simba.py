@@ -485,7 +485,10 @@ checks happen in a subsequent object.
         # process non-chronological options, verb comes first
 
         val, err = uopts.get_type_opt(int, '-verb')
-        if val != None and not err: self.verb = val
+        if err: 
+            return -1
+        if val is not None: 
+            self.verb = val
 
         # ------------------------------------------------------------
         # process options sequentially, to make them like a script
@@ -544,13 +547,13 @@ checks happen in a subsequent object.
 
             elif opt.name == '-model_ls':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_ls = val
 
             elif opt.name == '-model_nu':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_nu = val
 
@@ -558,19 +561,19 @@ checks happen in a subsequent object.
 
             elif opt.name == '-model_VI_ELBO_diff_tol':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_VI_ELBO_diff_tol = val
 
             elif opt.name == '-model_VI_para_diff_tol':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_VI_para_diff_tol = val
 
             elif opt.name == '-model_VI_max_iter':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_VI_max_iter = val
 
@@ -582,25 +585,25 @@ checks happen in a subsequent object.
 
             elif opt.name == '-model_VI_verbose':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_VI_verbose = val
 
             elif opt.name == '-model_Gibbs_burnin':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_Gibbs_burnin = val
 
             elif opt.name == '-model_Gibbs_mcmc_sample':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_Gibbs_mcmc_sample = val
 
             elif opt.name == '-model_Gibbs_thin':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.model_Gibbs_thin = val
 
@@ -608,13 +611,13 @@ checks happen in a subsequent object.
 
             elif opt.name == '-ppc_n_mcmc':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.ppc_n_mcmc = val
 
             elif opt.name == '-ppc_alpha':
                 val, err = uopts.get_type_opt(float, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.ppc_alpha = val
 
@@ -632,7 +635,7 @@ checks happen in a subsequent object.
 
             elif opt.name == '-ppc_xlim':
                 val, err = uopts.get_string_list('', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 val2, err2 = convert_list_str_to_float(val)
                 if err2 :
@@ -649,7 +652,7 @@ checks happen in a subsequent object.
 
             elif opt.name == '-fig_dpi':
                 val, err = uopts.get_type_opt(int, '', opt=opt)
-                if val != None and err: 
+                if val != None or err: 
                     BASE.EP(err_base + opt.name)
                 self.fig_dpi = val
 
