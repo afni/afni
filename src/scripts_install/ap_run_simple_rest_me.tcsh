@@ -155,6 +155,32 @@ while ( $ac <= $narg )
       @ nruns ++
 
    # -------------------- other opts --------------------
+   else if ( "$argv[$ac]" == '-blur_size' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -blur_size requires 1 parameter"
+         exit 1
+      endif
+      set blur_size = $argv[$ac]
+
+   else if ( "$argv[$ac]" == '-compressor' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -compressor requires 1 parameter"
+         exit 1
+      endif
+
+      if ( ! ( "$argv[$ac]" == "COMPRESS" || \
+               "$argv[$ac]" == "GZIP"     || \
+               "$argv[$ac]" == "BZIP2"    || \
+               "$argv[$ac]" == "PIGZ" ) ) then
+         echo "** Must use an allowed keyword for AFNI_COMPRESSOR env var:"
+         echo "   GZIP  COMPRESS  BZIP2  PIGZ"
+         exit 1
+      endif
+
+      setenv AFNI_COMPRESSOR $argv[$ac]
+
    else if ( "$argv[$ac]" == '-nt_rm' ) then
       @ ac ++
       if ( $ac > $narg ) then
@@ -191,32 +217,6 @@ while ( $ac <= $narg )
          exit 1
       endif
       set template = $argv[$ac]
-
-   else if ( "$argv[$ac]" == '-blur_size' ) then
-      @ ac ++
-      if ( $ac > $narg ) then
-         echo "** -blur_size requires 1 parameter"
-         exit 1
-      endif
-      set blur_size = $argv[$ac]
-
-   else if ( "$argv[$ac]" == '-compressor' ) then
-      @ ac ++
-      if ( $ac > $narg ) then
-         echo "** -compressor requires 1 parameter"
-         exit 1
-      endif
-
-      if ( ! ( "$argv[$ac]" == "COMPRESS" || \
-               "$argv[$ac]" == "GZIP"     || \
-               "$argv[$ac]" == "BZIP2"    || \
-               "$argv[$ac]" == "PIGZ" ) ) then
-         echo "** Must use an allowed keyword for AFNI_COMPRESSOR env var:"
-         echo "   GZIP  COMPRESS  BZIP2  PIGZ"
-         exit 1
-      endif
-
-      setenv AFNI_COMPRESSOR $argv[$ac]
 
    # -echo is special case of -verb
    else if ( "$argv[$ac]" == '-echo' ) then
@@ -622,6 +622,14 @@ optional parameters:
 
       This is used for anat/EPI alignment, as well as anat/template alignment.
 
+   -compressor COMP        : control automatic compression of *.BRIK files.
+                             'COMP' must be one of the allowed keywords for
+                             the AFNI_COMPRESSOR environment variable:
+                                GZIP  COMPRESS  BZIP2  PIGZ
+                             and you must have the associated program for
+                             compression installed (e.g., 'gzip')
+                             def: not set here
+
    -nt_rm NT               : num time points to remove from starts of runs
                              def: $nt_rm
 
@@ -636,14 +644,6 @@ optional parameters:
 
    -template TEMPLATE      : specify template for standard space
                              def: $template
-
-   -compressor COMP        : control automatic compression of *.BRIK files.
-                             'COMP' must be one of the allowed keywords for
-                             the AFNI_COMPRESSOR environment variable:
-                                GZIP  COMPRESS  BZIP2  PIGZ
-                             and you must have the associated program for
-                             compression installed (e.g., 'gzip')
-                             def: not set here
 
    -verb VERB              : specify verbosity level (3 == -echo)
                              def: $verb

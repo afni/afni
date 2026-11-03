@@ -24,6 +24,8 @@ set epi_list = ()
 
 # ----------------------------------------------------------------------
 # other user-controllable parameters
+set ahs       = yes     # anat_has_skull?
+set blur_size = 0       # allow user control, but have default
 set nt_rm     = 2       # number of time points to remove
                         # rcr - make def to compute from TR?
 set subjid    = 'SUBJ'  # rcr - make def to guess from BIDS?
@@ -31,8 +33,6 @@ set subjid    = 'SUBJ'  # rcr - make def to guess from BIDS?
 set run_ap    = 0       # do we run afni_proc.py?
 set run_proc  = 0       # do we run the resulting proc script?
 
-set blur_size = 0       # allow user control, but have default
-set ahs       = yes     # anat_has_skull?
 set template = MNI152_2009_template_SSW.nii.gz
 set verb     = 1
 
@@ -92,6 +92,40 @@ while ( $ac <= $narg )
       @ ac -= 1
 
    # -------------------- other opts --------------------
+   else if ( "$argv[$ac]" == '-anat_has_skull' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -anat_has_skull requires 1 parameter"
+         exit 1
+      endif
+      set anat_has_skull = $argv[$ac]
+
+   else if ( "$argv[$ac]" == '-blur_size' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -blur_size requires 1 parameter"
+         exit 1
+      endif
+      set blur_size = $argv[$ac]
+
+   else if ( "$argv[$ac]" == '-compressor' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -compressor requires 1 parameter"
+         exit 1
+      endif
+
+      if ( ! ( "$argv[$ac]" == "COMPRESS" || \
+               "$argv[$ac]" == "GZIP"     || \
+               "$argv[$ac]" == "BZIP2"    || \
+               "$argv[$ac]" == "PIGZ" ) ) then
+         echo "** Must use an allowed keyword for AFNI_COMPRESSOR env var:"
+         echo "   GZIP  COMPRESS  BZIP2  PIGZ"
+         exit 1
+      endif
+
+      setenv AFNI_COMPRESSOR $argv[$ac]
+
    else if ( "$argv[$ac]" == '-nt_rm' ) then
       @ ac ++
       if ( $ac > $narg ) then
@@ -120,40 +154,6 @@ while ( $ac <= $narg )
          exit 1
       endif
       set template = $argv[$ac]
-
-   else if ( "$argv[$ac]" == '-blur_size' ) then
-      @ ac ++
-      if ( $ac > $narg ) then
-         echo "** -blur_size requires 1 parameter"
-         exit 1
-      endif
-      set blur_size = $argv[$ac]
-
-   else if ( "$argv[$ac]" == '-anat_has_skull' ) then
-      @ ac ++
-      if ( $ac > $narg ) then
-         echo "** -anat_has_skull requires 1 parameter"
-         exit 1
-      endif
-      set anat_has_skull = $argv[$ac]
-
-   else if ( "$argv[$ac]" == '-compressor' ) then
-      @ ac ++
-      if ( $ac > $narg ) then
-         echo "** -compressor requires 1 parameter"
-         exit 1
-      endif
-
-      if ( ! ( "$argv[$ac]" == "COMPRESS" || \
-               "$argv[$ac]" == "GZIP"     || \
-               "$argv[$ac]" == "BZIP2"    || \
-               "$argv[$ac]" == "PIGZ" ) ) then
-         echo "** Must use an allowed keyword for AFNI_COMPRESSOR env var:"
-         echo "   GZIP  COMPRESS  BZIP2  PIGZ"
-         exit 1
-      endif
-
-      setenv AFNI_COMPRESSOR $argv[$ac]
 
    # -echo is special case of -verb
    else if ( "$argv[$ac]" == '-echo' ) then
@@ -467,6 +467,17 @@ optional parameters:
 
    -anat ANAT              : specify single anatomical dataset
 
+   -anat_has_skull AHS     : specify whether the anatomy (if used) has a skull
+                             def: $ahs
+
+   -compressor COMP        : control automatic compression of *.BRIK files.
+                             'COMP' must be one of the allowed keywords for
+                             the AFNI_COMPRESSOR environment variable:
+                                GZIP  COMPRESS  BZIP2  PIGZ
+                             and you must have the associated program for
+                             compression installed (e.g., 'gzip')
+                             def: not set here
+
    -nt_rm NT               : num time points to remove from starts of runs
                              def: $nt_rm
 
@@ -481,17 +492,6 @@ optional parameters:
 
    -template TEMPLATE      : specify template for standard space
                              def: $template
-
-   -anat_has_skull AHS     : specify whether the anatomy (if used) has a skull
-                             def: $ahs
-
-   -compressor COMP        : control automatic compression of *.BRIK files.
-                             'COMP' must be one of the allowed keywords for
-                             the AFNI_COMPRESSOR environment variable:
-                                GZIP  COMPRESS  BZIP2  PIGZ
-                             and you must have the associated program for
-                             compression installed (e.g., 'gzip')
-                             def: not set here
 
    -verb VERB              : specify verbosity level (3 == -echo)
                              def: $verb
