@@ -373,7 +373,7 @@ extern int isMacTahoe(void) ;  /* in machdep.c [Dec 2025] */
 #endif
 # define DONT_USE_STRPTIME
 /** # define NEED_XSETLOCALE **/  /* removed on 16 May 2005, for Tiger */
-# define NEED_NL_LANGINFO
+# undef  NEED_NL_LANGINFO     /* modern macOS provides nl_langinfo() */
 # define USE_SYSCTL               /* 02 Aug 2016 */
 #endif
 
