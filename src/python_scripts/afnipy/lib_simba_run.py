@@ -84,7 +84,7 @@ inobj : InOpts object
         self.model_ls        = DEF.DOPTS['model_ls']   # model param
         self.model_nu        = DEF.DOPTS['model_nu']   # model param
         self.model_L         = DEF.DOPTS['model_L']
-        self.model_L_eta     = int(0.1*self.model_L)
+        self.model_L_eta     = -1                      # set below from L
 
         self.unpack_dtype    = DEF_unpack_dtype
         self.kernel          = None                    # set by a method, below
@@ -136,13 +136,15 @@ inobj : InOpts object
             if self.inset :
                 self.status = self.load_simdata_from_inset_pickle()
                 if self.status : return
-
             elif self.infiles :
                 self.status = self.load_simdata_from_infiles()
                 if self.status : return
 
             # do the work
             if self.simdata is not None :
+                self.status = self.check_model_L_with_nvox()
+                if self.status: return
+
                 self.status = self.specify_kernel_function()
                 if self.status : return
 
@@ -165,8 +167,8 @@ inobj : InOpts object
         elif self.model_pim == "Gibbs" :
             tmp = self.run_model_Gibbs()
         else:
-            msg = "Unrecognized model {}, ".format(self.model_pim)
-            msg+= "is not in known list:\n{}".format(STR_all_simba_model_pim)
+            msg = "Unrecognized model {}, is not ".format(self.model_pim)
+            msg+= "in known list:\n{}".format(DEF.STR_all_simba_model_pim)
             ab.EP(msg)
 
         return 0
@@ -559,7 +561,22 @@ inobj : InOpts object
 
         return 0
 
+    def check_model_L_with_nvox(self):
+        """An extra check about model_L once we have simdata loaded.
+        Basically, must have model_L <= nvox."""
+
+        if 0 < self.model_L <= self.simdata.nvox :
+            if self.verb :
+                ab.IP("Checked 0 < model_L <= nvox")
+            return 0
+        else:
+            msg = "Mask (nvox = {}) ".format(self.simdata.nvox)
+            msg+= "too small for model_L (= {})".format(self.model_L)
+            ab.EP1(msg)
+            return -1
+
     def load_from_inopts(self):
+
         """Populate the input values using the command line interface
         input. The user information is provided as the self.user_inobj
         object, which gets parsed and redistributed here.
@@ -663,8 +680,12 @@ inobj : InOpts object
 
         # (req) must have at least some input 
         if not(self.infiles) and self.inset is None :
-            ab.EP("Need to provide input with either: -inset, -infiles")
-        elif len(self.infiles) :
+            ab.EP1("Need to provide input with either: -inset, -infiles")
+            return BAD_RETURN
+        elif bool(self.inset) == bool(self.infiles):
+            BASE.EP1("Provide exactly one input option: -inset or -infiles")
+            return BAD_RETURN
+        return -1        elif len(self.infiles) :
             # all infiles exist and have same grid
             nfail = au.check_all_dsets_exist(self.infiles, label='infiles',
                                              verb=self.verb)
@@ -726,7 +747,7 @@ inobj : InOpts object
         # model_pim must be an allowed one
         if self.model_pim not in DEF.LIST_all_simba_model_pim :
             msg = "Model PIM '{}' not in allowed list:".format(self.model_pim)
-            msg+= "\n{}".format(all_simba_model_pim)
+            msg+= "\n{}".format(DEF.STR_all_simba_model_pim)
             ab.EP1(msg)
             return BAD_RETURN
 
@@ -743,35 +764,53 @@ inobj : InOpts object
         # checks on input parameters
 
         # VI iteration count must be positive
-        if self.model_VI_max_iter <= 0:
+        if self.model_VI_max_iter <= 0 :
             ab.EP1("model_VI_max_iter must be > 0, got: {}".format(
                 self.model_VI_max_iter))
             return BAD_RETURN
 
         # Gibbs burn-in can be zero, but not negative
-        if self.model_Gibbs_burnin < 0:
+        if self.model_Gibbs_burnin < 0 :
             ab.EP1("model_Gibbs_burnin must be >= 0, got: {}".format(
                 self.model_Gibbs_burnin))
             return BAD_RETURN
 
         # Gibbs retained sample count must be positive
-        if self.model_Gibbs_mcmc_sample <= 0:
+        if self.model_Gibbs_mcmc_sample <= 0 :
             ab.EP1("model_Gibbs_mcmc_sample must be > 0, got: {}".format(
                 self.model_Gibbs_mcmc_sample))
             return BAD_RETURN
 
         # Gibbs thinning interval must be positive
-        if self.model_Gibbs_thin <= 0:
+        if self.model_Gibbs_thin <= 0 :
             ab.EP1("model_Gibbs_thin must be > 0, got: {}".format(
                 self.model_Gibbs_thin))
             return BAD_RETURN
 
         # PPC draw count must be positive
-        if self.ppc_n_mcmc <= 0:
+        if self.ppc_n_mcmc <= 0 :
             ab.EP1("ppc_n_mcmc must be > 0, got: {}".format(
                 self.ppc_n_mcmc))
             return BAD_RETURN
 
+        # model_L must be positive
+        if self.model_L <= 0 :
+            ab.EP1("model_L must be > 0, got: {}".format(
+                self.model_L))
+            return BAD_RETURN
+
+        # set this model parameter, from model_L; more checks for
+        # model_L_eta and model_L once simdata.nvox is known
+        self.model_L_eta = max(1, int(0.1*self.model_L))
+        if self.model_L_eta <= 0 :
+            ab.EP1("model_L_eta must be > 0, got (via model_L): {}".format(
+                self.model_L_eta))
+            return BAD_RETURN
+        elif self.model_L_eta >= self.model_L :
+            msg = "model_L_eta ({}) must ".format(self.model_L_eta)
+            msg+= "be < model_L ({})".format(self.model_L)
+            ab.EP1(msg)
+            return BAD_RETURN
 
         # generate basic items
 
@@ -855,10 +894,12 @@ limits, [xmin, xmax].  The limits are selected by excluding
 approximately tail_perc percent of the total absolute y weight from
 each tail.
 
-Limits are determined from cumulative trapezoidal areas of absolute
-y values, accounting for uneven x spacing. Limits remain on sampled
-x coordinates; complete intervals are excluded only while their
-cumulative area does not exceed the requested tail percentage.
+Limits are determined from cumulative trapezoidal areas of absolute y
+values, accounting for uneven x spacing. Limits remain on sampled x
+coordinates; complete intervals are excluded only while their
+cumulative area does not exceed the requested tail percentage. If
+tail_perc is 0, then min and max xvals are used (even if all yvals are
+0).
 
 Parameters
 ----------
@@ -867,7 +908,7 @@ xvals : array_like
     Must contain at least two values; spacing need not be uniform.
 yvals : array_like
     1D array of finite values corresponding to xvals.
-    Must have the same length as xvals and should have a finite, positive
+    Must have the same length as xvals; should have a finite, positive
     trapezoidal integral of its absolute values.
 tail_perc : float, optional
     Percentage of total absolute y weight to exclude from each
@@ -920,7 +961,7 @@ xlim : list
         ab.EP1("tail_perc must satisfy 0 <= tail_perc < 50")
         return BAD_RETURN
 
-    # simple case
+    # simple case, even if all yvals are 0
     if tail_perc == 0:
         return 0, [xvals[0], xvals[-1]]
 

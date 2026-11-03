@@ -97,11 +97,6 @@ Option usage ~1~
 -ulay ULAY     :underlay dataset (for images within this program), must 
                 match grid of all inset data
 
--model_ls  MLS :length scale parameter for the SIMBA model, which must be 
-                in the range: {lsmin} < LS < {lsmax} 
-                *** might make this required, estimated from 3dFWHMx ***
-                (def: {model_ls})
-
 -workdir WD    :working directory name, without path; the working dir
                 will be subdirectory of the output location
                 (def: '{STR_workdir_base}' + random chars)
@@ -134,6 +129,11 @@ etc.).  In general, these exist as options primarily for testing, and
 we would not expect them to need to be used in typical applications.
 
 General SIMBA model parameters:
+
+-model_ls  MLS :length scale parameter for the SIMBA model, which must be 
+                in the range: {lsmin} < LS < {lsmax} 
+                *** might make this required, estimated from 3dFWHMx ***
+                (def: {model_ls})
 
 -model_pim MPIM :the name of the posterior inference method (PIM) to run, 
                 selected from among this list: 
@@ -372,6 +372,9 @@ checks happen in a subsequent object.
         self.valid_opts.add_opt('-model_nu', 1, [], 
                         helpstr='SIMBA model parameter nu')
 
+        self.valid_opts.add_opt('-model_L', 1, [], 
+                        helpstr='SIMBA model parameter L')
+
         # model-specific parameters
 
         self.valid_opts.add_opt('-model_VI_ELBO_diff_tol', 1, [], 
@@ -557,6 +560,12 @@ checks happen in a subsequent object.
                     BASE.EP(err_base + opt.name)
                 self.model_nu = val
 
+            elif opt.name == '-model_L':
+                val, err = uopts.get_type_opt(int, '', opt=opt)
+                if val is None or err: 
+                    BASE.EP(err_base + opt.name)
+                self.model_L = val
+
             # model-specific opts
 
             elif opt.name == '-model_VI_ELBO_diff_tol':
@@ -683,10 +692,13 @@ checks happen in a subsequent object.
         if self.verb > 1:
             BASE.IP("Begin processing options")
 
-        # required opt
+        # required opt (one or other)
         if (self.inset is None or not(self.inset)) and \
            not(len(self.infiles)) :
             BASE.EP1("missing one of these input opts: -inset, -infiles")
+            return -1
+        elif bool(self.inset) == bool(self.infiles):
+            BASE.EP1("Provide exactly one input option: -inset or -infiles")
             return -1
 
         if self.prefix is None:
