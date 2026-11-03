@@ -1077,10 +1077,24 @@ def run_qc_var_line_blocks(proc, block):
              % prog)
        return 1, ''
 
-    # todo?
-    olist, rv = proc.user_opts.get_string_list('-vlines_opts')
+    # ------------------------------
+    # more options: -num_pc or other
+    olist = []
+
+    # -num_pc
+    val, err = proc.user_opts.get_type_opt(int, '-find_var_line_npc')
+    if err: return 1, ''
+    elif val != None and val > 0:
+       olist.extend(['-num_pc', '%s'%val])
+
+    # other
+    oo, rv = proc.user_opts.get_string_list('-find_var_line_opts')
+    if oo and len(oo) > 0:
+       olist.extend(oo)
+
+    # put them together
     if olist and len(olist) > 0:
-        other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+        other_opts = '%7s%s \\\n' % (' ', ' '.join(olist))
     else: other_opts = ''
 
     # note the dsets that will be applied
