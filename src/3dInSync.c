@@ -441,7 +441,7 @@ static void usage_3dInSync(void)
 "* Pajula & Tohka (2016), Comput Intell Neurosci 2016:2094601. [sample size]\n"
 "  How many is enough? Effect of sample size in inter-subject correlation\n"
 "  analysis of fMRI. https://doi.org/10.1155/2016/2094601\n"
-"* Simony et al. (2016), Nat Commun 7:12141. [ISFC background]\n"
+"* Simony et al. (2016), Nature Communications 7:12141. [ISFC background]\n"
 "  Dynamic reconfiguration of the default mode network during narrative\n"
 "  comprehension. https://doi.org/10.1038/ncomms12141\n"
 "* Prichard & Theiler (1994), Phys Rev Lett 73(7):951-954.\n"
