@@ -805,6 +805,104 @@ static int regression_test(void)
 done:THD_regression_free(m);return fail;
 }
 
+static int contract_test(void)
+{
+   int tr[4]={2,3,4,5},te[2]={0,1},sf[6]={0,0,-1,-1,-1,-1};
+   int classes[6]={0,1,1,0,1,0},original[6],groups[6]={7,7,7,7,7,7},fail=0;
+   char *labels[2]={"A","B"},err[512];THD_foldplan p;
+   fixed_plan(&p,6,tr,4,te,2,sf);
+   CHECK(THD_mvpa_validate_fold_inputs(&p,classes,2,groups,1,"outer",err,sizeof(err)),err);
+   CHECK(THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)),err);
+   CHECK(!strcmp(labels[0],"B") && !strcmp(labels[1],"A") &&
+         classes[0]==1 && classes[1]==0 && classes[2]==0 && classes[3]==1,
+         "first training occurrence orders classes even when test rows come first");
+   classes[0]=0;classes[1]=1;
+   CHECK(THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)) &&
+         !strcmp(labels[0],"B") && classes[2]==0,
+         "changing only held-out classes cannot change the training tie order");
+   groups[0]=99;
+   CHECK(!THD_mvpa_validate_fold_inputs(&p,classes,2,groups,0,"inner folds of outer f1",err,sizeof(err)) &&
+         strstr(err,"inner folds of outer f1") && strstr(err,"absent from training"),
+         "local fold group validation preserves diagnostic context");
+   groups[0]=7;
+   classes[2]=classes[3]=classes[4]=classes[5]=0;
+   memcpy(original,classes,sizeof(classes));
+   CHECK(!THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)) &&
+         strstr(err,"absent from training") && !memcmp(classes,original,sizeof(classes)) &&
+         !strcmp(labels[0],"B") && !strcmp(labels[1],"A"),
+         "missing training class fails without partially recoding samples or labels");
+   CHECK(!THD_mvpa_validate_fold_inputs(&p,classes,2,NULL,0,"outer",err,sizeof(err)) &&
+         strstr(err,"outer: fold test has no class"),"coverage failures include scope");
+   classes[0]=2;memcpy(original,classes,sizeof(classes));
+   CHECK(!THD_mvpa_fixed_class_order(&p,classes,labels,2,err,sizeof(err)) &&
+         !memcmp(classes,original,sizeof(classes)),"invalid class index is rejected atomically");
+   {
+      int tr2[2]={0,1},te2[4]={2,3,4,5},sf2[6]={-1,-1,0,0,0,0};
+      int cls[6]={0,1,0,1,0,1};
+      fixed_plan(&p,6,tr2,2,te2,4,sf2);
+      CHECK(!THD_mvpa_validate_fold_inputs(&p,cls,2,NULL,1,"outer",err,sizeof(err)) &&
+            strstr(err,"more training rows than classes"),"LDA requires residual training degrees of freedom");
+      CHECK(THD_mvpa_validate_fold_inputs(&p,NULL,0,NULL,0,NULL,err,sizeof(err)),
+            "continuous validation permits omitted class and group arrays");
+   }
+done:return fail;
+}
+
+static int descriptive_refit_test(void)
+{
+   THD_mvpa_refit_workspace *w=NULL;const THD_mvpa_refit_result *r;
+   float x[12]={-1,-2,0,0,1,2,-1,-2,0,0,1,2};
+   float y[12]={8,23,10,20,12,17,8,23,10,20,12,17};
+   float oldx[12],oldy[12],xz[12],ys[6]={8,10,12,8,10,12};
+   int groups[6]={10,10,10,20,20,20},i,j,fail=0;char err[512];
+   memcpy(oldx,x,sizeof(x));memcpy(oldy,y,sizeof(y));
+   w=THD_mvpa_refit_alloc(6,8,2,err,sizeof(err));CHECK(w!=NULL,err);
+   r=THD_mvpa_refit_ridge(w,x,y,6,2,2,THD_PREP_NONE,NULL,1,err,sizeof(err));
+   CHECK(r!=NULL,err);
+   CHECK(r->nsample==6 && r->nfeature==2 && r->nresponse==2 && r->prep->nfit==6,
+         "descriptive result identifies the full-data fit dimensions");
+   CHECK(CLOSE(r->coef[0],8.0/21) && CLOSE(r->coef[1],-12.0/21) &&
+         CLOSE(r->coef[2],16.0/21) && CLOSE(r->coef[3],-24.0/21) &&
+         CLOSE(r->intercept[0],10) && CLOSE(r->intercept[1],20),
+         "multiresponse full-data ridge matches closed-form coefficients/intercepts");
+   CHECK(!memcmp(oldx,x,sizeof(x)) && !memcmp(oldy,y,sizeof(y)),"refit does not mutate input matrices");
+   for(i=0;i<6;i++){xz[2*i]=x[2*i];xz[2*i+1]=5;}
+   r=THD_mvpa_refit_ridge(w,xz,ys,6,2,1,THD_PREP_FEATURE_ZSCORE,NULL,1,err,sizeof(err));
+   CHECK(r!=NULL,err);
+   CHECK(CLOSE(r->coef[0],8/(7*sqrt(2.0/3))) && r->coef[1]==0 &&
+         CLOSE(r->intercept[0],10) && CLOSE(r->prep->scale[0],sqrt(2.0/3)) &&
+         r->prep->center[1]==5 && r->prep->constant[1] && r->prep->scale[1]==1,
+         "coefficients use transformed units and return constant-feature metadata");
+   r=THD_mvpa_refit_ridge(w,x,ys,6,2,1,THD_PREP_SAMPLE_CENTER,NULL,1,err,sizeof(err));
+   CHECK(r && CLOSE(r->coef[0],-4.0/3) && CLOSE(r->coef[1],4.0/3),"sample-centered refit matches closed form");
+   {
+      float xr[6]={-1,0,1,9,10,11};
+      r=THD_mvpa_refit_ridge(w,xr,ys,6,1,1,THD_PREP_RUN_CENTER,groups,1,err,sizeof(err));
+      CHECK(r && CLOSE(r->coef[0],1.6) && CLOSE(r->intercept[0],10) &&
+            r->prep->ngroup==2 && r->prep->group_value[0]==10 && r->prep->group_value[1]==20 &&
+            r->prep->center[0]==0 && r->prep->center[1]==10,
+            "run-centered metadata belongs to the current full-data fit");
+      CHECK(!THD_mvpa_refit_ridge(w,xr,ys,6,1,1,THD_PREP_RUN_CENTER,NULL,1,err,sizeof(err)),
+            "missing run groups fail without returning stale results");
+   }
+   /* Shrink active n, grow p: AUTO now uses the dual system in the same workspace. */
+   {
+      float xd[24],yd[3]={8,10,12};
+      for(i=0;i<3;i++)for(j=0;j<8;j++)xd[i*8+j]=(i-1)*(j+1);
+      r=THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err));CHECK(r!=NULL,err);
+      for(j=0;j<8;j++)CHECK(CLOSE(r->coef[j],4.0*(j+1)/409),"dual refit matches rank-one closed form");
+      CHECK(CLOSE(r->intercept[0],10) && r->prep->nfit==3,"workspace reuse resets the sample count and preprocessing");
+      CHECK(!THD_mvpa_refit_ridge(w,xd,yd,7,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err)),"capacity overflow rejected before reading input");
+      CHECK(!THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,0,err,sizeof(err)),"nonpositive penalty rejected");
+      yd[0]=NAN;
+      CHECK(!THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err)),"nonfinite response rejected");
+      yd[0]=8;
+      CHECK(THD_mvpa_refit_ridge(w,xd,yd,3,8,1,THD_PREP_NONE,NULL,1,err,sizeof(err)),"workspace recovers after failed fits");
+   }
+   CHECK(!THD_mvpa_refit_alloc(0,2,1,err,sizeof(err)),"invalid allocation dimensions rejected");
+done:THD_mvpa_refit_free(w);return fail;
+}
+
 int main( void )
 {
    float zmat[]={ 1,10,5, 3,14,5, 102,212,500, -98,-188,-500 } ;
@@ -1047,6 +1145,6 @@ done:
    THD_mvpa_workspace_free(ws) ;
    THD_centroid_free(cm) ;
    THD_preprocess_free(p) ;
-   if( fail || regression_test() || logistic_test() || response_ridge_test() || comparison_test() || pattern_test() || pca_test() || selection_test() || nuisance_test() || svm_test() || ridge_test() || nested_ridge_test() || ridge_permutation_test() || ridge_classification_test() || lda_test() ) return 1 ;
+   if( fail || descriptive_refit_test() || contract_test() || regression_test() || logistic_test() || response_ridge_test() || comparison_test() || pattern_test() || pca_test() || selection_test() || nuisance_test() || svm_test() || ridge_test() || nested_ridge_test() || ridge_permutation_test() || ridge_classification_test() || lda_test() ) return 1 ;
    puts("PASS thd_mvpa preprocessing, metrics, classifiers, CV, and permutation runner") ; return 0 ;
 }

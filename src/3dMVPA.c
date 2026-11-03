@@ -2712,10 +2712,10 @@ static void mvpa_descriptive_coefficients(THD_sampleset *ss,THD_3dim_dataset *ms
 {
    char **names=NULL,err[1024],feature[256],response[256],label[256];
    char *fname=malloc(strlen(prefix)+32),*mapname=malloc(strlen(prefix)+64);
-   float *attr,*neural,*transformed;double *coef,*intercept;
-   int na,n=ss->nsample,maxvox=THD_roilist_maxvox(rl),maxp,maxq,*rows;
+   float *attr,*neural;const double *coef,*intercept;
+   int na,n=ss->nsample,maxvox=THD_roilist_maxvox(rl),maxp,maxq;
    int r,j,o,g,i,combined=encoding && !searchlight;
-   FILE *table,*prepfile;THD_ridge_workspace *ridge;THD_3dim_dataset *out=NULL;
+   FILE *table,*prepfile;THD_mvpa_refit_workspace *refit;THD_3dim_dataset *out=NULL;
    if(!fname || !mapname)ERROR_exit(PROGRAM_NAME ": cannot name descriptive outputs");
    if(classes){
       na=nc;names=class_names;attr=calloc((size_t)n*nc,sizeof(float));
@@ -2726,13 +2726,9 @@ static void mvpa_descriptive_coefficients(THD_sampleset *ss,THD_3dim_dataset *ms
    if((size_t)maxp>SIZE_MAX/sizeof(double)/(size_t)maxq ||
       (size_t)n>SIZE_MAX/sizeof(float)/(size_t)maxp)
       ERROR_exit(PROGRAM_NAME ": descriptive refit dimensions too large");
-   rows=malloc(sizeof(int)*(size_t)n);neural=malloc(sizeof(float)*(size_t)n*maxvox);
-   transformed=malloc(sizeof(float)*(size_t)n*maxp);
-   coef=malloc(sizeof(double)*(size_t)maxp*maxq);intercept=malloc(sizeof(double)*(size_t)maxq);
-   ridge=THD_ridge_alloc(n,maxp,maxq,err,sizeof(err));
-   if(!rows || !neural || !transformed || !coef || !intercept || !ridge)
-      ERROR_exit(PROGRAM_NAME ": cannot allocate descriptive refit");
-   for(i=0;i<n;i++)rows[i]=i;
+   neural=malloc(sizeof(float)*(size_t)n*maxvox);
+   refit=THD_mvpa_refit_alloc(n,maxp,maxq,err,sizeof(err));
+   if(!neural || !refit)ERROR_exit(PROGRAM_NAME ": cannot allocate descriptive refit");
    sprintf(fname,"%s.coefficients.1D",prefix);table=mvpa_open_audit(fname,"descriptive coefficients");
    fprintf(table,"# Descriptive full-data ridge refit; NOT held-out scores, activation/Haufe maps, or coefficient significance.\n");
    fprintf(table,"# scale=%s; lambda=%.17g; nfit=%d; objective=sum_squared_error+lambda*sum_squared_slopes; intercept_unpenalized\n",
@@ -2758,14 +2754,13 @@ static void mvpa_descriptive_coefficients(THD_sampleset *ss,THD_3dim_dataset *ms
    }
    for(r=0;r<rl->nroi;r++){
       int p=encoding?na:rl->vox[r].nar,q=encoding?rl->vox[r].nar:na;
-      const float *xx,*yy;THD_preprocessor *prep;
+      const float *xx,*yy;const THD_preprocessor *prep;
+      const THD_mvpa_refit_result *fit;
       if(!THD_roi_samples(ss,NULL,n,rl->vox+r,neural,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
       xx=encoding?attr:neural;yy=encoding?neural:attr;
-      prep=THD_preprocess_fit(preprocess,xx,n,p,rows,n,groups,err,sizeof(err));
-      if(!prep || !THD_preprocess_apply(prep,xx,n,p,rows,n,groups,transformed,err,sizeof(err)) ||
-         !THD_ridge_fit(ridge,transformed,yy,n,p,q,lambda,THD_RIDGE_AUTO,err,sizeof(err)) ||
-         !THD_ridge_coefficients(ridge,coef,intercept,err,sizeof(err)))
-         ERROR_exit(PROGRAM_NAME ": descriptive unit %d: %s",rl->val[r],err);
+      fit=THD_mvpa_refit_ridge(refit,xx,yy,n,p,q,preprocess,groups,lambda,err,sizeof(err));
+      if(!fit)ERROR_exit(PROGRAM_NAME ": descriptive unit %d: %s",rl->val[r],err);
+      prep=fit->prep;coef=fit->coef;intercept=fit->intercept;
       if(!combined){
          mvpa_coefficient_prefix(mapname,strlen(prefix)+64,mset,prefix,0,rl->val[r]);
          out=mvpa_coefficient_map(mset,mapname,encoding?na+1:na,argc,argv);
@@ -2801,7 +2796,6 @@ static void mvpa_descriptive_coefficients(THD_sampleset *ss,THD_3dim_dataset *ms
          EDIT_BRICK_LABEL(out,na,"REFIT_INTERCEPT");
          for(o=0;o<q;o++)((float *)DSET_ARRAY(out,na))[rl->vox[r].ar[o]]=mvpa_coefficient_float(intercept[o]);
       }
-      THD_preprocess_free(prep);
       if(!combined){
          if(DSET_write(out)!=True)ERROR_exit(PROGRAM_NAME ": failed writing coefficient map");
          DSET_delete(out);out=NULL;
@@ -2814,7 +2808,7 @@ static void mvpa_descriptive_coefficients(THD_sampleset *ss,THD_3dim_dataset *ms
    if(ferror(table) || fclose(table))ERROR_exit(PROGRAM_NAME ": error writing coefficients");
    if(ferror(prepfile) || fclose(prepfile))ERROR_exit(PROGRAM_NAME ": error writing descriptive preprocessing");
    if(!quiet)INFO_message(PROGRAM_NAME ": descriptive full-data coefficients: %d units, lambda %.9g; %s.coefficients.1D",rl->nroi,lambda,prefix);
-   THD_ridge_free(ridge);free(rows);free(neural);free(transformed);free(coef);free(intercept);
+   THD_mvpa_refit_free(refit);free(neural);
    if(!classes)THD_sampleset_free_levels(names,na);
    free(attr);free(fname);free(mapname);
 }
@@ -2824,22 +2818,9 @@ static void mvpa_descriptive_coefficients(THD_sampleset *ss,THD_3dim_dataset *ms
 static void mvpa_validate_fold_inputs(const THD_foldplan *plan,
    const int *classes,int nclass,const int *groups,int lda,const char *scope)
 {
-   int f,i,j;char err[512];
-   if(classes && !THD_foldplan_check_classes(plan,classes,nclass,0,err,sizeof(err)))
-      ERROR_exit(PROGRAM_NAME ": %s: %s",scope,err);
-   for(f=0;f<plan->nfold;f++){
-      if(lda && plan->ntrain[f]<=nclass)
-         ERROR_exit(PROGRAM_NAME ": %s fold %s: LDA needs more training rows than classes",
-                    scope,plan->name[f]);
-      if(groups)for(i=0;i<plan->ntest[f];i++){
-         int row=plan->test[f][i];
-         for(j=0;j<plan->ntrain[f];j++)
-            if(groups[row]==groups[plan->train[f][j]])break;
-         if(j==plan->ntrain[f])
-            ERROR_exit(PROGRAM_NAME ": %s fold %s: run_center sample %d has a run/group absent from training",
-                       scope,plan->name[f],row+1);
-      }
-   }
+   char err[512];
+   if(!THD_mvpa_validate_fold_inputs(plan,classes,nclass,groups,lda,scope,err,sizeof(err)))
+      ERROR_exit(PROGRAM_NAME ": %s",err);
 }
 
 /* Use the resolved samples, folds and spatial units, not a second input parser.
@@ -2954,18 +2935,9 @@ static void mvpa_validate_report(THD_sampleset *ss,const THD_foldplan *plan,
 static void mvpa_fixed_class_order(const THD_foldplan *plan,int *classes,
                                    char **labels,int nclass)
 {
-   int i,n=0,*code=malloc(sizeof(int)*(size_t)nclass);
-   char **ordered=malloc(sizeof(char *)*(size_t)nclass);
-   if(!code || !ordered)ERROR_exit(PROGRAM_NAME ": cannot order training classes");
-   for(i=0;i<nclass;i++)code[i]=-1;
-   for(i=0;i<plan->ntrain[0];i++){
-      int c=classes[plan->train[0][i]];
-      if(code[c]<0){code[c]=n;ordered[n++]=labels[c];}
-   }
-   if(n!=nclass)ERROR_exit(PROGRAM_NAME ": fixed partition has a class absent from training");
-   for(i=0;i<plan->nsample;i++)classes[i]=code[classes[i]];
-   memcpy(labels,ordered,sizeof(char *)*(size_t)nclass);
-   free(code);free(ordered);
+   char err[512];
+   if(!THD_mvpa_fixed_class_order(plan,classes,labels,nclass,err,sizeof(err)))
+      ERROR_exit(PROGRAM_NAME ": %s",err);
 }
 
 /* Preserve the reserved set even in null fits. Validate block membership before
@@ -2973,32 +2945,24 @@ static void mvpa_fixed_class_order(const THD_foldplan *plan,int *classes,
 static void mvpa_fixed_permutation_blocks(const THD_sampleset *ss,
    const THD_foldplan *plan,const char *column)
 {
-   int *code=NULL,*side,*strata=NULL,*owner=NULL,nlevel=0,ns=0,i;char **labels=NULL,**slab=NULL,err[1024];
+   int *code=NULL,*strata=NULL,nlevel=0,ns=0;char **labels=NULL,**slab=NULL,err[1024];
+   THD_cv_block_conflict conflict;
    if(!strcasecmp(column,"none"))
       ERROR_exit(PROGRAM_NAME ": fixed partitions require permutation blocks confined to train or test; -permute_within none crosses the split");
    if(!THD_sampleset_encode_column(ss,column,&code,&labels,&nlevel,err,sizeof(err)))
       ERROR_exit(PROGRAM_NAME ": %s",err);
-   side=malloc(sizeof(int)*(size_t)nlevel);
-   if(!side)ERROR_exit(PROGRAM_NAME ": cannot validate partition permutation blocks");
-   for(i=0;i<nlevel;i++)side[i]=-1;
-   if(plan->within_column){
-      if(!THD_sampleset_encode_column(ss,plan->within_column,&strata,&slab,&ns,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
-      owner=malloc(sizeof(int)*(size_t)nlevel);if(!owner)ERROR_exit(PROGRAM_NAME ": cannot validate stratum permutation blocks");
-      for(i=0;i<nlevel;i++)owner[i]=-1;
+   if(plan->within_column &&
+      !THD_sampleset_encode_column(ss,plan->within_column,&strata,&slab,&ns,err,sizeof(err)))
+      ERROR_exit(PROGRAM_NAME ": %s",err);
+   if(!THD_foldplan_check_permutation_blocks(plan,code,nlevel,strata,&conflict,err,sizeof(err))){
+      if(conflict.kind==THD_CV_BLOCK_PARTITION)
+         ERROR_exit(PROGRAM_NAME ": permutation block '%s' in '%s' crosses the train/test partition; use a composite partition/block column",labels[conflict.block],column);
+      if(conflict.kind==THD_CV_BLOCK_STRATUM)
+         ERROR_exit(PROGRAM_NAME ": transfer permutation block '%s' crosses subject strata; use subject/domain/block keys",labels[conflict.block]);
+      ERROR_exit(PROGRAM_NAME ": %s",err);
    }
-   for(i=0;i<ss->nsample;i++){
-      int test=plan->sample_test_fold[i]>=0,b=code[i];
-      if(side[b]>=0 && side[b]!=test)
-         ERROR_exit(PROGRAM_NAME ": permutation block '%s' in '%s' crosses the train/test partition; use a composite partition/block column",
-                    labels[b],column);
-      if(owner){
-         if(owner[b]>=0 && owner[b]!=strata[i])ERROR_exit(PROGRAM_NAME ": transfer permutation block '%s' crosses subject strata; use subject/domain/block keys",labels[b]);
-         owner[b]=strata[i];
-      }
-      side[b]=test;
-   }
-   free(owner);free(strata);THD_sampleset_free_levels(slab,ns);
-   free(side);free(code);THD_sampleset_free_levels(labels,nlevel);
+   free(strata);THD_sampleset_free_levels(slab,ns);
+   free(code);THD_sampleset_free_levels(labels,nlevel);
 }
 
 /* MVPA policy adds roles and source provenance to the shared concatenation.

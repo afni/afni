@@ -1795,6 +1795,9 @@ RSA_OBJS = 3dRSA.o thd_datatable.o thd_xmat.o thd_mapinfer.o thd_patterns.o thd_
 RSA_HDRS = thd_datatable.h thd_xmat.h thd_mapinfer.h thd_patterns.h thd_permute.h \
            thd_simmatrix.h thd_rsa.h thd_phasefft.h niml.h AFNI_version.h
 
+3dRSA.o: 3dRSA.c
+thd_rsa.o: thd_rsa.c
+
 $(filter-out thd_xmat.o,$(RSA_OBJS)): $(RSA_HDRS)
 	$(RM) $@
 	$(CCOMP) -c $(@:.o=.c) $(INFLAGS)

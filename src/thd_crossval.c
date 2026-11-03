@@ -566,3 +566,35 @@ int THD_nested_candidate_search(const THD_nested_foldplan *plan,int outer,
    }
    *winner=best;*winner_nvalid=valid_best;return 1;
 }
+
+int THD_foldplan_check_permutation_blocks(const THD_foldplan *plan,
+   const int *blocks,int nblock,const int *strata,THD_cv_block_conflict *conflict,
+   char *err,int nerr)
+{
+   int i,*side=NULL,*owner=NULL,ok=0;
+   if(conflict){conflict->block=-1;conflict->kind=0;}
+   if(!THD_foldplan_validate(plan,err,nerr))return 0;
+   if(plan->kind!=THD_CV_FIXED || !blocks || nblock<1)
+      return cv_error(err,nerr,"permutation block checks need a fixed plan and block IDs");
+   for(i=0;i<plan->nsample;i++)
+      if(blocks[i]<0 || blocks[i]>=nblock || (strata && strata[i]<0))
+         return cv_error(err,nerr,"sample %d has an invalid block or stratum index",i+1);
+   side=malloc(sizeof(int)*(size_t)nblock);
+   if(strata)owner=malloc(sizeof(int)*(size_t)nblock);
+   if(!side || (strata && !owner)){cv_error(err,nerr,"cannot validate permutation blocks");goto done;}
+   for(i=0;i<nblock;i++){side[i]=-1;if(owner)owner[i]=-1;}
+   for(i=0;i<plan->nsample;i++){
+      int b=blocks[i],test=plan->sample_test_fold[i]>=0,kind=0;
+      if(side[b]>=0 && side[b]!=test)kind=THD_CV_BLOCK_PARTITION;
+      else if(owner && owner[b]>=0 && owner[b]!=strata[i])kind=THD_CV_BLOCK_STRATUM;
+      if(kind){
+         if(conflict){conflict->block=b;conflict->kind=kind;}
+         cv_error(err,nerr,"permutation block %d crosses %s",b,
+                  kind==THD_CV_BLOCK_PARTITION?"train/test partition":"strata");goto done;
+      }
+      side[b]=test;if(owner)owner[b]=strata[i];
+   }
+   ok=1;
+done:
+   free(side);free(owner);return ok;
+}

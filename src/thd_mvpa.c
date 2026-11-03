@@ -3620,3 +3620,114 @@ int THD_mvpa_run_centroid_permutations(const THD_foldplan *plan,int distance,
    return THD_mvpa_run_classification_permutations(plan,distance,x,p,classes,groups,
       metric,pset,permuted,scores,w,err,nerr);
 }
+
+/* Training requirements without allocating an estimator. */
+int THD_mvpa_validate_fold_inputs(const THD_foldplan *plan,
+   const int *classes,int nclass,const int *groups,int lda,const char *scope,char *err,int nerr)
+{
+   int f,i,j;char detail[512];
+   if(!scope)scope="folds";
+   if(!THD_foldplan_validate(plan,err,nerr))return 0;
+   if(classes && !THD_foldplan_check_classes(plan,classes,nclass,0,detail,sizeof(detail)))
+      return pp_error(err,nerr,"%s: %s",scope,detail);
+   for(f=0;f<plan->nfold;f++){
+      if(lda && plan->ntrain[f]<=nclass)
+         return pp_error(err,nerr,"%s fold %s: LDA needs more training rows than classes",
+                    scope,plan->name[f]);
+      if(groups)for(i=0;i<plan->ntest[f];i++){
+         int row=plan->test[f][i];
+         for(j=0;j<plan->ntrain[f];j++)
+            if(groups[row]==groups[plan->train[f][j]])break;
+         if(j==plan->ntrain[f])
+            return pp_error(err,nerr,"%s fold %s: run_center sample %d has a run/group absent from training",
+                       scope,plan->name[f],row+1);
+      }
+   }
+   return 1;
+}
+
+int THD_mvpa_fixed_class_order(const THD_foldplan *plan,int *classes,
+                               char **labels,int nclass,char *err,int nerr)
+{
+   int i,n=0,*code=NULL; char **ordered=NULL;
+   if(!THD_foldplan_validate(plan,err,nerr))return 0;
+   if(plan->kind!=THD_CV_FIXED || !classes || !labels || nclass<2)
+      return pp_error(err,nerr,"class ordering needs a fixed plan and at least two classes");
+   for(i=0;i<plan->nsample;i++)if(classes[i]<0 || classes[i]>=nclass)
+      return pp_error(err,nerr,"sample %d has invalid class index %d",i+1,classes[i]);
+   for(i=0;i<nclass;i++)if(!labels[i])return pp_error(err,nerr,"missing class label %d",i+1);
+   code=malloc(sizeof(int)*(size_t)nclass);ordered=malloc(sizeof(char *)*(size_t)nclass);
+   if(!code || !ordered){free(code);free(ordered);return pp_error(err,nerr,"cannot order training classes");}
+   for(i=0;i<nclass;i++)code[i]=-1;
+   for(i=0;i<plan->ntrain[0];i++){
+      int c=classes[plan->train[0][i]];
+      if(code[c]<0){code[c]=n;ordered[n++]=labels[c];}
+   }
+   if(n!=nclass){free(code);free(ordered);return pp_error(err,nerr,"fixed partition has a class absent from training");}
+   for(i=0;i<plan->nsample;i++)classes[i]=code[classes[i]];
+   memcpy(labels,ordered,sizeof(char *)*(size_t)nclass);
+   free(code);free(ordered);return 1;
+}
+
+struct THD_mvpa_refit_workspace {
+   int max_sample,max_feature,max_response;
+   int *rows;
+   float *transformed;
+   double *coef,*intercept;
+   THD_ridge_workspace *ridge;
+   THD_preprocessor *prep;
+   THD_mvpa_refit_result result;
+};
+
+void THD_mvpa_refit_free(THD_mvpa_refit_workspace *w)
+{
+   if(!w)return;
+   THD_preprocess_free(w->prep);THD_ridge_free(w->ridge);
+   free(w->rows);free(w->transformed);free(w->coef);free(w->intercept);free(w);
+}
+
+THD_mvpa_refit_workspace *THD_mvpa_refit_alloc(int n,int p,int q,char *err,int nerr)
+{
+   THD_mvpa_refit_workspace *w;int i;
+   if(n<1 || p<1 || q<1 || (size_t)n>SIZE_MAX/sizeof(int) ||
+      (size_t)n>SIZE_MAX/sizeof(float)/(size_t)p ||
+      (size_t)p>SIZE_MAX/sizeof(double)/(size_t)q){
+      pp_error(err,nerr,"invalid or excessive descriptive refit dimensions");return NULL;
+   }
+   w=calloc(1,sizeof(*w));
+   if(!w){pp_error(err,nerr,"cannot allocate descriptive refit");return NULL;}
+   w->max_sample=n;w->max_feature=p;w->max_response=q;
+   w->rows=malloc(sizeof(int)*(size_t)n);
+   w->transformed=malloc(sizeof(float)*(size_t)n*p);
+   w->coef=malloc(sizeof(double)*(size_t)p*q);
+   w->intercept=malloc(sizeof(double)*(size_t)q);
+   if(!w->rows || !w->transformed || !w->coef || !w->intercept){
+      pp_error(err,nerr,"cannot allocate descriptive refit buffers");goto bad;
+   }
+   w->ridge=THD_ridge_alloc(n,p,q,err,nerr);if(!w->ridge)goto bad;
+   for(i=0;i<n;i++)w->rows[i]=i;
+   return w;
+bad:THD_mvpa_refit_free(w);return NULL;
+}
+
+const THD_mvpa_refit_result *THD_mvpa_refit_ridge(
+   THD_mvpa_refit_workspace *w,const float *x,const float *y,int n,int p,int q,
+   int preprocess,const int *groups,double lambda,char *err,int nerr)
+{
+   if(!w){pp_error(err,nerr,"descriptive refit needs a workspace");return NULL;}
+   THD_preprocess_free(w->prep);w->prep=NULL;
+   memset(&w->result,0,sizeof(w->result));
+   if(!x || !y || n<1 || p<1 || q<1 || n>w->max_sample ||
+      p>w->max_feature || q>w->max_response || !isfinite(lambda) || lambda<=0){
+      pp_error(err,nerr,"descriptive refit needs matching dimensions and a finite positive penalty");return NULL;
+   }
+   w->prep=THD_preprocess_fit(preprocess,x,n,p,w->rows,n,groups,err,nerr);
+   if(!w->prep || !THD_preprocess_apply(w->prep,x,n,p,w->rows,n,groups,w->transformed,err,nerr) ||
+      !THD_ridge_fit(w->ridge,w->transformed,y,n,p,q,lambda,THD_RIDGE_AUTO,err,nerr) ||
+      !THD_ridge_coefficients(w->ridge,w->coef,w->intercept,err,nerr)){
+      THD_preprocess_free(w->prep);w->prep=NULL;return NULL;
+   }
+   w->result.nsample=n;w->result.nfeature=p;w->result.nresponse=q;
+   w->result.prep=w->prep;w->result.coef=w->coef;w->result.intercept=w->intercept;
+   return &w->result;
+}

@@ -143,6 +143,37 @@ static int assignment_test(THD_sampleset *ss)
 done: THD_foldplan_free(p);THD_foldplan_free(table);return fail;
 }
 
+static int block_contract_test(void)
+{
+   THD_sampleset *ss=make_samples();THD_foldplan *p=NULL;char err[512];int fail=0;
+   int blocks[8]={0,0,1,1,2,2,3,3},strata[8]={0,0,0,0,1,1,1,1};
+   THD_cv_block_conflict conflict;
+   CHECK(ss!=NULL,"samples");
+   p=THD_foldplan_fixed(ss,"Split","train","test",err,sizeof(err));CHECK(p!=NULL,err);
+   CHECK(THD_foldplan_check_permutation_blocks(p,blocks,4,strata,&conflict,err,sizeof(err)) &&
+         conflict.block==-1 && conflict.kind==0,"legal partition/stratum blocks");
+   blocks[2]=0;
+   CHECK(!THD_foldplan_check_permutation_blocks(p,blocks,4,strata,&conflict,err,sizeof(err)) &&
+         conflict.block==0 && conflict.kind==THD_CV_BLOCK_PARTITION,
+         "reserved train/test rows cannot share a permutation block");
+   strata[1]=1;
+   CHECK(!THD_foldplan_check_permutation_blocks(p,blocks,4,strata,&conflict,err,sizeof(err)) &&
+         conflict.kind==THD_CV_BLOCK_STRATUM,"report first crossing in sample order");
+   strata[1]=0;blocks[2]=1;blocks[4]=0;
+   CHECK(!THD_foldplan_check_permutation_blocks(p,blocks,4,strata,&conflict,err,sizeof(err)) &&
+         conflict.block==0 && conflict.kind==THD_CV_BLOCK_STRATUM,
+         "same-side blocks still must respect strata");
+   CHECK(THD_foldplan_check_permutation_blocks(p,blocks,4,NULL,NULL,err,sizeof(err)),
+         "stratum restriction is optional");
+   blocks[0]=4;
+   CHECK(!THD_foldplan_check_permutation_blocks(p,blocks,4,NULL,&conflict,err,sizeof(err)) &&
+         conflict.block==-1 && conflict.kind==0 && blocks[0]==4,
+         "invalid IDs return no misleading conflict and never mutate input");
+   CHECK(!THD_foldplan_check_permutation_blocks(NULL,blocks,4,NULL,NULL,err,sizeof(err)),
+         "null plans fail safely");
+done:THD_foldplan_free(p);THD_sampleset_free(ss);return fail;
+}
+
 int main( void )
 {
    THD_sampleset *ss=make_samples() ; THD_foldplan *p=NULL,*p2=NULL ; char err[1024] ;
@@ -205,6 +236,6 @@ int main( void )
 done:
    if( fp!=NULL ) fclose(fp) ; THD_foldplan_free(p) ; THD_foldplan_free(p2) ; free(class_id) ;
    THD_sampleset_free_levels(class_label,nclass) ; THD_sampleset_free(ss) ;
-   if( fail ) return 1 ;
+   if( fail || block_contract_test() ) return 1 ;
    puts("PASS thd_crossval grouped, stratified, explicit, and fixed fold plans") ; return 0 ;
 }

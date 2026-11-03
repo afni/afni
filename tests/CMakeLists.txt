@@ -490,6 +490,8 @@ if(ENABLE_TESTS)
 
   add_executable(
     thd_rsa_unit
+    ${CMAKE_SOURCE_DIR}/src/thd_phasefft.c
+    ${CMAKE_SOURCE_DIR}/src/thd_permute.c
     ${CMAKE_SOURCE_DIR}/src/thd_rsa.c
     ${CMAKE_SOURCE_DIR}/src/thd_simmatrix.c
     ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_rsa.c

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Exercise collision preflight regardless of the user's AFNI configuration.
+export AFNI_DECONFLICT=NO
 mvpa=$1
 undump=$2
 dump=$3
@@ -105,7 +107,7 @@ for fit in plain coefficients; do
   if [[ $fit == coefficients ]]; then extra=(-save_coefficients "$work/autocoef" -coef_lambda 4); fi
   "$mvpa" -mode decode -dataTableFile "$work/samples.1D" -cv_column Sample -inner_cv_column Run \
     -mask "$work/mask+orig" -scale none -lambda auto -target_column Y \
-    -prefix "$work/auto_$fit" -save_predictions "$work/auto_$fit.pred.1D" "${extra[@]}"
+    -prefix "$work/auto_$fit" -save_predictions "$work/auto_$fit.pred.1D" ${extra[@]+"${extra[@]}"}
 done
 cmp "$work/auto_plain.pred.1D" "$work/auto_coefficients.pred.1D"
 cmp "$work/auto_plain.tuning.1D" "$work/auto_coefficients.tuning.1D"
@@ -121,7 +123,8 @@ expect_failure -mode decode -dataTableFile "$work/samples.1D" -cv_column Run -ma
 grep -q 'explicit -coef_lambda' "$work/error"
 expect_failure -mode decode "${common[@]}" -target_column Y -coef_lambda 0 -save_coefficients "$work/bad" -prefix "$work/badscore"
 grep -q 'finite and positive' "$work/error"
-expect_failure -mode classify "${common[@]}" -target_column Condition -save_coefficients "$work/bad" -prefix "$work/badscore"
+expect_failure -mode classify -dataTableFile "$work/samples.1D" -cv_column Run \
+  -mask "$work/mask+orig" -scale none -target_column Condition -save_coefficients "$work/bad" -prefix "$work/badscore"
 grep -q 'requires -method ridge' "$work/error"
 expect_failure -mode decode "${common[@]}" -target_column Y -save_coefficients "$work/bad" \
   -save_predictions "$work/bad.coefficients.1D" -prefix "$work/badscore"

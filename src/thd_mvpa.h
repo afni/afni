@@ -212,6 +212,31 @@ extern int THD_ridge_coefficients(const THD_ridge_workspace *w,
    double *coef, double *intercept, char *err, int nerr);
 extern void THD_ridge_free(THD_ridge_workspace *w);
 
+/* Descriptive all-sample ridge refit, independent of CV, spatial extraction,
+   and output formats. x[n][p], y[n][q] are compact row-major matrices; groups
+   has n entries when preprocessing is run_center. Class indicators, if wanted,
+   are supplied as y by the caller. Inputs are never modified.
+   Coefficients are [p][q] in PREPROCESSED predictor units, intercepts [q] in
+   original response units; the intercept is unpenalized. lambda must be finite
+   and positive. AUTO uses the smaller primal/dual ridge system.
+   The workspace reuses matrix/solver buffers up to its allocation capacities.
+   Each call refits preprocessing on ALL n rows. Results and preprocessing
+   metadata are borrowed until the next call (successful or failed) or free.
+   This is descriptive estimation, not held-out prediction or significance. */
+typedef struct THD_mvpa_refit_workspace THD_mvpa_refit_workspace;
+typedef struct {
+   int nsample, nfeature, nresponse;
+   const THD_preprocessor *prep;
+   const double *coef, *intercept;
+} THD_mvpa_refit_result;
+extern THD_mvpa_refit_workspace *THD_mvpa_refit_alloc(int max_sample,
+   int max_feature,int max_response,char *err,int nerr);
+/* NULL on failure with err populated; previous results are invalidated. */
+extern const THD_mvpa_refit_result *THD_mvpa_refit_ridge(
+   THD_mvpa_refit_workspace *w,const float *x,const float *y,int n,int p,int q,
+   int preprocess,const int *groups,double lambda,char *err,int nerr);
+extern void THD_mvpa_refit_free(THD_mvpa_refit_workspace *w);
+
 /* Supervised selection follows nuisance adjustment and scaling of ALL input
    columns. Classification ranks between-class/total centered sum of squares
    (eta squared); continuous fits rank mean squared Pearson correlation over
@@ -710,5 +735,19 @@ extern int THD_preprocess_fold( const THD_foldplan *plan, int fold, int method,
                                 char *err, int nerr ) ;
 
 extern void THD_preprocess_free( THD_preprocessor *prep ) ;
+
+/* Validate class coverage, LDA training size, and run_center group availability.
+   classes/groups are optional nsample arrays, using this plan's LOCAL indexes
+   (including inner plans). scope is optional diagnostic context. No fitting,
+   mutation, output, or process exit; returns 1 on success, 0 with err on failure. */
+extern int THD_mvpa_validate_fold_inputs(const THD_foldplan *plan,
+   const int *classes,int nclass,const int *groups,int lda,const char *scope,char *err,int nerr);
+
+/* Canonical class order is first occurrence in plan->train[0], independent of
+   held-out rows. Remaps classes[nsample] and reorders labels[nclass] pointers
+   together; strings remain caller-owned. Requires all classes in that training
+   set. Failure leaves both arrays unchanged. Returns 1/0 and an error message. */
+extern int THD_mvpa_fixed_class_order(const THD_foldplan *plan,int *classes,
+                               char **labels,int nclass,char *err,int nerr);
 
 #endif /* _THD_MVPA_HEADER_ */

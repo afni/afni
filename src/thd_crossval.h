@@ -138,4 +138,20 @@ extern void THD_foldplan_print( const THD_foldplan *plan,
 
 extern void THD_foldplan_free( THD_foldplan *plan ) ;
 
+
+#define THD_CV_BLOCK_PARTITION 1
+#define THD_CV_BLOCK_STRATUM   2
+typedef struct { int block, kind; } THD_cv_block_conflict;
+/* Every permutation block must stay on one side of a FIXED train/test split
+   and, if strata is provided, in one stratum. blocks[nsample] uses IDs in
+   [0,nblock); strata[nsample] uses nonnegative IDs. Checks all rows, regardless
+   of how many permutations will be sampled. Inputs are never modified.
+   Returns 1/0; optional conflict identifies the first crossing in sample
+   order (partition before stratum at the same row). Other failures and success
+   leave conflict={-1,0}. err is a generic diagnostic; callers may use conflict
+   to attach their own column and level names. */
+extern int THD_foldplan_check_permutation_blocks(const THD_foldplan *plan,
+   const int *blocks,int nblock,const int *strata,THD_cv_block_conflict *conflict,
+   char *err,int nerr);
+
 #endif /* _THD_CROSSVAL_HEADER_ */
