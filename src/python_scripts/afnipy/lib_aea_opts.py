@@ -132,44 +132,55 @@ class InOpts:
         ciao(); preserve these exits and the existing option interactions.
         """
 
-        opt1 = opt_list.find_opt('-version')         # user only wants version
+        # user only wants version
+        opt1 = opt_list.find_opt('-version')
         opt2 = opt_list.find_opt('-ver')
 
         if ((opt1 != None) or (opt2 != None)):
             # ps.version()
             self.ciao(0)   # terminate
 
-        opt = opt_list.find_opt('-verb')             # set and use verb
+        # set and use verb
+        opt = opt_list.find_opt('-verb')
         if opt != None: self.verb = int(opt.parlist[0])
 
-        opt = opt_list.find_opt('-save_script')      # save executed script
+        # save executed script
+        opt = opt_list.find_opt('-save_script')
         if opt != None: self.save_script = opt.parlist[0]
 
-        opt = opt_list.find_opt('-ex_mode')          # set execute mode
+        # set execute mode
+        opt = opt_list.find_opt('-ex_mode')
         if opt != None: self.oexec = opt.parlist[0]
 
-        opt = opt_list.find_opt('-keep_rm_files')    # keep temp files
+        # keep temp files
+        opt = opt_list.find_opt('-keep_rm_files')
         if opt != None: self.rmrm = 0
 
-        opt = opt_list.find_opt('-prep_only')     # preprocessing only
+        # preprocessing only
+        opt = opt_list.find_opt('-prep_only')
         if opt != None: self.prep_only = 1
 
-        opt = opt_list.find_opt('-help')          # does the user want help?
+        # does the user want help?
+        opt = opt_list.find_opt('-help')
         if opt != None:
-            self.self_help(2)                     # give full help now by def
+            # give full help now by def
+            self.self_help(2)
             self.ciao(0)  # terminate
 
-        opt = opt_list.find_opt('-limited_help')  # less help?
+        # less help?
+        opt = opt_list.find_opt('-limited_help')
         if opt != None:
             self.self_help()
             self.ciao(0)  # terminate
 
-        opt = opt_list.find_opt('-option_help')  # help for options only
+        # help for options only
+        opt = opt_list.find_opt('-option_help')
         if opt != None:
             self.self_help(1)
             self.ciao(0)  # terminate
 
-        opt = opt_list.find_opt('-perc')    # set and use percentile for weight
+        # set and use percentile for weight
+        opt = opt_list.find_opt('-perc')
         if opt != None: self.perc = float(opt.parlist[0])
 
         opt = opt_list.find_opt('-suffix')
@@ -194,19 +205,19 @@ class InOpts:
 
         if (opt_list.find_opt('-epi2anat') or
             opt_list.find_opt('-dset2to1') ):    # align epi to anat
-            self.epi2anat = 1
-            self.anat2epi = 0     # turn off anat to epi unless requested
-            self.volreg_flag = 1  # turn on motion correction/volreg
+            self.epi2anat    = 1
+            self.anat2epi    = 0     # turn off anat to epi unless requested
+            self.volreg_flag = 1     # turn on motion correction/volreg
             if(opt_list.find_opt('-anat2epi') or
-                opt_list.find_opt('-dset1to2')):    # align anat to epi
+                opt_list.find_opt('-dset1to2')): # align anat to epi
                 self.anat2epi = 1
 
-        opt = opt_list.find_opt('-prep_off')    # turn off all preproc steps
+        opt = opt_list.find_opt('-prep_off')     # turn off all preproc steps
         if opt != None:
             self.deoblique_flag = 0
-            self.tshift_flag = 0
-            self.volreg_flag = 0
-            self.resample_flag = 0
+            self.tshift_flag    = 0
+            self.volreg_flag    = 0
+            self.resample_flag  = 0
             self.info_msg( \
             "turning off deobliquing tshift, volume registration, resampling")
             # note - individual flags can be turned on, if desired
@@ -255,21 +266,32 @@ class InOpts:
                 self.ciao(1)
 
         opt = opt_list.find_opt('-check_flip')       # check for LR flip
+        if opt is not None:
+            self.flip        = 1
+            self.save_epi_ns = 1
 
         # optional data to save
         # save 3dAllineate input datasets
         opt = opt_list.find_opt('-save_Al_in')
-        if opt != None: self.save_Al_in = 1
+        if opt != None: 
+            self.save_Al_in = 1
+
         opt = opt_list.find_opt('-save_tsh')         # save timeshifted data
-        if opt != None: self.save_tsh = 1
+        if opt != None: 
+            self.save_tsh = 1
+
         # save volume registered epi data
         opt = opt_list.find_opt('-save_vr')
         if opt != None:
             self.save_vr = 1
             opt = opt_list.find_opt('-volreg')       # if volreg not set
-            if opt == None:  self.volreg_flag = 1    # turn on volreg proc
+            if opt == None:  
+                self.volreg_flag = 1    # turn on volreg proc
+
         opt = opt_list.find_opt('-save_skullstrip')  # save unaligned SS'ed
-        if opt != None: self.save_skullstrip = 1
+        if opt != None: 
+            self.save_skullstrip = 1
+
         # save unaligned, unobliqued dataset
         opt = opt_list.find_opt('-save_orig_skullstrip')
         if opt != None:
@@ -278,13 +300,19 @@ class InOpts:
                 self.self_help()
                 self.ciao(0)  # terminate
             self.save_origstrip = val
+
         opt = opt_list.find_opt('-save_epi_ns')   # save unaligned SS'ed epi
-        if opt != None: self.save_epi_ns = 1
+        if opt != None: 
+            self.save_epi_ns = 1
+
         # save unaligned represent. epi
         opt = opt_list.find_opt('-save_rep')
-        if opt != None: self.save_rep = 1
+        if opt != None: 
+            self.save_rep = 1
+
         opt = opt_list.find_opt('-save_resample') # save unaligned res epi
-        if opt != None: self.save_resample = 1
+        if opt != None: 
+            self.save_resample = 1
 
         opt = opt_list.find_opt('-save_all')      # save all opt output dsets
         if ((opt != None) or self.prep_only):
