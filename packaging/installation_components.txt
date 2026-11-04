@@ -45,6 +45,7 @@ track_tools, suma
 1dNLfit, corebinaries
 1dSEM, corebinaries
 1dTrdm, corebinaries
+1dXmatTool, corebinaries
 1dTsort, corebinaries
 1dUpsample, corebinaries
 1dcat, corebinaries
