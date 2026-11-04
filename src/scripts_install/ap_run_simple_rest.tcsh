@@ -33,15 +33,17 @@ set subjid    = 'SUBJ'  # rcr - make def to guess from BIDS?
 set run_ap    = 0       # do we run afni_proc.py?
 set run_proc  = 0       # do we run the resulting proc script?
 
-set template = MNI152_2009_template_SSW.nii.gz
-set verb     = 1
+set template  = MNI152_2009_template_SSW.nii.gz
+set vline_npc = 0    # ap -find_var_line_npc (0 mean do not apply)
+
+set verb      = 1
 
 # run_clustsim is not relevant for rest
 
 # ----------------------------------------------------------------------
 # parameters not controlled by user
 set prog = `basename $0`
-set script_version = 0.7  # ugly, SHOW_HIST is at the end
+set script_version = 0.8  # ugly, SHOW_HIST is at the end
 
 
 # ===========================================================================
@@ -155,6 +157,14 @@ while ( $ac <= $narg )
       endif
       set template = $argv[$ac]
 
+   else if ( "$argv[$ac]" == '-vline_num_pc' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -vline_num_pc requires 1 parameter"
+         exit 1
+      endif
+      set vline_npc = $argv[$ac]
+
    # -echo is special case of -verb
    else if ( "$argv[$ac]" == '-echo' ) then
       set verb = 3
@@ -195,13 +205,14 @@ cat << EOF
 ++ parameters for program $prog :
    anat            = $anat
    anat_has_skull  = $ahs
+   blur_size       = $blur_size
    epi_list        = $epi_list
    nt_rm           = $nt_rm
-   blur_size       = $blur_size
    run_ap          = $run_ap
    run_proc        = $run_proc
    subjid          = $subjid
    template        = $template
+   vline_npc       = $vline_npc
    verb            = $verb
 EOF
 endif
@@ -270,6 +281,7 @@ afni_proc.py                                                        \
     -blocks                    tshift align tlrc volreg mask        \
                                blur scale regress                   \
     -radial_correlate_blocks   tcat volreg regress                  \
+    -find_var_line_npc         $vline_npc \
     -copy_anat                 $anat \
     -anat_has_skull            ${ahs}                               \
     -dsets                     $epi_list \
@@ -327,6 +339,7 @@ afni_proc.py                                                        \
     -blocks                    tshift volreg mask                   \
                                blur scale regress                   \
     -radial_correlate_blocks   tcat volreg regress                  \
+    -find_var_line_npc         $vline_npc \
     -dsets                     $epi_list \
     -tcat_remove_first_trs     $nt_rm \
     -volreg_align_to           MIN_OUTLIER                          \
@@ -493,6 +506,10 @@ optional parameters:
    -template TEMPLATE      : specify template for standard space
                              def: $template
 
+   -vline_num_pc NPC       : specify the number of variance line PCs to compute
+                             def: $vline_npc
+                             0 means the PC computation will be skipped
+
    -verb VERB              : specify verbosity level (3 == -echo)
                              def: $verb
 
@@ -564,6 +581,7 @@ $prog modification history:
    0.5  : Feb 20, 2024: don't pass irritating -script and -out_dir opts
    0.6  : Mar 29, 2024: remove -compare option, use afni_proc.py for that
    0.7  : Jan 14, 2026: add -anat_has_skull; update help
+   0.8  : Nov  3, 2026: add -vline_num_pc
 
    current version: $script_version
 EOF
