@@ -186,7 +186,7 @@ class InOpts:
         opt = opt_list.find_opt('-suffix')
         if opt != None:
             self.suffix = opt.parlist[0]
-            if((opt=="") or (opt==" ")) :
+            if self.suffix == "" or self.suffix == " " :
                 self.error_msg("Cannot have blank suffix")
                 self.ciao(1);
 
