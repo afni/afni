@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Nov, 2026, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "change wildcard imports to aliases",
+   "This should have no functional change."
+ } ,
+
  {  4, Nov, 2026, RCR, "afni-general", MICRO, TYPE_GENERAL,
    "quiet some compiler warnings",
    "suma_datasets.h: DSET_WRITE_1D_PURE[_TRANSPOSE]: hide stderr vs NULL test"
