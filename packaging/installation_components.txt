@@ -145,6 +145,7 @@ track_tools, suma
 3dMean, corebinaries
 3dMedianFilter, corebinaries
 3dMultiThresh, corebinaries
+3dMVPA, corebinaries
 3dNetCorr, suma
 3dNormalityTest, corebinaries
 3dNotes, corebinaries
@@ -172,6 +173,7 @@ track_tools, suma
 3dRegAna, corebinaries
 3dRetinoPhase, corebinaries
 3dRowFillin, corebinaries
+3dSRM, corebinaries
 3dSetupGroupInCorr, corebinaries
 3dSharpen, corebinaries
 3dSliceNDice, suma
