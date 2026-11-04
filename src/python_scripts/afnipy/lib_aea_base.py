@@ -2161,7 +2161,7 @@ class MainObj:
                     ab.EP1("Failed at a cat_matvec stage")
                     self.ciao(stat)
 
-                if(self._parent.tlrc_apar!=""):
+                if self._parent.tlrc_apar != "" :
                     tlrc_dset = ab.afni_name("{!s}_tlrc{!s}+tlrc".format(
                         self.epi_afniformat.prefix,
                         suf
@@ -2207,8 +2207,17 @@ class MainObj:
                 else:
                     # [pt] !!!! This string is missing something:
                     # there are 3 %s, but only 2 strings provided !!!!
-                    tlrc_orig_dset = ab.afni_name("%s%s_post%s" % (
-                        self.epi_afniformat.out_prefix(), suf))
+                    ###tlrc_orig_dset = ab.afni_name("%s%s_post%s" % (
+                    ###    self.epi_afniformat.out_prefix(), suf))
+                    # ... so we fix it by updating it as follows
+                    # (following what happens in the associated
+                    # if-branch, just above) :
+                    tlrc_orig_dset = ab.afni_name(
+                        "{!s}_post{!s}+orig".format(
+                            self.epi_afniformat.prefix,
+                            suf
+                        )
+                    )
                     tlrc_orig_dset = o.p()
                     tlrc_orig_dset.view = '+orig'
                     base_dset = a
@@ -2230,12 +2239,21 @@ class MainObj:
                         self._parent.dset2_generic_name
                     ))
 
+                    # [pt: 2026-11-4] putting in a likely fix for the
+                    # -prefix arg here: instead of what was there:
+                    #    atlrcpost.input()
+                    # ... now just using this:
+                    #    atlrcpost.prefix
+                    # ... bc the former should contain a directory, which 
+                    # would be redundant with the .p() being used, too.
+                    # this fix mirrors what happens just above in the 
+                    # associated if-branch
                     cmd = "3dAllineate "
                     cmd+= "-base {!s} ".format(base_dset.input())
                     cmd+= "-1Dmatrix_apply {!s} ".format(epi_mat)
                     cmd+= "-prefix {!s}{!s} ".format(
                         atlrcpost.p(),
-                        atlrcpost.input()
+                        atlrcpost.prefix
                     )
                     cmd+= "-input {!s} ".format(e.input())
                     cmd+= "-verb {!s} {!s} {!s}".format(
