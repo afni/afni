@@ -836,9 +836,10 @@ g_history = """
     8.11 Oct  9, 2026:
        - add rest examples demo 2a, 2b, 2c
        - rename old (and less basic) rest examples demo 2a,2b to 2e,2d
+    8.12 Nov  4, 2026: changed wildcard imports to aliases
 """
 
-g_version = "version 8.11, October 9, 2026"
+g_version = "version 8.12, November 4, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
