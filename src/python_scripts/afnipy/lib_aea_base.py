@@ -57,6 +57,7 @@ class MainObj:
         self.user_opts = None
         self.input_options = {}
         self._parent = self
+        self.volreg_ref = None
 
         if user_inobj is not None:
             try:
@@ -2716,16 +2717,24 @@ class MainObj:
             if (vrcom == '3dAllineate'):
                 vrcom = '3dAllineate -cost lpa -automask -source_automask'
             # find base for registration
-            # could be: if number just use that as base
-            # if((ps.volreg_base=='median') or (ps.volreg_base=='max')
-            #   or (ps.volreg_base=='mean')):
-            # choose a statistic as representative
-            # if an integer, choose a single sub-brick
-            if(childflag) :   # or (vrcom != "3dvolreg") :
-                base = "{!s}'[{!s}]'".format(
-                    self._parent.epi.input(),
-                    self._parent.volreg_base
-                )
+            # if number: just use that single sub-brick as base
+            # elif ((ps.volreg_base=='median') or (ps.volreg_base=='max')
+            #      or (ps.volreg_base=='mean')):
+            #    choose a statistic as representative
+            # the volref_ref attribute is useful in case mean/median/etc.
+            # was chosen, and we can't just use a subbrick selector
+            if childflag:
+                if self._parent.volreg_base.isdigit():
+                    base = "{!s}'[{!s}]'".format(
+                        self._parent.epi.input(),
+                        self._parent.volreg_base
+                    )
+                else:
+                    base = self._parent.volreg_ref
+                    if base is None:
+                        msg = "Parent statistical registration base is unset"
+                        ab.EP1(msg)
+                        self.ciao(1)
             elif(self._parent.volreg_base.isdigit()):
                 base = "{!s}".format(self._parent.volreg_base)
                 if(vrcom != '3dvolreg'):
@@ -2815,6 +2824,10 @@ class MainObj:
                         msg+= "registration"
                         ab.EP1(msg)
                         self._parent.ciao(1)
+
+                    # Remember/keep the final statistical base for child 
+                    # registration.
+                    self.volreg_ref = base
 
             cmd = "{!s} ".format(vrcom)
             cmd+= "-1Dfile {!s} ".format(self.mot_1D)
@@ -3184,8 +3197,8 @@ class MainObj:
         # do volume registration
         if(self.volreg_flag):
             if(self._parent.dry_run() or \
-             (not self._parent.dry_run() and (ab.dset_dims(o.input())[
-                3] > 1))) :
+             (not self._parent.dry_run() and \
+              ab.dset_dims(o.input())[3] > 1)) :
                 basesuff = "{!s}_vr".format(basesuff)
 
                 if(self._parent.save_vr):
@@ -3215,6 +3228,9 @@ class MainObj:
             else:
                 self.info_msg("Skipping time series volume registration. "
                               "Must have more than a single sub-brick.")
+                if not childflag:
+                    self.volreg_ref = "{!s}'[0]'".format(o.input())
+
                 self.reg_mat = "" # children can be skipped too
 
         volreg_o = o
