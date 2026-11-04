@@ -190,7 +190,7 @@ class MainObj:
             if self.child_epis != None:
                 for child_epi_name in self.child_epis.parlist:
                     child_epi = ab.afni_name(child_epi_name)
-                    self.process_child_epi(child_epi)
+                    self.process_child_epi(child_epi, suff)
                     # cleanup after the children, remove any extra files
                     if (self.rmrm):
                         self.fresh_start(child_epi.out_prefix(), apref="",
@@ -3372,8 +3372,8 @@ class MainObj:
                 a.out_prefix(),
                 self.anat.view
             ))
-            if (not n.exist() or self._parent.rewrite or self._parent.dry_run(
-                )):
+            if not(n.exist()) or self._parent.rewrite or \
+               self._parent.dry_run() :
                 n.delete(self._parent.oexec)
                 self.info_msg( "Removing skull from {!s} data".format(
                     self._parent.dset1_generic_name
@@ -3402,7 +3402,7 @@ class MainObj:
                     ab.EP1("Could not strip skull\n")
                     return None
             else:
-                self.exists_msg(o.input())
+                self.exists_msg(n.input()) # not: o.input()
         else:
             n = a
 
@@ -3674,7 +3674,7 @@ class MainObj:
     # process children EPI as for parent but
     #   no alignment of anat to EPI and no representative EPI
     # Do time shifting, time series volume registration
-    def process_child_epi(self, childepi) :
+    def process_child_epi(self, childepi, suff) :
         # do preprocessing of epi
         # do time shifting, volume registration of child epi data
         #   if requested; otherwise, just keep the input epi
@@ -3684,6 +3684,13 @@ class MainObj:
         child while keeping an explicit reference to the parent, preserving
         the original distinction between global parent and instance values.
         Retain the existing preprocessing and alignment failure behavior.
+
+        Compared to original AEA program, this one adds suff as an
+        additional arg, so that when called, the child suffixes would
+        be distinct when called with different mcost values in the
+        original, calling function (otherwise, they are either
+        overwritten or skipped)
+
         """
 
         # skip the parent if it's included
@@ -3709,13 +3716,18 @@ class MainObj:
         if(self._parent.prep_only):  # if preprocessing only, exit now
             return
 
-        # does the user want the epi aligned to the anat
+        # does the user want the epi aligned to the anat?
         if (self._parent.epi2anat) :
-            # compute transformation just from applying inverse
+            # compute transformation just from applying inverse (NB:
+            # no longer use suf=self._parent.suffix, but instead the
+            # new arg suf=suff)
             child.epi_alnd = \
                 child.align_epi2anat(child.epi_ts, a, self._parent.AlOpt,
-                suf=self._parent.suffix)
+                suf=suff)
+
             if (not child.epi_alnd):
                 self._parent.ciao(1)
+
         else:
             child.epi_alnd = ''
+
