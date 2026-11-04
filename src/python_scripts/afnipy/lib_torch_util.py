@@ -10,6 +10,7 @@
 
 import sys, os
 import torch
+import platform
 
 from   afnipy   import afni_base         as ab
 from   afnipy   import lib_system_check  as lsc
@@ -152,6 +153,86 @@ can_compile : bool
         ab.IP(msg)
 
     return 0, CAN_COMP
+
+# -------------------------------------------------------------------------
+
+def set_torch_cpus(num_cpu=-1, verb=1):
+    """Set how many CPUs to use. There are different ways to specify,
+including the user providing a value to use (num_cpu). One can also do
+nothing and just let system decide, which it will do on macOS with
+regards to the count of performance cores.
+
+Parameters
+----------
+num_cpu : int
+    user can specify number of CPUs to use
+verb : int
+    verbosity level
+
+Returns
+-------
+is_fail : int
+    0 for success, nonzero for failure
+
+    """
+
+    BAD_RETURN = -1
+
+    try : 
+        # store platform system name 
+        sysname = platform.system()
+    except:
+        ab.EP1("Failed to determine system type")
+        return BAD_RETURN
+
+    if num_cpu > 0 :
+        # user-specified route
+
+        torch.set_num_threads(num_cpu)
+        # interop threads need to be specified early on in any processing
+        torch.set_num_interop_threads(num_cpu)
+
+        if verb:
+            ab.IP("User opt: using {} CPU thread(s)".format(num_cpu))
+
+        return 0
+
+    if sysname == 'Darwin':
+        # if on macOS: estimate based on number of performance cores
+
+        # M-series chips have 4–12 performance cores; use them all.
+        # torch.get_num_threads() respects PYTORCH_CPU_ALLOC_CONF if set,
+        # so only override when the user has not already done so.
+        n_perf_cores = _count_arm_perf_cores()
+        torch.set_num_threads(n_perf_cores)
+
+        if verb:
+            ab.IP("macOS: using {} CPU thread(s)".format(n_perf_cores))
+
+        return 0
+
+    # default
+    num_threads = torch.get_num_threads()
+    if verb:
+        ab.IP("Default: using {} CPU thread(s)".format(num_threads))
+
+    return 0
+
+def _count_arm_perf_cores() -> int:
+    """Return the number of performance cores on Apple Silicon.
+
+    Uses sysctl if available (macOS); falls back to logical CPU count.
+    On M1 that's 4 P-cores; on M1 Pro/Max/Ultra it's 8–16.
+    """
+    try:
+        import subprocess
+        out = subprocess.check_output(
+            ['sysctl', '-n', 'hw.perflevel0.logicalcpu'],
+            stderr=subprocess.DEVNULL
+        )
+        return max(1, int(out.strip()))
+    except Exception:
+        return max(1, os.cpu_count() or 4)
 
 # =========================================================================
 
