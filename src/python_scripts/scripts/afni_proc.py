@@ -1538,6 +1538,10 @@ class SubjProcSream:
                         helpstr='3dToutcount polort (default is as with 3dD)')
         self.valid_opts.add_opt('-find_var_line_blocks', -1, [],
                         helpstr="find_variance_lines.tcsh for given blocks")
+        self.valid_opts.add_opt('-find_var_line_opts', -1, [],
+                        helpstr="extra options for find_variance_lines.tcsh")
+        self.valid_opts.add_opt('-find_var_line_npc', 1, [],
+                        helpstr="num vline principle components to extract")
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
                         helpstr="compute correlations with spherical averages")

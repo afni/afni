@@ -53,6 +53,21 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Nov, 2026, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -find_var_line_npc, apply -find_var_line_opts",
+   NULL
+ } ,
+
+ {  3, Nov, 2026, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -vline_num_pc",
+   NULL
+ } ,
+
+ {  3, Nov, 2026, RCR, "ap_run_simple_rest_me.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -vline_num_pc",
+   NULL
+ } ,
+
  { 30, Oct, 2026, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "add example getting the slice timing pattern from a JSON sidecar",
    NULL
