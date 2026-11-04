@@ -12,20 +12,9 @@ import sys, os, copy, glob
 from   afnipy import afni_base          as ab
 from   afnipy import afni_util          as au
 
-# ============================================================================
+from   afnipy import template_defs      as DEF
 
-# default values for the main obj
-DOPTS = {
-    'user_opts'       : [],         # command the user ran
-    'verb'            : 1,
-    'overwrite'       : '',
-    'do_clean'        : 'Yes',
-    'do_log'          : False,
-    'inset'           : '',
-    'prefix'          : '',
-    'outdir'          : None,
-    'workdir'         : '',
-}
+# ============================================================================
 
 # ----------------------------------------------------------------------------
 
@@ -48,23 +37,23 @@ inobj : InOpts object
         # ----- set up attributes
 
         # main input variables
-        self.status          = 0                       # not used
-        self.user_opts       = DOPTS['user_opts']      # command the user ran
+        self.status          = 0                        # not used
+        self.user_opts       = DEFS.DOPTS['user_opts']  # command the user ran
         self.user_inobj      = user_inobj
 
         # general variables
-        self.verb            = DOPTS['verb']
-        self.overwrite       = DOPTS['overwrite']
-        self.do_clean        = DOPTS['do_clean']
-        self.do_log          = DOPTS['do_log']
+        self.verb            = DEFS.DOPTS['verb']
+        self.overwrite       = DEFS.DOPTS['overwrite']
+        self.do_clean        = DEFS.DOPTS['do_clean']
+        self.do_log          = DEFS.DOPTS['do_log']
 
         # main data variables
-        self.inset           = DOPTS['inset']
-        self.prefix          = DOPTS['prefix']
+        self.inset           = DEFS.DOPTS['inset']
+        self.prefix          = DEFS.DOPTS['prefix']
 
         # control variables
-        self.outdir          = DOPTS['outdir']         # None or str
-        self.workdir         = DOPTS['workdir']
+        self.outdir          = DEFS.DOPTS['outdir']     # None or str
+        self.workdir         = DEFS.DOPTS['workdir']
 
         # ----- take action(s)
 
