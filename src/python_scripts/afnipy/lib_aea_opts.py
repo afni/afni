@@ -110,9 +110,10 @@ class InOpts:
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
             if not opt:
-                print("** ERROR: seem to have trailers, but cannot find them!")
+                ab.EP1("seem to have trailers, but cannot find them!")
             else:
-                print("** ERROR: have invalid trailing args: %s", opt.show())
+                msg = "have invalid trailing args: {}".format(opt.show())
+                ab.EP1(msg)
             return 1  # failure
 
         # apply the user options
@@ -127,10 +128,10 @@ class InOpts:
     def apply_initial_opts(self, opt_list):
         """Apply the initial controls in their historical precedence order.
 
-        Set execution, alignment direction, preprocessing and save flags from
-        opt_list.  Terminal options print their output and terminate through
-        ciao(); preserve these exits and the existing option interactions.
-        """
+        Set execution, alignment direction, preprocessing and save
+        flags from opt_list.  Terminal options print their output and
+        terminate through ciao(); preserve these exits and the
+        existing option interactions."""
 
         # user only wants version
         opt1 = opt_list.find_opt('-version')
@@ -328,8 +329,7 @@ class InOpts:
     def show(self, mesg=""):
         """Print the parsed options with an optional message.
 
-        Include the valid option table when verbosity exceeds two.
-        """
+        Include the valid option table when verbosity exceeds two."""
 
         print("{!s}: {!s}".format(mesg, self.label))
         if self.verb > 2: self.valid_opts.show('valid_opts: ')
@@ -355,9 +355,7 @@ class InOpts:
 
         Print the historical completion/error message and, when requested,
         write the accumulated AFNI command history.  Raise SystemExit(i);
-        the entry-point/processing boundary records that status.
-
-        """
+        the entry-point/processing boundary records that status."""
 
         if i > 0:
             print("** ERROR - script failed")

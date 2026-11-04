@@ -45,19 +45,21 @@ class MainObj:
 
         """
 
-        self.status = 0
-        self.label = 'align_epi_anat.py'
-        self.user_inobj = user_inobj
-        self.args_orig = list(sys.argv if args_orig is None else args_orig)
-        self.argv = self.args_orig[:]
+        self.status      = 0
+        self.label       = 'align_epi_anat.py'
+        self.user_inobj  = user_inobj
+        self.args_orig   = list(sys.argv if args_orig is None else args_orig)
+        self.argv        = self.args_orig[:]
+
         for key, value in DEF.DOPTS.items():
             setattr(self, key, copy.deepcopy(value))
-        self.odir = os.getcwd()
-        self.valid_opts = None
-        self.user_opts = None
+
+        self.odir        = os.getcwd()
+        self.valid_opts  = None
+        self.user_opts   = None
         self.input_options = {}
-        self._parent = self
-        self.volreg_ref = None
+        self._parent     = self
+        self.volreg_ref  = None
 
         if user_inobj is not None:
             try:
@@ -87,24 +89,26 @@ class MainObj:
                 self.status = exc.code
 
     def load_from_inopts(self):
-        """Copy parsed controls and option objects without sharing containers.
+        """Copy parsed controls and option objects without sharing
+        containers.
 
-        Copy the state as one graph so AFNI option/default references retain
-        their relationships.  Keep this object's parent reference and status.
-        Return 0 after loading.
-        """
+        Copy the state as one graph so AFNI option/default references
+        retain their relationships.  Keep this object's parent
+        reference and status.  Return 0 after loading."""
 
         fields = {key: value for key, value in vars(self.user_inobj).items()
                   if key != 'status'}
         self.__dict__.update(copy.deepcopy(fields))
+
         return 0
 
     def basic_setup(self):
-        """Resolve derived settings and dataset/output setup in the legacy order.
+        """Resolve derived settings and dataset/output setup in the
+        legacy order.
 
-        Translate process_input()'s historical 1-for-success result into
-        the stage convention of 0 for success.  Preserve its fatal exit path.
-        """
+        Translate process_input()'s historical 1-for-success result
+        into the stage convention of 0 for success.  Preserve its
+        fatal exit path."""
 
         if not self.process_input():
             self.ciao(1)
@@ -112,11 +116,12 @@ class MainObj:
         return 0
 
     def prepare_datasets(self):
-        """Clean old temporaries, prepare anatomy/EPI, then construct weights.
+        """Clean old temporaries, prepare anatomy/EPI, then construct
+        weights.
 
-        Preserve the original preprocessing failure checks and return 0 after
-        preparation.  Weight generation still precedes the prep-only exit.
-        """
+        Preserve the original preprocessing failure checks and return
+        0 after preparation.  Weight generation still precedes the
+        prep-only exit."""
 
         self.cleanup()
 
@@ -203,10 +208,9 @@ class MainObj:
     def prepare_addedge(self, e, suff):
         """Prepare optional @AddEdge QC for the current alignment cost.
 
-        e is the representative EPI and suff the cost-specific output suffix.
-        Preserve resampling/matrix selection and return both examination-list
-        names for the final viewing instructions.
-        """
+        e is the representative EPI and suff the cost-specific output
+        suffix.  Preserve resampling/matrix selection and return both
+        examination-list names for the final viewing instructions."""
 
         if self.output_dir == "./" :
             cmd = "\\rm -f AddEdge/*"
@@ -365,12 +369,10 @@ class MainObj:
 
 
     def info_msg(self, mesg=""):
-        """Print mesg with the informational prefix when verbosity permits."""
+        """Print mesg with the informational prefix when verb permits."""
 
-        if(self.verb >= 1) :
+        if self.verb >= 1 :
             ab.IP(mesg)
-
-
 
 
     def exists_msg(self, dsetname=""):
@@ -495,7 +497,7 @@ class MainObj:
 
 
     def version(self):
-        """Print the unchanged alignment version at the current verbosity."""
+        """Print the unchanged alignment version at the current verbx."""
 
         ab.IP("align_epi_anat version: {}".format(self.align_version))
 
@@ -506,9 +508,11 @@ class MainObj:
     def copy_dset(self, dset1, dset2, message, exec_mode):
         """Copy dset1 to dset2 using the selected execution mode.
 
-        Both datasets are afni_name objects.  Skip equivalent paths; otherwise
-        delete the destination and run 3dcopy.  Return 0 on success or a skipped
-        copy, and 1 when the output is missing outside dry-run mode.
+        Both datasets are afni_name objects.  Skip equivalent paths;
+        otherwise delete the destination and run 3dcopy.  Return 0 on
+        success or a skipped copy, and 1 when the output is missing
+        outside dry-run mode.
+
         """
 
         ab.IP(message)
@@ -555,11 +559,11 @@ class MainObj:
         # skull stripping is on by default for anat/dset1
         """Resolve alignment settings and perform the legacy setup checks.
 
-        Use the parsed option lookup without reparsing command-line arguments.
-        Preserve option precedence, dataset probes, grid calculations and output
-        directory creation in their original order.  Return 1 on success or 0
-        for a missing EPI input option; other fatal checks call ciao().
-        """
+        Use the parsed option lookup without reparsing command-line
+        arguments.  Preserve option precedence, dataset probes, grid
+        calculations and output directory creation in their original
+        order.  Return 1 on success or 0 for a missing EPI input
+        option; other fatal checks call ciao()."""
 
         opt = self.input_options.get('-anat_has_skull')
         if opt != None and opt.parlist[0] == 'no':
@@ -640,8 +644,8 @@ class MainObj:
         if(not (opt1 or opt2 or opt2b or opt3)):
             self._parent.AlOpt = "{!s} -onepass ".format(self._parent.AlOpt)
         else:
-            # resampling has the potential to cut off data
-            # the cmass flag is used by 3dAllineate to align the center of mass
+            # resampling has the potential to cut off data; the cmass
+            # flag is used by 3dAllineate to align the center of mass
             # first and then resamples
             self.resample_flag = 0
 
@@ -727,9 +731,6 @@ class MainObj:
         if self.cost == '' :
             self.cost = 'lpc'      # set default cost to lpc
 
-    #      if ps.user_opts.find_opt('-fresh'):
-    #         ps.fresh_start(e.out_prefix(), a.out_prefix())
-
         #epi input
         if not e.exist():
             msg = "Could not find epi / dset2 dataset\n   {!s} ".format(
@@ -790,13 +791,17 @@ class MainObj:
         else:
             self._parent.epi_base = opt.parlist[0]
 
-        #get volreg_base (matches epi_base by default)
+        # get volreg_base (matches epi_base by default); check about
+        # other opt that collides/interacts with this opt, too
         opt = self.input_options.get('-volreg_base')
-        if opt != None:
-            self.volreg_flag = 1
+        if opt is not None:
             self._parent.volreg_base = opt.parlist[0]
+
+            if self.input_options.get('-volreg') is None:
+                self.volreg_flag = 1
         else:
             self._parent.volreg_base = self._parent.epi_base
+
 
     # may not need this and only the epi_base parameter instead
         #get 3dTstat options
@@ -811,22 +816,27 @@ class MainObj:
         if optc == None :
             #if no cmass option entered, partial coverage?
             cmass_opts = 0
+
             opt = self.input_options.get('-partial_coverage')
             if opt != None:
                 self._parent.cmass = 'cmass+a'
                 cmass_opts += 1
+
             opt = self.input_options.get('-partial_axial')
             if opt != None:
                 self._parent.cmass = 'cmass+xy'
                 cmass_opts += 1
+
             opt = self.input_options.get('-partial_coronal')
             if opt != None:
                 self._parent.cmass = 'cmass+xz'
                 cmass_opts += 1
+
             opt = self.input_options.get('-partial_sagittal')
             if opt != None:
                 self._parent.cmass = 'cmass+yz'
                 cmass_opts += 1
+
             if cmass_opts > 1:
                 ab.EP1("Can only use a single partial_xxx coverage option")
         else:
@@ -839,7 +849,7 @@ class MainObj:
             self._parent.tlrc_apar = anat_tlrc
             if not anat_tlrc.exist():
                 msg = "Could not find anat talairach "
-                msg+= "template dataset\n  {!s} ".format(anat_tlrc.out_prefix())
+                msg+= "template dataset\n{!s}".format(anat_tlrc.out_prefix())
                 ab.EP1(msg)
             else:
                 msg = "Talairach transformed anatomical: "
@@ -1015,10 +1025,11 @@ class MainObj:
                     mast_dxyz = "-mast_dxyz {:f}".format(min_d)
                 else:
                     mast_dset = opt.parlist[0]
-                    if(opt.parlist[0]!='BASE') and (opt.parlist[0]!='SOURCE'):
+                    if opt.parlist[0] != 'BASE' and \
+                       opt.parlist[0] != 'SOURCE' :
                         mast_dxyz = ''
                     else:
-                        if(opt.parlist[0]=='SOURCE'):
+                        if opt.parlist[0] == 'SOURCE' :
                             mast_dxyz = ''
                         else:
                             # for BASE, resample by def to min.dimension too
@@ -1060,22 +1071,27 @@ class MainObj:
                     min_d = float(opt.parlist[0])
                     self.master_anat_option = "-newgrid {:f}".format(min_d)
                     mast_dxyz = "-mast_dxyz {:f}".format(min_d)
+
                     msg = "Spacing for {} ".format(self.dset1_generic_name)
                     msg+= "to {} ".format(self.dset2_generic_name)
                     msg+= "obliquing is {:f} mm".format(min_d)
                     ab.IP(msg)
+
                 else: # master is not a voxel size, but a dataset
                     mast_dset = opt.parlist[0]
+
                     # master is a specific dataset name
                     if(opt.parlist[0]!='BASE') and (opt.parlist[0]!='SOURCE'):
                         ttt = "-gridset {}".format(opt.parlist[0])
                         self.master_anat_option = ttt
                         mast_dxyz = ''
+
                     # master is 'SOURCE' or 'BASE'
                     else:
                         msg = "master anat option is "
                         msg+= "{}".format(opt.parlist[0])
                         ab.IP(msg)
+
                         msg2 = "Cannot apply BASE or SOURCE as master "
                         msg2+= "for deobliquing. Using default min dim "
                         msg2+= "spacing"
@@ -1087,9 +1103,10 @@ class MainObj:
                             mast_dxyz = "-mast_dxyz {:f}".format(min_d)
 
         opt = self.input_options.get('-master_anat_dxyz')
-        if opt == None:
+        if opt == None :
             opt = self.input_options.get('-master_dset1_dxyz')
-        if opt != None:
+
+        if opt != None :
             if(ab.isFloat(opt.parlist[0])):
                 mast_dxyz = "-mast_dxyz {!s}".format(opt.parlist[0])
             else:
@@ -1185,7 +1202,9 @@ class MainObj:
             if not self.dry_run() :
                 os.chdir(self.output_dir)
         else :
-            self.output_dir = "./"  # just the current directory
+            # just the current directory
+            self.output_dir = "./"
+
         self.anat_dir = self.output_dir
         self.epi_dir = self.output_dir
 
@@ -1224,8 +1243,8 @@ class MainObj:
     def min_dim_dset(self, dset=None) :
         """Return the smallest absolute voxel dimension of dset.
 
-        Read DELTA with 3dAttribute.  Preserve the dry-run placeholder and
-        the fallback to 1.0 when the minimum dimension is zero.
+        Read DELTA with 3dAttribute.  Preserve the dry-run placeholder
+        and the fallback to 1.0 when the minimum dimension is zero.
         """
 
         cmd = "3dAttribute DELTA {}".format(dset.input())
@@ -1280,9 +1299,8 @@ class MainObj:
     def oblique_dset( self, dset=None) :
         """Report and return whether dset has oblique axes.
 
-        Inspect the existing 3dinfo pipeline.  Return 1 for oblique data or
-        dry-run mode, otherwise 0.
-        """
+        Inspect the existing 3dinfo pipeline.  Return 1 for oblique
+        data or dry-run mode, otherwise 0."""
 
         cmd = "3dinfo {} | ".format( dset.input())
         cmd+= "\\grep 'Data Axes Tilt:'| \\grep 'Oblique'"
@@ -1312,9 +1330,7 @@ class MainObj:
 
         Treat lpc+ZZ as lpc, and return the parsed float.  Preserve
         the error messages and the legacy fallback value of 1000 on
-        read/lookup failure.
-
-        """
+        read/lookup failure."""
 
         if costfunction.lower() == "lpc+zz" :
             costfunction = "lpc"
@@ -1324,11 +1340,13 @@ class MainObj:
             # ignore first line. That should just say "3dAllineate
             # -allcostX1D results"
             costfile.readline()
+
             # read the list of costnames in the second line
             costnames = costfile.readline()
             # remove the underscores and the leading ##
             costnamelist = [(x) for x in costnames.split() \
                             if x != "___" and x != "#" and x != "##" ]
+
             # read the list of cost values
             costlist = costfile.readline()
             # convert into list structure
@@ -1358,7 +1376,7 @@ class MainObj:
         #   if name == costfunction:
         #      costvalue = costs[i]
         #      return costvalue
-        return (1000)
+        return 1000
 
     # LONG NOTE
     #
@@ -1391,19 +1409,20 @@ class MainObj:
                              alopt=" -onepass -weight_frac 1.0 -maxrot 6 " \
                                     "-maxshf 10 -warp aff ",\
                              suf = "_alnd_epi", costfunction = "lpc"):
-                             #m is the weight brick
         """Compute anatomy-to-EPI alignment and any requested child outputs.
 
-        e and a are the reference EPI and source anatomy afni_name objects;
-        m is an optional weight dataset.  alopt supplies additional alignment
-        options, suf names outputs, and costfunction selects the cost.
-        Save/compose matrices and honor flip, grid and overwrite controls.
-        Return aligned anatomy and weight datasets, or (None, None) when the
-        primary 3dAllineate command fails.
-        """
+        e and a are the reference EPI and source anatomy afni_name
+        objects; m is an optional weight brick/dataset.  
+
+        alopt supplies additional alignment options, suf names
+        outputs, and costfunction selects the cost.  Save/compose
+        matrices and honor flip, grid and overwrite controls.  
+
+        Return aligned anatomy and weight datasets, or (None, None)
+        when the primary 3dAllineate command fails."""
 
         msg = "Aligning {} data ".format(self._parent.dset1_generic_name)
-        msg+= "to %s data".format(self._parent.dset2_generic_name)
+        msg+= "to {} data".format(self._parent.dset2_generic_name)
         ab.IP(msg)
 
         # for oblique data or pre and post transformed data, save anat
@@ -1580,9 +1599,8 @@ class MainObj:
                 # center of mass options (cmass) \
                 # master grid, other 3dAllineate options \
                 cmd = "3dAllineate "
-                cmd+= "-allcostX1D IDENTITY __tt_lr_flipcosts.1D {!s} ".format(
-                    wtopt
-                )
+                cmd+= "-allcostX1D IDENTITY "
+                cmd+= "__tt_lr_flipcosts.1D {!s} ".format(wtopt)
                 cmd+= "-source {!s} ".format(of.input())
                 cmd+= "-base {!s} {!s} {!s} {!s} {!s} ".format(
                     e.input(),
@@ -1680,7 +1698,8 @@ class MainObj:
                 # for oblique and edge data,
                 # need to apply matrix to skullstripped anat
                 if(self._parent.obl_a2e_mat!=""):
-                    # overall transformation A to E is (E2A^-1 PreShift/Oblique)
+                    # overall transformation A to E is 
+                    # (E2A^-1 PreShift/Oblique)
                     # 1Dmatrix_apply takes E to A as input so inverse
                     #    E to A = Obl^-1 E2A
                     obl_mat = "{!s} -I".format(self._parent.obl_a2e_mat)
@@ -1711,11 +1730,12 @@ class MainObj:
                         self._parent.dset2_generic_name
                     ))
 
-                else:   # just apply the matrix to the original data (edges)
-                    self.info_msg(
-                        "Applying transformation to skullstripped {!s}".format(
-                        self._parent.anat_ns0.input()
-                    ))
+                else:   
+                    # just apply the matrix to the original data (edges)
+                    msg = "Applying transformation to skullstripped "
+                    msg+= "{!s}".format(self._parent.anat_ns0.input())
+                    ab.IP(msg)
+
                     e2a_mat = "{!s}{!s}{!s}_mat.aff12.1D".format(
                         a.p(),
                         self._parent.anat0.out_prefix(),
@@ -1730,9 +1750,10 @@ class MainObj:
                         ab.EP1("Failed at a mv stage")
                         self.ciao(stat)
 
-                    self.info_msg( \
-                        "renaming e2a transformation matrix is standard "
-                        "matrix (no obliquity)" )
+                    msg = "renaming e2a transformation matrix is standard "
+                    msg+= "matrix (no obliquity)"
+                    ab.IP(msg)
+
                     self.anat_mat = e2a_mat
 
                 cmd = "3dAllineate "
@@ -1920,18 +1941,24 @@ class MainObj:
 
        # align the epi to the anatomical but do it using the inverse
        # transformation of the alignment of anat to epi
-    def align_epi2anat(  self, e=None, a=None, \
-          alopt="",\
-          suf = "_alnd_anat"):
-        # tlrc space output null by default
-        """Apply the inverse anatomy alignment to EPI and optional template space.
+    def align_epi2anat( self, e=None, a=None,
+                        alopt="", suf = "_alnd_anat" ):
+        """Apply the inverse anatomy alignment to EPI and optional
+        template space.
 
-        e and a are source EPI and reference anatomy afni_name objects.  Use
-        alopt and suf for command options and output names.  Compose the parent
-        alignment with this instance's volume-registration matrix and optional
-        oblique/post/template transforms.  Return the EPI and template outputs;
-        the latter retains the legacy empty-list value when not produced.
-        """
+        e and a are source EPI and reference anatomy afni_name
+        objects.  
+
+        Use alopt and suf for command options and output names.
+
+        Compose the parent alignment with this instance's
+        volume-registration matrix and optional oblique/post/template
+        transforms.  
+
+        Return the EPI and template outputs; the latter retains the
+        legacy empty-list value when not produced.
+
+        tlrc space output null by default"""
 
         t = []
         self.info_msg(" Applying alignment for {!s} to {!s}".format(
@@ -2105,12 +2132,12 @@ class MainObj:
                         self.ciao(1)
 
                     tlrc_type = int(com.val(0,0))
-                    if(tlrc_type != 0) :
-                        msg = "Cannot compute "
-                        msg+= "transformations for manually "
-                        msg+= "talairached data"
+                    if tlrc_type != 0 :
+                        msg = "Cannot compute transformations for "
+                        msg+= "manually talairached data"
                         ab.EP1(msg)
-                        return o,t
+                        #return o,t
+                        self.ciao(1)
 
                     anat_tlrc_mat = "{!s}::WARP_DATA".format(
                         self._parent.tlrc_apar.input()
@@ -2124,7 +2151,8 @@ class MainObj:
                 # note registration matrix, reg_mat, can be blank and ignored
                 cmd = "cat_matvec "
                 cmd+= "-ONELINE {!s} ".format(anat_tlrc_mat)
-                cmd+= "-I {!s} {!s} ".format(oblique_mat, self._parent.anat_mat)
+                cmd+= "-I {!s} ".format(oblique_mat)
+                cmd+= "{!s} ".format(self._parent.anat_mat)
                 cmd+= "-I {!s}  > {!s}".format(self.reg_mat, epi_mat)
                 com = ab.shell_com(cmd, self._parent.oexec)
                 stat = com.run();
@@ -2333,12 +2361,14 @@ class MainObj:
 
 
     # create edge dataset of internal brain structure edges
-    def edge_dset(self, e=None, prefix = "temp_edge", binarize=0,erodelevel=2):
+    def edge_dset(self, e=None, prefix="temp_edge", 
+                  binarize=0, erodelevel=2):
         """Create internal edges from dataset e at the requested prefix.
 
-        Use erodelevel for the outer-layer removal and binarize for optional
-        binary edges.  Return the edge dataset or None on a checked failure.
-        """
+        Use erodelevel for the outer-layer removal and binarize for
+        optional binary edges.  
+
+        Return the edge dataset or None on a checked failure."""
 
         o = ab.afni_name(prefix)
         o.view = e.view
@@ -2466,8 +2496,8 @@ class MainObj:
     def deoblique_epi(self, e=None, deoblique_opt="", prefix="temp_deob"):
         """Deoblique EPI dataset e with 3dWarp and deoblique_opt.
 
-        Write prefix and return its afni_name, or None on a checked failure.
-        """
+        Write prefix and return its afni_name, or None on a checked
+        failure."""
 
         o = e.new(prefix)
         if (not o.exist() or self._parent.rewrite or self._parent.dry_run()):
@@ -2499,10 +2529,10 @@ class MainObj:
     def oblique_anat2epi(self,a=None,e=None,oblique_opt="",suffix="_ob"):
         """Transform anatomy a to the geometry of EPI e.
 
-        Use oblique_opt and suffix while preserving center alignment and
-        pre-matrix handling.  Save the matrix for later composition and return
-        the transformed afni_name, or None on a checked failure.
-        """
+        Use oblique_opt and suffix while preserving center alignment
+        and pre-matrix handling.  Save the matrix for later
+        composition and return the transformed afni_name, or None on a
+        checked failure."""
 
         o = a.new("{!s}{!s}".format(a.out_prefix(), suffix))
 
@@ -2633,9 +2663,11 @@ class MainObj:
                         return None
                 else:
                     self.exists_msg(tempshft.input())
-                self.info_msg("Using align_centered {!s} as epi master".format(
-                    tempshft.prefix
-                ))
+
+                msg = "Using align_centered {!s} ".format(tempshft.prefix)
+                msg+= "as epi master"
+                ab.IP(msg)
+
                 self.master_epi_option = "-master {!s} {!s}".format(
                     tempshft.input(),
                     self.master_epi_option
@@ -2645,12 +2677,11 @@ class MainObj:
 
 
     # do time shifting of EPI dataset
-    def tshift_epi(  self, e=None, tshift_opt="-cubic", prefix="temp_tsh"):
+    def tshift_epi(self, e=None, tshift_opt="-cubic", prefix="temp_tsh"):
         """Apply slice timing correction to EPI e with 3dTshift.
 
-        Use tshift_opt and prefix.  Return the output afni_name, or retain e
-        when the output is missing outside dry-run mode.
-        """
+        Use tshift_opt and prefix.  Return the output afni_name, or
+        retain e when the output is missing outside dry-run mode."""
 
         o = ab.afni_name(prefix)
 
@@ -2674,24 +2705,24 @@ class MainObj:
         return o
 
 
-
     # do volume registration of EPI dataset
     def register_epi(self, e=None, reg_opt="-quintic", prefix="temp_vr", \
                              motion_prefix = "temp_vr", childflag=0):
         """Volume-register EPI e using the configured registration method.
 
-        reg_opt and prefix control dataset output; motion_prefix names motion
-        parameters and matrices.  childflag selects the parent-derived reference
-        for child runs.  Store this instance's registration matrix and return
-        the output afni_name, or None on a checked failure.
-        """
+        reg_opt and prefix control dataset output; motion_prefix names
+        motion parameters and matrices.  childflag selects the
+        parent-derived reference for child runs.  
+
+        Store this instance's registration matrix and return the
+        output afni_name, or None on a checked failure."""
 
         o = ab.afni_name(prefix)
 
         if (not o.exist() or self._parent.rewrite or self._parent.dry_run()):
             o.delete(self._parent.oexec)
-            # save the volreg output to file names based on original epi name
-            # (not temporary __tt_ names)
+            # save the volreg output to file names based on original
+            # epi name (not temporary __tt_ names)
 
             # motion parameters output
             self.mot_1D = "{!s}_motion.1D".format(motion_prefix)
@@ -2903,15 +2934,17 @@ class MainObj:
         if (use_ss == '3dSkullStrip'):     #skullstrip epi
             n = ab.afni_name(prefix)
             n.view = e.view
-            if (not n.exist() or self._parent.rewrite or self._parent.dry_run(
-                )):
+            if not(n.exist()) or self._parent.rewrite or \
+               self._parent.dry_run():
                 n.delete(self._parent.oexec)
+
                 cmd = "3dSkullStrip "
                 cmd+= "-orig_vol {!s} ".format(skullstrip_opt)
                 cmd+= "-input {!s} ".format(e.input())
                 cmd+= "-prefix {!s}".format(n.pp())
                 com = ab.shell_com(cmd, self._parent.oexec)
                 stat = com.run()
+
                 if (not n.exist() and not self._parent.dry_run()):
                     ab.EP1("Could not strip skull\n")
                     return None
@@ -2925,10 +2958,12 @@ class MainObj:
             if (not n.exist() or self._parent.rewrite or self._parent.dry_run(
                 )):
                 n.delete(self._parent.oexec)
+
                 cmd = "3dAutomask {!s} ".format(skullstrip_opt)
                 cmd+= "-apply_prefix {!s} {!s}".format(n.pp(), e.input())
                 com = ab.shell_com(cmd, self._parent.oexec)
                 stat = com.run()
+
                 if (not n.exist() and not self._parent.dry_run()):
                     ab.EP1("Could not strip skull with automask\n")
                     return None
@@ -2946,7 +2981,7 @@ class MainObj:
                         fati = -1, suf="_wt"):
     #e is a preprocessed epi, no skull
     # box, bin and fat mask are not used
-        """Build a percentile-based alignment weight from preprocessed EPI e.
+        """Build a percentile-based alignment weight from preproc'ed EPI e.
 
         Use perci (90 when negative), power sq and output suffix suf.
         Retain the currently unused box, binit and fati parameters.
@@ -3023,10 +3058,10 @@ class MainObj:
         # specified examinelist for output name or use default in @AddEdge
         """Prepare the three supplied datasets and run @AddEdge for QC.
 
-        d1, d2 and d3 are afni_name objects; their corresponding names select
-        the copied prefixes.  An empty name uses that dataset's prefix.
-        listlog optionally supplies the examination-list filename.
-        """
+        d1, d2 and d3 are afni_name objects; their corresponding names
+        select the copied prefixes.  An empty name uses that dataset's
+        prefix.  listlog optionally supplies the examination-list
+        filename."""
 
         if (listlog == ""):
             aelistlog = ""
@@ -3114,12 +3149,14 @@ class MainObj:
     def process_epi(self, use_ss='3dSkullStrip', childflag=0):
         """Prepare this instance's EPI data in the existing processing order.
 
-        Convert NIFTI when needed, time shift, volume-register, and, for the
-        parent, select a representative volume, resample and strip/edge it.
-        use_ss selects skull stripping.  With childflag, stop after registration.
-        Return the timing, volume-registration and final preprocessing datasets;
-        callers retain the original failure checks on those results.
-        """
+        Convert NIFTI when needed, time shift, volume-register, and,
+        for the parent, select a representative volume, resample and
+        strip/edge it.  use_ss selects skull stripping.  With
+        childflag, stop after registration.  
+
+        Return the timing, volume-registration and final preprocessing
+        datasets; callers retain the original failure checks on those
+        results."""
 
         basesuff = ""
         if self.epi_dir == '':
@@ -3186,13 +3223,14 @@ class MainObj:
                         basesuff,
                         baseviewext
                     )
-                o = self.tshift_epi( o, self._parent.tshift_opt, prefix=prefix)
+                o = self.tshift_epi(o, self._parent.tshift_opt, prefix=prefix)
             else:
                 self.info_msg("Can not do time shifting of slices. "
                               "Data is already time shifted")
+
         # if timeshifting was done, this will be the final epi dataset
-        # and then the concatenated volreg, 3dAllineate transformations will be
-        # applied
+        # and then the concatenated volreg, 3dAllineate
+        # transformations will be applied
         tshift_o = o
         # do volume registration
         if(self.volreg_flag):
@@ -3215,8 +3253,8 @@ class MainObj:
                         basesuff,
                         baseviewext
                     )
-                # if aligning epi to anat or saving volreg output, save motion
-                # parameters
+                # if aligning epi to anat or saving volreg output,
+                # save motion parameters
                 motion_prefix = "{!s}{!s}{!s}".format(
                     basepath,
                     self.epi_afniformat.out_prefix(),
@@ -3321,13 +3359,15 @@ class MainObj:
 
     # do the preprocessing of the anatomical data
     def process_anat(self):
-        """Prepare anatomy and record datasets required for final transforms.
+        """Prepare anatomy and record datasets required for final
+        transforms.
 
-        Copy/convert the input, optionally skullstrip, match obliquity/centers
-        and compute edges.  Preserve the original command and existence checks.
-        Return 1 on success, None for a checked skullstrip failure, or terminate
-        through ciao() for a checked copy failure.
-        """
+        Copy/convert the input, optionally skullstrip, match
+        obliquity/centers and compute edges.  Preserve the original
+        command and existence checks.  
+
+        Return 1 on success, None for a checked skullstrip failure, or
+        terminate through ciao() for a checked copy failure."""
 
         if self.anat_dir == '':
             basepath = self.anat0.p()
@@ -3368,8 +3408,8 @@ class MainObj:
         else:
             self.exists_msg(self.anat.input())
 
-        # now that we have the data in AFNI format, use the AFNI format copy
-        # names
+        # now that we have the data in AFNI format, use the AFNI
+        # format copy names
         self.anat0 = ab.afni_name("{!s}{!s}{!s}".format(
             basepath,
             self.anat0.out_prefix(),
@@ -3474,15 +3514,16 @@ class MainObj:
 
 
     # create final output files (non-temporary names)
-    def create_output(self, aae, w, eaa, eaat, suf, epi_in=None, anat_in=None):
+    def create_output(self, aae, w, eaa, eaat, suf, 
+                      epi_in=None, anat_in=None):
+        """Create a properly named version of anatomy aligned to
+        EPI, making the requested permanent outputs and record dataset
+        history.
 
-        #Create a properly named version of anatomy aligned to  EPI
-        """Create the requested permanent outputs and record dataset history.
-
-        aae, w, eaa and eaat are aligned anatomy, weight, EPI and template EPI
-        outputs.  suf controls naming; epi_in and anat_in are optional saved
-        alignment inputs.  Honor the existing save flags and copy behavior.
-        """
+        aae, w, eaa and eaat are aligned anatomy, weight, EPI and
+        template EPI outputs.  suf controls naming; epi_in and anat_in
+        are optional saved alignment inputs.  Honor the existing save
+        flags and copy behavior."""
 
         opt = self._parent.input_options.get('-anat')
         if opt == None :
@@ -3494,9 +3535,10 @@ class MainObj:
 
         ein = ab.afni_name(opt.parlist[0])
 
-        # save skull stripped anat before alignment
-        # Yikes! Rick noticed the saved skullstrip was the obliqued one
-        # and not the original. Should be original ps.anat_ns0, not ps.anat_ns
+        # save skull stripped anat before alignment.
+        # Yikes! Rick noticed the saved skullstrip was the obliqued
+        # one and not the original. Should be original ps.anat_ns0,
+        # not ps.anat_ns
         if(self._parent.skullstrip and self._parent.save_skullstrip):
             ao_ns = ab.afni_name("{!s}{!s}_ns{!s}".format(
                 self._parent.anat_ns0.p(),
@@ -3628,9 +3670,9 @@ class MainObj:
                 self.dset1_generic_name
             ), self._parent.oexec)
             self.save_history(o,self._parent.oexec)
-        # And a version of the epi that is aligned to the anatomy in standard
-        # space
-        if (eaat):
+        # And a version of the epi that is aligned to the anatomy in
+        # standard space
+        if eaat :
             #save the epi aligned to anat in standard space
             #put note in header with command line
             self.save_history(eaat,self._parent.oexec)
@@ -3696,18 +3738,17 @@ class MainObj:
         #   if requested; otherwise, just keep the input epi
         """Prepare childepi and optionally apply the parent's alignment.
 
-        Skip the parent input itself.  Shallow-copy processing state for the
-        child while keeping an explicit reference to the parent, preserving
-        the original distinction between global parent and instance values.
-        Retain the existing preprocessing and alignment failure behavior.
+        Skip the parent input itself.  Shallow-copy processing state
+        for the child while keeping an explicit reference to the
+        parent, preserving the original distinction between global
+        parent and instance values.  Retain the existing preprocessing
+        and alignment failure behavior.
 
         Compared to original AEA program, this one adds suff as an
         additional arg, so that when called, the child suffixes would
         be distinct when called with different mcost values in the
         original, calling function (otherwise, they are either
-        overwritten or skipped)
-
-        """
+        overwritten or skipped)."""
 
         # skip the parent if it's included
         if(childepi.input()==self._parent.epi.input()) :
@@ -3737,7 +3778,7 @@ class MainObj:
             # compute transformation just from applying inverse (NB:
             # no longer use suf=self._parent.suffix, but instead the
             # new arg suf=suff)
-            child.epi_alnd = \
+            child.epi_alnd, child.epi_alnd_tlrc = \
                 child.align_epi2anat(child.epi_ts, a, self._parent.AlOpt,
                 suf=suff)
 
