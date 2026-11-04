@@ -154,7 +154,9 @@ class MainObj:
             a = self.anat_ns
 
             self.anat_alnd, self.anat_alndwt = \
-                self.align_anat2epi(e, a, self.epi_wt, self.AlOpt, suff, mcost)
+                self.align_anat2epi(e, a, 
+                                    self.epi_wt, self.AlOpt, 
+                                    suff, mcost)
             if (not self.anat_alnd):
                 self.ciao(1)
 
@@ -174,13 +176,15 @@ class MainObj:
                 self.anat_alnd = ''
 
             if self.AddEdge:
-                self._listlog_a2e, self._listlog_e2a = self.prepare_addedge(e,
-                    suff)
-
+                self._listlog_a2e, self._listlog_e2a = \
+                    self.prepare_addedge(e, suff)
 
             #Create final results
-            self.create_output(self.anat_alnd, self.anat_alndwt, self.epi_alnd,
-                self.epi_alnd_tlrc, "{!s}".format(suff), e, a)
+            self.create_output(self.anat_alnd, 
+                               self.anat_alndwt, 
+                               self.epi_alnd,
+                               self.epi_alnd_tlrc, 
+                               "{!s}".format(suff), e, a)
 
             # process the children
             if self.child_epis != None:
@@ -192,6 +196,7 @@ class MainObj:
                         self.fresh_start(child_epi.out_prefix(), apref="",
                             rmold=0,
                            epipath=("{!s}".format(self.output_dir)) )
+
         return 0
 
     def prepare_addedge(self, e, suff):
@@ -202,26 +207,28 @@ class MainObj:
         names for the final viewing instructions.
         """
 
-        if(self.output_dir=="./"):
+        if self.output_dir == "./" :
             cmd = "\\rm -f AddEdge/*"
             com = ab.shell_com(cmd, self.oexec)
         else:
             cmd = "cd {!s}; \\rm -f AddEdge/*".format(self.output_dir)
             com = ab.shell_com(cmd, self.oexec)
 
-        com.run()
-        # @AddEdge requires single sub-brick, resampled data (grids must match)
-        #  and skullstripped data to avoid extracranial and cranial edges
-        #  so using data as it went into 3dAllineate here
-        # check if resampling is turned off, and do that here
-        # for epi2anat, resample epi_alnd to anat
-        # if skullstripping is off, we'll have to assume it's already done
+        stat = com.run()
+        
+
+        # @AddEdge requires single sub-brick, resampled data (grids
+        # must match) and skullstripped data to avoid extracranial and
+        # cranial edges so using data as it went into 3dAllineate
+        # here.  Check if resampling is turned off, and do that here
+        # for epi2anat, resample epi_alnd to anat if skullstripping is
+        # off, we'll have to assume it's already done
 
         # Note 3dAllineate does not require resampling. This script
         # provides an option to avoid resampling.
 
-        # If @AddEdge does require resampling though, so do it now if it hasn't
-        # been done yet
+        # If @AddEdge does require resampling though, so do it now if
+        # it hasn't been done yet
         if(self.resample_flag):
             ein_rs = e
         else:
@@ -239,12 +246,13 @@ class MainObj:
             listlog_a2e = ""
             listlog_e2a = ""
 
-
-        if (self.epi2anat):    # if aligning epi to anatomical
-            # for the edge image, we need a dataset at the resolution of the
-            # anatomical and the specific epi sub-brick we used as the epi_base
-            # Use 3dAllineate to create the resampled, skullstripped EPI
-            # from the same representative sub-brick used to align anat to epi
+        # if aligning epi to anatomical
+        if (self.epi2anat):    
+            # for the edge image, we need a dataset at the resolution
+            # of the anatomical and the specific epi sub-brick we used
+            # as the epi_base Use 3dAllineate to create the resampled,
+            # skullstripped EPI from the same representative sub-brick
+            # used to align anat to epi
 
             if((self.output_dir == "./") or (self.output_dir == " ")):
                 outdir = self.epi.p()
@@ -267,13 +275,10 @@ class MainObj:
                     self.epi_base
                 )
 
-              # epi_mat  = "%s{%s}" % (epi_mat, ps.epi_base)
-
-            self.info_msg(
-                "Applying transformation for {!s} to {!s} for @AddEdge".format(
-                self.dset2_generic_name,
-                self.dset1_generic_name
-            ))
+            msg = "Applying transformation for "
+            msg+= "{!s} to ".format(self.dset2_generic_name)
+            msg+= "{!s} for @AddEdge".format(self.dset1_generic_name)
+            ab.IP(msg)                
 
             cmd = "3dAllineate "
             cmd+= "-base {!s} ".format(self.anat0.input())
@@ -285,7 +290,12 @@ class MainObj:
             cmd+= "-input {!s}  ".format(ein_rs.input())
             cmd+= "-master BASE"
             com = ab.shell_com(cmd, self.oexec)
-            com.run()
+
+            stat = com.run()
+            if stat :
+                ab.EP1("Failed at a 3dAllineate stage")
+                self.ciao(stat)
+
             self.add_edges(self.anat_ns, ein_rs, self.epi_addedge,\
                       "{!s}_ns".format(self.anat0.out_prefix()),     \
                       "{!s}_ns".format(self.epi.out_prefix()),       \
@@ -298,6 +308,7 @@ class MainObj:
                           "{!s}_ns".format(self.anat0.out_prefix()),   \
                           "{!s}{!s}".format(self.anat0.out_prefix(), suff), \
                           listlog = listlog_a2e)
+
         return listlog_a2e, listlog_e2a
 
     def finish(self):
@@ -375,11 +386,13 @@ class MainObj:
 
 
     def ciao(self, i):
-        """Finish with status i after restoring the original working directory.
+        """Finish with status i after restoring the original working
+        directory.
 
         Print the historical completion/error message and, when requested,
         write the accumulated AFNI command history.  Raise SystemExit(i);
         the entry-point/processing boundary records that status.
+
         """
 
         if i > 0:
@@ -395,23 +408,24 @@ class MainObj:
         # return status code
         sys.exit(i)
 
-
-
     # save the script command arguments to the dataset history
     def save_history(self, dset, exec_mode):
         """Add this invocation to dset's history with 3dNotes.
 
         dset is an afni_name and exec_mode controls command execution.
-        Use the saved argument list so main(argv) records the invocation it ran.
-        """
+        Use the saved argument list so main(argv) records the
+        invocation it ran."""
 
         ab.IP("Saving history")  # sounds dramatic, doesn't it?
         cmdline = au.args_as_command(self.argv, \
                    '3dNotes -h "', "\" {!s}".format(dset.input()))
         cmd = "{!s}\n".format(cmdline)
         com = ab.shell_com(cmd, exec_mode)
-        com.run()
 
+        stat = com.run()
+        if stat :
+            ab.EP1("Failed at a 3dNotes stage")
+            self.ciao(stat)
 
     # show help
     # if help_level is 1, then show options help only
@@ -500,10 +514,11 @@ class MainObj:
         if(dset1.input()==dset2.input()):
             print("# copy is not necessary")
             return 0
-    #      if((os.path.islink(dset1.p())) or (os.path.islink(dset2.p()))):
+
         if(dset1.real_input() == dset2.real_input()):
             print("# copy is not necessary")
             return 0
+
         ds1 = dset1.real_input()
         ds2 = dset2.real_input()
         ds1s = ds1.replace('/./','/')
@@ -515,18 +530,22 @@ class MainObj:
             dset1.input(),
             dset2.input()
         ))
+
         dset2.delete(exec_mode)
+
         cmd = "3dcopy {!s} {!s}".format(dset1.input(), dset2.out_prefix())
         com = ab.shell_com(cmd, exec_mode)
-        com.run()
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Failed at a 3dcopy stage")
+            self.ciao(stat)
+
         if ((not dset2.exist())and (exec_mode!='dry_run')):
             msg = "Could not rename {!s}\n".format(dset1.input())
             ab.EP1(msg)
             return 1
         return 0
-
-
-
 
 
     ## BEGIN script specific functions
@@ -1156,12 +1175,13 @@ class MainObj:
             msg = "User has selected a new output directory: "
             msg+= "{}".format(self.output_dir)
             ab.IP(msg)
-            cmd = "\\mkdir "
-            cmd+= "-p {}".format(self.output_dir)
+
+            cmd = "\\mkdir -p {}".format(self.output_dir)
             com = ab.shell_com(cmd, self.oexec)
-            com.run()
+            stat = com.run()
+
             print("cd {!s}".format(self.output_dir))
-            if(not self.dry_run()):
+            if not self.dry_run() :
                 os.chdir(self.output_dir)
         else :
             self.output_dir = "./"  # just the current directory
@@ -1209,7 +1229,8 @@ class MainObj:
 
         cmd = "3dAttribute DELTA {}".format(dset.input())
         com = ab.shell_com(cmd, self._parent.oexec,capture=1)
-        com.run()
+        stat = com.run()
+
         if  self._parent.dry_run():
             return (1.234567)
 
@@ -1244,7 +1265,7 @@ class MainObj:
 
         cmd = "3dAttribute TAXIS_OFFSETS {}".format(dset.input())
         com = ab.shell_com(cmd, self._parent.oexec,capture=1)
-        com.run()
+        stat = com.run()
 
         if  self._parent.dry_run():
             return (1)
@@ -1265,7 +1286,7 @@ class MainObj:
         cmd = "3dinfo {} | ".format( dset.input())
         cmd+= "\\grep 'Data Axes Tilt:'| \\grep 'Oblique'"
         com = ab.shell_com(cmd, self._parent.oexec, capture=1)
-        com.run()
+        stat = com.run()
 
         if self._parent.dry_run() :
             return (1)   # default for dry run is to assume oblique
@@ -1467,9 +1488,12 @@ class MainObj:
             )
             com = ab.shell_com(cmd, self._parent.oexec)
             # if this fails, notify the user
-            if com.run():
+            stat = com.run()
+
+            if stat :
                 ab.EP1("3dAllineate failure")
                 return None, None
+
             e2a_mat = self.anat_mat
 
             if (self._parent.flip):
@@ -1477,8 +1501,13 @@ class MainObj:
                 cmd+= "-prefix {!s}{!s} ".format(olr.p(), olr.out_prefix())
                 cmd+= "-overwrite {!s}".format(a.input())
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
-                if((self._parent.flip_giant) and not(self._parent.giant_move)):
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dLRflip stage")
+                    self.ciao(stat)
+
+                if self._parent.flip_giant and not(self._parent.giant_move) :
                     alopt =  \
                     (
                         "{!s} -twobest 11 -twopass -maxrot 45 "
@@ -1518,7 +1547,11 @@ class MainObj:
                     checkstr
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dAllineate stage")
+                    self.ciao(stat)
 
                 # weighting          \
                 # center of mass options (cmass) \
@@ -1526,9 +1559,7 @@ class MainObj:
                 cmd = "3dAllineate "
                 cmd+= (
                     "-allcostX1D IDENTITY __tt_lr_noflipcosts.1D {!s} "
-                ).format(
-                    wtopt
-                )
+                ).format(wtopt)
                 cmd+= "-source {!s} ".format(o.input())
                 cmd+= "-base {!s} {!s} {!s} {!s} {!s} ".format(
                     e.input(),
@@ -1538,7 +1569,12 @@ class MainObj:
                     checkstr
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dAllineate allcostX1D stage")
+                    self.ciao(stat)
+
                 # weighting          \
                 # center of mass options (cmass) \
                 # master grid, other 3dAllineate options \
@@ -1555,7 +1591,11 @@ class MainObj:
                     checkstr
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dAllineate stage")
+                    self.ciao(stat)
 
                 noflipcost = self.get_cost("__tt_lr_noflipcosts.1D",
                     costfunction)
@@ -1611,7 +1651,11 @@ class MainObj:
                     self.anat_mat
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run();
+                stat = com.run();
+
+                if stat :
+                    ab.EP1("Failed at a cat_matvec stage")
+                    self.ciao(stat)
 
             # if not doing alignment for anat2epi, just return now,
             # and use the xform matrix later
@@ -1653,7 +1697,12 @@ class MainObj:
                         e2a_mat
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
-                    com.run();
+                    stat = com.run()
+
+                    if stat :
+                        ab.EP1("Failed at a cat_matvec stage")
+                        self.ciao(stat)
+
                     self.info_msg( \
                         "Combining {!s} to {!s} and oblique "
                         "transformations".format(
@@ -1674,7 +1723,11 @@ class MainObj:
                     # input to cat_matvec
                     cmd = "mv {!s} {!s}".format(self.anat_mat, e2a_mat)
                     com = ab.shell_com(cmd, self._parent.oexec)
-                    com.run();
+                    stat = com.run();
+
+                    if stat :
+                        ab.EP1("Failed at a mv stage")
+                        self.ciao(stat)
 
                     self.info_msg( \
                         "renaming e2a transformation matrix is standard "
@@ -1692,7 +1745,7 @@ class MainObj:
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
 
-                com.run()
+                stat = com.run()
         else:
             self.exists_msg(o.input())
         # process the children
@@ -1743,7 +1796,11 @@ class MainObj:
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
 
-                    com.run()
+                    stat = com.run()
+
+                    if stat :
+                        ab.EP1("Failed at a 3dAllineate stage")
+                        self.ciao(stat)
 
         return o, ow
 
@@ -1938,7 +1995,11 @@ class MainObj:
             )
             cmd+= "-I > {!s}".format(epi_mat)
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
+            stat = com.run();
+
+            if stat :
+                ab.EP1("Failed at a cat_matvec stage")
+                self.ciao(stat)
 
             # concatenate volume registration from epi data
             if(self._parent.volreg_flag):
@@ -1961,8 +2022,11 @@ class MainObj:
                 )
                 cmd+= "-I {!s} > {!s}".format(self.reg_mat, epi_mat)
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run();
+                stat = com.run();
 
+                if stat :
+                    ab.EP1("Failed at a cat_matvec stage")
+                    self.ciao(stat)
 
             self.info_msg( "Applying transformation of {!s} to {!s}".format(
                 self._parent.dset2_generic_name,
@@ -1979,16 +2043,23 @@ class MainObj:
                 owrite
             )
             com = ab.shell_com(cmd, self._parent.oexec)
+            stat = com.run()
 
-            com.run()
+            if stat :
+                ab.EP1("Failed at a 3dAllineate stage")
+                self.ciao(stat)
 
             # mark as not oblique if deobliqued
-            if(oblique_mat!="") :
+            if oblique_mat != "" :
                 o.view = eview
                 cmd = "3drefit "
                 cmd+= "-deoblique {!s}".format(o.input())
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3drefit stage")
+                    self.ciao(stat)
 
             # concatenate talairach or post transformation
             if((self._parent.tlrc_apar != "") or (
@@ -2017,18 +2088,24 @@ class MainObj:
                         self._parent.tlrc_apar.input()
                     )
                     com = ab.shell_com(cmd, self._parent.oexec, capture=1)
-                    com.run();
+                    stat = com.run();
+
+                    if stat :
+                        ab.EP1("Failed at a 3dAttribute stage")
+                        self.ciao(stat)
+
                     if(com.status != 0) :
                         msg = "Warp type not defined for "
                         msg+= "this dataset: {!s}".format(
                             self._parent.tlrc_apar.input()
                         )
                         ab.EP1(msg)
-                        return o,t
+                        #return o,t
+                        self.ciao(1)
 
                     tlrc_type = int(com.val(0,0))
                     if(tlrc_type != 0) :
-                        msg = "Can not compute "
+                        msg = "Cannot compute "
                         msg+= "transformations for manually "
                         msg+= "talairached data"
                         ab.EP1(msg)
@@ -2049,7 +2126,11 @@ class MainObj:
                 cmd+= "-I {!s} {!s} ".format(oblique_mat, self._parent.anat_mat)
                 cmd+= "-I {!s}  > {!s}".format(self.reg_mat, epi_mat)
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run();
+                stat = com.run();
+
+                if stat :
+                    ab.EP1("Failed at a cat_matvec stage")
+                    self.ciao(stat)
 
                 if(self._parent.tlrc_apar!=""):
                     tlrc_dset = ab.afni_name("{!s}_tlrc{!s}+tlrc".format(
@@ -2135,12 +2216,16 @@ class MainObj:
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
 
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dAllineate stage")
+                    self.ciao(stat)
 
                 # remove obliquity from output
                 if(atlrcpost.type == 'BRIK'):
-                    # force +tlrc output for master SOURCE option - 3dAllineate
-                    # saves this as +orig
+                    # force +tlrc output for master SOURCE option -
+                    # 3dAllineate; saves this as +orig
                     if((self._parent.master_tlrc_dset=="SOURCE") and (
                         self._parent.tlrc_apar!="")):
                         cmd = "3drefit "
@@ -2150,7 +2235,12 @@ class MainObj:
                             atlrcpost.prefix
                         )
                         com = ab.shell_com(cmd, self._parent.oexec)
-                        com.run()
+                        stat = com.run()
+
+                        if stat :
+                            ab.EP1("Failed at a 3drefit stage")
+                            self.ciao(stat)
+
                     else:
                         if(oblique_mat!=""):
                             cmd = "3drefit "
@@ -2159,12 +2249,17 @@ class MainObj:
                                 atlrcpost.prefix
                             )
                             com = ab.shell_com(cmd, self._parent.oexec)
-                            com.run()
+                            stat = com.run()
+
+                            if stat :
+                                ab.EP1("Failed at a 3drefit stage")
+                                self.ciao(stat)
+
                 t = atlrcpost
         else:
             self.exists_msg(o.input())
 
-        return o,t
+        return o, t
 
 
     # reduce EPI dataset to a single representative sub-brick
@@ -2212,14 +2307,20 @@ class MainObj:
                           "using 0th sub-brick - assuming epi_base is "
                             "dataset name" )
                         cmd = "3dbucket "
-                        cmd+= "-prefix {!s} {!s}'[0]'".format(o.pp(), e.input())
+                        cmd+= "-prefix {!s} {!s}'[0]'".format(o.pp(), 
+                                                              e.input())
                         com = ab.shell_com(cmd, self._parent.oexec)
             else:   # choose a single sub-brick (sub-brick 0)
                 self.info_msg("using 0th sub-brick because only one found")
                 cmd = "3dbucket "
                 cmd+= "-prefix {!s} {!s}'[0]'".format(o.pp(), e.input())
                 com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
+            stat = com.run()
+
+            if stat :
+                ab.EP1("Failed at a 3dbucket or 3dTstat stage")
+                self.ciao(stat)
+
             if (not o.exist() and not self._parent.dry_run()):
                 o.show
                 ab.EP1("Could not 3dTstat epi")
@@ -2251,7 +2352,11 @@ class MainObj:
             cmd+= "-erode {!s} ".format(erodelevel)
             cmd+= "-prefix {!s} {!s}".format(m.prefix, e.input())
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run()
+            stat = com.run()
+
+            if stat :
+                ab.EP1("Failed at a 3dAutomask stage")
+                self.ciao(stat)
 
             if(binarize):
                 lprefix = "{!s}_edge_cvar".format(o.prefix)
@@ -2265,7 +2370,11 @@ class MainObj:
             cmd+= "-stat cvar "
             cmd+= "-prefix {!s} {!s}".format(lprefix, e.input())
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
+            stat = com.run();
+
+            if stat :
+                ab.EP1("Failed at a 3dLocalstat stage")
+                self.ciao(stat)
 
             if(binarize):
                 cmd = "3dhistog "
@@ -2279,7 +2388,11 @@ class MainObj:
                     prefix
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dhistog stage")
+                    self.ciao(stat)
 
                 cmd = "3dTstat "
                 cmd+= "-argmax "
@@ -2291,11 +2404,19 @@ class MainObj:
                     prefix
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dTstat stage")
+                    self.ciao(stat)
 
                 cmd = "1dcat {!s}_edge_histomax.1D".format(prefix)
                 com = ab.shell_com(cmd, self._parent.oexec, capture=1)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 1dcat stage")
+                    self.ciao(stat)
 
                 if(self._parent.dry_run()): edgeindex = 123
                 else:  edgeindex = int(com.val(0,0))
@@ -2305,7 +2426,11 @@ class MainObj:
                     edgeindex
                 )
                 com = ab.shell_com(cmd, self._parent.oexec, capture=1)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 1dcat stage")
+                    self.ciao(stat)
 
                 if(self._parent.dry_run()): edgevalue = 0.0123
                 else:  edgevalue = float(com.val(0,0))
@@ -2318,7 +2443,11 @@ class MainObj:
                 cmd+= "-expr \"step(a-{:f})\" ".format(edgevalue)
                 cmd+= "-prefix {!s}".format(o.out_prefix())
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dcalc stage")
+                    self.ciao(stat)
 
             if (not o.exist() and not self._parent.dry_run()):
                 msg = "Could not create edge dataset {!s}".format(o.ppv())
@@ -2352,8 +2481,9 @@ class MainObj:
                 e.input()
             )
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
-            if (not o.exist() and not self._parent.dry_run()):
+            stat = com.run();
+
+            if not(o.exist()) and not(self._parent.dry_run()) :
                 ab.EP1("Could not deoblique epi data\n")
                 return None
         else:
@@ -2437,8 +2567,9 @@ class MainObj:
             o.delete(self._parent.oexec)
             cmd = warp_str
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
-            if (not o.exist() and not self._parent.dry_run()):
+            stat = com.run();
+
+            if not(o.exist()) and not(self._parent.dry_run()) :
                 ab.EP1("Could not oblique/shift anat to epi data\n")
                 return None
         else:
@@ -2460,7 +2591,7 @@ class MainObj:
             )
             cmd = catcom
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
+            stat = com.run();
             if(self.master_anat_3dAl_center == 1):
                 self.info_msg(
                     "Using align_centered {!s} as anatomical master".format(
@@ -2495,7 +2626,7 @@ class MainObj:
                     tempshft.delete(self._parent.oexec)
                     cmd = warp_str
                     com = ab.shell_com(cmd, self._parent.oexec)
-                    com.run();
+                    stat = com.run();
                     if (not tempshft.exist() and not self._parent.dry_run()):
                         ab.EP1("Could not oblique/shift anat to epi data\n")
                         return None
@@ -2532,7 +2663,7 @@ class MainObj:
                 e.input()
             )
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
+            stat = com.run();
             if (not o.exist() and not self._parent.dry_run()):
                 ab.EP1("Could not do time shifting of epi data\n")
                 return e
@@ -2627,7 +2758,7 @@ class MainObj:
                         e.input()
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
-                    com.run()
+                    stat = com.run()
 
                     if(not ots.exist() and not self._parent.dry_run()):
                         msg = "Could not create intermediate "
@@ -2657,7 +2788,11 @@ class MainObj:
                         e.input()
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
-                    com.run()
+                    stat = com.run()
+
+                    if stat :
+                        ab.EP1("Failed at a 3dvolreg stage (I think)")
+                        self.ciao(stat)
 
                     ots = e.new("{!s}_vrt".format(o.out_prefix()))
                     base = "{!s}'[0]'".format(ots.input())
@@ -2672,7 +2807,7 @@ class MainObj:
                             ovr_alpha.input()
                         )
                         com = ab.shell_com(cmd, self._parent.oexec)
-                        com.run()
+                        stat = com.run()
 
                     if(not ots.exist() and not self._parent.dry_run()):
                         msg = "Could not create intermediate "
@@ -2687,7 +2822,7 @@ class MainObj:
             cmd+= "-prefix {!s}{!s} ".format(o.p(), o.out_prefix())
             cmd+= "-base {!s} {!s} {!s} ".format(base, reg_opt, e.input())
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run()
+            stat = com.run()
 
             if (not o.exist() and not self._parent.dry_run()):
                 ab.EP1("Could not do volume registration")
@@ -2730,7 +2865,7 @@ class MainObj:
             cmd+= "-inset {!s}'{!s}' ".format(e.input(), sb)
             cmd+= "-rmode Cu"
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run()
+            stat = com.run()
             if (not o.exist() and not self._parent.dry_run()):
                 ab.EP1("Could not resample\n")
                 return None
@@ -2763,7 +2898,7 @@ class MainObj:
                 cmd+= "-input {!s} ".format(e.input())
                 cmd+= "-prefix {!s}".format(n.pp())
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
                 if (not n.exist() and not self._parent.dry_run()):
                     ab.EP1("Could not strip skull\n")
                     return None
@@ -2780,7 +2915,7 @@ class MainObj:
                 cmd = "3dAutomask {!s} ".format(skullstrip_opt)
                 cmd+= "-apply_prefix {!s} {!s}".format(n.pp(), e.input())
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
                 if (not n.exist() and not self._parent.dry_run()):
                     ab.EP1("Could not strip skull with automask\n")
                     return None
@@ -2824,7 +2959,12 @@ class MainObj:
         if(not self._parent.dry_run()):
             cmd = com_str
             com = ab.shell_com(cmd, self._parent.oexec, capture=1)
-            com.run()
+            stat = com.run()
+
+            if stat :
+                ab.EP1("Failed at a 3dBrickStat stage")
+                self.ciao(stat)
+
             th = float(com.val(0,1))
             self.info_msg( "Applying threshold of {:f} on {!s}".format(
                 th,
@@ -2833,7 +2973,7 @@ class MainObj:
         else:
             cmd = com_str
             com = ab.shell_com(cmd, "dry_run")
-            com.run()
+            stat = com.run()
             th = -999
             self.info_msg( "Would be applying threshold for real run here")
 
@@ -2854,7 +2994,7 @@ class MainObj:
 
         if (not o.exist() or self._parent.rewrite or self._parent.dry_run()):
             o.delete(self._parent.oexec)
-            com.run()
+            stat = com.run()
         else:
             self.exists_msg(o.input())
 
@@ -2897,7 +3037,11 @@ class MainObj:
 
         cmd = "\\mkdir -p {}AddEdge".format(self._parent.output_dir)
         com = ab.shell_com(cmd, self._parent.oexec)
-        com.run()
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Failed at a mkdir stage")
+            self.ciao(stat)
 
         cmd = "3dcopy "
         cmd+= "-overwrite {!s} {!s}AddEdge/{!s}".format(
@@ -2906,7 +3050,12 @@ class MainObj:
             d1AE.prefix
         )
         com = ab.shell_com(cmd, self._parent.oexec)
-        com.run()
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Failed at a 3dcopy stage")
+            self.ciao(stat)
+
         cmd = "3dcopy "
         cmd+= "-overwrite {!s} {!s}AddEdge/{!s}".format(
             d2.input(),
@@ -2914,7 +3063,12 @@ class MainObj:
             d2AE.prefix
         )
         com = ab.shell_com(cmd, self._parent.oexec)
-        com.run()
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Failed at a 3dcopy stage")
+            self.ciao(stat)
+
         cmd = "3dcopy "
         cmd+= "-overwrite {!s} {!s}AddEdge/{!s}".format(
             d3.input(),
@@ -2922,7 +3076,11 @@ class MainObj:
             d3AE.prefix
         )
         com = ab.shell_com(cmd, self._parent.oexec)
-        com.run()
+        stat = com.run()
+
+        if stat :
+            ab.EP1("Failed at a 3dcopy stage")
+            self.ciao(stat)
 
         # changed .input to .shortinput           3 Feb 2012 [rickr,dglen]
         cmd = "cd {!s}AddEdge; @AddEdge ".format(self._parent.output_dir)
@@ -2933,8 +3091,11 @@ class MainObj:
             d3AE.shortinput()
         )
         com = ab.shell_com(cmd, self._parent.oexec)
-        com.run()
+        stat = com.run()
 
+        if stat :
+            ab.EP1("Failed at an AddEdge stage")
+            self.ciao(stat)
 
     # do the preprocessing of the EPI data
     def process_epi(self, use_ss='3dSkullStrip', childflag=0):
@@ -2971,7 +3132,12 @@ class MainObj:
                     o.pv()
                 )
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run();
+                stat = com.run()
+
+                if stat :
+                    ab.EP1("Failed at a 3dcopy stage")
+                    self.ciao(stat)
+
             basename = o.out_prefix()
             baseviewext = "{!s}{!s}".format(o.view, o.extension)
             basepathname = "{!s}{!s}".format(basepath, basename)
@@ -3178,7 +3344,7 @@ class MainObj:
                 self.anat.pv()
             )
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run();
+            stat = com.run()
             if (not self.anat.exist() and not self._parent.dry_run()):
                 msg = "Could not copy anat ({:d})".format(self.anat.exist())
                 ab.EP1(msg)
@@ -3231,7 +3397,7 @@ class MainObj:
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
 
-                com.run()
+                stat = com.run()
                 if (not n.exist() and not self._parent.dry_run()):
                     ab.EP1("Could not strip skull\n")
                     return None
@@ -3280,7 +3446,7 @@ class MainObj:
         #         com = shell_com(  \
         #               "@Align_Centers -cm -base %s -dset %s" \
         #               % (ps.epi.ppve(), n.ppve() ) , ps.oexec)
-        #         com.run()
+        #         stat = com.run()
         #         a_shft = n.new("%s_shft" % n.out_prefix(),"+orig")
         #         if (not a_shft.exist() and not ps.dry_run()):
         # print "** ERROR: Could not shift anat (%d)" % a_shft.exist()
@@ -3471,31 +3637,27 @@ class MainObj:
         epref = epref.strip()
         apref = apref.strip()
         if epref == "" and apref == "":
-            cmd = "\\rm "
-            cmd+= "-f {!s}__tt_*".format(self._parent.output_dir)
+            cmd = "\\rm -f {!s}__tt_*".format(self._parent.output_dir)
             com = ab.shell_com(cmd, self._parent.oexec)
-            com.run()
+            stat = com.run()
         else:
             if epref != "":
-                cmd = "\\rm "
-                cmd+= "-f {!s}__tt_{!s}*".format(epipath, epref)
+                cmd = "\\rm -f {!s}__tt_{!s}*".format(epipath, epref)
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
                 if(rmold):
-                    cmd = "\\rm "
-                    cmd+= "-f {!s}{!s}*{!s}*".format(
+                    cmd = "\\rm -f {!s}{!s}*{!s}*".format(
                         epipath,
                         epref,
                         self._parent.suffix
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
-                    com.run()
+                    stat = com.run()
 
             if apref != "":
-                cmd = "\\rm "
-                cmd+= "-f {!s}__tt_{!s}*".format(anatpath, apref)
+                cmd = "\\rm -f {!s}__tt_{!s}*".format(anatpath, apref)
                 com = ab.shell_com(cmd, self._parent.oexec)
-                com.run()
+                stat = com.run()
                 if(rmold):
                     cmd = "\\rm "
                     cmd+= "-f {!s}{!s}*{!s}*".format(
@@ -3504,7 +3666,7 @@ class MainObj:
                         self._parent.suffix
                     )
                     com = ab.shell_com(cmd, self._parent.oexec)
-                    com.run()
+                    stat = com.run()
 
         return
 
