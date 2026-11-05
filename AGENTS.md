@@ -129,7 +129,7 @@ working tree containing someone else's build products or work.
 - Treat geometry and metadata as part of correctness: voxel orientation and
   coordinate conventions, grid/affine transforms, sub-brick indexing and labels,
   scaling, data types, time units, and statistical metadata. Reuse dataset APIs
-  rather than reconstructing these conventions by hand.
+  rather than reconstructing these conventions separately.
 - For numerical changes, explain the algorithm and assumptions. Check relevant
   edge cases such as empty masks, constant signals, non-finite values, short
   time series, and rank-deficient inputs. Use appropriate reference results and
@@ -166,13 +166,14 @@ working tree containing someone else's build products or work.
   commented-out implementations, or unsupported claims of correctness or speed.
   If a block needs a long explanation just to follow its control flow, first
   consider simplifying the code.
-- Prefer structured control flow (`if`, loops, early returns, and small helpers)
-  over `goto`. In C, a forward jump to a clearly named cleanup/error label is
-  acceptable when it makes resource release more reliable and avoids duplicated
-  cleanup or deep nesting. Keep the cleanup path local and easy to audit, ensure
-  resources are initialized before they can be cleaned up, and preserve the
-  intended error status. Explain any non-obvious cleanup ordering. Do not use
-  `goto` for ordinary branching or loops, or introduce jumps into nested scopes.
+- In C programs, strongly prefer structured control flow (`if`, loops, early
+  returns, and small helpers) and not `goto`. A forward jump to a clearly named
+  cleanup/error label is acceptable when it makes resource release more reliable
+  and avoids duplicated cleanup or deep nesting within a function. Keep the
+  cleanup path local and easy to audit, ensure resources are initialized before
+  they can be cleaned up, and preserve the intended error status. 
+  Explain any non-obvious cleanup ordering. Do not use `goto` for ordinary
+  branching or loops, or introduce jumps into nested scopes.
   In C++, prefer existing RAII/resource-owning types for cleanup. Do not rewrite
   established cleanup patterns solely to remove a `goto`.
 
