@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #################################################
-## 07/2026 Justin Rajendra
+## 11/2026 Justin Rajendra
 ## launch the afni docker container on macOS or Linux
 ## universal build
 
@@ -11,7 +11,7 @@ prog="launch_afni_docker.sh"
 ## default docker image settings
 do_run=0
 show_cmd=0
-base_img="discoraj/afni_docker_universal"
+base_img="afni/afni_docker_universal"
 base_tag="latest"
 dock_img=""
 pull="missing"
@@ -137,7 +137,7 @@ cat << EOF
            bash ${prog} -run -show_cmd
 
    -----------------------------------------------------------------------------
-   Justin Rajendra 07/2026
+   Justin Rajendra 11/2026
 
 EOF
 exit 0
