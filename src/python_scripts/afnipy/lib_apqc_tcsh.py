@@ -4212,6 +4212,9 @@ num : int
     # text below images
     osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
 
+    # store name of NiiVue html
+    onvhtml_name = onvhtml.split('/')[-1]
+
     # Make info above images
     otopdict = {
         'itemtype'    : 'VOL',
@@ -4220,6 +4223,7 @@ num : int
         'blockid_hov' : lah.qc_blocks[qcb][0],
         'title'       : lah.qc_blocks[qcb][1],
         'text'        : otoptxt,
+        'nv_html'     : onvhtml_name,
         'av_file'     : odoafni,
         'subtext'     : osubtxt,
     }
@@ -4253,7 +4257,6 @@ num : int
     fff = open(onvhtml, 'w')
     fff.write(nv_txt)
     fff.close()
-    onvhtml_name = onvhtml.split('/')[-1]
 
     return 0
 
