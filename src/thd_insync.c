@@ -2,6 +2,9 @@
 #include "mrilib.h"
 #include "thd_datatable.h"
 #include "thd_insync.h"
+#include "thd_insync_select.h"
+#include "thd_insync_model.h"
+#include "thd_insync_infer.h"
 #include "thd_mapinfer.h"
 #include "thd_patterns.h"
 #include "thd_phasefft.h"
@@ -10,6 +13,8 @@
 
 #include <float.h>
 #include <limits.h>
+#include <stdint.h>
+#include <unistd.h>
 
 #ifdef USE_OMP
 #include <omp.h>
@@ -31,11 +36,16 @@ void INSYNC_options_default( INSYNC_options *opts )
      .memory_override=0,
      .memory_limit_given=0,
      .memory_limit_gib=0.0,
+     .step=1,
+     .min_valid=3,
+     .block_summary=INSYNC_SUMMARY_MEDIAN,
+     .min_blocks=1,
      .nboot=0,
      .nperm=0,
      .do_exact=0,
      .tail=PERM_TAIL_TWO,
      .temporal_mode=INSYNC_TNULL_NONE,
+     .temporal_censor=0,
      .nnull=0,
      .min_shift=1,
      .min_shift_given=0,
@@ -56,6 +66,7 @@ void INSYNC_options_default( INSYNC_options *opts )
      .contrast_name1=NULL,
      .pair_prefix=NULL,
      .censor_name=NULL,
+     .censor_column="Censor",
      .do_zcensor=0,
      .zcensor_warn_given=0,
      .zcensor_warn=20.0f,
@@ -85,7 +96,7 @@ static int insync_find_group( char *label, char **labels, int nlabel )
 }
 
 /*! Build an AFNI-safe sub-brick label from a statistic stem and effect label. */
-static void insync_brick_label( char *dst, size_t ndst, char *stem, char *label )
+static void insync_brick_label( char *dst, size_t ndst, const char *stem, const char *label )
 {
    size_t ii,jj=0 ; char tmp[128] ;
    snprintf(tmp,sizeof(tmp),"%s_%s",stem,label) ;
@@ -118,13 +129,13 @@ static float insync_fisher_z( float rr )
 
 /*! Write the 3dISC-compatible pair-table header, including user covariates. */
 static void insync_3disc_header( FILE *fp, THD_datatable *tab,
-                                 int icol_group, int icol_condition )
+                                 int icol_group, int icol_condition, int icol_censor )
 {
    int jj ;
    fprintf(fp,"Subj1 Subj2 Group1 Group2 GroupPair cond cond1 cond2") ;
    for( jj=0 ; jj<tab->ncol ; jj++ )
      if( jj!=tab->icol_subj && jj!=tab->icol_input &&
-         jj!=icol_group && jj!=icol_condition )
+         jj!=icol_group && jj!=icol_condition && jj!=icol_censor )
        fprintf(fp," %s1 %s2",tab->cname[jj],tab->cname[jj]) ;
    fprintf(fp," InputFile\n") ;
 }
@@ -136,7 +147,7 @@ static void insync_3disc_row( FILE *fp, THD_datatable *tab,
                               int *rowmap, int ncond, char **clabel,
                               int *group, char **glabel,
                               int c1, int c2, int s1, int s2,
-                              int icol_group, const char *dataset_name,
+                              int icol_group, int icol_censor, const char *dataset_name,
                               size_t brick )
 {
    const char *a=cindex?cindex->level[0][s1]:tab->subj[s1] ;
@@ -151,36 +162,38 @@ static void insync_3disc_row( FILE *fp, THD_datatable *tab,
            glabel[group[s2]],gp,cp,clabel[c1],clabel[c2]) ;
    for( jj=0 ; jj<tab->ncol ; jj++ )
      if( jj!=tab->icol_subj && jj!=tab->icol_input &&
-         jj!=icol_group && jj!=icol_condition )
+         jj!=icol_group && jj!=icol_condition && jj!=icol_censor )
        fprintf(fp," %s %s",DT_CELL(tab,ra,jj),DT_CELL(tab,rb,jj)) ;
    fprintf(fp," %s[%lu]\n",dataset_name,(unsigned long)brick) ;
 }
 
 /*! Thread-safe progress state shared by the OpenMP voxel workers. */
 typedef struct {
-   int enabled,mode,is_tty,total,done,last_bucket ;
+   int enabled,mode,is_tty,last_bucket ;
+   long long total,done;
+   const char *phase,*unit;
    double start,last_report ;
 } INSYNC_progress ;
 
 /*! Initialize progress rendering and choose bar versus line output for auto. */
 static void insync_progress_init( INSYNC_progress *p, int mode, int quiet,
-                                  int total )
+                                  long long total,const char *phase,const char *unit )
 {
    memset(p,0,sizeof(*p)) ; p->enabled=!quiet && mode!=INSYNC_PROGRESS_OFF && total>0 ;
-   p->is_tty=isatty(fileno(stderr)) ; p->total=total ;
+   p->is_tty=isatty(fileno(stderr)) ; p->total=total ; p->phase=phase; p->unit=unit;
    p->mode=(mode==INSYNC_PROGRESS_AUTO)?(p->is_tty?INSYNC_PROGRESS_BAR:INSYNC_PROGRESS_LINE):mode ;
    p->start=p->last_report=0.001*(double)NI_clock_time() ;
    if( !p->enabled ) return ;
    if( p->mode==INSYNC_PROGRESS_BAR ){
-     fprintf(stderr,"++ 3dInSync [--------------------] 0/%d",total) ;
+     fprintf(stderr,"++ 3dInSync [--------------------] 0/%lld",total) ;
      fflush(stderr) ;
-   } else INFO_message(PROGRAM_NAME ": inference 0/%d voxels complete",total) ;
+   } else INFO_message(PROGRAM_NAME ": %s 0/%lld %s complete",phase,total,unit) ;
 }
 
 /*! Atomically count a completed voxel and occasionally render an update. */
 static void insync_progress_advance( INSYNC_progress *p )
 {
-   int done,bucket ; double now,elapsed,rate ;
+   long long done; int bucket ; double now,elapsed,rate ;
    if( !p->enabled ) return ;
 #ifdef USE_OMP
 #pragma omp atomic capture
@@ -200,14 +213,14 @@ static void insync_progress_advance( INSYNC_progress *p )
        if( p->mode==INSYNC_PROGRESS_BAR ){
          fprintf(stderr,"\r++ 3dInSync [") ;
          for( ii=0 ; ii<20 ; ii++ ) fputc(ii<fill?'#':'-',stderr) ;
-         fprintf(stderr,"] %d/%d (%.1f%%), %.2f voxels/s",done,p->total,
-                 100.0*done/p->total,rate) ;
+         fprintf(stderr,"] %lld/%lld (%.1f%%), %.2f %s/s",done,p->total,
+                 100.0*done/p->total,rate,p->unit) ;
          if( p->is_tty ) fputs("\033[K",stderr) ;
          if( done==p->total ) fputc('\n',stderr) ;
          fflush(stderr) ;
-       } else INFO_message(PROGRAM_NAME ": inference %d/%d voxels complete "
-                           "(%.1f%%, %.2f voxels/s)",done,p->total,
-                           100.0*done/p->total,rate) ;
+       } else INFO_message(PROGRAM_NAME ": %s %lld/%lld %s complete "
+                           "(%.1f%%, %.2f %s/s)",p->phase,done,p->total,p->unit,
+                           100.0*done/p->total,rate,p->unit) ;
        p->last_report=now ; p->last_bucket=bucket ;
      }
    }
@@ -1296,6 +1309,887 @@ static void insync_write_edge_outputs(
    THD_roilist_free(rl) ; DSET_delete(aset) ;
 }
 
+/* M3 descriptive selection driver. The source store is loaded once; one
+   selection's output maps and one persistent kernel per worker bound memory. */
+static void *insync_select_alloc(size_t n,size_t width)
+{
+   void *p;
+   if(width && n>SIZE_MAX/width) ERROR_exit("3dInSync: selection allocation overflow");
+   p=calloc(n?n:1,width);
+   if(!p) ERROR_exit("3dInSync: cannot allocate selection workspace");
+   return p;
+}
+
+static void insync_select_path(char *path,size_t size,const char *prefix,int id,int oneD)
+{
+   if(snprintf(path,size,"%s.sel%06d.%s",prefix,id,oneD?"1D":"nii.gz")>=(int)size)
+      ERROR_exit("3dInSync: selection output path too long");
+}
+
+/* Manual aggregates must retain their constituent estimates too. Xmat by_stim
+   already supplies those. Components are keyed by parent/run/segment, with
+   nominal geometry still allowed to differ between input conditions. */
+static void insync_selection_children(INSYNC_schedule *s,const INSYNC_options *o)
+{
+   int original=s->nsegment,i,j,k,component=0;
+   if(o->xmat_blocks) return;
+   for(i=0;i<original;i++){
+      INSYNC_segment base=s->segment[i]; int pieces=0,id;
+      for(j=0;j<original;j++) if(s->segment[j].source==base.source && s->segment[j].selection_id==base.selection_id) pieces++;
+      if(pieces<2) continue;
+      for(j=0;j<i;j++) if(s->segment[j].selection_id==base.selection_id && s->segment[j].run==base.run && !strcmp(s->segment[j].segment,base.segment)) break;
+      if(j<i) continue;
+      /* Reuse an existing child only when its original geometry matches
+         for every source/condition. Aggregate rows retain all parent links. */
+      for(k=original;k<s->nsegment;k++){
+         int candidate=s->segment[k].selection_id,match=1,q;
+         if(s->segment[k].source!=base.source || s->segment[k].run!=base.run || s->segment[k].original_start!=base.original_start || s->segment[k].original_stop!=base.original_stop) continue;
+         for(j=0;j<original && match;j++) if(s->segment[j].selection_id==base.selection_id && s->segment[j].run==base.run && !strcmp(s->segment[j].segment,base.segment)){
+            for(q=original;q<s->nsegment;q++) if(s->segment[q].selection_id==candidate && s->segment[q].source==s->segment[j].source && s->segment[q].run==s->segment[j].run && s->segment[q].original_start==s->segment[j].original_start && s->segment[q].original_stop==s->segment[j].original_stop) break;
+            if(q==s->nsegment) match=0;
+         }
+         if(match) break;
+      }
+      if(k<s->nsegment){
+         id=s->segment[k].selection_id;
+         for(j=0;j<original;j++) if(s->segment[j].selection_id==base.selection_id && s->segment[j].run==base.run && !strcmp(s->segment[j].segment,base.segment)) s->segment[j].component_id=id;
+         continue;
+      }
+      if(s->nselection==INT_MAX) ERROR_exit("3dInSync: too many pool components");
+      id=++s->nselection; component++;
+      for(j=0;j<original;j++) if(s->segment[j].selection_id==base.selection_id && s->segment[j].run==base.run && !strcmp(s->segment[j].segment,base.segment)){
+         INSYNC_segment e=s->segment[j]; char label[96]; void *grown;
+         snprintf(label,sizeof(label),"sel%06d_component%06d",base.selection_id,component);
+         s->segment[j].component_id=id;
+         e.selection_id=id; e.parent_id=base.selection_id; e.aggregate=0; e.component_id=0;
+         e.label=strdup(label); e.segment=strdup(e.segment);
+         if(s->nsegment==INT_MAX || (size_t)s->nsegment+1>SIZE_MAX/sizeof(e)) ERROR_exit("3dInSync: too many pool rows");
+         grown=realloc(s->segment,((size_t)s->nsegment+1)*sizeof(e));
+         if(!grown || !e.label || !e.segment) ERROR_exit("3dInSync: cannot allocate pool components");
+         s->segment=grown; s->segment[s->nsegment++]=e;
+      }
+   }
+   for(i=0;i<original;i++){
+      for(k=0,j=0;j<original;j++) if(s->segment[j].source==s->segment[i].source && s->segment[j].selection_id==s->segment[i].selection_id) k++;
+      if(k>1) s->segment[i].aggregate=1;
+   }
+}
+
+/* One worker retains one selection's corresponding edge/LOO values across
+   blocks. A block is admitted only if all required components in all groups
+   are finite; groups never silently summarize different block sets. */
+typedef struct { float *value, *pair, *scratch, *values; unsigned char *keep; } INSYNC_block_work;
+
+static void insync_block_selection(const INSYNC_options *o,const INSYNC_schedule *s,
+   const INSYNC_src *src,INSYNC_kernel *kernel,INSYNC_block_work *work,float *data,
+   int voxel,int nsub,int ngroup,const int *gcount,int **gmember,const int *sources,
+   const byte *common,const int *rows,int nblock,float *stat,int *nv,int *complete,
+   float **support,int support_offset,int gridvoxel,int *eligible,int *used,int *retained,float *pairout)
+{
+   int b,si,t,nkeep,g,j,good,ns=s->nsource,nt=s->ntime;
+   size_t stride=o->method==INSYNC_METHOD_PAIRWISE?(size_t)nsub*nsub:(size_t)nsub;
+   *eligible=*used=*retained=0;
+   for(g=0;g<ngroup;g++){ stat[g]=NAN; nv[g]=complete[g]=0; }
+   for(b=0;b<nblock;b++){
+      const INSYNC_segment *e=s->segment+rows[b];
+      nkeep=0; work->keep[b]=0;
+      for(t=e->original_start;t<=e->original_stop;t++) if(common[t]){
+         good=1;
+         if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<ns;si++) if(!isfinite(insync_store_get(src,si,voxel,t))){ good=0; break; }
+         if(!good) continue;
+         for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(src,sources[si],voxel,t);
+         nkeep++;
+      }
+      support[support_offset+3*b][gridvoxel]=(float)nkeep;
+      if(nkeep<o->min_valid || (double)nkeep/(e->stop-e->start+1)<o->min_valid_frac) continue;
+      for(si=0;si<nsub;si++) memmove(data+(size_t)si*nkeep,data+(size_t)si*nt,nkeep*sizeof(float));
+      INSYNC_kernel_eval(kernel,nkeep,data,o->corr_metric,o->method,o->summary,ngroup,gcount,gmember,stat,nv,complete);
+      good=1;
+      for(g=0;g<ngroup;g++){
+         size_t expected=o->method==INSYNC_METHOD_PAIRWISE?(size_t)gcount[g]*(gcount[g]-1)/2:(size_t)gcount[g];
+         if((size_t)nv[g]!=expected) good=0;
+      }
+      if(!good) continue;
+      if(pairout) memcpy(work->pair+(size_t)b*nsub*nsub,INSYNC_kernel_matrix(kernel),(size_t)nsub*nsub*sizeof(float));
+      work->keep[b]=1; (*eligible)++; *retained+=nkeep;
+      support[support_offset+3*b+1][gridvoxel]=1;
+      memcpy(work->value+(size_t)b*stride,o->method==INSYNC_METHOD_PAIRWISE?INSYNC_kernel_matrix(kernel):INSYNC_kernel_loo(kernel),stride*sizeof(float));
+   }
+   /* Clear the last individual-block result, including when the aggregate
+      fails. No stale statistics can leak into invalid aggregate maps. */
+   for(g=0;g<ngroup;g++){ stat[g]=NAN; nv[g]=complete[g]=0; }
+   if(!nblock || *eligible<o->min_blocks || (double)*eligible/nblock<o->min_block_frac || (!o->block_drop_common && *eligible!=nblock)){
+      *retained=0;
+      INSYNC_kernel_aggregate(kernel,0,work->value,work->keep,o->method,o->block_summary,o->summary,ngroup,gcount,gmember,stat,nv,complete);
+      return;
+   }
+   *used=*eligible;
+   for(j=0;j<nblock;j++) if(work->keep[j]){
+      support[support_offset+3*j+2][gridvoxel]=1.0f/(*used);
+   }
+   INSYNC_kernel_aggregate(kernel,nblock,work->value,work->keep,o->method,o->block_summary,o->summary,ngroup,gcount,gmember,stat,nv,complete);
+   if(pairout) for(si=0;si<nsub;si++) for(j=si+1;j<nsub;j++){
+      int n=0,valid=1;
+      for(b=0;b<nblock;b++) if(work->keep[b]){
+         float x=work->pair[(size_t)b*nsub*nsub+(size_t)si*nsub+j];
+         if(!isfinite(x)) valid=0;
+         work->values[n++]=x;
+      }
+      pairout[(size_t)si*nsub+j]=valid?(n==1?work->values[0]:INSYNC_summary(n,work->values,o->block_summary,work->scratch,NULL)):NAN;
+   }
+}
+
+static void insync_support_path(char *path,size_t size,const char *prefix,int id,int oneD)
+{
+   if(snprintf(path,size,"%s.sel%06d.blocks.%s",prefix,id,oneD?"1D":"nii.gz")>=(int)size) ERROR_exit("3dInSync: block support output path too long");
+}
+
+/* Numeric selection IDs avoid filename sanitization collisions. Brick labels
+   are still checked because AFNI selectors can otherwise resolve ambiguously. */
+static void insync_selection_labels_check(THD_3dim_dataset *d)
+{
+   int i,j;
+   for(i=0;i<DSET_NVALS(d);i++) for(j=0;j<i;j++)
+      if(!strcmp(DSET_BRICK_LABEL(d,i),DSET_BRICK_LABEL(d,j)))
+         ERROR_exit("3dInSync: output brick label collision after sanitization/truncation: %s",DSET_BRICK_LABEL(d,i));
+}
+
+static void insync_selection_expand(float **maps,int nb,int nvox,int nr,THD_roilist *rl,const int *ids)
+{
+   int b,r,v;
+   for(b=0;b<nb;b++) for(r=0;r<nr;r++) for(v=0;v<rl->vox[ids[r]].nar;v++)
+      maps[b][rl->vox[ids[r]].ar[v]]=maps[b][nvox+r];
+}
+
+/* A selection may span runs or stimulus classes. Never label a multi-run
+   aggregate with the run of an arbitrary first segment. */
+static void insync_selection_identity(FILE *fp,const INSYNC_schedule *s,int id,int source)
+{
+   int i,run=-1,whole=0; const char *stim=NULL;
+   for(i=0;i<s->nsegment;i++) if(s->segment[i].selection_id==id && s->segment[i].source==source){
+      const INSYNC_segment *e=s->segment+i;
+      if(e->run==0) whole=1;
+      if(run==-1) run=e->run; else if(run!=e->run) run=0;
+      if(!stim) stim=e->stimulus>=0?s->stimlabel[e->stimulus]:"NA"; else if(strcmp(stim,e->stimulus>=0?s->stimlabel[e->stimulus]:"NA")) stim="mixed";
+   }
+   fprintf(fp,"sel%06d\t",id);
+   if(whole) fprintf(fp,"all\t"); else if(run>0) fprintf(fp,"%d\t",run); else fprintf(fp,"mixed\t");
+   INSYNC_selection_token(fp,stim && *stim?stim:"NA"); fputc('\t',fp);
+}
+
+static void insync_selection_describe(FILE *bf,FILE *rf,FILE *mf,const INSYNC_schedule *s,
+   int id,THD_3dim_dataset *d,const char *path,const char *kind,float **maps,
+   int nr,int nvox,THD_roilist *rl,const int *ids,int nc,char **clabel,
+   const float *pairs,int ns,const int *sources,int ng)
+{
+   int b,r,c,a,j,base=2*nc*ng,diff=ng==2?nc:0;
+   for(b=0;b<DSET_NVALS(d);b++){
+      fprintf(bf,"sel%06d\t%s\t",id,kind); INSYNC_selection_token(bf,path);
+      fprintf(bf,"\t%d\t",b); INSYNC_selection_token(bf,DSET_BRICK_LABEL(d,b)); fputc('\n',bf);
+      if(!rf) continue;
+      if(!strcmp(kind,"block_support")){
+         int off=0,i; c=0;
+         for(c=0;c<nc;c++){
+            for(i=0;i<s->nsegment;i++) if(s->segment[i].selection_id==id && s->segment[i].source==sources[c*ns]) off+=3;
+            if(b<off) break;
+         }
+      } else if(b<base) c=b/(2*ng);
+      else if(b<base+diff+nc) c=(b-base)%nc;
+      else if(b<base+diff+nc+2*nc*ng) c=((b-base-diff-nc)%(nc*ng))/ng;
+      else c=(b-base-diff-nc-2*nc*ng)%nc;
+      for(r=0;r<nr;r++){
+         int ri=ids[r]; char label[128];
+         snprintf(label,sizeof(label),"ROI%d",rl->val[ri]);
+         insync_selection_identity(rf,s,id,sources[c*ns]); INSYNC_selection_token(rf,clabel[c]);
+         fprintf(rf,"\t%d\t",rl->val[ri]); INSYNC_selection_token(rf,rl->lab && rl->lab[ri]?rl->lab[ri]:label);
+         fprintf(rf,"\t%d\t%s\t%d\t",rl->vox[ri].nar,kind,b); INSYNC_selection_token(rf,DSET_BRICK_LABEL(d,b));
+         fprintf(rf,"\t%.9g\n",maps[b][nvox+r]);
+      }
+   }
+   if(mf && pairs) for(r=0;r<nr;r++) for(c=0;c<nc;c++) for(a=0;a<ns;a++) for(j=a+1;j<ns;j++){
+      const INSYNC_source *sa=s->source+sources[c*ns+a],*sb=s->source+sources[c*ns+j];
+      int ri=ids[r]; char label[128]; float x=pairs[((size_t)r*nc+c)*ns*ns+(size_t)a*ns+j];
+      snprintf(label,sizeof(label),"ROI%d",rl->val[ri]);
+      insync_selection_identity(mf,s,id,sources[c*ns]); INSYNC_selection_token(mf,clabel[c]);
+      fprintf(mf,"\t%d\t",rl->val[ri]); INSYNC_selection_token(mf,rl->lab && rl->lab[ri]?rl->lab[ri]:label);
+      fputc('\t',mf); INSYNC_selection_token(mf,sa->subject); fputc('\t',mf); INSYNC_selection_token(mf,sb->subject);
+      fputc('\t',mf); INSYNC_selection_token(mf,sa->group); fputc('\t',mf); INSYNC_selection_token(mf,sb->group);
+      fprintf(mf,"\t%.9g\t%d\n",x,isfinite(x)!=0);
+   }
+   if(ferror(bf) || (rf && ferror(rf)) || (mf && ferror(mf))) ERROR_exit("3dInSync: failed writing selection tables");
+}
+
+static void insync_selection_label_bucket(THD_3dim_dataset *out,int ncond,int ngroup,char **clabel,char **glabel,int aggregate,int nout,int vslot,int pslot,int trslot,int dslot,int dvslot)
+{
+   int c,g;
+      for(c=0;c<ncond;c++){
+         char who[256],label[64];
+         for(g=0;g<ngroup;g++){
+            int cell=c*ngroup+g;
+            if(ncond>1) snprintf(who,sizeof(who),"%s_%s",clabel[c],glabel[g]); else snprintf(who,sizeof(who),"%s",glabel[g]);
+            insync_brick_label(label,sizeof(label),"ISC",who); EDIT_BRICK_LABEL(out,2*cell,label);
+            insync_brick_label(label,sizeof(label),"N",who); EDIT_BRICK_LABEL(out,2*cell+1,label);
+            insync_brick_label(label,sizeof(label),"Valid",who); EDIT_BRICK_LABEL(out,vslot+cell,label);
+            insync_brick_label(label,sizeof(label),"PairComplete",who); EDIT_BRICK_LABEL(out,pslot+cell,label);
+         }
+         if(aggregate){
+            const char *stem[]={"BlocksNominal","BlocksEligible","BlocksUsed"}; int k;
+            for(k=0;k<3;k++){ if(ncond>1) insync_brick_label(label,sizeof(label),stem[k],clabel[c]); else MCW_strncpy(label,stem[k],sizeof(label)); EDIT_BRICK_LABEL(out,nout+k*ncond+c,label); }
+         }
+         if(ncond>1) insync_brick_label(label,sizeof(label),"ValidTR",clabel[c]); else strcpy(label,"ValidTR");
+         EDIT_BRICK_LABEL(out,trslot+c,label);
+         if(ngroup==2){
+            if(ncond>1) snprintf(who,sizeof(who),"%s_%s-%s",clabel[c],glabel[0],glabel[1]); else snprintf(who,sizeof(who),"%s-%s",glabel[0],glabel[1]);
+            insync_brick_label(label,sizeof(label),"ISC",who); EDIT_BRICK_LABEL(out,dslot+c,label);
+            insync_brick_label(label,sizeof(label),"Valid",who); EDIT_BRICK_LABEL(out,dvslot+c,label);
+         }
+      }
+   insync_selection_labels_check(out);
+}
+
+static void insync_selection_output_check(const char *path)
+{
+   struct stat st;
+   if(!stat(path,&st)){
+      if(!S_ISREG(st.st_mode)) ERROR_exit("3dInSync: output is not a regular file: %s",path);
+      if(!THD_ok_overwrite()) ERROR_exit("3dInSync: output already exists: %s",path);
+      if(access(path,W_OK)) ERROR_exit("3dInSync: output is not writable: %s",path);
+   }
+}
+
+/* Compare destinations through their existing parent directory, including
+   ./, absolute aliases, and symlinks. This is also valid for new files. */
+static int insync_selection_same_path(const char *a,const char *b)
+{
+   char resolved[2][PATH_MAX],parent[PATH_MAX],*slash;
+   const char *names[2]={a,b}; int i;
+   for(i=0;i<2;i++){
+      if(realpath(names[i],resolved[i])) continue;
+      if(strlen(names[i])>=sizeof(parent)) ERROR_exit("3dInSync: output path too long");
+      strcpy(parent,names[i]); slash=strrchr(parent,'/');
+      if(slash){
+         char base[PATH_MAX]; strcpy(base,slash+1);
+         if(slash==parent) slash[1]=0; else *slash=0;
+         if(!realpath(parent,resolved[i])) return !strcmp(a,b);
+         if(strlen(resolved[i])+strlen(base)+2>sizeof(resolved[i])) ERROR_exit("3dInSync: output path too long");
+         strcat(resolved[i],"/"); strcat(resolved[i],base);
+      } else {
+         if(!getcwd(resolved[i],sizeof(resolved[i]))) ERROR_exit("3dInSync: cannot resolve output directory");
+         if(strlen(resolved[i])+strlen(parent)+2>sizeof(resolved[i])) ERROR_exit("3dInSync: output path too long");
+         strcat(resolved[i],"/"); strcat(resolved[i],parent);
+      }
+   }
+   return !strcmp(resolved[0],resolved[1]);
+}
+
+/* Full pooled-subject pair exports use their own all-modeled-edge validity.
+   They do not inherit the descriptive LOO statistic or its reference failures.
+   A single job's pair/support maps is resident; source samples are never reloaded. */
+static void insync_selection_models(INSYNC_model *model,const INSYNC_options *o,
+   const INSYNC_schedule *s,const INSYNC_src *src,const byte *common,int id,int aggregate,
+   int nsub,int ncond,const int *sources,int nvox,int nvoxelwork,int nroi,
+   const int *widx,THD_roilist *rois,const int *roi_ids,THD_3dim_dataset *reference,int nthread)
+{
+   int i,c,d,nb=0,nt=s->ntime,nseries=2*nsub,nedge=nsub*(nsub-1)/2;
+   int nwork=o->roi_only?nroi:nvoxelwork,nmap=nvox+(o->roi_only?nroi:0);
+   int *rows=insync_select_alloc(s->nsegment,sizeof(int)),*members=insync_select_alloc(nseries,sizeof(int));
+   INSYNC_kernel **kernel=insync_select_alloc(nthread,sizeof(*kernel));
+   float **data=insync_select_alloc(nthread,sizeof(*data)),**values=insync_select_alloc(nthread,sizeof(*values)),**scratch=insync_select_alloc(nthread,sizeof(*scratch));
+   int **kept=insync_select_alloc(nthread,sizeof(*kept));
+   for(i=0;i<s->nsegment;i++) if(s->segment[i].selection_id==id && s->segment[i].source==sources[0]) rows[nb++]=i;
+   for(i=0;i<nseries;i++) members[i]=i;
+   for(i=0;i<nthread;i++){
+      kernel[i]=INSYNC_kernel_new(nseries,nt); if(!kernel[i]) ERROR_exit("3dInSync: cannot allocate export kernel");
+      data[i]=insync_select_alloc((size_t)nseries*nt,sizeof(float));
+      values[i]=insync_select_alloc((size_t)(aggregate?nb:1)*nedge,sizeof(float));
+      scratch[i]=insync_select_alloc(2*(size_t)nb,sizeof(float)); kept[i]=insync_select_alloc(nb,sizeof(int));
+   }
+   for(c=0;c<ncond;c++) for(d=0;d<ncond;d++){
+      int w,nvalid=0,nsupport=aggregate?3*nb:1;
+      float **maps=insync_select_alloc(nedge,sizeof(*maps)),*mask=insync_select_alloc(nmap,sizeof(float)),**support=insync_select_alloc(nsupport,sizeof(*support));
+      for(i=0;i<nedge;i++) maps[i]=insync_select_alloc(nmap,sizeof(float));
+      for(i=0;i<nsupport;i++) support[i]=insync_select_alloc(nmap,sizeof(float));
+#ifdef USE_OMP
+#pragma omp parallel for reduction(+:nvalid) schedule(dynamic,8)
+#endif
+      for(w=0;w<nwork;w++){
+         int th=0,block,si,t,a,j,p,eligible=0,nkeep=0,totalnom=0,nominal=0,firstpiece=0;
+         int unit=w,grid=widx[w];
+#ifdef USE_OMP
+         th=omp_get_thread_num();
+#endif
+         /* ROI-only source/work indices already start at zero. */
+         for(block=0;block<nb;block++){
+            const INSYNC_segment *e=s->segment+rows[block];
+            int good=1,nv,pc; float statistic; const float *matrix;
+            nominal=e->original_stop-e->original_start+1; totalnom+=nominal;
+            if(aggregate) nkeep=0;
+            firstpiece=nkeep; kept[th][block]=0;
+            for(t=e->original_start;t<=e->original_stop;t++) if(common[t]){
+               int finite=1;
+               if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<s->nsource;si++) if(!isfinite(insync_store_get(src,si,unit,t))){ finite=0; break; }
+               if(!finite) continue;
+               for(si=0;si<nsub;si++){
+                  data[th][(size_t)si*nt+nkeep]=insync_store_get(src,sources[c*nsub+si],unit,t);
+                  data[th][(size_t)(nsub+si)*nt+nkeep]=insync_store_get(src,sources[d*nsub+si],unit,t);
+               }
+               nkeep++;
+            }
+            if(!aggregate && o->segment_center && nkeep>firstpiece) for(si=0;si<nseries;si++){
+               double mean=0;
+               for(t=firstpiece;t<nkeep;t++) mean+=data[th][(size_t)si*nt+t];
+               mean/=nkeep-firstpiece;
+               for(t=firstpiece;t<nkeep;t++) data[th][(size_t)si*nt+t]-=(float)mean;
+            }
+            if(!aggregate && block<nb-1) continue;
+            support[aggregate?3*block:0][grid]=nkeep;
+            if(nkeep<o->min_valid || (double)nkeep/(aggregate?nominal:totalnom)<o->min_valid_frac) continue;
+            for(si=0;si<nseries;si++) memmove(data[th]+(size_t)si*nkeep,data[th]+(size_t)si*nt,nkeep*sizeof(float));
+            INSYNC_kernel_eval(kernel[th],nkeep,data[th],o->corr_metric,INSYNC_METHOD_PAIRWISE,INSYNC_SUMMARY_MEDIAN,1,&nseries,&members,&statistic,&nv,&pc);
+            matrix=INSYNC_kernel_matrix(kernel[th]);
+            for(p=0,a=0;a<nsub;a++) for(j=a+1;j<nsub;j++,p++){
+               float r=matrix[(size_t)a*nseries+nsub+j];
+               values[th][(size_t)(aggregate?block:0)*nedge+p]=r;
+               if(!isfinite(r)) good=0;
+            }
+            if(good){
+               kept[th][aggregate?block:0]=1; eligible++;
+               if(aggregate) support[3*block+1][grid]=1;
+            }
+         }
+         if(!eligible || (aggregate && (eligible<o->min_blocks || (double)eligible/nb<o->min_block_frac || (!o->block_drop_common && eligible!=nb)))) continue;
+         for(p=0;p<nedge;p++){
+            float r;
+            if(aggregate){
+               int n=0;
+               for(block=0;block<nb;block++) if(kept[th][block]) scratch[th][n++]=values[th][(size_t)block*nedge+p];
+               r=n==1?scratch[th][0]:INSYNC_summary(n,scratch[th],o->block_summary,scratch[th]+nb,NULL);
+            } else r=values[th][p];
+            maps[p][grid]=insync_fisher_z(r);
+         }
+         mask[grid]=1;
+         if(aggregate) for(block=0;block<nb;block++) if(kept[th][block]) support[3*block+2][grid]=1.f/eligible;
+         if(o->roi_only) nvalid+=rois->vox[roi_ids[w]].nar; else nvalid++;
+      }
+      if(o->roi_only){
+         float *mm[1]={mask};
+         insync_selection_expand(maps,nedge,nvox,nroi,rois,roi_ids);
+         insync_selection_expand(mm,1,nvox,nroi,rois,roi_ids);
+         insync_selection_expand(support,nsupport,nvox,nroi,rois,roi_ids);
+      }
+      INSYNC_model_job(model,id,c,d,reference,maps,mask,support,nsupport,nvalid,rows);
+      if(!o->quiet) INFO_message("3dInSync: model sel%06d conditions %d/%d: %d pairs, %d/%d grid voxels valid",id,c+1,d+1,nedge,nvalid,nvox);
+      for(i=0;i<nedge;i++) free(maps[i]);
+      for(i=0;i<nsupport;i++) free(support[i]);
+      free(maps); free(support); free(mask);
+   }
+   for(i=0;i<nthread;i++){ INSYNC_kernel_free(kernel[i]); free(data[i]); free(values[i]); free(scratch[i]); free(kept[i]); }
+   free(kernel); free(data); free(values); free(scratch); free(kept); free(members); free(rows);
+}
+
+static float insync_inference_read(const void *source,int subject,int unit,int time)
+{ return insync_store_get((const INSYNC_src *)source,subject,unit,time); }
+
+static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int argc,char **argv)
+{
+   INSYNC_infer *inference=NULL;
+   INSYNC_model *model=NULL;
+   INSYNC_progress selection_progress;
+   INSYNC_options effective=*o;
+   INSYNC_schedule *s;
+   INSYNC_src src={0};
+   THD_roilist *rois=NULL;
+   int nroi=0,nvoxelwork=0,nmap,*roi_ids=NULL,**workvox=NULL,*worknv=NULL;
+   char roipath[THD_MAX_NAME],brickpath[THD_MAX_NAME];
+   FILE *roifp=NULL,*matrixfp=NULL,*brickfp=NULL;
+   /* ROI means are computed from original float input, consistently in both
+      atlas modes. Retain one float store rather than quantizing parcel means. */
+   if(o->atlas_name && o->use_half){
+      effective.use_half=0; o=&effective;
+      if(!o->quiet) INFO_message("3dInSync: atlas selection analysis stores voxel/ROI series as float32 (ignoring -float16)");
+   }
+   INSYNC_kernel **worker;
+   INSYNC_block_work *block_worker;
+   int maxblocks=1,has_aggregates=0,*is_aggregate,*block_rows,*block_count,*block_offset;
+   size_t component_stride;
+   char supportpath[THD_MAX_NAME],supporttable[THD_MAX_NAME];
+   FILE *supportfp=NULL;
+   THD_3dim_dataset *first,*d,*out;
+   char **glabel=NULL,**clabel=NULL,path[THD_MAX_NAME],indexpath[THD_MAX_NAME],out_space[THD_MAX_NAME];
+   int out_view=-1;
+   int ngroup=0,ncond=0,nsub,nvox,nwork=0,ns,nt,nthread=1,nout,oneD;
+   int i,j,c,g,t,w,id,basecount,trslot,vslot,pslot,dslot=-1,dvslot=-1;
+   int *widx,*vmap,*source_at,*gcount,**gmember,*time_at,*piece_at,*nominal,*length;
+   byte *common,*used,*mask=NULL;
+   float **packed,**stats; int **counts,**complete;
+   FILE *index;
+   double estimate,limit,system,schedule_bytes=0;
+   long long bad=LLONG_MAX;
+   if(o->zcensor_warn_given && !o->do_zcensor) ERROR_exit("3dInSync: -zcensor_warn requires -zcensor");
+   s=INSYNC_schedule_build(o,tab); /* header, schedule and censor preflight */
+   insync_selection_children(s,o);
+   ns=s->nsource; nt=s->ntime;
+   is_aggregate=insync_select_alloc((size_t)s->nselection+1,sizeof(int));
+   for(i=0;i<s->nsegment;i++) if(s->segment[i].aggregate && !o->combine_pool) is_aggregate[s->segment[i].selection_id]=1;
+   for(id=1;id<=s->nselection;id++) if(is_aggregate[id]){
+      has_aggregates=1;
+      for(i=0;i<ns;i++){
+         int nb=0; for(j=0;j<s->nsegment;j++) if(s->segment[j].selection_id==id && s->segment[j].source==i) nb++;
+         if(nb>maxblocks) maxblocks=nb;
+      }
+   }
+   if(!has_aggregates && (o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given)) ERROR_exit("3dInSync: block-summary options require an aggregate selection (multiple manual segments or Xmat by_stim)");
+   /* Preserve first-appearance condition/group order, including difference sign. */
+   for(i=0;i<tab->nrow;i++) for(j=0;j<ns;j++) if(s->source[j].row==i){
+      if(insync_find_group(s->source[j].group,glabel,ngroup)<0) insync_add_group(s->source[j].group,&glabel,&ngroup);
+      if(insync_find_group(s->source[j].condition,clabel,ncond)<0) insync_add_group(s->source[j].condition,&clabel,&ncond);
+   }
+   nsub=ns/ncond;
+   if((size_t)nsub*(nsub-1)/2>INT_MAX) ERROR_exit("3dInSync: subject-pair count exceeds supported integer range");
+   component_stride=o->method==INSYNC_METHOD_PAIRWISE?(size_t)nsub*nsub:(size_t)nsub;
+   if(component_stride>SIZE_MAX/sizeof(float)/(size_t)maxblocks) ERROR_exit("3dInSync: block workspace size overflow");
+   source_at=insync_select_alloc(ns,sizeof(int));
+   gcount=insync_select_alloc(ngroup,sizeof(int)); gmember=insync_select_alloc(ngroup,sizeof(int *));
+   for(g=0;g<ngroup;g++) gmember[g]=insync_select_alloc(nsub,sizeof(int));
+   for(i=0;i<ns;i++){
+      c=insync_find_group(s->source[i].condition,clabel,ncond);
+      source_at[c*nsub+i/ncond]=i;
+      if(i%ncond==0){ g=insync_find_group(s->source[i].group,glabel,ngroup); gmember[g][gcount[g]++]=i/ncond; }
+   }
+   if((size_t)ncond*(5*(size_t)ngroup+6)>INT_MAX || (size_t)ncond*maxblocks>INT_MAX/3) ERROR_exit("3dInSync: too many output bricks");
+   basecount=2*ncond*ngroup;
+   nout=basecount;
+   if(ngroup==2){ dslot=nout; nout+=ncond; }
+   trslot=nout; nout+=ncond; vslot=nout; nout+=ncond*ngroup;
+   pslot=nout; nout+=ncond*ngroup;
+   if(ngroup==2){ dvslot=nout; nout+=ncond; }
+   first=THD_open_dataset(s->source[0].file); CHECK_OPEN_ERROR(first,s->source[0].file);
+   oneD=DSET_IS_1D(first) || (DSET_NY(first)==1 && DSET_NZ(first)==1);
+   { THD_3dim_dataset *labels=EDIT_empty_copy(first);
+      EDIT_dset_items(labels,ADN_nvals,nout+(has_aggregates?3*ncond:0),ADN_none);
+      insync_selection_label_bucket(labels,ncond,ngroup,clabel,glabel,has_aggregates,nout,vslot,pslot,trslot,dslot,dvslot);
+      DSET_delete(labels);
+   }
+   /* Validate all result paths before loading data. */
+   if(snprintf(indexpath,sizeof(indexpath),"%s.results.tsv",o->prefix)>=(int)sizeof(indexpath)) ERROR_exit("3dInSync: output path too long");
+   insync_selection_output_check(indexpath);
+   for(id=1;id<=s->nselection;id++){
+      insync_select_path(path,sizeof(path),o->prefix,id,oneD);
+      insync_selection_output_check(path);
+      if(is_aggregate[id]){
+         insync_support_path(path,sizeof(path),o->prefix,id,oneD);
+         insync_selection_output_check(path);
+      }
+   }
+   if(has_aggregates){
+      if(snprintf(supporttable,sizeof(supporttable),"%s.block_support.tsv",o->prefix)>=(int)sizeof(supporttable)) ERROR_exit("3dInSync: block support path too long");
+      insync_selection_output_check(supporttable);
+   }
+   {
+      const char *suffix[]={"selections.tsv","selection_summary.txt","common_censor.1D","inference.tsv","inference_draws.tsv","inference_roi.tsv","temporal_draws.tsv","temporal_support.tsv"};
+      for(i=0;i<3;i++){
+         if(snprintf(path,sizeof(path),"%s.%s",o->prefix,suffix[i])>=(int)sizeof(path)) ERROR_exit("3dInSync: output path too long");
+         insync_selection_output_check(path);
+      }
+      /* Existing parent directory must be writable; no result is created yet. */
+      MCW_strncpy(path,indexpath,sizeof(path));
+      { char *slash=strrchr(path,'/'); if(slash){ if(slash==path) slash[1]=0; else *slash=0; } else strcpy(path,"."); }
+      if(access(path,W_OK|X_OK)) ERROR_exit("3dInSync: output directory is not writable: %s",path);
+   }
+   if(snprintf(brickpath,sizeof(brickpath),"%s.bricks.tsv",o->prefix)>=(int)sizeof(brickpath)) ERROR_exit("3dInSync: brick index path too long");
+   insync_selection_output_check(brickpath);
+   if(o->atlas_name){
+      if(snprintf(roipath,sizeof(roipath),"%s.roi.tsv",o->prefix)>=(int)sizeof(roipath)) ERROR_exit("3dInSync: ROI path too long");
+      insync_selection_output_check(roipath);
+   }
+   if(o->matrix_name){
+      if(strlen(o->matrix_name)>=sizeof(path)) ERROR_exit("3dInSync: matrix output path too long");
+      for(i=0;i<ns;i++) if(insync_selection_same_path(s->source[i].file,o->matrix_name)) ERROR_exit("3dInSync: matrix output collides with source input");
+      if(insync_selection_same_path(o->atlas_name,o->matrix_name) || (o->maskname && insync_selection_same_path(o->maskname,o->matrix_name))) ERROR_exit("3dInSync: matrix output collides with atlas/mask input");
+      const char *suffix[]={"results.tsv","bricks.tsv","roi.tsv","block_support.tsv","selections.tsv","selection_summary.txt","common_censor.1D","inference.tsv","inference_draws.tsv","inference_roi.tsv","temporal_draws.tsv","temporal_support.tsv"};
+      insync_selection_output_check(o->matrix_name);
+      for(i=0;i<(int)(sizeof(suffix)/sizeof(suffix[0]));i++){
+         snprintf(path,sizeof(path),"%s.%s",o->prefix,suffix[i]);
+         if(insync_selection_same_path(path,o->matrix_name)) ERROR_exit("3dInSync: matrix output collides with bundle path: %s",path);
+      }
+      for(id=1;id<=s->nselection;id++){
+         insync_select_path(path,sizeof(path),o->prefix,id,oneD);
+         if(insync_selection_same_path(path,o->matrix_name)) ERROR_exit("3dInSync: matrix output collides with bucket");
+         insync_support_path(path,sizeof(path),o->prefix,id,oneD);
+         if(insync_selection_same_path(path,o->matrix_name)) ERROR_exit("3dInSync: matrix output collides with block support");
+         snprintf(path,sizeof(path),"%s.sel%06d.infer.nii.gz",o->prefix,id);
+         if(insync_selection_same_path(path,o->matrix_name)) ERROR_exit("3dInSync: matrix output collides with inference bucket");
+      }
+      MCW_strncpy(path,o->matrix_name,sizeof(path));
+      { char *slash=strrchr(path,'/'); if(slash){ if(slash==path) slash[1]=0; else *slash=0; } else strcpy(path,"."); }
+      if(access(path,W_OK|X_OK)) ERROR_exit("3dInSync: matrix output directory is not writable: %s",path);
+   }
+   model=INSYNC_model_preflight(o,tab,s,nsub,ncond,source_at,clabel);
+   nvox=DSET_NVOX(first);
+   if(o->maskname){
+      int view; char space[THD_MAX_NAME];
+      if(insync_template_space(o->maskname,&view,space) && view!=first->view_type){ out_view=view; MCW_strncpy(out_space,space,sizeof(out_space)); }
+
+      d=THD_open_dataset(o->maskname); CHECK_OPEN_ERROR(d,o->maskname); DSET_load(d); CHECK_LOAD_ERROR(d);
+      mask=THD_makemask(d,0,0.5f,0.0f); DSET_delete(d);
+      if(!mask) ERROR_exit("3dInSync: cannot build mask");
+   }
+   vmap=insync_select_alloc(nvox,sizeof(int)); widx=insync_select_alloc(nvox,sizeof(int));
+   for(w=0;w<nvox;w++){ vmap[w]=-1; if(!mask || mask[w]){ vmap[w]=nwork; widx[nwork++]=w; } }
+   if(!nwork) ERROR_exit("3dInSync: empty analysis mask");
+   nvoxelwork=nwork;
+   if(o->atlas_name){
+      THD_3dim_dataset *aset=NULL;
+      int r,k,view; char space[THD_MAX_NAME];
+      rois=insync_open_atlas(o->atlas_name,o->roi_sel,first,&aset);
+      if(!o->maskname && insync_template_space(o->atlas_name,&view,space) && view!=first->view_type){ out_view=view; MCW_strncpy(out_space,space,sizeof(out_space)); }
+      roi_ids=insync_select_alloc(rois->nroi,sizeof(int));
+      for(r=0;r<rois->nroi;r++){
+         int kept=0;
+         for(k=0;k<rois->vox[r].nar;k++) if(!mask || mask[rois->vox[r].ar[k]]) rois->vox[r].ar[kept++]=rois->vox[r].ar[k];
+         rois->vox[r].nar=kept;
+         if(kept) roi_ids[nroi++]=r;
+      }
+      DSET_delete(aset);
+      if(!nroi) ERROR_exit("3dInSync: no atlas ROI overlaps the analysis mask");
+      if(nroi>INT_MAX-nvox) ERROR_exit("3dInSync: too many ROI work units");
+      if(o->roi_only) nvoxelwork=0;
+      nwork=nvoxelwork+nroi;
+      widx=realloc(widx,(size_t)(nvox+nroi)*sizeof(int));
+      if(!widx) ERROR_exit("3dInSync: cannot allocate ROI work index");
+      workvox=insync_select_alloc(nwork,sizeof(int *)); worknv=insync_select_alloc(nwork,sizeof(int));
+      for(w=0;w<nvoxelwork;w++){ workvox[w]=widx+w; worknv[w]=1; }
+      for(r=0;r<nroi;r++){
+         w=nvoxelwork+r; widx[w]=nvox+r;
+         workvox[w]=rois->vox[roi_ids[r]].ar; worknv[w]=rois->vox[roi_ids[r]].nar;
+      }
+   }
+   nmap=nvox+nroi;
+   if(o->matrix_name && (size_t)nroi>SIZE_MAX/sizeof(float)/(size_t)ncond/(size_t)nsub/(size_t)nsub) ERROR_exit("3dInSync: ROI matrix workspace overflow");
+
+#ifdef USE_OMP
+   nthread=omp_get_max_threads();
+#endif
+   { INSYNC_infer_grid grid={.nsub=nsub,.ncond=ncond,.ngroup=ngroup,.nwork=nwork,.nvox=nvox,.nthread=nthread,
+        .nvoxelwork=nvoxelwork,.nroi=nroi,.source_at=source_at,.gcount=gcount,.widx=widx,.roi_ids=roi_ids,
+        .gmember=gmember,.clabel=clabel,.glabel=glabel,.rois=rois};
+     inference=INSYNC_infer_plan(o,s,&grid);
+   }
+   /* Include one full input while loading and one full-grid result while
+      writing. Unlike per-window driver calls, input storage is shared. */
+   estimate=(double)ns*nwork*(nt*(o->use_half?2.:4.)+(o->use_half?8.:0.))
+            +(double)nvox*nt*16+(double)nwork*nt*4
+            +(double)nout*nmap*4+(double)nvox*8
+            +(double)ns*nt+(double)ncond*nt*8
+            +(double)nthread*(8.*nsub*nt+8.*nsub*nsub+32.*nt+20.*ngroup+8.*nsub)
+            +(has_aggregates?((double)nthread*maxblocks*(component_stride*sizeof(float)+1.)+12.*nmap*ncond*(maxblocks+1)):0.)
+            +(double)s->nsegment*sizeof(INSYNC_segment)+(double)s->nsource*sizeof(INSYNC_source)
+            +(double)nwork*(sizeof(int *)+sizeof(int))
+            +(o->matrix_name?4.*nroi*ncond*nsub*nsub+4.*nthread*(maxblocks*(double)nsub*nsub+2.*maxblocks):0.);
+   schedule_bytes=(double)s->requested_capacity*sizeof(INSYNC_segment);
+   for(i=0;i<s->nsegment;i++) schedule_bytes+=strlen(s->segment[i].label)+strlen(s->segment[i].segment)+2;
+   for(i=0;i<s->nrequested;i++) schedule_bytes+=strlen(s->requested[i].label)+strlen(s->requested[i].segment)+2;
+   for(i=0;i<ns;i++) schedule_bytes+=strlen(s->source[i].file)+strlen(s->source[i].subject)+strlen(s->source[i].condition)+strlen(s->source[i].group)+4;
+   for(i=0;i<tab->nrow;i++) for(j=0;j<tab->ncol;j++) schedule_bytes+=2.*(strlen(DT_CELL(tab,i,j))+1+sizeof(char *));
+   for(i=0;i<s->ndesign;i++){
+      THD_xmat *x=s->design[i];
+      schedule_bytes+=sizeof(*x)+4.*x->nrow*x->ncol+4.*(x->nrow+x->nrun)+x->nstim*sizeof(THD_xmat_stim);
+      for(j=0;j<x->ncol;j++) schedule_bytes+=sizeof(char *)+strlen(x->collab[j])+1;
+      for(j=0;j<x->nattr;j++) schedule_bytes+=2*sizeof(char *)+strlen(x->attr_name[j])+strlen(x->attr_value[j])+2;
+   }
+   estimate+=schedule_bytes+INSYNC_infer_memory(inference);
+   if(model){
+      double pairs=(double)nsub*(nsub-1)/2;
+      double paircost=4.*(nvox+(o->roi_only?nroi:0))*(pairs+1.+3.*maxblocks)
+         +nthread*(16.*nsub*nt+32.*nsub*nsub+32.*nt+maxblocks*(4.*pairs+12.));
+      estimate+=paircost;
+      if(!o->quiet) INFO_message("3dInSync: model export memory %.0f bytes; one selection/condition-pair job resident",paircost);
+   }
+   system=(double)AFNI_get_memsize();
+   limit=o->memory_limit_given?o->memory_limit_gib*1073741824.:(system>0?.80*system:0);
+   if(!o->quiet){
+      INFO_message("3dInSync: selection ledger: sources %.0f bytes; result/support %.0f bytes; ROI matrices %.0f bytes; schedule rows %d (metadata estimate %.0f bytes); batch size 1; voxel pair-map batch size %d",
+         (double)ns*nwork*(nt*(o->use_half?2.:4.)+(o->use_half?8.:0.)),
+         4.*nmap*(nout+(has_aggregates?3.*ncond*(maxblocks+1):0.)),
+         o->matrix_name?4.*nroi*ncond*nsub*nsub:0.,s->nsegment,(double)s->nsegment*sizeof(INSYNC_segment)+schedule_bytes,model?1:0);
+   }
+   if(!o->quiet) INFO_message("3dInSync: selection memory estimate %.3f GiB; %d worker(s), one result bucket at a time",estimate/1073741824.,nthread);
+   if(limit>0 && estimate>limit){
+      if(!o->memory_override) ERROR_exit("3dInSync: selection memory estimate exceeds limit; reduce threads or use -memory_override");
+      WARNING_message("3dInSync: selection memory limit exceeded; continuing with -memory_override");
+   }
+   if((size_t)nwork>SIZE_MAX/(size_t)nt/sizeof(float)) ERROR_exit("3dInSync: source store size overflow");
+   src.ndset=ns; src.ntime_input=nt; src.nwork=nwork; src.half=o->use_half;
+   if(src.half){ src.hst=insync_select_alloc(ns,sizeof(*src.hst)); src.hpar=insync_select_alloc(ns,sizeof(*src.hpar)); }
+   else src.fst=insync_select_alloc(ns,sizeof(*src.fst));
+   common=insync_select_alloc(nt,1); used=insync_select_alloc(nt,1); memset(common,1,nt);
+   for(i=0;i<ns;i++) for(t=0;t<nt;t++) common[t]&=s->keep[(size_t)i*nt+t];
+   for(i=0;i<ns;i++){
+      int badw,badt,nzero=0;
+      d=THD_open_dataset(s->source[i].file); CHECK_OPEN_ERROR(d,s->source[i].file); DSET_load(d); CHECK_LOAD_ERROR(d);
+      if(o->do_zcensor) for(t=0;t<nt;t++){
+         for(w=0;w<nvox;w++) if((!mask || mask[w]) && THD_get_voxel(d,w,t)!=0) break;
+         if(w==nvox){ common[t]=0; nzero++; }
+      }
+      if(o->do_zcensor && !o->quiet) INFO_message("3dInSync: Subj %s condition %s: %d/%d all-zero volumes",s->source[i].subject,s->source[i].condition,nzero,nt);
+      if(o->do_zcensor && 100.*nzero/nt>o->zcensor_warn) WARNING_message("3dInSync: Subj %s condition %s exceeds -zcensor_warn",s->source[i].subject,s->source[i].condition);
+      insync_fill_one(d,i,&src,widx,workvox,worknv,o->missing_policy,&badw,&badt);
+      DSET_delete(d);
+   }
+   for(i=0;i<s->nsegment;i++) for(t=s->segment[i].original_start;t<=s->segment[i].original_stop;t++) if(common[t]) used[t]=1;
+   /* A temporal null can move any participating-run sample into a window. */
+   if(o->temporal_mode) for(i=0;i<s->nsegment;i++){
+      int r;
+      for(r=0;r<s->nrun;r++){
+         int begin=s->runstart[r],end=r+1<s->nrun?s->runstart[r+1]:nt;
+         if(s->segment[i].original_start<end && s->segment[i].original_stop>=begin)
+            for(t=begin;t<end;t++) used[t]=1;
+      }
+   }
+   /* Strict missingness is checked across the requested union before any
+      bucket is written, and only after common/zero-volume censoring. */
+   if(o->missing_policy==INSYNC_MISSING_ERROR){
+#ifdef USE_OMP
+#pragma omp parallel for reduction(min:bad) schedule(static)
+#endif
+      for(w=0;w<nwork;w++){
+         int source,time;
+         for(source=0;source<ns;source++) for(time=0;time<nt;time++) if(used[time] && (!o->temporal_censor || s->keep[(size_t)source*nt+time]) && !isfinite(insync_store_get(&src,source,w,time))){
+            long long code=((long long)w*ns+source)*nt+time;
+            if(code<bad) bad=code;
+         }
+      }
+      if(bad!=LLONG_MAX){
+         int time=bad%nt,source=(bad/nt)%ns,voxel=widx[bad/nt/ns];
+         if(voxel>=nvox) ERROR_exit("3dInSync: nonfinite selected input: ROI %d original TR %d Subj %s condition %s",rois->val[roi_ids[voxel-nvox]],time,s->source[source].subject,s->source[source].condition);
+         ERROR_exit("3dInSync: nonfinite selected input: voxel %d original TR %d Subj %s condition %s",voxel,time,s->source[source].subject,s->source[source].condition);
+      }
+   }
+   worker=insync_select_alloc(nthread,sizeof(*worker)); packed=insync_select_alloc(nthread,sizeof(*packed));
+   stats=insync_select_alloc(nthread,sizeof(*stats)); counts=insync_select_alloc(nthread,sizeof(*counts)); complete=insync_select_alloc(nthread,sizeof(*complete));
+   block_worker=insync_select_alloc(nthread,sizeof(*block_worker));
+   for(i=0;i<nthread;i++){
+      if(has_aggregates){ block_worker[i].value=insync_select_alloc((size_t)maxblocks*component_stride,sizeof(float)); block_worker[i].keep=insync_select_alloc(maxblocks,1); }
+      if(o->matrix_name && has_aggregates){
+         block_worker[i].pair=insync_select_alloc((size_t)maxblocks*nsub*nsub,sizeof(float));
+         block_worker[i].scratch=insync_select_alloc(maxblocks,sizeof(float)); block_worker[i].values=insync_select_alloc(maxblocks,sizeof(float));
+      }
+      worker[i]=INSYNC_kernel_new(nsub,nt); if(!worker[i]) ERROR_exit("3dInSync: cannot allocate selection kernel");
+      packed[i]=insync_select_alloc((size_t)nsub*nt,sizeof(float)); stats[i]=insync_select_alloc(ngroup,sizeof(float));
+      counts[i]=insync_select_alloc(ngroup,sizeof(int)); complete[i]=insync_select_alloc(ngroup,sizeof(int));
+   }
+   time_at=insync_select_alloc((size_t)ncond*nt,sizeof(int)); piece_at=insync_select_alloc((size_t)ncond*nt,sizeof(int));
+   nominal=insync_select_alloc(ncond,sizeof(int)); length=insync_select_alloc(ncond,sizeof(int));
+   block_rows=insync_select_alloc((size_t)ncond*maxblocks,sizeof(int));
+   block_count=insync_select_alloc(ncond,sizeof(int)); block_offset=insync_select_alloc(ncond,sizeof(int));
+   index=fopen(indexpath,"w"); if(!index) ERROR_exit("3dInSync: cannot write %s",indexpath);
+   fprintf(index,"# Status: running; only a final '# Status: complete' marks a finished bundle\n");
+   if(fflush(index) || ferror(index)) ERROR_exit("3dInSync: failed initializing result index");
+   if(inference) INSYNC_infer_begin(inference);
+   if(model) INSYNC_model_begin(model);
+   INSYNC_schedule_report(o,tab,s);
+   snprintf(path,sizeof(path),"%s.common_censor.1D",o->prefix);
+   { FILE *fp=insync_open_text(path); int failed;
+      for(t=0;t<nt;t++) fprintf(fp,"%d\n",common[t]!=0);
+      failed=ferror(fp); if(fclose(fp)) failed=1;
+      if(failed) ERROR_exit("3dInSync: failed writing common censor");
+   }
+   brickfp=insync_open_text(brickpath);
+   fprintf(brickfp,"SelectionID\tKind\tFile\tBrick\tLabel\n");
+   if(o->atlas_name){
+      roifp=insync_open_text(roipath);
+      fprintf(roifp,"SelectionID\tRun\tStimulus\tCondition\tROI\tROI_Label\tNVoxel\tKind\tBrick\tLabel\tValue\n");
+   }
+   if(o->matrix_name){
+      matrixfp=insync_open_text(o->matrix_name);
+      fprintf(matrixfp,"SelectionID\tRun\tStimulus\tCondition\tROI\tROI_Label\tSubj1\tSubj2\tGroup1\tGroup2\tCorrelation\tValid\n");
+   }
+   fprintf(index,"# Method: %s; Metric: %s; Summary: %s; Combine: %s; SegmentCenter: %s\n",o->method==INSYNC_METHOD_PAIRWISE?"pairwise":"loo",o->corr_metric==SIM_SPEARMAN?"spearman":"pearson",o->summary==INSYNC_SUMMARY_MEDIAN?"median":"fisher_mean",o->combine_pool?"pool":"block_summary",o->segment_center?"mean":"none");
+   fprintf(index,"# MinValid: %d; MinValidFraction: %.17g; fraction denominator: nominal selection length\n",o->min_valid,o->min_valid_frac);
+   fprintf(index,"# Valid marks a finite descriptive group estimate; PairComplete marks a complete within-group pair graph, not cross-group export eligibility\n");
+   fprintf(index,"# ValidTR reflects censoring and local common finite samples; manifest CensorKeptN excludes voxel-dependent missingness and zcensor; common_censor.1D includes zcensor\n");
+   fprintf(index,"# BlockSummary: %s; BlockMissing: %s; BlockWeight: equal; MinBlocks: %d; MinBlockFraction: %.17g\n",o->block_summary==INSYNC_SUMMARY_MEDIAN?"median":"fisher_mean",o->block_drop_common?"drop_common":"require_all",o->min_blocks,o->min_block_frac);
+   fprintf(index,"# Block summaries aggregate corresponding pair-r or LOO-subject values first, then group summary. Pair export transformation is Fisher-z of the final pair aggregate; 3dISC bundles are separate from native selection inference.\n");
+   fprintf(index,"# BlocksUsed is the block count for EVERY contributing edge/LOO subject; all groups within a condition share the same support. Weights are 1/BlocksUsed on admitted blocks.\n");
+   fprintf(index,"# BrickIndex: %s; ROI table: %s; ROI matrices: %s; N counts %s\n",brickpath,roifp?roipath:"NA",o->matrix_name?o->matrix_name:"NA",o->method==INSYNC_METHOD_PAIRWISE?"finite within-group pairs":"finite LOO subjects");
+   if(model){ fprintf(index,"# ModelBundle: "); INSYNC_selection_token(index,model->directory); fputc('\n',index); }
+   if(inference) fprintf(index,"# Inference: %s.inference.tsv; per-row completion describes descriptive results; global inference is pending until final Status: complete.\n",o->prefix);
+   fprintf(index,"SelectionID\tBucket\tStatus\tBlockSupportBucket\tInferenceBucket\n"); fflush(index);
+   if(has_aggregates){
+      supportfp=insync_open_text(supporttable);
+      fprintf(supportfp,"# Original-time block IDs and zero-based support brick selectors; maps are voxel-dependent. Eligible precedes aggregate gates; Weight is zero if the aggregate fails.\n");
+      fprintf(supportfp,"SelectionID\tCondition\tBlockOrdinal\tSegmentID\tRun\tOriginalStartTR\tOriginalStopTR\tNominalN\tSupportFile\tRetainedTRBrick\tEligibleBrick\tWeightBrick\n");
+   }
+   insync_progress_init(&selection_progress,o->progress_mode,o->quiet,(long long)nwork*s->nselection,"selections","voxel/ROI work units");
+   for(id=1;id<=s->nselection;id++){
+      int aggregate=is_aggregate[id],nbout=nout+(aggregate?3*ncond:0),nsupport=0;
+      float **maps=insync_select_alloc(nbout,sizeof(*maps)),**support=NULL;
+      float *roipairs=NULL;
+      int pieces=0;
+      if(matrixfp){
+         size_t z,n=(size_t)nroi*ncond*nsub*nsub;
+         roipairs=insync_select_alloc(n,sizeof(float)); for(z=0;z<n;z++) roipairs[z]=NAN;
+      }
+      memset(block_count,0,ncond*sizeof(int));
+      if(aggregate){
+         for(c=0;c<ncond;c++){
+            block_offset[c]=nsupport;
+            for(i=0;i<s->nsegment;i++) if(s->segment[i].selection_id==id && s->segment[i].source==source_at[c*nsub]) block_rows[(size_t)c*maxblocks+block_count[c]++]=i;
+            nsupport+=3*block_count[c];
+         }
+         support=insync_select_alloc(nsupport,sizeof(*support));
+         for(i=0;i<nsupport;i++) support[i]=insync_select_alloc(nmap,sizeof(float));
+      }
+      for(i=0;i<nbout;i++) maps[i]=insync_select_alloc(nmap,sizeof(float));
+      memset(nominal,0,ncond*sizeof(int)); memset(length,0,ncond*sizeof(int));
+      for(c=0;c<ncond;c++) for(i=0;i<s->nsegment;i++){
+         INSYNC_segment *e=s->segment+i;
+         if(e->selection_id!=id || e->source!=source_at[c*nsub]) continue;
+         pieces++; nominal[c]+=e->stop-e->start+1;
+         for(t=e->original_start;t<=e->original_stop;t++) if(common[t]){
+            size_t pos=(size_t)c*nt+length[c]++; time_at[pos]=t; piece_at[pos]=pieces;
+         }
+      }
+#ifdef USE_OMP
+#pragma omp parallel for schedule(dynamic,8)
+#endif
+      for(w=0;w<nwork;w++){
+         int thread=0,ci,gg,si,k,pos,nkeep,previous,pbegin;
+#ifdef USE_OMP
+         thread=omp_get_thread_num();
+#endif
+         for(ci=0;ci<ncond;ci++){
+            float *data=packed[thread],*st=stats[thread]; int *nv=counts[thread],*pc=complete[thread];
+            float *pairout=(roipairs && w>=nvoxelwork)?roipairs+((size_t)(w-nvoxelwork)*ncond+ci)*nsub*nsub:NULL;
+            if(aggregate){
+               int eligible,used;
+               insync_block_selection(o,s,&src,worker[thread],block_worker+thread,data,w,nsub,ngroup,gcount,gmember,source_at+ci*nsub,common,block_rows+(size_t)ci*maxblocks,block_count[ci],st,nv,pc,support,block_offset[ci],widx[w],&eligible,&used,&nkeep,pairout);
+               maps[nout+ci][widx[w]]=block_count[ci];
+               maps[nout+ncond+ci][widx[w]]=eligible; maps[nout+2*ncond+ci][widx[w]]=used;
+               maps[trslot+ci][widx[w]]=nkeep;
+               goto store_selection_stats;
+            }
+            nkeep=0; previous=-1; pbegin=0;
+            /* Keep rows at capacity stride while filtering. Pack to nkeep
+               stride afterward, in ascending subject order (overlap safe). */
+            for(k=0;k<length[ci];k++){
+               int original=time_at[(size_t)ci*nt+k],piece=piece_at[(size_t)ci*nt+k],finite=1;
+               if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<ns;si++) if(!isfinite(insync_store_get(&src,si,w,original))){ finite=0; break; }
+               if(!finite) continue;
+               if(piece!=previous){
+                  if(o->segment_center && nkeep>pbegin) for(si=0;si<nsub;si++){
+                     double mean=0; for(pos=pbegin;pos<nkeep;pos++) mean+=data[(size_t)si*nt+pos]; mean/=nkeep-pbegin;
+                     for(pos=pbegin;pos<nkeep;pos++) data[(size_t)si*nt+pos]-=(float)mean;
+                  }
+                  previous=piece; pbegin=nkeep;
+               }
+               for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(&src,source_at[ci*nsub+si],w,original);
+               nkeep++;
+            }
+            if(o->segment_center && nkeep>pbegin) for(si=0;si<nsub;si++){
+               double mean=0; for(pos=pbegin;pos<nkeep;pos++) mean+=data[(size_t)si*nt+pos]; mean/=nkeep-pbegin;
+               for(pos=pbegin;pos<nkeep;pos++) data[(size_t)si*nt+pos]-=(float)mean;
+            }
+            maps[trslot+ci][widx[w]]=nkeep;
+            if(nkeep<o->min_valid || !nominal[ci] || (double)nkeep/nominal[ci]<o->min_valid_frac) continue;
+            for(si=0;si<nsub;si++) memmove(data+(size_t)si*nkeep,data+(size_t)si*nt,nkeep*sizeof(float));
+            INSYNC_kernel_eval(worker[thread],nkeep,data,o->corr_metric,o->method,o->summary,ngroup,gcount,gmember,st,nv,pc);
+            if(pairout) memcpy(pairout,INSYNC_kernel_matrix(worker[thread]),(size_t)nsub*nsub*sizeof(float));
+store_selection_stats:
+            for(gg=0;gg<ngroup;gg++){
+               int cell=ci*ngroup+gg;
+               if(isfinite(st[gg])){ maps[2*cell][widx[w]]=st[gg]; maps[vslot+cell][widx[w]]=1; }
+               maps[2*cell+1][widx[w]]=nv[gg]; maps[pslot+cell][widx[w]]=pc[gg];
+            }
+            if(ngroup==2 && isfinite(st[0]) && isfinite(st[1])){
+               maps[dslot+ci][widx[w]]=st[0]-st[1]; maps[dvslot+ci][widx[w]]=1;
+            }
+         }
+         insync_progress_advance(&selection_progress);
+      }
+      if(aggregate && !o->quiet) for(c=0;c<ncond;c++){
+         int elo=INT_MAX,ehi=0,ulo=INT_MAX,uhi=0;
+         for(w=0;w<nwork;w++){
+            int eligible=(int)maps[nout+ncond+c][widx[w]],used=(int)maps[nout+2*ncond+c][widx[w]];
+            if(eligible<elo) elo=eligible;
+            if(eligible>ehi) ehi=eligible;
+            if(used<ulo) ulo=used;
+            if(used>uhi) uhi=used;
+         }
+         INFO_message("3dInSync: sel%06d condition %s: %d nominal blocks; eligible %d..%d, used %d..%d across in-mask voxels (%s; equal weights)",id,clabel[c],block_count[c],elo,ehi,ulo,uhi,o->block_drop_common?"drop_common":"require_all");
+      }
+      insync_select_path(path,sizeof(path),o->prefix,id,oneD);
+      out=EDIT_empty_copy(first);
+      if(out_view>=0){ EDIT_dset_items(out,ADN_view_type,out_view,ADN_none); MCW_strncpy(out->atlas_space,out_space,THD_MAX_NAME); }
+      EDIT_dset_items(out,ADN_prefix,path,ADN_nvals,nbout,ADN_ntt,0,ADN_brick_fac,NULL,
+                      ADN_type,HEAD_FUNC_TYPE,ADN_func_type,FUNC_BUCK_TYPE,ADN_datum_all,MRI_float,ADN_none);
+      tross_Copy_History(first,out); tross_Make_History(PROGRAM_NAME,argc,argv,out);
+      for(i=0;i<nbout;i++){ EDIT_substitute_brick(out,i,MRI_float,maps[i]); EDIT_BRICK_TO_NOSTAT(out,i); }
+      insync_selection_label_bucket(out,ncond,ngroup,clabel,glabel,aggregate,nout,vslot,pslot,trslot,dslot,dvslot);
+      insync_selection_labels_check(out);
+      insync_selection_describe(brickfp,roifp,matrixfp,s,id,out,path,"result",maps,nroi,nvox,rois,roi_ids,ncond,clabel,roipairs,nsub,source_at,ngroup);
+      if(o->roi_only) insync_selection_expand(maps,nbout,nvox,nroi,rois,roi_ids);
+      if(!DSET_write(out)) ERROR_exit("3dInSync: failed writing selection %d",id);
+      if(!THD_is_file(path)) ERROR_exit("3dInSync: failed writing selection %d: %s",id,path);
+      if(aggregate){
+         THD_3dim_dataset *supportset=EDIT_empty_copy(out);
+         insync_support_path(supportpath,sizeof(supportpath),o->prefix,id,oneD);
+         EDIT_dset_items(supportset,ADN_prefix,supportpath,ADN_nvals,nsupport,ADN_ntt,0,ADN_brick_fac,NULL,ADN_datum_all,MRI_float,ADN_none);
+         tross_Copy_History(out,supportset);
+         for(i=0;i<nsupport;i++){ EDIT_substitute_brick(supportset,i,MRI_float,support[i]); EDIT_BRICK_TO_NOSTAT(supportset,i); }
+         for(c=0;c<ncond;c++) for(j=0;j<block_count[c];j++){
+            INSYNC_segment *e=s->segment+block_rows[(size_t)c*maxblocks+j]; int offset=block_offset[c]+3*j,k; char label[64];
+            const char *stem[]={"RetainedTR","Eligible","Weight"};
+            for(k=0;k<3;k++){ snprintf(label,sizeof(label),"C%d_B%d_%s",c+1,j+1,stem[k]); EDIT_BRICK_LABEL(supportset,offset+k,label); }
+            fprintf(supportfp,"sel%06d\t",id); INSYNC_selection_token(supportfp,clabel[c]); fprintf(supportfp,"\t%d\t",j+1); INSYNC_selection_token(supportfp,e->segment);
+            fprintf(supportfp,"\t%d\t%d\t%d\t%d\t",e->run,e->original_start,e->original_stop,e->stop-e->start+1); INSYNC_selection_token(supportfp,supportpath);
+            fprintf(supportfp,"\t%d\t%d\t%d\n",offset,offset+1,offset+2);
+         }
+         insync_selection_describe(brickfp,roifp,NULL,s,id,supportset,supportpath,"block_support",support,nroi,nvox,rois,roi_ids,ncond,clabel,NULL,nsub,source_at,ngroup);
+         if(o->roi_only) insync_selection_expand(support,nsupport,nvox,nroi,rois,roi_ids);
+         if(!DSET_write(supportset) || !THD_is_file(supportpath)) ERROR_exit("3dInSync: failed writing block support for selection %d",id);
+         DSET_delete(supportset); free(support);
+         fflush(supportfp); if(ferror(supportfp)) ERROR_exit("3dInSync: failed writing block support table");
+      }
+      fprintf(index,"sel%06d\t",id); INSYNC_selection_token(index,path); fprintf(index,"\tcomplete\t"); INSYNC_selection_token(index,aggregate?supportpath:"NA"); fputc('\t',index);
+      if(inference){ char inferpath[THD_MAX_NAME]; snprintf(inferpath,sizeof(inferpath),"%s.sel%06d.infer.nii.gz",o->prefix,id); INSYNC_selection_token(index,inferpath); } else fputs("NA",index);
+      fputc('\n',index); fflush(index);
+      if(ferror(index)) ERROR_exit("3dInSync: failed writing result index");
+      if(!o->quiet) for(c=0;c<ncond;c++){
+         float lo=FLT_MAX,hi=0;
+         for(w=0;w<nwork;w++){
+            float value=maps[trslot+c][widx[w]];
+            if(value<lo) lo=value;
+            if(value>hi) hi=value;
+         }
+         INFO_message("3dInSync: sel%06d condition %s: nominal %d TRs, common-censor retained %d TRs, final ValidTR %.0f..%.0f; work %lld/%lld",id,clabel[c],nominal[c],length[c],lo,hi,(long long)id*nwork*ncond,(long long)s->nselection*nwork*ncond);
+      }
+      if(inference) INSYNC_infer_selection(inference,id,aggregate,&src,insync_inference_read,common,out);
+      if(model){
+         THD_3dim_dataset *reference=EDIT_empty_copy(out); tross_Copy_History(out,reference);
+         DSET_delete(out); free(maps); free(roipairs);
+         insync_selection_models(model,o,s,&src,common,id,aggregate,nsub,ncond,source_at,nvox,nvoxelwork,nroi,widx,rois,roi_ids,reference,nthread);
+         DSET_delete(reference);
+      } else { DSET_delete(out); free(maps); free(roipairs); }
+      if(!o->quiet) INFO_message("3dInSync: selection %d/%d wrote %s",id,s->nselection,path);
+   }
+   if(supportfp){ int failed=ferror(supportfp); if(fclose(supportfp)) failed=1; if(failed) ERROR_exit("3dInSync: failed closing block support table"); }
+   if(inference) INSYNC_infer_finish(inference,brickfp);
+   { FILE *fp[3]={brickfp,roifp,matrixfp}; int k;
+      for(k=0;k<3;k++) if(fp[k]){ int failed=ferror(fp[k]); if(fclose(fp[k])) failed=1; if(failed) ERROR_exit("3dInSync: failed closing selection table"); }
+   }
+   if(model) INSYNC_model_finish(model);
+   fprintf(index,"# Status: complete\n");
+   { int failed=ferror(index); if(fclose(index)) failed=1; if(failed) ERROR_exit("3dInSync: failed closing result index"); }
+   for(i=0;i<nthread;i++){ free(block_worker[i].value); free(block_worker[i].keep); free(block_worker[i].pair); free(block_worker[i].scratch); free(block_worker[i].values); INSYNC_kernel_free(worker[i]); free(packed[i]); free(stats[i]); free(counts[i]); free(complete[i]); }
+   for(g=0;g<ngroup;g++){ free(gmember[g]); free(glabel[g]); } for(c=0;c<ncond;c++) free(clabel[c]);
+   free(block_worker); free(block_rows); free(block_count); free(block_offset); free(is_aggregate);
+   free(worker); free(packed); free(stats); free(counts); free(complete); free(gmember); free(gcount); free(glabel); free(clabel);
+   free(time_at); free(piece_at); free(nominal); free(length); free(source_at); free(common); free(used); free(mask); free(vmap); free(widx);
+   free(workvox); free(worknv); free(roi_ids); if(rois) THD_roilist_free(rois);
+   insync_free_store(&src); DSET_delete(first); INSYNC_schedule_free(s); return 0;
+}
+
 /*! Run the analysis using a local snapshot of the supplied options. */
 int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
                 int argc, char **argv )
@@ -1340,6 +2234,8 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
    char *contrast_name1=opts->contrast_name1 ;
    char *pair_prefix=opts->pair_prefix ;
    char *censor_name=opts->censor_name ;
+   int icol_censor=tab?THD_datatable_column(tab,opts->censor_column):-1;
+   int *source_censor_count=NULL;
    int do_zcensor=opts->do_zcensor ;
    int zcensor_warn_given=opts->zcensor_warn_given ;
    float zcensor_warn=opts->zcensor_warn ;
@@ -1449,6 +2345,21 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
    long long bad_data=LLONG_MAX ;
    INSYNC_progress progress ;
 
+   /* Selection requests are never silently passed to static estimation. */
+   if( opts->check_table ) return INSYNC_check_table(opts,tab) ;
+   if( INSYNC_selection_requested(opts,tab) )
+     return insync_run_selections(opts,tab,argc,argv) ;
+
+   if(icol_censor>=0) for(jj=0;jj<tab->ncol;jj++) if(jj!=icol_censor && !strcasecmp(tab->cname[jj],opts->censor_column)) ERROR_exit("3dInSync: duplicate censor column '%s'",opts->censor_column);
+   if(opts->censor_column_given && icol_censor<0) ERROR_exit("3dInSync: censor column '%s' absent",opts->censor_column);
+   if(tab && icol_censor>=0 && (icol_censor==tab->icol_subj || icol_censor==tab->icol_input || icol_censor==THD_datatable_column(tab,group_column) || icol_censor==THD_datatable_column(tab,condition_column))) ERROR_exit("3dInSync: Censor must be a separate source column");
+   if(icol_censor>=0 && !THD_ok_overwrite()){
+      const char *suffix[]={"censor.tsv","common_censor.1D"}; char name[THD_MAX_NAME]; int q;
+      for(q=0;q<2;q++){
+         if(snprintf(name,sizeof(name),"%s.%s",prefix,suffix[q])>=(int)sizeof(name)) ERROR_exit("3dInSync: censor output path too long");
+         if(THD_is_file(name)) ERROR_exit("3dInSync: censor output already exists: %s",name);
+      }
+   }
    /* Cross-option constraints protect estimands that require a common intact
       timeline or a paired condition design. */
    if( temporal_mode==INSYNC_TNULL_NONE && nnull>0 ) ERROR_exit(PROGRAM_NAME ": -nnull requires -temporal_null") ;
@@ -1459,14 +2370,14 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
    if( eo.matrix && !eo.edges ) ERROR_exit(PROGRAM_NAME ": -edges_matrix requires -edges") ;
    if( eo.nnull>0 && !(eo.edges || eo.rss || eo.events) )
      ERROR_exit(PROGRAM_NAME ": -edges_nnull requires -edges, -edges_rss, or -edges_events") ;
-   if( eo.nnull>0 && (censor_name!=NULL || do_zcensor || missing_policy==INSYNC_MISSING_COMMON) )
-     ERROR_exit(PROGRAM_NAME ": -censor/-zcensor/-missing common cannot be combined with "
+   if( eo.nnull>0 && (censor_name!=NULL || icol_censor>=0 || do_zcensor || missing_policy==INSYNC_MISSING_COMMON) )
+     ERROR_exit(PROGRAM_NAME ": Censor/-censor/-zcensor/-missing common cannot be combined with "
                 "-edges_nnull; circular shifts require an intact timeline") ;
    if( min_shift_given ) eo.min_shift=min_shift ;
    eo.seed=seed ;
    if( temporal_mode==INSYNC_TNULL_NONE && temporal_tail_given ) ERROR_exit(PROGRAM_NAME ": -temporal_tail requires -temporal_null") ;
-   if( temporal_mode!=INSYNC_TNULL_NONE && (censor_name!=NULL || do_zcensor) )
-     ERROR_exit(PROGRAM_NAME ": -censor/-zcensor cannot be combined with a temporal null; "
+   if( temporal_mode!=INSYNC_TNULL_NONE && (censor_name!=NULL || icol_censor>=0 || do_zcensor) )
+     ERROR_exit(PROGRAM_NAME ": Censor/-censor/-zcensor cannot be combined with a temporal null; "
                 "circular shifts/phases require an intact timeline") ;
    if( !isfinite(zcensor_warn) || zcensor_warn<0.0f || zcensor_warn>100.0f )
      ERROR_exit(PROGRAM_NAME ": -zcensor_warn must be between 0 and 100") ;
@@ -1515,7 +2426,7 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
        for( cc=1 ; cc<ncond ; cc++ ){
          int rr=rowmap[ii*ncond+cc] ;
          for( jj=0 ; jj<tab->ncol ; jj++ )
-           if( jj!=tab->icol_subj && jj!=tab->icol_input && jj!=cindex->icol[1] &&
+           if( jj!=tab->icol_subj && jj!=tab->icol_input && jj!=cindex->icol[1] && jj!=icol_censor &&
                strcmp(DT_CELL(tab,rr0,jj),DT_CELL(tab,rr,jj))!=0 )
              ERROR_exit(PROGRAM_NAME ": column '%s' changes within Subj %s across conditions",
                         tab->cname[jj],cindex->level[0][ii]) ;
@@ -1624,6 +2535,17 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
      if( THD_perm_scheme_set_eqclass(pscheme,group)!=ngroup ) ERROR_exit(PROGRAM_NAME ": cannot encode groups") ;
      pset=THD_perm_set_build(pscheme) ;
      if( pset==NULL ) ERROR_exit(PROGRAM_NAME ": cannot build group permutations") ;
+     /* eqclass enumerates labels in subject slots; invert to obtain subjects
+        in fixed group slots. Otherwise exact assignments repeat/omit groups. */
+     { int *inverse=(int *)malloc(sizeof(int)*(size_t)nsub),d,k;
+       if(!inverse) ERROR_exit(PROGRAM_NAME ": cannot invert group assignments");
+       for(d=0;d<pset->nperm;d++){
+         int *p=pset->perm+(size_t)d*nsub;
+         for(k=0;k<nsub;k++) inverse[p[k]]=k;
+         memcpy(p,inverse,sizeof(int)*(size_t)nsub);
+       }
+       free(inverse);
+     }
      if( !quiet ) INFO_message(PROGRAM_NAME ": using %d %s group assignments",
                                pset->nperm,pset->is_exact?"exact":"sampled") ;
    }
@@ -1657,30 +2579,24 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
    censor_keep=(byte *)calloc((size_t)ntime_input,sizeof(byte)) ;
    if( time_index==NULL || censor_keep==NULL )
      ERROR_exit(PROGRAM_NAME ": cannot allocate common-censor index") ;
-   if( censor_name!=NULL ){
-     MRI_IMAGE *cim=mri_read_1D(censor_name) ;
-     MRI_IMAGE *fim ;
-     float *car ;
-     int nkeep=0 ;
-     if( cim==NULL ) ERROR_exit(PROGRAM_NAME ": cannot read -censor file '%s'",censor_name) ;
-     fim=mri_to_float(cim) ; if( fim!=cim ) mri_free(cim) ;
-     if( fim->nvox!=ntime_input )
-       ERROR_exit(PROGRAM_NAME ": -censor has %d values; expected %d",
-                  fim->nvox,ntime_input) ;
-     car=MRI_FLOAT_PTR(fim) ;
-     for( ii=0 ; ii<ntime_input ; ii++ ){
-       if( !isfinite(car[ii]) || (car[ii]!=0.0f && car[ii]!=1.0f) )
-         ERROR_exit(PROGRAM_NAME ": -censor value %d is %.7g; expected finite 0 or 1",
-                    ii+1,car[ii]) ;
-       if( car[ii]!=0.0f ){ censor_keep[ii]=1 ; time_index[nkeep++]=ii ; }
-     }
-     mri_free(fim) ;
-     if( nkeep<3 ) ERROR_exit(PROGRAM_NAME ": -censor retains %d time points; need at least 3",nkeep) ;
-     ntime=nkeep ;
-     if( !quiet ) INFO_message(PROGRAM_NAME ": common censor retains %d of %d time points",
-                               ntime,ntime_input) ;
-   } else {
-     for( ii=0 ; ii<ntime_input ; ii++ ){ censor_keep[ii]=1 ; time_index[ii]=ii ; }
+   memset(censor_keep,1,ntime_input);
+   if(censor_name) INSYNC_apply_censor(censor_keep,ntime_input,censor_name);
+   if(icol_censor>=0){
+      byte *keep=insync_select_alloc(ntime_input,1);
+      source_censor_count=insync_select_alloc(ndset,sizeof(int));
+      for(ii=0;ii<ndset;ii++){
+         memset(keep,1,ntime_input);
+         INSYNC_apply_censor(keep,ntime_input,DT_CELL(tab,rowmap[ii],icol_censor));
+         for(tt=0;tt<ntime_input;tt++){ source_censor_count[ii]+=keep[tt]; censor_keep[tt]&=keep[tt]; }
+         if(!quiet) INFO_message("3dInSync: Subj %s condition %s censor retains %d/%d (%.1f%%)",tab->subj[rowmap[ii]],clabel[ii%ncond],source_censor_count[ii],ntime_input,100.*source_censor_count[ii]/ntime_input);
+      }
+      free(keep);
+   }
+   { int nkeep=0;
+      for(tt=0;tt<ntime_input;tt++) if(censor_keep[tt]) time_index[nkeep++]=tt;
+      if(nkeep<3) ERROR_exit("3dInSync: common censor retains %d time points; need at least 3",nkeep);
+      ntime=nkeep;
+      if(!quiet && (censor_name || icol_censor>=0)) INFO_message("3dInSync: common censor retains %d/%d (%.1f%%)",ntime,ntime_input,100.*ntime/ntime_input);
    }
 
    if( eo.nnull>0 && ntime-2*eo.min_shift+1<2 )
@@ -1822,7 +2738,7 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
      neffect=ngroup+((ngroup==2)?1:0) ; contrast_slot=nout ; nout+=neffect ;
      if( cset!=NULL ){ condperm_slot=nout ; nout+=5*neffect ; }
    }
-   if( censor_name!=NULL || do_zcensor || missing_policy==INSYNC_MISSING_COMMON ){
+   if( censor_name!=NULL || icol_censor>=0 || do_zcensor || missing_policy==INSYNC_MISSING_COMMON ){
      validtr_slot=nout ; nout++ ;
    }
    npairmap=(pair_prefix!=NULL)?(size_t)ncond*ncond*nedge:0 ;
@@ -1987,6 +2903,18 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
      free(nzero) ; free(zero_time) ; nzero=NULL ; zero_time=NULL ;
    }
 
+   if(icol_censor>=0){
+      char name[THD_MAX_NAME]; FILE *fp;
+      snprintf(name,sizeof(name),"%s.common_censor.1D",prefix); fp=insync_open_text(name);
+      for(tt=0;tt<ntime_input;tt++) fprintf(fp,"%d\n",censor_keep[tt]!=0);
+      { int fail=ferror(fp); if(fclose(fp)) fail=1; if(fail) ERROR_exit("3dInSync: cannot write common censor"); }
+      snprintf(name,sizeof(name),"%s.censor.tsv",prefix); fp=insync_open_text(name);
+      fprintf(fp,"# Common retained after Censor, global censor and zcensor: %d/%d (%.9g); voxel missingness is separate\nSubj\tCondition\tRetained\tNominal\tFraction\n",ntime,ntime_input,(double)ntime/ntime_input);
+      for(ii=0;ii<ndset;ii++) fprintf(fp,"%s\t%s\t%d\t%d\t%.9g\n",tab->subj[rowmap[ii]],clabel[ii%ncond],source_censor_count[ii],ntime_input,(double)source_censor_count[ii]/ntime_input);
+      { int fail=ferror(fp); if(fclose(fp)) fail=1; if(fail) ERROR_exit("3dInSync: cannot write censor report"); }
+      free(source_censor_count);
+   }
+
    /* Allocate shared output maps and empirical-null accumulators. */
    outval=(float **)calloc((size_t)nout,sizeof(float *)) ;
    for( kk=0 ; kk<nout ; kk++ ){
@@ -2027,7 +2955,7 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
      total=npairmap*(size_t)nwork ; pairval=(float *)calloc(total,sizeof(float)) ;
      if( pairval==NULL ) ERROR_exit(PROGRAM_NAME ": cannot allocate %lu pair-map values",(unsigned long)total) ;
    }
-   insync_progress_init(&progress,progress_mode,quiet,use_store?nwork:nmask) ;
+   insync_progress_init(&progress,progress_mode,quiet,use_store?nwork:nmask,"inference","voxels") ;
 
 #ifdef USE_OMP
 #pragma omp parallel reduction(+:invalid_total,boot_invalid_total,temporal_invalid_total,condition_invalid_total) reduction(min:bad_data)
@@ -2643,14 +3571,14 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
        ERROR_exit(PROGRAM_NAME ": 3dISC table '%s' already exists",table_name) ;
      fp=fopen(table_name,"w");
      if( fp==NULL ) ERROR_exit(PROGRAM_NAME ": cannot write '%s'",table_name) ;
-     insync_3disc_header(fp,tab,icol_group,cindex?cindex->icol[1]:-1) ;
+     insync_3disc_header(fp,tab,icol_group,cindex?cindex->icol[1]:-1,icol_censor) ;
      pm=0 ;
      for( cc=0 ; cc<ncond ; cc++ ) for( jj=0 ; jj<ncond ; jj++ ){
        int aa ;
        int bb ;
        for( aa=0 ; aa<nsub ; aa++ ) for( bb=aa+1 ; bb<nsub ; bb++,pm++ ){
          insync_3disc_row(fp,tab,cindex,rowmap,ncond,clabel,group,glabel,
-                          cc,jj,aa,bb,icol_group,dataset_name,pm) ;
+                          cc,jj,aa,bb,icol_group,icol_censor,dataset_name,pm) ;
        }
      }
      fclose(fp) ;
@@ -2672,11 +3600,11 @@ int INSYNC_run( const INSYNC_options *opts, THD_datatable *tab,
          ERROR_exit(PROGRAM_NAME ": 3dISC table '%s' already exists",table_name) ;
        fp=fopen(table_name,"w") ;
        if( fp==NULL ) ERROR_exit(PROGRAM_NAME ": cannot write '%s'",table_name) ;
-       insync_3disc_header(fp,tab,icol_group,cindex->icol[1]) ;
+       insync_3disc_header(fp,tab,icol_group,cindex->icol[1],icol_censor) ;
        pm=((size_t)cc*ncond+jj)*nedge ;
        for( aa=0 ; aa<nsub ; aa++ ) for( bb=aa+1 ; bb<nsub ; bb++,pm++ )
          insync_3disc_row(fp,tab,cindex,rowmap,ncond,clabel,group,glabel,
-                          cc,jj,aa,bb,icol_group,dataset_name,pm) ;
+                          cc,jj,aa,bb,icol_group,icol_censor,dataset_name,pm) ;
        fclose(fp) ;
      }
      if( !quiet ) INFO_message(PROGRAM_NAME ": wrote %lu Fisher-z pair maps and %s",

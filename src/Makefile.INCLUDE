@@ -1823,19 +1823,31 @@ $(MVPA_SHARED_OBJS): %.o: %.c
 	$(RM) $@
 	$(CCOMP) -o 3dMVPA $(MVPA_OBJS) $(LFLAGS) $(LLIBS)
 
-INSYNC_OBJS = 3dInSync.o thd_insync.o thd_insync_stats.o thd_datatable.o thd_xmat.o thd_simmatrix.o \
+INSYNC_OBJS = 3dInSync.o thd_insync.o thd_insync_stats.o thd_insync_select.o thd_insync_model.o thd_insync_infer.o thd_datatable.o thd_xmat.o thd_simmatrix.o \
               thd_permute.o thd_mapinfer.o thd_phasefft.o thd_patterns.o
 
-3dInSync.o: 3dInSync.c thd_insync.h thd_datatable.h thd_simmatrix.h \
+3dInSync.o: 3dInSync.c thd_insync_select.h thd_insync.h thd_datatable.h thd_simmatrix.h \
              thd_permute.h niml.h AFNI_version.h
 	$(RM) $@
 	$(CCOMP) -c 3dInSync.c $(INFLAGS)
 
-thd_insync.o: thd_insync.c thd_insync.h thd_datatable.h thd_simmatrix.h \
+thd_insync.o: thd_insync.c thd_insync_infer.h thd_insync_model.h thd_insync_select.h thd_insync.h thd_datatable.h thd_simmatrix.h \
               thd_permute.h thd_mapinfer.h thd_phasefft.h thd_patterns.h \
               niml.h AFNI_version.h
 	$(RM) $@
 	$(CCOMP) -c thd_insync.c $(INFLAGS)
+
+thd_insync_select.o: thd_insync_select.c thd_insync_select.h thd_insync.h thd_datatable.h thd_xmat.h mrilib.h nifti/nifti2/nifti2_io.h
+	$(RM) $@
+	$(CCOMP) -c thd_insync_select.c $(INFLAGS)
+
+thd_insync_model.o: thd_insync_model.c thd_insync_model.h thd_niftiwrite.h thd_insync_select.h thd_insync.h thd_datatable.h mrilib.h
+	$(RM) $@
+	$(CCOMP) -c thd_insync_model.c $(INFLAGS)
+
+thd_insync_infer.o: thd_insync_infer.c thd_insync_infer.h thd_insync_select.h thd_insync.h thd_permute.h thd_phasefft.h thd_mapinfer.h thd_niftiwrite.h mrilib.h
+	$(RM) $@
+	$(CCOMP) -c thd_insync_infer.c $(INFLAGS)
 
 thd_insync_stats.o: thd_insync_stats.c thd_insync.h thd_datatable.h
 	$(RM) $@

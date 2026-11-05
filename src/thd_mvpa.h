@@ -440,7 +440,7 @@ extern int THD_mvpa_run_ridge_permutations(THD_mvpa_ridge_workspace *w,
    char *err, int nerr);
 extern void THD_mvpa_ridge_workspace_free(THD_mvpa_ridge_workspace *w);
 
-/* Version-1 frozen ridge pipeline: fixed train/test fits only, neural inputs,
+/* Frozen linear pipeline: fixed-partition or all-training fits, neural inputs,
    none/zscore/sample-center scaling, nuisance, selection and PCA. No run-center.
    Captures owned numerical state; prediction never calls a fitting routine.
    Float stage boundaries match the original fitted pipeline. */
@@ -460,13 +460,15 @@ typedef struct {
 } THD_mvpa_model_unit;
 typedef struct {
    int classification,searchlight,nunit,nresponse,ncovariate,ntrain;
+   int estimator; /* 0=ridge (format v1), 1=logistic logits (format v2) */
    int dim[3],view;
    double affine[12]; /* voxel IJK -> DICOM real, row-major 3x4 */
    char *space,*target; /* target column(s); response/class labels retain order */
    char **response,**covariate;
    THD_mvpa_model_unit *unit;
 } THD_mvpa_model;
-/* Portable strict text data, format version 1, finite round-trip doubles and
+/* Portable strict text data: ridge format v1, logistic format v2 (linear
+   outputs are logits, followed by softmax at application). Finite doubles and
    length/hex-encoded strings (no executable content). Reader validates sizes,
    labels, geometry, feature order and pipeline domains; trailing data rejected.
    Atomic same-directory publication; overwrite=0 never replaces an existing
@@ -599,6 +601,7 @@ extern int THD_mvpa_classification_set_lda(THD_mvpa_workspace *w, int mode,
 extern int THD_mvpa_classification_set_svm(THD_mvpa_workspace *w,double cost,
    double tolerance,int max_iterations,int metric,
    const THD_nested_foldplan *nested,const double *grid,int ngrid,char *err,int nerr);
+extern THD_mvpa_frozen_ridge *THD_mvpa_logistic_freeze(const THD_mvpa_workspace *w,char *err,int nerr);
 extern int THD_mvpa_classification_set_logistic(THD_mvpa_workspace *w,double lambda,
    double tolerance,int max_iterations,int metric,
    const THD_nested_foldplan *nested,const double *grid,int ngrid,char *err,int nerr);

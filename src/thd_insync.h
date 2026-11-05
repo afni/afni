@@ -61,11 +61,26 @@ typedef struct {
    int memory_limit_given ;
    double memory_limit_gib ;
 
+   /* M1/M2 selection preflight; estimation is enabled in later milestones. */
+   int check_table, window, step, step_given, tr_given, whole_summary ;
+   double selection_tr ;
+   char *run_starts ;
+   int xmat_blocks, xmat_across_runs, xmat_threshold_given ;
+   double xmat_threshold ;
+   char *xmat_stims, *xmat_runs ;
+   int min_valid, min_valid_given, min_valid_frac_given;
+   double min_valid_frac;
+   int combine_pool, combine_given, segment_center, segment_center_given;
+   int block_summary, block_summary_given, block_drop_common, block_missing_given;
+   int min_blocks, min_blocks_given, min_block_frac_given, block_weight_given;
+   double min_block_frac;
+
    /* Resampling and inference options. */
    int nboot ;
    int nperm ;
    int do_exact ;
    int tail ;
+   int temporal_censor ; /* explicit joint signal/mask shifts; 0 rejects censoring */
    int temporal_mode ;
    int nnull ;
    int min_shift ;
@@ -88,7 +103,12 @@ typedef struct {
    char *contrast_name0 ;
    char *contrast_name1 ;
    char *pair_prefix ;
+   char *isc_model, *isc_qvars, *isc_centers;
+   char **isc_glt_names, **isc_glt_weights;
+   int isc_nglt, isc_jobs, isc_jobs_given;
    char *censor_name ;
+   char *censor_column;
+   int censor_column_given;
    int do_zcensor ;
    int zcensor_warn_given ;
    float zcensor_warn ;
@@ -157,6 +177,22 @@ extern float INSYNC_loo_indexed_metric( int nsub, int ntime, const float *data,
                                         int summary, int metric, float *ref,
                                         float *values, float *rank1,
                                         float *rank2, int *nvalid ) ;
+
+/* Selection kernel: one reusable workspace per worker, no evaluation-time
+   allocations. Matrix entries and invalid group statistics are NaN; nvalid
+   counts finite edges/LOO subjects, complete tests the within-group pair graph. */
+typedef struct INSYNC_kernel INSYNC_kernel;
+extern INSYNC_kernel *INSYNC_kernel_new(int,int);
+extern void INSYNC_kernel_free(INSYNC_kernel *);
+extern void INSYNC_kernel_eval(INSYNC_kernel *,int,const float *,int,int,int,
+                               int,const int *,int **,float *,int *,int *);
+extern const float *INSYNC_kernel_matrix(const INSYNC_kernel *);
+extern const float *INSYNC_kernel_loo(const INSYNC_kernel *);
+/* Caller supplies a single admitted block set for all required components.
+   blocks is block-major: nsub*nsub pair matrices or nsub LOO values. */
+extern void INSYNC_kernel_aggregate(INSYNC_kernel *,int,const float *,const unsigned char *,
+   int,int,int,int,const int *,int **,float *,int *,int *);
+extern void INSYNC_kernel_fisher_matrix(const INSYNC_kernel *,float *);
 
 /*! Linear-interpolated percentile.  x is scratch and is sorted in place. */
 extern float INSYNC_percentile( float *x, int n, float probability ) ;

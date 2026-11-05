@@ -34,6 +34,33 @@ static void usage(void)
 "                    reorder, censor/run/stimulus changes and changed values.\n"
 "                    Exit 2 for differences, 0 for equivalence (reordering OK).\n"
 "  -atol A -rtol R   Comparison tolerance A+R*max(abs(a),abs(b)); default 1e-6.\n"
+"TR selector query (stdout only; no output files):\n"
+"  -show_trs         Print one comma-separated AFNI sub-brick selector.\n"
+"                    Requires -runs N (one one-based run), one selection option,\n"
+"                    and exactly one explicit threshold. Diagnostics use stderr.\n"
+"  -select_stimuli LABEL / -select_labels LABEL / -select_columns INDEX\n"
+"                    Must resolve to exactly ONE design column. Multi-basis or\n"
+"                    IM stimulus families require an explicit column; no sum,\n"
+"                    absolute magnitude, winner selection or HRF shift is added.\n"
+"  -tr_above VALUE   Select retained TRs with ideal value strictly > VALUE.\n"
+"  -tr_above_frac F  Select ideal > F * positive peak, with 0 <= F < 1.\n"
+"                    Peak is within the selected run/window BEFORE censoring.\n"
+"                    Censored matrices require a matching -uncensored reference\n"
+"                    for fractional thresholds. Zero/negative-only peaks fail.\n"
+"  -tr_window A..B   Optional zero-based, inclusive run-local TR window.\n"
+"                    Use explicit hemodynamically aligned block windows; block\n"
+"                    identities are not inferred from a condition regressor.\n"
+"                    Without a window, all qualifying blocks in the run combine.\n"
+"                    Output indices refer to the original full-length run, never\n"
+"                    compressed censored rows. Censored TRs are always excluded.\n"
+"                    Empty, ambiguous or invalid queries fail with empty stdout.\n"
+"                    Cannot combine -show_trs with reports or file-writing modes.\n"
+"Example (Bash; check selection before invoking 3dTstat):\n"
+"  trs=$(1dXmatTool -infile X.xmat.1D -uncensored X.nocensor.xmat.1D \\\n"
+"        -show_trs -runs 1 -select_stimuli face \\\n"
+"        -tr_above_frac 0.5 -tr_window 8..15) || exit 1\n"
+"  3dTstat -mean -prefix block01.nii.gz \"cleaned.r01.nii.gz[$trs]\"\n"
+"\n"
 "  -export_manifest  Write PREFIX.trials.1D from an IM design plus explicit events.\n"
 "  -events FILE      Header/table: Run Volume Condition [Item]; complete unique\n"
 "                    keys; Run one-based, Volume zero-based within each run.\n"
@@ -145,6 +172,9 @@ static void comment_text(FILE *f,const char *p)
 /* Additional operations: all tabular outputs use # Columns: and whitespace. */
 typedef struct {
    int describe,validate,select,manifest,drop_glts;
+   int show_trs,tr_fraction,tr_threshold_set;
+   double tr_threshold;
+   const char *tr_window;
    const char *compare,*json,*for_tool,*columns,*labels,*stimuli,*groups;
    const char *events,*subject,*beta,*beta_pattern,*manifest_format;
    double rank_tol,atol,rtol;
@@ -319,6 +349,78 @@ static int xt_mark_names(const THD_xmat *a,const char *list,int stimuli,unsigned
       if(!found){fprintf(stderr,"** unknown %s label: %s\n",stimuli?"stimulus":"column",v->str[i]);NI_delete_str_array(v);return 0;}
    }NI_delete_str_array(v);return 1;
 }
+/* A query emits exactly one selector, never matrix/report text. */
+static int xt_show_trs(const THD_xmat *a,const THD_xmat *u,const XT_options *o,const char *runlist)
+{
+   NI_int_array *runs=NULL;unsigned char *keep=NULL;int c,col=-1,count=0,r,run,start,length,lo=0,hi,n=0;
+   int *selected=NULL;double peak=0,threshold=o->tr_threshold;char err[1024]="";
+   const THD_xmat *ref=u?u:a;
+#define TR_FAIL(msg) do{snprintf(err,sizeof(err),"%s",msg);goto bad;}while(0)
+   if(!THD_xmat_attr(a,"RunStart") || !THD_xmat_attr(a,"GoodList") || !THD_xmat_attr(a,"NRowFull"))
+      TR_FAIL("-show_trs requires explicit RunStart, GoodList and NRowFull");
+   if(!xt_metadata(a,err,sizeof(err)))goto bad;
+   runs=runlist?parse_runs(runlist,a->nrun):NULL;
+   if(!runs || runs->num!=1)TR_FAIL("-show_trs requires exactly one run via -runs N");
+   run=runs->ar[0]-1;start=a->runstart[run];length=THD_xmat_run_length(a,run);hi=length-1;
+   if(o->tr_window){
+      const char *p=o->tr_window;char *end;long first,last;
+      errno=0;first=strtol(p,&end,10);
+      if(errno || end==p || first<0 || first>=length || strncmp(end,"..",2))TR_FAIL("-tr_window must be START..END within the selected run (zero-based, inclusive)");
+      p=end+2;errno=0;last=strtol(p,&end,10);
+      if(errno || end==p || *end || last<first || last>=length)TR_FAIL("-tr_window must be START..END within the selected run (zero-based, inclusive)");
+      lo=(int)first;hi=(int)last;
+   }
+   keep=calloc((size_t)a->ncol,1);selected=malloc(sizeof(int)*(size_t)a->nrow);
+   if(!keep || !selected)TR_FAIL("cannot allocate TR selection");
+   if(o->columns){
+      char *end;long v;errno=0;v=strtol(o->columns,&end,10);
+      if(errno || end==o->columns || *end || v<0 || v>=a->ncol)TR_FAIL("-show_trs -select_columns needs one zero-based column index");
+      keep[v]=1;
+   }
+   if(o->labels && !xt_mark_names(a,o->labels,0,keep))goto bad;
+   if(o->stimuli && !xt_mark_names(a,o->stimuli,1,keep))goto bad;
+   for(c=0;c<a->ncol;c++)if(keep[c]){col=c;count++;}
+   if(count!=1)TR_FAIL("-show_trs needs exactly one design column; use -select_labels or -select_columns for multi-column stimuli");
+   if(u){
+      if(!xt_metadata(u,err,sizeof(err)))goto bad;
+      if(u->nfull!=a->nfull || u->nrow!=a->nfull || u->ncol!=a->ncol || u->nrun!=a->nrun || u->tr!=a->tr || u->nstim!=a->nstim)
+         TR_FAIL("uncensored reference dimensions, runs, stimuli or TR do not match");
+      for(r=0;r<u->nrow;r++)if(u->good[r]!=r)TR_FAIL("uncensored reference must contain every original TR");
+      for(r=0;r<a->nrun;r++)if(u->runstart[r]!=a->runstart[r])TR_FAIL("uncensored reference RunStart does not match");
+      for(r=0;r<a->nstim;r++)if(strcmp(a->stim[r].label,u->stim[r].label) || a->stim[r].bot!=u->stim[r].bot || a->stim[r].top!=u->stim[r].top)
+         TR_FAIL("uncensored reference stimulus ranges/labels do not match");
+      for(c=0;c<a->ncol;c++){
+         if(strcmp(a->collab[c],u->collab[c]))TR_FAIL("uncensored reference column labels do not match");
+         for(r=0;r<a->nrow;r++)if(a->mat[(size_t)c*a->nrow+r]!=u->mat[(size_t)c*u->nrow+a->good[r]])
+            TR_FAIL("uncensored reference differs at a retained matrix value");
+      }
+   }
+   if(o->tr_fraction && a->nrow<a->nfull && !u)
+      TR_FAIL("fractional selection on a censored matrix requires -uncensored to define the pre-censor peak");
+   for(r=0;r<ref->nrow;r++){
+      int t=ref->good[r]-start;double v=ref->mat[(size_t)col*ref->nrow+r];
+      if(t<lo || t>hi)continue;
+      if(!isfinite(v))TR_FAIL("selected ideal contains nonfinite values");
+      if(v>peak)peak=v;
+   }
+   if(o->tr_fraction){
+      if(peak<=0)TR_FAIL("selected run/window has no positive ideal-response peak");
+      threshold*=peak;
+   }
+   for(r=0;r<a->nrow;r++){
+      int t=a->good[r]-start;double v=a->mat[(size_t)col*a->nrow+r];
+      if(t>=lo && t<=hi && v>threshold)selected[n++]=t;
+   }
+   if(!n)TR_FAIL("no retained TRs exceed the threshold in the selected run/window");
+   for(r=0;r<n;r++)printf("%s%d",r?",":"",selected[r]);
+   putchar('\n');free(keep);free(selected);NI_delete_int_array(runs);
+   return ferror(stdout)?1:0;
+bad:
+   if(*err)fprintf(stderr,"** %s\n",err);
+   free(keep);free(selected);if(runs)NI_delete_int_array(runs);return 1;
+#undef TR_FAIL
+}
+
 static int xt_select(const THD_xmat *a,const XT_options *o,const char *prefix)
 {
    unsigned char *keep=calloc((size_t)a->ncol,1);THD_xmat *x=NULL;THD_xmat_run_map *m=NULL;
@@ -438,6 +540,7 @@ int main(int argc,char **argv)
    for(i=1;i<argc;i++){
       if(!strcmp(argv[i],"-help") || !strcmp(argv[i],"--help")){usage();return 0;}
       if(!strcmp(argv[i],"-describe") || !strcmp(argv[i],"-show")){ops.describe=1;continue;}
+      if(!strcmp(argv[i],"-show_trs")){ops.show_trs=1;continue;}
       if(!strcmp(argv[i],"-validate")){ops.validate=1;continue;}
       if(!strcmp(argv[i],"-export_manifest")){ops.manifest=1;continue;}
       if(!strcmp(argv[i],"-drop_glts")){ops.drop_glts=1;continue;}
@@ -447,6 +550,14 @@ int main(int argc,char **argv)
       else if(!strcmp(argv[i],"-uncensored")) unc=argv[++i];
       else if(!strcmp(argv[i],"-prefix")) prefix=argv[++i];
       else if(!strcmp(argv[i],"-runs")) runlist=argv[++i];
+      else if(!strcmp(argv[i],"-tr_window")) ops.tr_window=argv[++i];
+      else if(!strcmp(argv[i],"-tr_above") || !strcmp(argv[i],"-tr_above_frac")){
+         const char *opt=argv[i],*value=argv[++i];char *end;double d;
+         if(ops.tr_threshold_set){fprintf(stderr,"** choose exactly one TR threshold option\n");return 1;}
+         ops.tr_fraction=!strcmp(opt,"-tr_above_frac");errno=0;d=strtod(value,&end);
+         if(errno || end==value || *end || !isfinite(d) || (ops.tr_fraction && (d<0 || d>=1))){fprintf(stderr,"** invalid TR threshold; fraction must be in [0,1)\n");return 1;}
+         ops.tr_threshold=d;ops.tr_threshold_set=1;
+      }
       else if(!strcmp(argv[i],"-compare")) ops.compare=argv[++i];
       else if(!strcmp(argv[i],"-json")) ops.json=argv[++i];
       else if(!strcmp(argv[i],"-for")) ops.for_tool=argv[++i];
@@ -472,14 +583,17 @@ int main(int argc,char **argv)
       }else{fprintf(stderr,"** unknown option: %s\n",argv[i]);return 1;}
    }
 #define XT_FAIL(MSG) do{snprintf(err,sizeof(err),"%s",MSG);goto cleanup;}while(0)
-   ops.select=ops.columns || ops.labels || ops.stimuli || ops.groups;
+   ops.select=!ops.show_trs && (ops.columns || ops.labels || ops.stimuli || ops.groups);
+   if(ops.show_trs && (!ops.tr_threshold_set || ops.groups || prefix || ( (ops.columns!=NULL)+(ops.labels!=NULL)+(ops.stimuli!=NULL)!=1 )))
+      XT_FAIL("-show_trs requires one threshold and one column/stimulus selection; no -prefix or -select_groups");
+   if(!ops.show_trs && (ops.tr_threshold_set || ops.tr_window))XT_FAIL("TR threshold/window options require -show_trs");
    if(!in) XT_FAIL("requires -infile (see -help)");
-   if(split+ops.select+ops.manifest+(ops.compare!=NULL)+((ops.describe||ops.validate)!=0)!=1)
-      XT_FAIL("choose one operation: split, describe/validate, select, compare, or export_manifest");
+   if(ops.show_trs+split+ops.select+ops.manifest+(ops.compare!=NULL)+((ops.describe||ops.validate)!=0)!=1)
+      XT_FAIL("choose one operation: split, describe/validate, select, compare, export_manifest, or show_trs");
    if(ops.for_tool && strcmp(ops.for_tool,"lss") && strcmp(ops.for_tool,"reml"))XT_FAIL("-for must be lss or reml");
    if(ops.manifest_format && strcmp(ops.manifest_format,"selected") && strcmp(ops.manifest_format,"manifest"))XT_FAIL("-manifest_format must be manifest or selected");
    if(ops.json && !(ops.describe||ops.validate))XT_FAIL("-json is available with describe/validate");
-   if(runlist && !split)XT_FAIL("-runs applies to -split_runs");
+   if(runlist && !split && !ops.show_trs)XT_FAIL("-runs applies to -split_runs or -show_trs");
    if(prefix && !*prefix)XT_FAIL("-prefix cannot be empty");
    if(ops.for_tool && !(ops.describe||ops.validate))XT_FAIL("-for applies to describe/validate");
    if(ops.drop_glts && !ops.select)XT_FAIL("-drop_glts applies to column selection");
@@ -488,7 +602,8 @@ int main(int argc,char **argv)
    if(unc && (ops.select || ops.compare))XT_FAIL("-uncensored applies to split, describe/validate and export_manifest");
    a=THD_xmat_read(in,err,sizeof(err)); if(!a) goto cleanup;
    if(unc){u=THD_xmat_read(unc,err,sizeof(err));if(!u) goto cleanup;}
-   if(ops.describe||ops.validate)rc=xt_report(a,u,&ops,tol);
+   if(ops.show_trs)rc=xt_show_trs(a,u,&ops,runlist);
+   else if(ops.describe||ops.validate)rc=xt_report(a,u,&ops,tol);
    else if(ops.compare)rc=xt_compare(a,&ops);
    else if(ops.select)rc=xt_select(a,&ops,prefix);
    else if(ops.manifest)rc=xt_manifest(a,u,&ops,prefix,tol);

@@ -124,7 +124,7 @@ static void mvpa_progress_finish( MVPA_progress *p )
 }
 
 static char *mvpa_options[]={
-   "-save_model","-apply_model","-compare_predictions","-mode","-dataTable","-dataTableFile","-trial_manifest","-xmat_stims",
+   "-train_only","-apply_dset","-save_model","-apply_model","-compare_predictions","-mode","-dataTable","-dataTableFile","-trial_manifest","-xmat_stims",
    "-testTable","-testTableFile",
    "-target_column","-target_columns","-design_columns","-lambda","-score",
    "-enet_alpha","-enet_alpha_grid","-enet_l1_ratio","-enet_l1_ratio_grid",
@@ -842,25 +842,45 @@ static void usage_3dMVPA( void )
 "                         permutations; a single large ROI can take a while\n"
 "                         before its first update. -quiet overrides this option.\n"
 "\n"
-"Saved ridge models (format version 1):                       ~1~\n"
+"Saved models (ridge v1; logistic v2):                       ~1~\n"
 "\n"
-"  -save_model FILE       Export the existing fixed-partition TRAINING fit.\n"
-"                         Requires ridge classify/decode, -partition_column or\n"
-"                         -testTable, and volume ROIs/searchlights. No full-data\n"
-"                         refit: the held-out rows never enter the saved model.\n"
+"  -train_only           Fit all labeled input rows and export -save_model.\n"
+"                         No test table, partition, outer CV or test labels.\n"
+"                         Supports ridge classify/decode and logistic classify.\n"
+"                         Tuning requires -inner_cv_column: fit preprocessing\n"
+"                         inside each inner split, select parameters, then fit\n"
+"                         all rows. Inner scores are model-selection results,\n"
+"                         not independent performance estimates. Run separately\n"
+"                         per subject unless pooling subjects is intentional.\n"
+"                         Writes PREFIX.training.1D (fit counts/penalties), plus\n"
+"                         requested tuning/selection/PCA audits. No score maps,\n"
+"                         held-out predictions, permutations or pattern export.\n"
+"                         -validate_only checks inputs without fitting/writing.\n"
+"  -save_model FILE       Export a ridge or logistic fitted model. Requires\n"
+"                         -train_only, -partition_column or -testTable, with\n"
+"                         volume ROIs/searchlights. With a fixed partition only\n"
+"                         training rows enter the model; no full-data refit.\n"
 "                         Stores ordered voxel features and image grid/space,\n"
 "                         target/class labels, nuisance column names/OLS fit,\n"
-"                         fitted scaling, feature selection, PCA and ridge state\n"
+"                         fitted scaling, feature selection, PCA and estimator state\n"
 "                         including response-specific penalties. Observed state\n"
 "                         is saved after permutation restoration. All units are\n"
 "                         kept in memory until the model is published atomically.\n"
-"                         V1 excludes encoding, surface inputs, ordinary multi-\n"
+"                         Export excludes encoding, surface inputs, ordinary multi-\n"
 "                         fold CV exports, run_center and -save_coefficients.\n"
 "                         Supported scales: none, feature_zscore, sample_center.\n"
 "  3dMVPA -apply_model FILE -dataTableFile NEW_TABLE -prefix OUT\n"
 "                         Standalone: -apply_model must be first. Also accepts\n"
 "                         -dataTable @FILE, -sample_column and -subject_column.\n"
 "                         No other analysis/fitted-setting overrides are allowed.\n"
+"  3dMVPA -apply_model FILE -apply_dset DSET -prefix OUT\n"
+"                         Alternative to a table: predict every sub-brick of an\n"
+"                         AFNI HEAD/BRIK or NIfTI dataset. Optional selectors\n"
+"                         preserve order and original zero-based brick indices,\n"
+"                         e.g. 'cleaned+orig[10..$]' or 'cleaned.nii.gz[8,12,9]'.\n"
+"                         Cannot combine with table input or role overrides.\n"
+"                         Models requiring nuisance columns need table input.\n"
+"                         GIfTI/surface saved models are not yet supported.\n"
 "                         NEW_TABLE has InputFile (one volume/brick per row) and\n"
 "                         the saved nuisance columns, if any. Targets are optional.\n"
 "                         If supplied, observed classes must be known and numeric\n"
@@ -870,14 +890,44 @@ static void usage_3dMVPA( void )
 "                         The saved voxel order is used; no mask is redefined.\n"
 "                         Writes OUT.applied.1D: unit/sample/response predictions,\n"
 "                         predicted class and optional observed target. Class\n"
-"                         scores are ridge 0/1 outputs, not probabilities; exact\n"
+"                         scores (Prediction) are ridge 0/1 outputs, NOT\n"
+"                         probabilities, or logistic logits. Logistic adds a\n"
+"                         Probability column: softmax over all trained classes.\n"
+"                         Probabilities sum to one per ROI/sample but calibration\n"
+"                         on a new data domain is not guaranteed. Exact\n"
 "                         ties choose the first stored class. Never fits, tunes,\n"
 "                         computes held-out scores or performs inference. Using\n"
 "                         training rows here does not make predictions held-out.\n"
+"                         Output is long form: one row per ROI x class x sample\n"
+"                         (or ROI x continuous response x sample). A labeled\n"
+"                         mask trains one model per positive ROI value, using\n"
+"                         all its voxels; a binary mask trains one ROI model.\n"
+"                         -apply_dset appends SourceBrick, BrickLabel, TimeSeconds.\n"
+"                         TimeSeconds uses original dataset time metadata (NA\n"
+"                         without a recognized time axis), not stimulus timing.\n"
+"                         Whole-run baseline/nuisance cleanup is external; apply\n"
+"                         comparable cleanup to training and application data.\n"
 "                         All stage parameters and labels are versioned data;\n"
 "                         unsupported versions or malformed models are rejected.\n"
 "                         Grid checks cannot establish anatomical registration or\n"
 "                         acquisition compatibility; no registration is performed.\n"
+"\n"
+"Training block means and predicting an unlabeled run:         ~2~\n"
+"  3dTstat -mean -prefix block01.nii.gz 'cleaned.r01.nii.gz[8..11]'\n"
+"  # blocks.1D: Subj Run Condition InputFile; one mean image per block.\n"
+"  # rois.nii.gz: positive integers identify distinct, nonoverlapping ROIs.\n"
+"  3dMVPA -train_only -mode classify -dataTable @blocks.1D \\\n"
+"         -target_column Condition -mask rois.nii.gz -method logistic \\\n"
+"         -logistic_lambda 1 -save_model decoder.mvpa -prefix training\n"
+"  3dMVPA -apply_model decoder.mvpa -apply_dset cleaned.r03.nii.gz \\\n"
+"         -prefix predictions\n"
+"  # predictions.applied.1D: ROI x class x TR logits and probabilities.\n"
+"  # For ridge scores instead, replace -method logistic -logistic_lambda 1\n"
+"  # with -method ridge -lambda 1 and use a different model/prefix.\n"
+"  # Optional tuning: -logistic_lambda auto -inner_cv_column Run;\n"
+"  # ridge uses -lambda auto -inner_cv_column Run. Each inner training\n"
+"  # split must contain every class. Averaged-block tuning does not measure\n"
+"  # single-TR prediction accuracy; independent labeled TRs are needed for that.\n"
 "\n"
 "Standalone paired model comparisons:                         ~1~\n"
 "\n"
@@ -2875,7 +2925,7 @@ static void mvpa_validate_report(THD_sampleset *ss,const THD_foldplan *plan,
          for(c=0;c<nclass;c++){
             printf("%s\t%s\t%d\t%s\t%d\t%d\n",plan->name[f],
                    plan->stratum_label[plan->fold_stratum[f]],c,labels[c],train[c],test[c]);
-            if(!test[c]){
+            if(!test[c] && plan->kind!=THD_CV_TRAIN_ONLY){
                printf("# WARNING: fold %s has no test observations of class %s; its BACC omits that class.\n",
                       plan->name[f],labels[c]);warnings++;
             }
@@ -3340,24 +3390,146 @@ static void mvpa_model_preflight(const char *path,const char *prefix,const char 
    for(i=0;i<8;i++){snprintf(name,strlen(prefix)+32,"%s%s",prefix,suffix[i]);if(mvpa_pair_same_file(path,name))ERROR_exit(PROGRAM_NAME ": model and automatic audit paths must differ");}
    free(name);DSET_delete(tmp);
 }
+/* Fits the same ridge/logistic pipelines as fixed-partition evaluation, without scoring. */
+static void mvpa_train_model(THD_sampleset *ss,const THD_foldplan *plan,
+ THD_3dim_dataset *mask,THD_roilist *rl,THD_mvpa_model *model,const char *target,
+ const int *classes,char **labels,int nc,int scale,double lambda,
+ const THD_nested_foldplan *nested,const double *grid,int nl,int objective,
+ const float *nuisance,int nk,const int *features,int nf,const int *pcs,int npc,
+ int response_lambda,FILE *candidates,const mvpa_selection_audit *selection,
+ const mvpa_pca_audit *pca,const char *prefix,int quiet,int progress_mode,
+ int logistic,double tolerance,int max_iterations,int metric)
+{
+   char err[1024],*summary_name;char **names=NULL;int q=nc,r,i,j,pmax=THD_roilist_maxvox(rl);
+   float *y,*x;THD_mvpa_ridge_workspace *w=NULL;THD_mvpa_workspace *cw=NULL;FILE *summary;MVPA_progress progress;
+   if(classes){
+      y=calloc((size_t)ss->nsample*nc,sizeof(float));
+      if(y)for(i=0;i<ss->nsample;i++)y[(size_t)i*nc+classes[i]]=1;
+      names=labels;
+      if(nested)for(i=0;i<nested->inner[0]->nfold;i++){
+         const THD_foldplan *in=nested->inner[0];int *counts=calloc((size_t)nc,sizeof(int));
+         if(!counts)ERROR_exit(PROGRAM_NAME ": cannot check inner classes");
+         for(j=0;j<in->ntrain[i];j++)counts[classes[in->train[i][j]]]++;
+         for(j=0;j<nc;j++)if(!counts[j])ERROR_exit(PROGRAM_NAME ": inner fold %s has no class %s in training",in->name[i],labels[j]);
+         free(counts);
+      }
+   }else y=mvpa_numeric_columns(ss,target,&names,&q);
+   x=malloc(sizeof(float)*(size_t)ss->nsample*pmax);
+   if(logistic){
+      cw=THD_mvpa_workspace_alloc(plan,pmax,q,scale,NULL,err,sizeof(err));
+      if(!cw || !THD_mvpa_classification_set_logistic(cw,lambda,tolerance,max_iterations,metric,nested,grid,nl,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nuisance && !THD_preprocess_set_nuisance(cw->prep,nuisance,ss->nsample,nk,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nf && !THD_mvpa_classification_set_selection(cw,features,nf,nested,metric,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(npc && !THD_mvpa_classification_set_pca(cw,pcs,npc,nested,metric,pca->loadings!=NULL,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nested && !THD_mvpa_classification_set_objective(cw,objective,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+   }else{
+      w=THD_mvpa_ridge_workspace_alloc(plan,pmax,q,scale,err,sizeof(err));
+      if(!y || !x || !w)ERROR_exit(PROGRAM_NAME ": cannot allocate training workspace");
+      w->classification=classes!=NULL;
+      if(nuisance && !THD_preprocess_set_nuisance(w->prep,nuisance,ss->nsample,nk,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nested && !THD_mvpa_ridge_set_tuning(w,nested,grid,nl,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nf && !THD_mvpa_ridge_set_selection(w,features,nf,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(w->selection)w->selection->classes=classes;
+      if(npc && !THD_mvpa_ridge_set_pca(w,pcs,npc,pca->loadings!=NULL,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nested && !THD_mvpa_ridge_set_objective(w,objective,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(response_lambda && !THD_mvpa_ridge_enable_response_lambda(w,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+   }
+   if(!y || !x)ERROR_exit(PROGRAM_NAME ": cannot allocate training samples");
+   summary_name=malloc(strlen(prefix)+32);if(!summary_name)ERROR_exit(PROGRAM_NAME ": cannot name fit summary");
+   sprintf(summary_name,"%s.training.1D",prefix);summary=mvpa_open_audit(summary_name,"training summary");
+   fputs("# All supplied samples fitted; no held-out predictions or scores.\n# Inner tuning is model selection, not independent performance evaluation.\n# Columns: Unit\tResponse\tNTrain\tNFeat\tLambda\n",summary);
+   mvpa_progress_init(&progress,progress_mode,quiet,"Training",rl->nroi,"locations");
+   if(candidates)fputs("# Training-only: inner model selection; no independent performance estimate.\n",candidates);
+   for(r=0;r<rl->nroi;r++){
+      int p=rl->vox[r].nar;
+      if(logistic){
+            if(!THD_roi_samples(ss,NULL,ss->nsample,rl->vox+r,x,err,sizeof(err)) ||
+               !THD_mvpa_run_classification_cv(plan,0,x,p,classes,NULL,cw,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": training unit %d: %s",rl->val[r],err);
+            model->unit[r].fit=THD_mvpa_logistic_freeze(cw,err,sizeof(err));
+            if(!model->unit[r].fit)ERROR_exit(PROGRAM_NAME ": %s",err);
+            mvpa_candidate_write(candidates,plan,rl->val[r],p,objective,NULL,cw);
+            mvpa_pca_write(pca,cw->pca,plan,mask,rl,r,NULL,cw->selection);
+            mvpa_candidate_write(pca->tuning,plan,rl->val[r],p,objective,NULL,cw);
+            mvpa_selection_write(selection,cw->selection,plan,mask,rl,r,NULL,p,grid,cw->class_selected,lambda);
+         }else{
+         if(!THD_roi_samples(ss,NULL,ss->nsample,rl->vox+r,x,err,sizeof(err)) ||
+            !THD_mvpa_run_ridge_cv(w,x,p,y,q,NULL,lambda,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": training unit %d: %s",rl->val[r],err);
+         model->unit[r].fit=THD_mvpa_ridge_freeze(w,err,sizeof(err));
+         if(!model->unit[r].fit)ERROR_exit(PROGRAM_NAME ": %s",err);
+         mvpa_cont_candidates(candidates,w,mask,rl,r,p,q,names,0,objective);
+         mvpa_pca_write(pca,w->pca,plan,mask,rl,r,NULL,w->selection);
+         mvpa_cont_candidates(pca->tuning,w,mask,rl,r,p,q,names,0,objective);
+         {mvpa_selection_audit audit=*selection;if(response_lambda)audit.tuning=NULL;
+          mvpa_selection_write(&audit,w->selection,plan,mask,rl,r,NULL,p,grid,w->selected_lambda,lambda);}
+         if(response_lambda)mvpa_response_candidates(selection->tuning,w,mask,rl,r,p,q,names,0,objective);
+      }
+      for(i=0;i<q;i++){
+         fprintf(summary,"%d\t",rl->val[r]);mvpa_1D_text(summary,names[i]);
+         fprintf(summary,"\t%d\t%d\t%.17g\n",ss->nsample,p,logistic?cw->class_selected[0]:response_lambda?w->response_ridge->selected[i]:w->selected_lambda[0]);
+      }
+      mvpa_progress_advance(&progress);
+   }
+   {int bad=ferror(summary);if(fclose(summary))bad=1;if(bad)ERROR_exit(PROGRAM_NAME ": error writing fit summary");}
+   mvpa_progress_finish(&progress);
+   free(summary_name);free(x);free(y);if(!classes)THD_sampleset_free_levels(names,q);THD_mvpa_ridge_workspace_free(w);THD_mvpa_workspace_free(cw);
+}
+
+/* Expand selected original bricks into the ordinary application sample table. */
+static THD_datatable *mvpa_application_dataset(const char *spec)
+{
+   const char *sel=strchr(spec,'['),*end;char *base,*tokens[3],**tok;
+   THD_3dim_dataset *ds;THD_datatable *table;int *list=NULL,n,i,k;
+   size_t len=sel?(size_t)(sel-spec):strlen(spec);
+   if(!len || strchr(spec,'<') || strchr(spec,'{'))ERROR_exit(PROGRAM_NAME ": -apply_dset accepts a dataset with an optional sub-brick selector");
+   if(sel){end=strrchr(sel,']');if(!end || end[1])ERROR_exit(PROGRAM_NAME ": malformed -apply_dset selector");}
+   base=malloc(len+1);if(!base)ERROR_exit(PROGRAM_NAME ": cannot allocate dataset name");
+   memcpy(base,spec,len);base[len]=0;
+   ds=THD_open_dataset(base);if(!ds)ERROR_exit(PROGRAM_NAME ": cannot open application dataset '%s'",base);
+   if(DBLK_IS_NI_SURF_DSET(ds->dblk) || DBLK_IS_GIFTI(ds->dblk))ERROR_exit(PROGRAM_NAME ": saved model v1 requires volume inputs; surface model export is not supported");
+   if(sel){list=MCW_get_thd_intlist(ds,(char *)sel);if(!list || list[0]<1)ERROR_exit(PROGRAM_NAME ": invalid or empty -apply_dset selector");}
+   n=list?list[0]:DSET_NVALS(ds);
+   if(n<1 || n>(INT_MAX-3)/3)ERROR_exit(PROGRAM_NAME ": excessive application sample count");
+   tok=calloc((size_t)(n+1)*3,sizeof(char *));if(!tok)ERROR_exit(PROGRAM_NAME ": cannot allocate application table");
+   tokens[0]="Subj";tokens[1]="Sample";tokens[2]="InputFile";
+   for(k=0;k<3;k++)tok[k]=strdup(tokens[k]);
+   for(i=0;i<n;i++){
+      char id[80];int b=list?list[i+1]:i;
+      if(b<0 || b>=DSET_NVALS(ds))ERROR_exit(PROGRAM_NAME ": application sub-brick out of range");
+      snprintf(id,sizeof(id),"sample_%d_brick_%d",i,b);
+      tok[3+3*i]=strdup("Dataset");tok[4+3*i]=strdup(id);
+      tok[5+3*i]=malloc(len+40);if(!tok[5+3*i])ERROR_exit(PROGRAM_NAME ": cannot allocate brick selector");
+      snprintf(tok[5+3*i],len+40,"%s[%d]",base,b);
+   }
+   for(k=0;k<3*(n+1);k++)if(!tok[k])ERROR_exit(PROGRAM_NAME ": cannot allocate application tokens");
+   table=THD_parse_datatable(tok,3*(n+1),(char *)spec);
+   for(k=0;k<3*(n+1);k++)free(tok[k]);
+   free(tok);free(list);free(base);DSET_delete(ds);
+   if(!table)ERROR_exit(PROGRAM_NAME ": cannot expand application dataset");
+   return table;
+}
+
 static int mvpa_apply_model_command(int argc,char **argv)
 {
-   char *tablefile=NULL,*prefix="MVPA",*sample=NULL,*subject=NULL,*outname,*temp;int a,i,j,o,u,fd,failed=0,have_prefix=0;
+   char *dsetspec=NULL,*tablefile=NULL,*prefix="MVPA",*sample=NULL,*subject=NULL,*outname,*temp;int a,i,j,o,u,fd,failed=0,have_prefix=0;
    THD_mvpa_model *m;THD_datatable *table;THD_sampleset *ss;THD_sampleset_columns columns;
    char err[1024];FILE *fp;float *z=NULL,*prediction;int *observed;const char *modelpath;
-   if(argc<3)ERROR_exit(PROGRAM_NAME ": -apply_model requires a model file");modelpath=argv[2];
+   if(argc<3)ERROR_exit(PROGRAM_NAME ": -apply_model requires a model file");
+   modelpath=argv[2];
    for(a=3;a<argc;a++){
       if(a+1>=argc)ERROR_exit(PROGRAM_NAME ": missing saved-model application option argument");
       if(!strcasecmp(argv[a],"-dataTableFile") && !tablefile)tablefile=argv[++a];
       else if(!strcasecmp(argv[a],"-dataTable") && !tablefile && argv[a+1][0]=='@')tablefile=argv[++a]+1;
+      else if(!strcasecmp(argv[a],"-apply_dset") && !dsetspec)dsetspec=argv[++a];
       else if(!strcasecmp(argv[a],"-prefix") && !have_prefix){prefix=argv[++a];have_prefix=1;}
       else if(!strcasecmp(argv[a],"-sample_column") && !sample)sample=argv[++a];
       else if(!strcasecmp(argv[a],"-subject_column") && !subject)subject=argv[++a];
-      else ERROR_exit(PROGRAM_NAME ": -apply_model is standalone; accepts only one input table, -prefix, -sample_column and -subject_column; fitted settings cannot be overridden");
+      else ERROR_exit(PROGRAM_NAME ": -apply_model is standalone; accepts one input table or -apply_dset, -prefix, -sample_column and -subject_column; fitted settings cannot be overridden");
    }
-   if(!tablefile || !*prefix)ERROR_exit(PROGRAM_NAME ": -apply_model needs -dataTableFile TABLE and a nonempty prefix");
+   if((!tablefile && !dsetspec) || (tablefile && dsetspec) || !*prefix)ERROR_exit(PROGRAM_NAME ": -apply_model needs exactly one table or -apply_dset and a nonempty prefix");
+   if(dsetspec && (sample || subject))ERROR_exit(PROGRAM_NAME ": -apply_dset generates sample/subject IDs; role overrides require a table");
    m=THD_mvpa_model_read(modelpath,err,sizeof(err));if(!m)ERROR_exit(PROGRAM_NAME ": %s",err);
-   table=THD_read_datatable_file(tablefile);if(!table)ERROR_exit(PROGRAM_NAME ": cannot read application table");
+   if(dsetspec && m->ncovariate)ERROR_exit(PROGRAM_NAME ": saved nuisance columns require application table input, not -apply_dset");
+   table=dsetspec?mvpa_application_dataset(dsetspec):THD_read_datatable_file(tablefile);if(!table)ERROR_exit(PROGRAM_NAME ": cannot read application table");
    for(i=0;i<table->ncol;i++)for(j=0;j<i;j++)if(!strcasecmp(table->cname[i],table->cname[j]))ERROR_exit(PROGRAM_NAME ": duplicate application column '%s'",table->cname[i]);
    THD_sampleset_detect_columns(table,&columns);if(sample)columns.sample=sample;if(subject)columns.subject=subject;
    ss=THD_sampleset_from_table(table,&columns,err,sizeof(err));THD_free_datatable(table);
@@ -3385,15 +3557,18 @@ static int mvpa_apply_model_command(int argc,char **argv)
    outname=malloc(strlen(prefix)+32);temp=malloc(strlen(prefix)+48);
    if(!outname || !temp || (size_t)ss->nsample>SIZE_MAX/sizeof(float)/(size_t)m->nresponse)ERROR_exit(PROGRAM_NAME ": excessive model application size");
    snprintf(outname,strlen(prefix)+32,"%s.applied.1D",prefix);
-   if(mvpa_pair_same_file(outname,modelpath) || mvpa_pair_same_file(outname,tablefile))ERROR_exit(PROGRAM_NAME ": model application output cannot replace inputs");
+   if(mvpa_pair_same_file(outname,modelpath) || (tablefile && mvpa_pair_same_file(outname,tablefile)))ERROR_exit(PROGRAM_NAME ": model application output cannot replace inputs");
    for(i=0;i<ss->ndset;i++)if(mvpa_pair_same_file(outname,DSET_HEADNAME(ss->dset[i])) || mvpa_pair_same_file(outname,DSET_BRIKNAME(ss->dset[i])))ERROR_exit(PROGRAM_NAME ": model application output cannot replace input images");
    if(!THD_ok_overwrite() && THD_is_file(outname))ERROR_exit(PROGRAM_NAME ": model application output already exists");
    snprintf(temp,strlen(prefix)+48,"%s.tmp.XXXXXX",outname);fd=mkstemp(temp);if(fd<0)ERROR_exit(PROGRAM_NAME ": cannot create application output");
    fp=fdopen(fd,"w");if(!fp){close(fd);unlink(temp);ERROR_exit(PROGRAM_NAME ": cannot open application output");}
    prediction=malloc(sizeof(float)*(size_t)ss->nsample*m->nresponse);if(!prediction){fclose(fp);unlink(temp);ERROR_exit(PROGRAM_NAME ": cannot allocate predictions");}
-   fputs("# Frozen ridge model application; format=1; no fitting, tuning, held-out scores or inference.\n# Model\t",fp);mvpa_1D_text(fp,modelpath);
-   fprintf(fp,"\n# NTrain=%d; classification scores are 0/1 ridge outputs, not probabilities; ties choose first stored class.\n",m->ntrain);
-   fputs("# Columns: UnitType\tUnit\tUnitLabel\tNFeat\tTableRow\tSample\tSubject\tResponse\tPrediction\tPredictedClass\tObserved\n",fp);
+   fprintf(fp,"# Frozen %s model application; format=%d; no fitting, tuning, held-out scores or inference.\n# Model\t",m->estimator?"logistic":"ridge",m->estimator?2:1);mvpa_1D_text(fp,modelpath);
+   fprintf(fp,"\n# NTrain=%d; %s; ties choose first stored class.\n",m->ntrain,m->estimator?"Prediction is a logistic logit; Probability is softmax over classes":"classification scores are 0/1 ridge outputs, not probabilities");
+   fputs("# Columns: UnitType\tUnit\tUnitLabel\tNFeat\tTableRow\tSample\tSubject\tResponse\tPrediction\tPredictedClass\tObserved",fp);
+   if(m->estimator)fputs("\tProbability",fp);
+   if(dsetspec)fputs("\tSourceBrick\tBrickLabel\tTimeSeconds",fp);
+   fputc('\n',fp);
    for(u=0;u<m->nunit;u++){
       THD_mvpa_model_unit *unit=m->unit+u;intvec vox={0};float *x;
       if((size_t)ss->nsample>SIZE_MAX/sizeof(float)/(size_t)unit->nfeature){snprintf(err,sizeof(err),"excessive application feature matrix");failed=1;break;}
@@ -3402,12 +3577,22 @@ static int mvpa_apply_model_command(int argc,char **argv)
       if(!THD_roi_samples(ss,NULL,ss->nsample,&vox,x,err,sizeof(err)) || !THD_mvpa_frozen_predict(unit->fit,x,ss->nsample,unit->nfeature,z,m->ncovariate,prediction,err,sizeof(err))){free(x);failed=1;break;}
       free(x);
       for(i=0;i<ss->nsample;i++){
-         int best=0;for(o=1;o<m->nresponse;o++)if(prediction[(size_t)i*m->nresponse+o]>prediction[(size_t)i*m->nresponse+best])best=o;
+         double denom=0;int best=0;for(o=1;o<m->nresponse;o++)if(prediction[(size_t)i*m->nresponse+o]>prediction[(size_t)i*m->nresponse+best])best=o;
+         if(m->estimator)for(o=0;o<m->nresponse;o++)denom+=exp((double)prediction[(size_t)i*m->nresponse+o]-prediction[(size_t)i*m->nresponse+best]);
          for(o=0;o<m->nresponse;o++){
             fprintf(fp,"%s\t%d\t",m->searchlight?"Voxel":"ROI",unit->id);mvpa_1D_text(fp,unit->label);fprintf(fp,"\t%d\t%d\t",unit->nfeature,ss->table_row[i]+1);
             mvpa_1D_text(fp,ss->sample_label[i]);mvpa_pair_text(fp,mvpa_level(ss->subject_label,ss->subject[i]));mvpa_pair_text(fp,m->response[o]);
             fprintf(fp,"\t%.9g\t",prediction[(size_t)i*m->nresponse+o]);mvpa_1D_text(fp,m->classification?m->response[best]:"NA");
-            mvpa_pair_text(fp,observed[o]>=0?DT_CELL(ss->metadata,ss->table_row[i],observed[o]):"NA");fputc('\n',fp);
+            mvpa_pair_text(fp,observed[o]>=0?DT_CELL(ss->metadata,ss->table_row[i],observed[o]):"NA");
+            if(m->estimator)fprintf(fp,"\t%.9g",exp((double)prediction[(size_t)i*m->nresponse+o]-prediction[(size_t)i*m->nresponse+best])/denom);
+            if(dsetspec){
+               int b=ss->sample_brick[i];THD_3dim_dataset *ds=ss->dset[ss->sample_dset[i]];
+               double factor=DSET_TIMEUNITS(ds)==UNITS_SEC_TYPE?1:DSET_TIMEUNITS(ds)==UNITS_MSEC_TYPE?.001:0;
+               fprintf(fp,"\t%d",b);mvpa_pair_text(fp,DSET_BRICK_LABEL(ds,b));
+               if(DSET_NUM_TIMES(ds)>1 && factor && DSET_TR(ds)>0)fprintf(fp,"\t%.9g",factor*(DSET_TIMEORIGIN(ds)+b*DSET_TR(ds)));
+               else fputs("\tNA",fp);
+            }
+            fputc('\n',fp);
          }
       }
    }
@@ -3442,6 +3627,7 @@ int main( int argc, char **argv )
    char *feature_text=NULL;int feature_fixed=0,*feature_counts=NULL,nfeature_counts=0;
    char *pca_text=NULL,*save_pca_loadings=NULL;int pca_fixed=0,*pca_counts=NULL,npca_counts=0;
    mvpa_pca_audit pca_audit={0};
+   int train_only=0;
    char *pattern_prefix=NULL,*save_model=NULL;mvpa_pattern_audit pattern_audit={0};
    THD_mvpa_model *frozen_model=NULL;char *model_train_source=NULL,*model_test_source=NULL;
    mvpa_selection_audit selection_audit={0};
@@ -3666,6 +3852,7 @@ int main( int argc, char **argv )
        permute_within=argv[nopt++] ;
      }
      else if( IS("-prefix") ){ NEEDARG("an output prefix") ; prefix=argv[nopt++] ; }
+     else if(IS("-train_only")){if(train_only)ERROR_exit(PROGRAM_NAME ": -train_only specified twice");train_only=1;nopt++;}
      else if(IS("-save_model")){
        NEEDARG("a model filename");if(save_model)ERROR_exit(PROGRAM_NAME ": -save_model specified twice");save_model=argv[nopt++];
      }
@@ -3828,7 +4015,7 @@ int main( int argc, char **argv )
    if(nuisance_columns && coef_prefix)
      ERROR_exit(PROGRAM_NAME ": -save_coefficients cannot yet export nuisance-adjusted preprocessing; omit it with -nuisance_columns");
    if(save_model){
-     if(encoding || strcasecmp(method,"ridge"))ERROR_exit(PROGRAM_NAME ": -save_model v1 supports ridge decoding/classification only");
+     if(encoding || (strcasecmp(method,"ridge") && !logistic_class))ERROR_exit(PROGRAM_NAME ": -save_model supports ridge decoding/classification only, or logistic classification");
      if(preprocess==THD_PREP_RUN_CENTER || !strcasecmp(scale_name,"run_center"))ERROR_exit(PROGRAM_NAME ": -save_model v1 does not support run_center");
      if(coef_prefix)ERROR_exit(PROGRAM_NAME ": -save_model v1 cannot accompany the separate -save_coefficients refit");
      if(!THD_filename_ok(save_model))ERROR_exit(PROGRAM_NAME ": invalid model filename");
@@ -3881,6 +4068,15 @@ int main( int argc, char **argv )
      partition_column=transfer.column;train_value=transfer.train;test_value=transfer.test;
    }else if(transfer.train || transfer.test || transfer.subjects || transfer.items || transfer.sessions || transfer.session_column)
      ERROR_exit(PROGRAM_NAME ": transfer options require -transfer_column");
+   if(train_only){
+     if(!save_model)ERROR_exit(PROGRAM_NAME ": -train_only requires -save_model");
+     if(partition_column || test_tab || train_value || test_value || transfer.column || cv_column || cv_k || within_column)
+       ERROR_exit(PROGRAM_NAME ": -train_only cannot accompany test tables, partitions, transfer or outer CV");
+     if(nperm || permute_within || save_predictions || save_fold_scores || save_confusion || save_summary_scores || save_probability_scores || save_calibration || coef_prefix || pattern_prefix)
+       ERROR_exit(PROGRAM_NAME ": -train_only does not compute predictions, held-out scores, patterns or inference");
+     if((tune || logistic_tune || nfeature_counts>1 || npca_counts>1) && !inner_column)
+       ERROR_exit(PROGRAM_NAME ": tuned -train_only requires an explicit -inner_cv_column");
+   }
    if(partition_column){
      if(cv_column || cv_k || within_column)
        ERROR_exit(PROGRAM_NAME ": -partition_column/-testTable cannot accompany -cv, -cv_column, -cv_k, or -within_column");
@@ -3895,7 +4091,7 @@ int main( int argc, char **argv )
    }else{
      if(train_value || test_value)
        ERROR_exit(PROGRAM_NAME ": -train_value and -test_value require -partition_column");
-     if(!cv_column)ERROR_exit(PROGRAM_NAME ": -cv_column, -cv, or -partition_column is required");
+     if(!cv_column && !train_only)ERROR_exit(PROGRAM_NAME ": -cv_column, -cv, -partition_column or -train_only is required");
    }
    if( nperm==1 ) ERROR_exit(PROGRAM_NAME ": -nperm must be 0 or at least 2") ;
    if( nperm>0 && permute_within==NULL )
@@ -3986,7 +4182,7 @@ int main( int argc, char **argv )
      if(!columns.subject || !columns.item)
        ERROR_exit(PROGRAM_NAME ": transfer requires explicit subject and item columns (Subj and Item/Trial, or role overrides)");
    }
-   plan=transfer.column ? THD_foldplan_fixed_within(ss,transfer.column,transfer.train,transfer.test,
+   plan=train_only ? THD_foldplan_train_only(ss->nsample,err,sizeof(err)) : transfer.column ? THD_foldplan_fixed_within(ss,transfer.column,transfer.train,transfer.test,
           !strcmp(transfer.subjects,"within")?columns.subject:NULL,err,sizeof(err))
         :partition_column ? THD_foldplan_fixed(ss,partition_column,train_value,test_value,err,sizeof(err))
         :(cv_k>0) ? THD_foldplan_grouped_kfold(ss,cv_column,within_column,cv_k,err,sizeof(err))
@@ -3994,7 +4190,7 @@ int main( int argc, char **argv )
    if( plan==NULL ) ERROR_exit(PROGRAM_NAME ": %s",err) ;
    if(two_tables && !transfer.column)mvpa_check_table_overlap(ss,plan);
    if(transfer.column)mvpa_transfer_check(&transfer,ss,plan,two_tables,continuous,encoding?design_columns:target_column);
-   if(save_model && (plan->kind!=THD_CV_FIXED || plan->nfold!=1))ERROR_exit(PROGRAM_NAME ": -save_model v1 requires one explicit fixed train/test partition; save within-subject transfer models one subject at a time");
+   if(save_model && !train_only && (plan->kind!=THD_CV_FIXED || plan->nfold!=1))ERROR_exit(PROGRAM_NAME ": -save_model v1 requires one explicit fixed train/test partition; save within-subject transfer models one subject at a time");
    if( !continuous && !THD_foldplan_check_classes(plan,class_id,nclass,transfer.column!=NULL,err,sizeof(err)) )
      ERROR_exit(PROGRAM_NAME ": %s",err) ;
    if(partition_column && !continuous)mvpa_fixed_class_order(plan,class_id,class_label,nclass);
@@ -4215,6 +4411,12 @@ int main( int argc, char **argv )
        mvpa_audit_preflight("regression audit",name,prefix,files,8,ss,mset);
      }free(name);
    }
+   if(train_only){
+     const char *files[]={save_model,save_tuning,save_pca_loadings,model_train_source};
+     char *name=malloc(strlen(prefix)+32);if(!name)ERROR_exit(PROGRAM_NAME ": cannot name training summary");
+     sprintf(name,"%s.training.1D",prefix);
+     mvpa_audit_preflight("training summary",name,prefix,files,4,ss,mset);free(name);
+   }
    if(save_model){
      const char *files[]={save_predictions,save_fold_scores,save_confusion,save_summary_scores,save_tuning,save_pca_loadings,model_train_source,model_test_source,transfer.audit};
      mvpa_model_preflight(save_model,prefix,files,9,ss,mset);
@@ -4235,7 +4437,8 @@ int main( int argc, char **argv )
      if(reg.config.method)mvpa_reg_header(stdout,&reg);
      if(transfer.column)mvpa_transfer_report(stdout,&transfer,ss,plan,encoding?design_columns:target_column,class_label,nclass);
      free(transfer.audit);transfer.audit=NULL;
-     if(save_model)printf("# SavedModel\tversion_1_fixed_training_ridge_volume_pipeline\n# ModelFit\tno_validation_only\n");
+     if(train_only)printf("# TrainingOnly\tyes; all rows train; no held-out scores\n");
+     if(save_model)printf("# SavedModel\t%s_volume_pipeline\n# ModelFit\tno_validation_only\n",logistic_class?"version_2_logistic":"version_1_ridge");
      if(lambda_per_response)printf("# RidgePenaltyScope\tper_response\n# ConfigurationObjective\tmean_response_minimum_inner_loss\n# ResponseRidgeCost\touter_factors=min(number_of_responses,number_of_lambdas)_at_most; extra_audit_bytes~(8*nlambda+4)*nfold*nfeature_counts*npca_counts*nresponse_per_worker\n");
      if(pattern_prefix)printf("# ActivationPatterns\touter_training_ridge_joint_score_covariance_pseudoinverse\n# PatternCoordinates\tafter_nuisance_and_scale_before_selection_and_PCA\n# PatternFit\tno_validation_only\n");
      if(npca_counts){int j;printf("# PCAOrder\tnuisance_then_scale_all_columns_then_select_then_centered_PCA\n# PCAWhiten\tno\n# PCACounts");
@@ -4320,11 +4523,26 @@ int main( int argc, char **argv )
      free(transfer.audit);transfer.audit=NULL;
    }
    if(save_model)frozen_model=mvpa_model_metadata(mset,rl,ss,plan,target_column,continuous?NULL:class_label,continuous?0:nclass,nuisance_names,nnuisance,searchlight!=NULL);
+   if(frozen_model)frozen_model->estimator=logistic_class;
    if(pattern_prefix)mvpa_pattern_open(&pattern_audit,pattern_prefix,preprocess,nuisance_columns,!continuous);
    if(save_tuning){candidate_audit=mvpa_open_audit(save_tuning,"inner-CV candidate audit");if(lambda_per_response)mvpa_response_header(candidate_audit,tune_objective);else mvpa_candidate_header(candidate_audit,tune_objective,reg.config.method?2:continuous || ridge_class || logistic_class,npca_counts>0);}
    if(npca_counts)mvpa_pca_open(&pca_audit,prefix,save_pca_loadings,nested!=NULL,tune_objective,reg.config.method?2:continuous || ridge_class || logistic_class,lambda_per_response);
    if(nfeature_counts)mvpa_selection_open(&selection_audit,prefix,continuous,nested!=NULL,metric,nuisance_columns,reg.config.method?2:continuous || ridge_class || logistic_class,logistic_class?tune_objective:tune_requested,tune_objective,lambda_per_response);
    if(npca_counts && selection_audit.tuning && !lambda_per_response)fputs("# Losses condition on selected PCA count; all triples are in PREFIX.pca_tuning.1D.\n",selection_audit.tuning);
+   if(train_only){
+     mvpa_train_model(ss,plan,mset,rl,frozen_model,target_column,class_id,class_label,nclass,
+       preprocess,logistic_class?logistic_cost:lambda,nested,logistic_class?logistic_grid:lambda_grid,logistic_class?logistic_ngrid:nlambda,tune_objective,nuisance,nnuisance,
+       feature_counts,nfeature_counts,pca_counts,npca_counts,lambda_per_response,
+       candidate_audit,&selection_audit,&pca_audit,prefix,quiet,progress_mode,logistic_class,logistic_tolerance,logistic_max_iter,metric);
+     if(!THD_mvpa_model_write(save_model,frozen_model,THD_ok_overwrite(),err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+     if(!quiet)INFO_message(PROGRAM_NAME ": trained on all %d samples; wrote %s (no held-out scores)",ss->nsample,save_model);
+     THD_mvpa_model_free(frozen_model);THD_roilist_free(rl);DSET_delete(mset);
+     THD_nested_foldplan_free(nested);THD_foldplan_free(plan);THD_sampleset_free(ss);
+     mvpa_selection_close(&selection_audit);mvpa_pca_close(&pca_audit);
+     if(candidate_audit){int bad=ferror(candidate_audit);if(fclose(candidate_audit))bad=1;if(bad)ERROR_exit(PROGRAM_NAME ": error writing tuning audit");}
+     free(class_id);THD_sampleset_free_levels(class_label,nclass);free(nuisance);THD_sampleset_free_levels(nuisance_names,nnuisance);
+     free(feature_counts);free(pca_counts);free(lambda_grid);free(logistic_grid);free(group_id);mvpa_reg_free(&reg);return 0;
+   }
    if(continuous){
      mvpa_continuous_analysis(ss,plan,mset,rl,encoding,encoding?design_columns:target_column,
        preprocess,group_id,lambda,metric,prefix,save_predictions,save_fold_scores,
@@ -4592,7 +4810,7 @@ int main( int argc, char **argv )
                                 surf_file!=NULL,ss,plan,class_id,class_label,
                                 workspace[tid],&class_audit);
        if(ok && (probability_fp || calibration_fp))mvpa_write_probability_audits(probability_fp,calibration_fp,mset,rl,rr,searchlight!=NULL,surf_file!=NULL,ss,plan,class_id,class_label,workspace[tid]);
-       if(ok && frozen_model){frozen_model->unit[rr].fit=THD_mvpa_ridge_freeze(workspace[tid]->ridge_cv,localerr,sizeof(localerr));if(!frozen_model->unit[rr].fit)ERROR_exit(PROGRAM_NAME ": %s",localerr);}
+       if(ok && frozen_model){frozen_model->unit[rr].fit=logistic_class?THD_mvpa_logistic_freeze(workspace[tid],localerr,sizeof(localerr)):THD_mvpa_ridge_freeze(workspace[tid]->ridge_cv,localerr,sizeof(localerr));if(!frozen_model->unit[rr].fit)ERROR_exit(PROGRAM_NAME ": %s",localerr);}
        if(ok && pattern_prefix)mvpa_pattern_write(&pattern_audit,workspace[tid]->ridge_cv,mset,rl,rr,class_label,nclass,argc,argv);
        if(ok && candidate_audit)mvpa_candidate_write(candidate_audit,plan,rl->val[rr],rl->vox[rr].nar,
          tune_objective,workspace[tid]->ridge_cv,workspace[tid]);
