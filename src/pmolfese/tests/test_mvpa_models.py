@@ -175,4 +175,92 @@ with tempfile.TemporaryDirectory(prefix='mvpa_models_') as folder:
     (root/'bad.model').write_text(good);apply('bad.model','kept');saved=(root/'kept.applied.1D').read_bytes()
     (root/'bad.model').write_text(good[:10]);apply('bad.model','kept',fail='format/version',overwrite=True);assert (root/'kept.applied.1D').read_bytes()==saved
     assert not list(root.glob('*.tmp.*'))
-print('PASS saved models: exact float round trips, target-free and batch-independent application, full pipeline and per-response lambdas, classes, partitions, workers, null restoration, version/schema/grid rejection and atomic output protection')
+    # Training-only fits must reproduce the same fixed-partition training fit.
+    training=table('training_only',rows[:18])
+    def train_command(name,mode='classify',extra=()):
+        return ['-train_only','-mode',mode,'-method','ridge','-dataTableFile',training,
+                '-mask',root/'mask.nii','-target_columns','Class' if mode=='classify' else 'Y,Y2,Y3',
+                '-save_model',name+'.model','-prefix',name,*extra]
+    for mode in ['classify','decode']:
+        for scale in ['none','feature_zscore','sample_center']:
+            name='train_'+mode+'_'+scale
+            run(train_command(name,mode,['-scale',scale]))
+            assert (root/(name+'.model')).read_bytes()==(root/(mode+'_'+scale+'.model')).read_bytes()
+            assert not (root/(name+'.roi.1D')).exists() and not (root/(name+'.continuous.1D')).exists()
+            assert len(read(root/(name+'.training.1D')))==2*(2 if mode=='classify' else 3)
+        run(train_command('train_'+mode+'_pipeline',mode,pipeline))
+        assert (root/('train_'+mode+'_pipeline.model')).read_bytes()==(root/(mode+'_pipeline.model')).read_bytes()
+    run(train_command('train_response','decode',['-lambda_per_response','-inner_cv_column','Fold','-lambda_grid','.01,1,100','-pca_components','2']))
+    assert (root/'train_response.model').read_bytes()==(root/'response.model').read_bytes()
+    run(train_command('train_validate',extra=['-validate_only']))
+    assert not list(root.glob('train_validate*'))
+    for extra,message in [(['-cv_column','Fold'],'outer CV'),(['-testTableFile',te],'test tables'),
+                          (['-save_predictions','no.1D'],'does not compute'),(['-nperm','2'],'does not compute'),
+                          (['-lambda','auto'],'explicit -inner_cv_column')]:
+        run(train_command('train_bad',extra=extra),fail=message)
+    args=train_command('train_bad');i=args.index('-save_model');del args[i:i+2];run(args,fail='requires -save_model')
+    # Logistic export preserves fixed-partition logits and probabilities, also after tuning.
+    logistic_pipeline=['-select_features_grid','1,2','-pca_components_grid','1,2',
+                       '-logistic_lambda_grid','.1,1','-inner_cv_column','Fold','-nuisance_columns','Z,Z2']
+    for extra,suffix in [([],''),(logistic_pipeline,'_pipeline')]:
+        name='logistic_export'+suffix
+        run(command(name,'classify',['-method','logistic',*extra]))
+        applied=apply(name+'.model',name+'_apply')
+        original=read(root/(name+'.pred.1D'))
+        truth={(r['UnitID'],r['Sample']):r for r in original if r['CVFold']!='NA'}
+        for row in applied:
+            cls=0 if row['Response']==rows[0]['Class'] else 1
+            old=truth[row['Unit'],row['Sample']]
+            assert math.isclose(float(row['Prediction']),float(old['DecisionClass'+str(cls)]),rel_tol=2e-6,abs_tol=2e-7)
+            assert math.isclose(float(row['Probability']),float(old['ProbabilityClass'+str(cls)]),rel_tol=2e-6,abs_tol=2e-7)
+        run(train_command('train_'+name,extra=['-method','logistic',*extra]))
+        assert (root/('train_'+name+'.model')).read_bytes()==(root/(name+'.model')).read_bytes()
+    # Dataset adapter: all TRs, reordered/noncontiguous ranges, source indexing and ROI x class x TR.
+    for model in ['classify_feature_zscore.model','decode_none.model','logistic_export.model']:
+        name='dataset_'+model.split('.')[0]
+        run(['-apply_model',model,'-apply_dset',root/'betas.nii','-prefix',name])
+        allrows=read(root/(name+'.applied.1D'))
+        assert len(allrows)==n*2*(3 if model.startswith('decode') else 2)
+        selected=table('selected',[{k:v for k,v in rows[i].items() if k not in ['Class','Y','Y2','Y3']} for i in [23,18,20]])
+        expected=apply(model,name+'_table',selected)
+        run(['-apply_model',model,'-apply_dset',str(root/'betas.nii')+'[23,18,20]','-prefix',name+'_selected'])
+        actual=read(root/(name+'_selected.applied.1D'))
+        assert list(dict.fromkeys(r['SourceBrick'] for r in actual))==['23','18','20']
+        for a,b in zip(actual,expected):
+            assert a['Prediction']==b['Prediction'] and a['PredictedClass']==b['PredictedClass']
+            if 'Probability' in a:assert a['Probability']==b['Probability']
+        if 'Probability' in allrows[0]:
+            groups={}
+            for r in allrows:groups.setdefault((r['Unit'],r['SourceBrick']),[]).append(float(r['Probability']))
+            assert all(abs(sum(v)-1)<1e-7 and all(0<=p<=1 for p in v) for v in groups.values())
+        run(['-apply_model',model,'-apply_dset',str(root/'betas.nii')+'[999]','-prefix','bad_dset'],fail='selector')
+    run(['-apply_model','decode_pipeline.model','-apply_dset',root/'betas.nii'],fail='nuisance columns require')
+    run(['-apply_model','decode_none.model','-apply_dset',root/'betas.nii','-dataTableFile',new],fail='exactly one')
+    # More than two classes, source time metadata, and original brick selectors.
+    three=table('three_classes',[dict(r,Class=['A','B','C'][i%3]) for i,r in enumerate(rows[:18])])
+    args=train_command('three_model',extra=['-method','logistic','-logistic_lambda','auto','-inner_cv_column','Fold',
+                                             '-save_tuning','three_tuning.1D'])
+    args[args.index('-dataTableFile')+1]=three;run(args)
+    raw=bytearray((root/'betas.nii').read_bytes());raw[123]=10  # mm and seconds
+    struct.pack_into('<f',raw,92,2.5);struct.pack_into('<f',raw,136,1.25)
+    (root/'time_series.nii').write_bytes(raw)
+    run(['-apply_model','three_model.model','-apply_dset',str(root/'time_series.nii')+'[23,18,20]',
+         '-prefix','three_applied'])
+    result=read(root/'three_applied.applied.1D')
+    assert len(result)==2*3*3
+    for i in range(0,len(result),3):
+        assert abs(sum(float(r['Probability']) for r in result[i:i+3])-1)<1e-7
+        assert float(result[i]['TimeSeconds'])==1.25+2.5*int(result[i]['SourceBrick'])
+    # Test AFNI HEAD/BRIK input when the companion converter is available.
+    copier=Path(binary).parent/'macos_13_ARM'/'3dcopy'
+    if copier.is_file():
+        p=subprocess.run([str(copier),str(root/'time_series.nii'),str(root/'native')],capture_output=True,text=True)
+        assert p.returncode==0,p.stderr
+        run(['-apply_model','three_model.model','-apply_dset',str(root/'native+orig')+'[23,18,20]','-prefix','native_applied'])
+        native=read(root/'native_applied.applied.1D')
+        assert [(r['Prediction'],r['Probability'],r['SourceBrick'],r['TimeSeconds']) for r in native]==[(r['Prediction'],r['Probability'],r['SourceBrick'],r['TimeSeconds']) for r in result]
+    # Logistic v2 estimator tags are strict; old v1 ridge files remain readable.
+    goodlog=(root/'three_model.model').read_text()
+    (root/'badlog.model').write_text(goodlog.replace('ESTIMATOR 1','ESTIMATOR 99'))
+    apply('badlog.model','badlog',fail='malformed')
+print('PASS saved models: training-only ridge/logistic, dataset application and ROI/class/TR probabilities, exact float round trips, target-free and batch-independent application, full pipeline and per-response lambdas, classes, partitions, workers, null restoration, version/schema/grid rejection and atomic output protection')

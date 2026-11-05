@@ -1,0 +1,130 @@
+{
+  "seed": 20261106,
+  "seconds": 60.196956416009925,
+  "records": [
+    {
+      "trials": 5000,
+      "point_trials": 4786,
+      "fwe": 258,
+      "bh": 0,
+      "point": 256,
+      "valid_cells": 132440,
+      "all_cells": 140000,
+      "retained_min": 54,
+      "artifact_invariance_max": 0.0,
+      "scenario": "clustered",
+      "method": "pairwise",
+      "policy": "fixed",
+      "repetitions": 5000,
+      "draws": 100,
+      "fwe_rate": 0.0516,
+      "fwe_wilson95": [
+        0.04580509261793998,
+        0.05808340776944239
+      ],
+      "bh_rate": 0.0,
+      "bh_wilson95": [
+        0.0,
+        0.000767730137580694
+      ],
+      "point_rate": 0.05348934391976599,
+      "point_wilson95": [
+        0.047465167705363694,
+        0.060229750640161554
+      ]
+    },
+    {
+      "trials": 560,
+      "point_trials": 95,
+      "fwe": 21,
+      "bh": 19,
+      "point": 6,
+      "valid_cells": 2332,
+      "all_cells": 140000,
+      "retained_min": 48,
+      "artifact_invariance_max": 0.0,
+      "scenario": "clustered",
+      "method": "pairwise",
+      "policy": "joint",
+      "repetitions": 5000,
+      "draws": 100,
+      "fwe_rate": 0.0375,
+      "fwe_wilson95": [
+        0.024655953299412132,
+        0.056646313152726196
+      ],
+      "bh_rate": 0.033928571428571426,
+      "bh_wilson95": [
+        0.021826448646516186,
+        0.05238162681297456
+      ],
+      "point_rate": 0.06315789473684211,
+      "point_wilson95": [
+        0.029264489538080835,
+        0.13100810823451697
+      ]
+    },
+    {
+      "trials": 5000,
+      "point_trials": 4838,
+      "fwe": 247,
+      "bh": 0,
+      "point": 245,
+      "valid_cells": 132488,
+      "all_cells": 140000,
+      "retained_min": 50,
+      "artifact_invariance_max": 0.0,
+      "scenario": "clustered",
+      "method": "loo",
+      "policy": "fixed",
+      "repetitions": 5000,
+      "draws": 100,
+      "fwe_rate": 0.0494,
+      "fwe_wilson95": [
+        0.043731622546538354,
+        0.055760255853449375
+      ],
+      "bh_rate": 0.0,
+      "bh_wilson95": [
+        0.0,
+        0.000767730137580694
+      ],
+      "point_rate": 0.05064076064489458,
+      "point_wilson95": [
+        0.04481088131879486,
+        0.0571836985947653
+      ]
+    },
+    {
+      "trials": 559,
+      "point_trials": 91,
+      "fwe": 27,
+      "bh": 21,
+      "point": 9,
+      "valid_cells": 2332,
+      "all_cells": 140000,
+      "retained_min": 48,
+      "artifact_invariance_max": 0.0,
+      "scenario": "clustered",
+      "method": "loo",
+      "policy": "joint",
+      "repetitions": 5000,
+      "draws": 100,
+      "fwe_rate": 0.04830053667262969,
+      "fwe_wilson95": [
+        0.03340437844326516,
+        0.06936272334878434
+      ],
+      "bh_rate": 0.03756708407871199,
+      "bh_wilson95": [
+        0.024700292586312282,
+        0.05674642350574632
+      ],
+      "point_rate": 0.0989010989010989,
+      "point_wilson95": [
+        0.052908040587209215,
+        0.17738752591525386
+      ]
+    }
+  ]
+}

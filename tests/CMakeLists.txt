@@ -36,6 +36,20 @@ if(TARGET 3dInSync)
   )
   set_tests_properties(3dInSync:edges-oracle PROPERTIES LABELS "3dInSync;numeric;unit")
 
+  # Exercise the selection, model-export and inference modules in the CMake
+  # binary, not just the separate Makefile-based development build.
+  foreach(insync_gate selection estimation models inference)
+    add_test(
+      NAME 3dInSync:window-${insync_gate}
+      COMMAND ${Python_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/run_insync_${insync_gate}.py
+        --program $<TARGET_FILE:3dInSync>
+    )
+    set_tests_properties(3dInSync:window-${insync_gate} PROPERTIES
+      LABELS "3dInSync;numeric;integration;window"
+      ENVIRONMENT "OMP_NUM_THREADS=2")
+  endforeach()
+
   # Integration smoke tests: repeated conditions, the 3dISC pair-map bridge,
   # tail options, -missing, -memory_limit, and -zcensor. The script uses 3dinfo
   # and 1dcat from the same directory as 3dInSync, and bash process substitution.
@@ -273,6 +287,19 @@ if(TARGET 3dMVPA AND TARGET 3dUndump AND TARGET 3dbucket
         $<TARGET_FILE:3dMVPA>
     )
     set_tests_properties(3dMVPA:tuning-objectives PROPERTIES
+                         LABELS "3dMVPA;numeric;integration")
+    set(MVPA_TIME_SURFACE_ARGS)
+    if(TARGET CreateIcosahedron AND TARGET ConvertDset)
+      list(APPEND MVPA_TIME_SURFACE_ARGS
+        $<TARGET_FILE:CreateIcosahedron> $<TARGET_FILE:ConvertDset>)
+    endif()
+    add_test(
+      NAME 3dMVPA:time-resolved
+      COMMAND ${Python_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_mvpa_time.py
+        $<TARGET_FILE:3dMVPA> ${MVPA_TIME_SURFACE_ARGS}
+    )
+    set_tests_properties(3dMVPA:time-resolved PROPERTIES
                          LABELS "3dMVPA;numeric;integration")
     add_test(
       NAME 3dMVPA:pca

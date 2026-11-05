@@ -1963,7 +1963,7 @@ static int pca_transform(THD_mvpa_pca *s,int candidate,float *train,int nt,float
 {
    if(!s)return 1;
    if(!THD_pca_fit(s->model,train,nt,*width,s->grid[candidate],err,nerr) ||
-      !THD_pca_apply(s->model,train,nt,err,nerr) || (test && !THD_pca_apply(s->model,test,ne,err,nerr)))return 0;
+      !THD_pca_apply(s->model,train,nt,err,nerr) || (test && ne>0 && !THD_pca_apply(s->model,test,ne,err,nerr)))return 0;
    *width=s->model->count?s->model->count:1;return 1;
 }
 static void pca_record(THD_mvpa_pca *s,int f)
@@ -2434,7 +2434,7 @@ int THD_mvpa_run_ridge_cv(THD_mvpa_ridge_workspace *w,const float *x,int p,
       if(w->nested && !ridge_tune_fold(w,f,x,p,y,q,group,err,nerr))return 0;
       if(!pp_refit(w->prep,w->preprocess,x,n,p,plan->train[f],nt,group,0,err,nerr) ||
          !pp_apply(w->prep,x,n,p,plan->train[f],nt,group,w->train_x,0,err,nerr) ||
-         !pp_apply(w->prep,x,n,p,plan->test[f],ne,group,w->test_x,0,err,nerr))return 0;
+         (ne>0 && !pp_apply(w->prep,x,n,p,plan->test[f],ne,group,w->test_x,0,err,nerr)))return 0;
       for(i=0;i<nt;i++)for(o=0;o<q;o++)w->train_y[(size_t)i*q+o]=y[(size_t)plan->train[f][i]*q+o];
       if(w->patterns)memcpy(w->patterns->input,w->train_x,sizeof(float)*(size_t)nt*p);
       if(sel){
@@ -2448,9 +2448,10 @@ int THD_mvpa_run_ridge_cv(THD_mvpa_ridge_workspace *w,const float *x,int p,
       if(!(w->response_ridge?
          THD_ridge_fit_response_lambda(w->ridge,w->train_x,w->train_y,nt,width,q,w->response_ridge->selected+(size_t)f*w->max_output,THD_RIDGE_AUTO,err,nerr):
          regression_cv_fit(w,nt,width,q,w->selected_lambda[f],err,nerr)) ||
-         !regression_cv_predict(w,ne,err,nerr))return 0;
+         (ne>0 && !regression_cv_predict(w,ne,err,nerr)))return 0;
       regression_cv_record(w,f,nt,p,width,q);
       if(!ridge_record_patterns(w,f,nt,p,q,err,nerr))return 0;
+      if(plan->kind==THD_CV_TRAIN_ONLY)return 1; /* Fit only: never score training rows. */
       for(o=0;o<q;o++){
          for(i=0;i<ne;i++){
             int s=plan->test[f][i];
@@ -2502,26 +2503,32 @@ static THD_mvpa_frozen_ridge *frozen_alloc(int p,int q,int k,int scale,int ns,in
    return m;
 bad:THD_mvpa_frozen_free(m);return NULL;
 }
-THD_mvpa_frozen_ridge *THD_mvpa_ridge_freeze(const THD_mvpa_ridge_workspace *w,char *err,int nerr)
+static THD_mvpa_frozen_ridge *freeze_pipeline(const THD_preprocessor *prep,
+ const THD_feature_selection *selection,const THD_mvpa_pca *pca,int q,char *err,int nerr)
 {
-   THD_mvpa_frozen_ridge *m;const THD_nuisance *z;int p,q,ns,i;
-   if(!w || w->regression || !w->plan || w->plan->kind!=THD_CV_FIXED || w->plan->nfold!=1 || !w->ridge || !w->ridge->fitted || w->prep->method==THD_PREP_RUN_CENTER){
-      pp_error(err,nerr,"frozen ridge v1 needs one fitted fixed partition and none/zscore/sample_center scaling");return NULL;}
-   p=w->prep->nfeature;q=w->ridge->q;z=w->prep->nuisance;
-   ns=w->selection?w->selection->count[0]:p;
-   m=frozen_alloc(p,q,z?z->k:0,w->prep->method,ns,w->pca!=NULL,w->pca?w->pca->model->count:0);
-   if(!m){pp_error(err,nerr,"cannot allocate frozen ridge pipeline");return NULL;}
-   if(m->width!=w->ridge->p){THD_mvpa_frozen_free(m);pp_error(err,nerr,"frozen ridge pipeline dimensions disagree");return NULL;}
+   int p=prep->nfeature,ns=selection?selection->count[0]:p,i;
+   const THD_nuisance *z=prep->nuisance;THD_mvpa_frozen_ridge *m;
+   m=frozen_alloc(p,q,z?z->k:0,prep->method,ns,pca!=NULL,pca?pca->model->count:0);
+   if(!m){pp_error(err,nerr,"cannot allocate frozen pipeline");return NULL;}
    for(i=0;i<p;i++){
-      m->constant[i]=w->prep->method==THD_PREP_FEATURE_ZSCORE?w->prep->constant[i]:0;
-      m->center[i]=w->prep->method==THD_PREP_FEATURE_ZSCORE?w->prep->center[i]:0;
-      m->sd[i]=w->prep->method==THD_PREP_FEATURE_ZSCORE?w->prep->scale[i]:1;
+      m->constant[i]=prep->method==THD_PREP_FEATURE_ZSCORE?prep->constant[i]:0;
+      m->center[i]=prep->method==THD_PREP_FEATURE_ZSCORE?prep->center[i]:0;
+      m->sd[i]=prep->method==THD_PREP_FEATURE_ZSCORE?prep->scale[i]:1;
    }
-   for(i=0;i<ns;i++)m->index[i]=w->selection?w->selection->indices[i]:i;
+   for(i=0;i<ns;i++)m->index[i]=selection?selection->indices[i]:i;
    if(z){memcpy(m->zmean,z->mean,sizeof(double)*m->k);memcpy(m->zsd,z->scale,sizeof(double)*m->k);
       memcpy(m->zbeta,z->beta,sizeof(double)*(size_t)m->k*p);memcpy(m->xmean,z->xmean,sizeof(double)*p);}
-   if(w->pca){memcpy(m->pcmean,w->pca->model->mean,sizeof(double)*ns);
-      memcpy(m->loading,w->pca->model->loading,sizeof(double)*(size_t)m->ncomp*ns);}
+   if(pca){memcpy(m->pcmean,pca->model->mean,sizeof(double)*ns);
+      memcpy(m->loading,pca->model->loading,sizeof(double)*(size_t)m->ncomp*ns);}
+   return m;
+}
+THD_mvpa_frozen_ridge *THD_mvpa_ridge_freeze(const THD_mvpa_ridge_workspace *w,char *err,int nerr)
+{
+   THD_mvpa_frozen_ridge *m;int q,i;
+   if(!w || w->regression || !w->plan || (w->plan->kind!=THD_CV_FIXED && w->plan->kind!=THD_CV_TRAIN_ONLY) || w->plan->nfold!=1 || !w->ridge || !w->ridge->fitted || w->prep->method==THD_PREP_RUN_CENTER){
+      pp_error(err,nerr,"frozen ridge needs one fitted fixed partition or training-only plan");return NULL;}
+   q=w->ridge->q;m=freeze_pipeline(w->prep,w->selection,w->pca,q,err,nerr);if(!m)return NULL;
+   if(m->width!=w->ridge->p){THD_mvpa_frozen_free(m);pp_error(err,nerr,"frozen ridge pipeline dimensions disagree");return NULL;}
    memcpy(m->xm,w->ridge->xm,sizeof(double)*m->width);memcpy(m->ym,w->ridge->ym,sizeof(double)*q);
    memcpy(m->coef,w->ridge->coef,sizeof(double)*(size_t)m->width*q);
    for(i=0;i<q;i++)m->lambda[i]=w->response_ridge?w->response_ridge->selected[i]:w->selected_lambda[0];
@@ -2657,7 +2664,7 @@ static int model_labels(char **labels,int n)
 static int model_validate(const THD_mvpa_model *m)
 {
    int i,j,*ids,nvox;size_t nv;double det;
-   if(!m || m->classification<0 || m->classification>1 || m->searchlight<0 || m->searchlight>1 ||
+   if(!m || m->estimator<0 || m->estimator>1 || (m->estimator && !m->classification) || m->classification<0 || m->classification>1 || m->searchlight<0 || m->searchlight>1 ||
       m->nunit<1 || !m->unit || m->nresponse<(m->classification?2:1) || m->ncovariate<0 || m->ntrain<1 ||
       (m->ncovariate && m->ncovariate>=m->ntrain-1) ||
       m->view<0 || m->view>2 || !m->space || !*m->space || !m->target || !*m->target ||
@@ -2697,7 +2704,9 @@ int THD_mvpa_model_write(const char *path,const THD_mvpa_model *m,int overwrite,
    snprintf(temp,strlen(path)+16,"%s.tmp.XXXXXX",path);fd=mkstemp(temp);
    if(fd<0){free(temp);return pp_error(err,nerr,"cannot create saved-model temporary file");}
    fp=fdopen(fd,"w");if(!fp){close(fd);unlink(temp);free(temp);return pp_error(err,nerr,"cannot open saved-model stream");}
-   fprintf(fp,"AFNI_MVPA_MODEL 1\nMETA %d %d %d %d %d %d\nGRID %d %d %d %d\n",m->classification,m->searchlight,m->nunit,m->nresponse,m->ncovariate,m->ntrain,m->dim[0],m->dim[1],m->dim[2],m->view);
+   fprintf(fp,"AFNI_MVPA_MODEL %d\n",m->estimator?2:1);
+   if(m->estimator)fprintf(fp,"ESTIMATOR %d\n",m->estimator);
+   fprintf(fp,"META %d %d %d %d %d %d\nGRID %d %d %d %d\n",m->classification,m->searchlight,m->nunit,m->nresponse,m->ncovariate,m->ntrain,m->dim[0],m->dim[1],m->dim[2],m->view);
    model_array(fp,"AFFINE",(double *)m->affine,12,1);fputs("SPACE\n",fp);model_put_string(fp,m->space);fputs("TARGET\n",fp);model_put_string(fp,m->target);
    fputs("RESPONSES\n",fp);for(i=0;i<m->nresponse;i++)model_put_string(fp,m->response[i]);
    fputs("COVARIATES\n",fp);for(i=0;i<m->ncovariate;i++)model_put_string(fp,m->covariate[i]);
@@ -2716,8 +2725,9 @@ THD_mvpa_model *THD_mvpa_model_read(const char *path,char *err,int nerr)
 {
    FILE *fp=fopen(path,"r");THD_mvpa_model *m=NULL;int v,i,j,ok=0;
    if(!fp){pp_error(err,nerr,"cannot open saved model '%s'",path);return NULL;}
-   if(!model_tag(fp,"AFNI_MVPA_MODEL") || !model_int(fp,&v) || v!=1){pp_error(err,nerr,"unsupported saved-model format/version");fclose(fp);return NULL;}
+   if(!model_tag(fp,"AFNI_MVPA_MODEL") || !model_int(fp,&v) || (v!=1 && v!=2)){pp_error(err,nerr,"unsupported saved-model format/version");fclose(fp);return NULL;}
    m=calloc(1,sizeof(*m));if(!m)goto done;
+   if(v==2 && (!model_tag(fp,"ESTIMATOR") || !model_int(fp,&m->estimator) || m->estimator!=1))goto done;
    if(!model_tag(fp,"META") || !model_int(fp,&m->classification) || !model_int(fp,&m->searchlight) || !model_int(fp,&m->nunit) ||
       !model_int(fp,&m->nresponse) || !model_int(fp,&m->ncovariate) || !model_int(fp,&m->ntrain) ||
       m->nunit<1 || m->nresponse<1 || !model_room(fp,(size_t)m->nunit*10+(size_t)m->nresponse+m->ncovariate))goto done;
@@ -3113,6 +3123,20 @@ int THD_logistic_predict(const THD_logistic_model *m,const float *x,int n,int p,
    }return 1;
 }
 
+THD_mvpa_frozen_ridge *THD_mvpa_logistic_freeze(const THD_mvpa_workspace *w,char *err,int nerr)
+{
+   THD_mvpa_frozen_ridge *m;int i;
+   if(!w || !w->logistic || !w->logistic->fitted || w->plan->nfold!=1 ||
+      (w->plan->kind!=THD_CV_FIXED && w->plan->kind!=THD_CV_TRAIN_ONLY) || w->preprocess==THD_PREP_RUN_CENTER){
+      pp_error(err,nerr,"frozen logistic needs one fitted fixed partition or training-only plan");return NULL;}
+   m=freeze_pipeline(w->prep,w->selection,w->pca,w->nclass,err,nerr);if(!m)return NULL;
+   if(m->width!=w->logistic->nfeature){THD_mvpa_frozen_free(m);pp_error(err,nerr,"frozen logistic dimensions disagree");return NULL;}
+   memcpy(m->coef,w->logistic->theta,sizeof(double)*(size_t)m->width*m->q);
+   memcpy(m->ym,w->logistic->theta+(size_t)m->width*m->q,sizeof(double)*(size_t)m->q);
+   for(i=0;i<m->q;i++)m->lambda[i]=w->class_selected[0];
+   return m;
+}
+
 void THD_mvpa_workspace_free( THD_mvpa_workspace *w )
 {
    if( w==NULL ) return ;
@@ -3165,6 +3189,7 @@ THD_mvpa_workspace * THD_mvpa_workspace_alloc( const THD_foldplan *plan,
      if( plan->ntrain[ff]>w->max_train ) w->max_train=plan->ntrain[ff] ;
      if( plan->ntest[ff]>w->max_test ) w->max_test=plan->ntest[ff] ;
    }
+   if(w->max_test<1)w->max_test=1; /* allocation capacity; plan still has zero test rows */
    if( (size_t)w->max_train > SIZE_MAX/sizeof(float)/(size_t)max_feature ||
        (size_t)w->max_test > SIZE_MAX/sizeof(float)/(size_t)max_feature ||
        (size_t)w->max_test > SIZE_MAX/sizeof(double)/(size_t)nclass ||
@@ -3498,8 +3523,8 @@ int THD_mvpa_run_classification_cv( const THD_foldplan *plan,
        return pp_error(err,nerr,"fold %s preprocessing fit: %s",plan->name[ff],why) ;
      if( !pp_apply(w->prep,x,w->nsample,nfeature,plan->train[ff],ntrain,
                    group_id,w->train_x,0,why,sizeof(why)) ||
-         !pp_apply(w->prep,x,w->nsample,nfeature,plan->test[ff],ntest,
-                   group_id,w->test_x,0,why,sizeof(why)) )
+         (ntest>0 && !pp_apply(w->prep,x,w->nsample,nfeature,plan->test[ff],ntest,
+                   group_id,w->test_x,0,why,sizeof(why))) )
        return pp_error(err,nerr,"fold %s preprocessing apply: %s",plan->name[ff],why) ;
      for( ii=0 ; ii<ntrain ; ii++ ) w->train_class[ii]=class_id[plan->train[ff][ii]] ;
      for( ii=0 ; ii<ntest ; ii++ ) w->test_class[ii]=class_id[plan->test[ff][ii]] ;
@@ -3511,8 +3536,9 @@ int THD_mvpa_run_classification_cv( const THD_foldplan *plan,
      if(!pca_transform(w->pca,w->pca?w->pca->chosen[ff]:0,w->train_x,ntrain,w->test_x,ntest,&width,err,nerr))return 0;
      if(w->pca)pca_record(w->pca,ff);
      if(!class_fit(w,distance,ntrain,width,(w->svm || w->logistic)?w->class_selected[ff]:0,why,sizeof(why)) ||
-        !class_predict(w,ntest,width,why,sizeof(why)))
+        (ntest>0 && !class_predict(w,ntest,width,why,sizeof(why))))
        return pp_error(err,nerr,"fold %s classifier: %s",plan->name[ff],why);
+     if(plan->kind==THD_CV_TRAIN_ONLY)return 1;
      if(w->svm){
        w->fold_solver_iterations[ff]=w->svm->max_iterations;w->fold_solver_residual[ff]=w->svm->residual;
      }

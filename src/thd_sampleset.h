@@ -81,6 +81,15 @@ extern THD_sampleset * THD_sampleset_from_table(
                                       const THD_sampleset_columns *columns,
                                       char *err, int nerr ) ;
 
+/*! One whole epoch per row; reject selectors and require exactly ntime bricks
+    in every dataset. ntime=0 infers the count from the first dataset and
+    requires every other dataset to match. Metadata/identity remain trial-level. Initially selects
+    brick zero; callers may update sample_brick together to a common latency. */
+extern THD_sampleset * THD_sampleset_from_time_table(
+                                      const THD_datatable *dt,
+                                      const THD_sampleset_columns *columns,
+                                      int ntime, char *err, int nerr ) ;
+
 /*! Encode any metadata column in first-appearance order.  The returned code
     and labels belong to the caller.  Use THD_sampleset_free_levels(). */
 extern int THD_sampleset_encode_column( const THD_sampleset *ss,
