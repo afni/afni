@@ -1,17 +1,20 @@
 #!/bin/bash
 
 ###############################################
-## 9/2026 Justin Rajendra
+## 11/2026 Justin Rajendra
 ## user level install for afni docker on x86
 ## runs from the Dockerfile as the "afni_user"
 
 ## echo commands to terminal
-set -x
+set -ex
+
+## specify R version
+rver=4.6.1
 
 ######################################
 ## Get some afni.
 cd 
-curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
+curl -fLO https://afni.nimh.nih.gov/pub/dist/bin/misc/@update.afni.binaries
 tcsh @update.afni.binaries -no_recur -package linux_ubuntu_26_64 \
      -bindir /usr/local/abin -do_dotfiles -apsearch no
 
@@ -20,7 +23,7 @@ export PATH=$PATH:/usr/local/abin
 
 ######################################
 ## get the help auto complete
-curl -O https://afni.nimh.nih.gov/pub/dist/tgz/package_libs/afni_all_progs_COMP.tgz
+curl -fLO https://afni.nimh.nih.gov/pub/dist/tgz/package_libs/afni_all_progs_COMP.tgz
 tar -xvzf afni_all_progs_COMP.tgz
 rm -f afni_all_progs_COMP.tgz
 
@@ -44,9 +47,6 @@ EOT
 ######################################
 ## get pre compiled R packages
 
-## specify R version
-rver=4.6.1
-
 ## set some paths and define a variable for the R library location
 echo 'export R_LIBS=/home/afni_user/R' >> /home/afni_user/.bashrc
 echo 'setenv R_LIBS /home/afni_user/R' >> /home/afni_user/.cshrc
@@ -55,7 +55,7 @@ echo 'setenv R_LIBS /home/afni_user/R' >> /home/afni_user/.cshrc
 export R_LIBS=/home/afni_user/R
 
 ## get the pre-compiled R libraries
-curl -O https://afni.nimh.nih.gov/pub/dist/tgz/package_libs/linux_ubuntu_26_x86_R-${rver}_libs.tgz
+curl -fLO https://afni.nimh.nih.gov/pub/dist/tgz/package_libs/linux_ubuntu_26_x86_R-${rver}_libs.tgz
 tar -xvzf linux_ubuntu_26_x86_R-${rver}_libs.tgz
 mv linux_ubuntu_26_x86_R-${rver}_libs /home/afni_user/R
 rm -f linux_ubuntu_26_x86_R-${rver}_libs.tgz
