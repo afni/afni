@@ -274,6 +274,19 @@ if(TARGET 3dMVPA AND TARGET 3dUndump AND TARGET 3dbucket
     )
     set_tests_properties(3dMVPA:tuning-objectives PROPERTIES
                          LABELS "3dMVPA;numeric;integration")
+    set(MVPA_TIME_SURFACE_ARGS)
+    if(TARGET CreateIcosahedron AND TARGET ConvertDset)
+      list(APPEND MVPA_TIME_SURFACE_ARGS
+        $<TARGET_FILE:CreateIcosahedron> $<TARGET_FILE:ConvertDset>)
+    endif()
+    add_test(
+      NAME 3dMVPA:time-resolved
+      COMMAND ${Python_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_mvpa_time.py
+        $<TARGET_FILE:3dMVPA> ${MVPA_TIME_SURFACE_ARGS}
+    )
+    set_tests_properties(3dMVPA:time-resolved PROPERTIES
+                         LABELS "3dMVPA;numeric;integration")
     add_test(
       NAME 3dMVPA:pca
       COMMAND ${Python_EXECUTABLE}
