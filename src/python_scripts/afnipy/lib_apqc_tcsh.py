@@ -6099,30 +6099,36 @@ def vlines_parse_QC_txt(fname):
     Parameters
     ----------
     fname : str
-            name of text file
+        name of text file
 
     Return
     ------
     str_full : str
-            the full contents of the file, as a single string (it is only
-            one line, at present)
+        the full contents of the file, as a single string (it is only
+        one line, at present)
     str_name : str
-            name of the [0]th entry (e.g., 'inter' or 'r01', 'r02', ...)
+        name of the [0]th entry (e.g., 'inter' or 'r01', 'r02', ...)
 
     '''
 
     # default return, if error exiting
-    BAD_RETURN = ""
+    BAD_RETURN = ("", "")
 
-    if not(os.path.isfile( fname )) :    BAD_RETURN
+    if not(os.path.isfile( fname )) :
+        return BAD_RETURN
     
     fff = open(fname, 'r')
     X = fff.readlines()
     fff.close()
     
+    # is X empty?
+    if not(X):
+        return BAD_RETURN
+
     # parse first entry
     str_full = X[0].strip()
-    if not(str_full) :    BAD_RETURN
+    if not(str_full) :
+        return BAD_RETURN
 
     str_name = str_full.split(":")[0]
 
