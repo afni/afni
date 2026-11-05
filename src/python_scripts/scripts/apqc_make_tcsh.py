@@ -510,12 +510,14 @@ if __name__ == "__main__":
     # item    : EPI variance in orig (should exist in vlines*/ subdir)
 
     ldep = ["vlines_tcat_dir"]
-    ulay = ap_ssdict[ldep[0]] + '/' + 'var.1.scale.r01.nii.gz'
-    if lat.check_dep(ap_ssdict, ldep) and os.path.isfile(ulay) :
-        obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_vorig_all( ap_ssdict, obase, "vorig", "EPI_variance", 
-                                       ulay=ulay )
-        idx     += 1
+    if lat.check_dep(ap_ssdict, ldep) :
+        ulay = ap_ssdict[ldep[0]] + '/' + 'var.1.scale.r01.nii.gz'
+        if  os.path.isfile(ulay) :
+            obase = 'qc_{:02d}'.format(idx)
+            cmd   = lat.apqc_vorig_all( ap_ssdict, obase, 
+                                        "vorig", "EPI_variance", 
+                                        ulay=ulay )
+            idx  += 1
 
     # --------------------------------------------------------------------
 
@@ -1137,34 +1139,34 @@ if __name__ == "__main__":
     #           NB: uses vstat plotting, bc it is an Fstat
 
     ldep     = ["vlines_tcat_dir"]
-    ulay     = ap_ssdict[ldep[0]] + '/' + 'var.1.scale.r01.nii.gz'
-    all_stat = glob.glob(ap_ssdict[ldep[0]] + '/' + 'stats.r*.nii.gz')
-    all_stat.sort()
+    if lat.check_dep(ap_ssdict, ldep) :
+        # check for all files we would need to continue: ulay and >=1 stat
+        ulay     = ap_ssdict[ldep[0]] + '/' + 'var.1.scale.r01.nii.gz'
+        all_stat = glob.glob(ap_ssdict[ldep[0]] + '/' + 'stats.r*.nii.gz')
+        all_stat.sort()
+        if os.path.isfile(ulay) and len(all_stat) :
+            # if there is any vline stat dset found, take first one in
+            # list and extract info from it, like normal stat dset above
+            olay     = all_stat[0]
+            all_vstat_obj = lasd.parse_stats_dset_labels( olay,
+                                              user_plabs=['Full_Fstat'])
+            vso    = all_vstat_obj[0]
+            vsname = UTIL.rename_label_safely( vso.olay_label, 
+                                               only_hash=True )
 
-    if lat.check_dep(ap_ssdict, ldep) and os.path.isfile(ulay) and \
-       len(all_stat) :
-        # if there is any vline stat dset found, take first one in
-        # list and extract info from it, like normal stat dset above
-        olay     = all_stat[0]
-        all_vstat_obj = lasd.parse_stats_dset_labels( olay,
-                                                      user_plabs=['Full_Fstat'])
-        vso      = all_vstat_obj[0]
-        vsname   = UTIL.rename_label_safely( vso.olay_label, 
-                                             only_hash=True )
+            # check for mask for focusbox
+            dset_mask = ap_ssdict[ldep[0]] + '/' + 'mask.nii.gz'
+            if os.path.isfile(dset_mask) :
+                focusbox = dset_mask
+            else:
+                focusbox = 'AMASK_FOCUS_ULAY'
 
-        # check for mask for focusbox
-        dset_mask = ap_ssdict[ldep[0]] + '/' + 'mask.nii.gz'
-        if os.path.isfile(dset_mask) :
-            focusbox = dset_mask
-        else:
-            focusbox = 'AMASK_FOCUS_ULAY'
-
-        obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_vstat_vline( ap_ssdict, obase, "warns", 
+            obase = 'qc_{:02d}'.format(idx)
+            cmd   = lat.apqc_vstat_vline( ap_ssdict, obase, "warns", 
                                          'vlines_pc', ulay, focusbox, 
                                          olay, vso )
 
-        idx     += 1
+            idx  += 1
 
     # --------------------------------------------------------------------
 
