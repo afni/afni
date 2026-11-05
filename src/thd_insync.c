@@ -2067,35 +2067,34 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
                maps[nout+ci][widx[w]]=block_count[ci];
                maps[nout+ncond+ci][widx[w]]=eligible; maps[nout+2*ncond+ci][widx[w]]=used;
                maps[trslot+ci][widx[w]]=nkeep;
-               goto store_selection_stats;
-            }
-            nkeep=0; previous=-1; pbegin=0;
-            /* Keep rows at capacity stride while filtering. Pack to nkeep
-               stride afterward, in ascending subject order (overlap safe). */
-            for(k=0;k<length[ci];k++){
-               int original=time_at[(size_t)ci*nt+k],piece=piece_at[(size_t)ci*nt+k],finite=1;
-               if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<ns;si++) if(!isfinite(insync_store_get(&src,si,w,original))){ finite=0; break; }
-               if(!finite) continue;
-               if(piece!=previous){
-                  if(o->segment_center && nkeep>pbegin) for(si=0;si<nsub;si++){
-                     double mean=0; for(pos=pbegin;pos<nkeep;pos++) mean+=data[(size_t)si*nt+pos]; mean/=nkeep-pbegin;
-                     for(pos=pbegin;pos<nkeep;pos++) data[(size_t)si*nt+pos]-=(float)mean;
+            }else{
+               nkeep=0; previous=-1; pbegin=0;
+               /* Keep rows at capacity stride while filtering. Pack to nkeep
+                  stride afterward, in ascending subject order (overlap safe). */
+               for(k=0;k<length[ci];k++){
+                  int original=time_at[(size_t)ci*nt+k],piece=piece_at[(size_t)ci*nt+k],finite=1;
+                  if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<ns;si++) if(!isfinite(insync_store_get(&src,si,w,original))){ finite=0; break; }
+                  if(!finite) continue;
+                  if(piece!=previous){
+                     if(o->segment_center && nkeep>pbegin) for(si=0;si<nsub;si++){
+                        double mean=0; for(pos=pbegin;pos<nkeep;pos++) mean+=data[(size_t)si*nt+pos]; mean/=nkeep-pbegin;
+                        for(pos=pbegin;pos<nkeep;pos++) data[(size_t)si*nt+pos]-=(float)mean;
+                     }
+                     previous=piece; pbegin=nkeep;
                   }
-                  previous=piece; pbegin=nkeep;
+                  for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(&src,source_at[ci*nsub+si],w,original);
+                  nkeep++;
                }
-               for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(&src,source_at[ci*nsub+si],w,original);
-               nkeep++;
+               if(o->segment_center && nkeep>pbegin) for(si=0;si<nsub;si++){
+                  double mean=0; for(pos=pbegin;pos<nkeep;pos++) mean+=data[(size_t)si*nt+pos]; mean/=nkeep-pbegin;
+                  for(pos=pbegin;pos<nkeep;pos++) data[(size_t)si*nt+pos]-=(float)mean;
+               }
+               maps[trslot+ci][widx[w]]=nkeep;
+               if(nkeep<o->min_valid || !nominal[ci] || (double)nkeep/nominal[ci]<o->min_valid_frac) continue;
+               for(si=0;si<nsub;si++) memmove(data+(size_t)si*nkeep,data+(size_t)si*nt,nkeep*sizeof(float));
+               INSYNC_kernel_eval(worker[thread],nkeep,data,o->corr_metric,o->method,o->summary,ngroup,gcount,gmember,st,nv,pc);
+               if(pairout) memcpy(pairout,INSYNC_kernel_matrix(worker[thread]),(size_t)nsub*nsub*sizeof(float));
             }
-            if(o->segment_center && nkeep>pbegin) for(si=0;si<nsub;si++){
-               double mean=0; for(pos=pbegin;pos<nkeep;pos++) mean+=data[(size_t)si*nt+pos]; mean/=nkeep-pbegin;
-               for(pos=pbegin;pos<nkeep;pos++) data[(size_t)si*nt+pos]-=(float)mean;
-            }
-            maps[trslot+ci][widx[w]]=nkeep;
-            if(nkeep<o->min_valid || !nominal[ci] || (double)nkeep/nominal[ci]<o->min_valid_frac) continue;
-            for(si=0;si<nsub;si++) memmove(data+(size_t)si*nkeep,data+(size_t)si*nt,nkeep*sizeof(float));
-            INSYNC_kernel_eval(worker[thread],nkeep,data,o->corr_metric,o->method,o->summary,ngroup,gcount,gmember,st,nv,pc);
-            if(pairout) memcpy(pairout,INSYNC_kernel_matrix(worker[thread]),(size_t)nsub*nsub*sizeof(float));
-store_selection_stats:
             for(gg=0;gg<ngroup;gg++){
                int cell=ci*ngroup+gg;
                if(isfinite(st[gg])){ maps[2*cell][widx[w]]=st[gg]; maps[vslot+cell][widx[w]]=1; }

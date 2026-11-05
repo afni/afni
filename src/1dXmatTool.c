@@ -439,6 +439,15 @@ static int xt_mark_names(const THD_xmat *a,const char *list,int stimuli,unsigned
       if(!found){fprintf(stderr,"** unknown %s label: %s\n",stimuli?"stimulus":"column",v->str[i]);NI_delete_str_array(v);return 0;}
    }NI_delete_str_array(v);return 1;
 }
+/* Release the buffered TR selector on both success and failure. Diagnostics
+ * are emitted only for selection failures; stdout errors retain their status. */
+static int xt_finish_trs(unsigned char *keep,int *selected,NI_int_array *runs,
+                         const char *err,int status)
+{
+   if(status && *err)fprintf(stderr,"** %s\n",err);
+   free(keep);free(selected);if(runs)NI_delete_int_array(runs);
+   return status;
+}
 /* Resolve one ideal-response column and return retained run-local TRs on
  * stdout. The optional full-row reference determines a pre-censor peak, but
  * only rows present in a can enter the final selector. The window applies to
@@ -451,66 +460,65 @@ static int xt_show_trs(const THD_xmat *a,const THD_xmat *u,const XT_options *o,c
    NI_int_array *runs=NULL;unsigned char *keep=NULL;int c,col=-1,count=0,r,run,start,length,lo=0,hi,n=0;
    int *selected=NULL;double peak=0,threshold=o->tr_threshold;char err[1024]="";
    const THD_xmat *ref=u?u:a;
-#define TR_FAIL(msg) do{snprintf(err,sizeof(err),"%s",msg);goto bad;}while(0)
    if(!THD_xmat_attr(a,"RunStart") || !THD_xmat_attr(a,"GoodList") || !THD_xmat_attr(a,"NRowFull"))
-      TR_FAIL("-show_trs requires explicit RunStart, GoodList and NRowFull");
-   if(!xt_metadata(a,err,sizeof(err)))goto bad;
+      return xt_finish_trs(keep,selected,runs,"-show_trs requires explicit RunStart, GoodList and NRowFull",1);
+   if(!xt_metadata(a,err,sizeof(err)))return xt_finish_trs(keep,selected,runs,err,1);
    runs=runlist?parse_runs(runlist,a->nrun):NULL;
-   if(!runs || runs->num!=1)TR_FAIL("-show_trs requires exactly one run via -runs N");
+   if(!runs || runs->num!=1)return xt_finish_trs(keep,selected,runs,"-show_trs requires exactly one run via -runs N",1);
    /* Keep the run's original offset even when earlier TRs were censored.
     * lo/hi live in full-length run coordinates, not retained-row coordinates. */
    run=runs->ar[0]-1;start=a->runstart[run];length=THD_xmat_run_length(a,run);hi=length-1;
    if(o->tr_window){
       const char *p=o->tr_window;char *end;long first,last;
       errno=0;first=strtol(p,&end,10);
-      if(errno || end==p || first<0 || first>=length || strncmp(end,"..",2))TR_FAIL("-tr_window must be START..END within the selected run (zero-based, inclusive)");
+      if(errno || end==p || first<0 || first>=length || strncmp(end,"..",2))return xt_finish_trs(keep,selected,runs,"-tr_window must be START..END within the selected run (zero-based, inclusive)",1);
       p=end+2;errno=0;last=strtol(p,&end,10);
-      if(errno || end==p || *end || last<first || last>=length)TR_FAIL("-tr_window must be START..END within the selected run (zero-based, inclusive)");
+      if(errno || end==p || *end || last<first || last>=length)return xt_finish_trs(keep,selected,runs,"-tr_window must be START..END within the selected run (zero-based, inclusive)",1);
       lo=(int)first;hi=(int)last;
    }
    keep=calloc((size_t)a->ncol,1);selected=malloc(sizeof(int)*(size_t)a->nrow);
-   if(!keep || !selected)TR_FAIL("cannot allocate TR selection");
+   if(!keep || !selected)return xt_finish_trs(keep,selected,runs,"cannot allocate TR selection",1);
    if(o->columns){
       char *end;long v;errno=0;v=strtol(o->columns,&end,10);
-      if(errno || end==o->columns || *end || v<0 || v>=a->ncol)TR_FAIL("-show_trs -select_columns needs one zero-based column index");
+      if(errno || end==o->columns || *end || v<0 || v>=a->ncol)return xt_finish_trs(keep,selected,runs,"-show_trs -select_columns needs one zero-based column index",1);
       keep[v]=1;
    }
-   if(o->labels && !xt_mark_names(a,o->labels,0,keep))goto bad;
-   if(o->stimuli && !xt_mark_names(a,o->stimuli,1,keep))goto bad;
+   if(o->labels && !xt_mark_names(a,o->labels,0,keep))return xt_finish_trs(keep,selected,runs,err,1);
+   if(o->stimuli && !xt_mark_names(a,o->stimuli,1,keep))return xt_finish_trs(keep,selected,runs,err,1);
    for(c=0;c<a->ncol;c++)if(keep[c]){col=c;count++;}
    /* Do not silently add basis columns or choose among trials in an IM family:
     * those choices would change the meaning of the requested ideal response. */
-   if(count!=1)TR_FAIL("-show_trs needs exactly one design column; use -select_labels or -select_columns for multi-column stimuli");
+   if(count!=1)return xt_finish_trs(keep,selected,runs,"-show_trs needs exactly one design column; use -select_labels or -select_columns for multi-column stimuli",1);
    /* Verify that u really is the full version of a, including every retained
     * value, before letting its otherwise unseen rows set the threshold. */
    if(u){
-      if(!xt_metadata(u,err,sizeof(err)))goto bad;
+      if(!xt_metadata(u,err,sizeof(err)))return xt_finish_trs(keep,selected,runs,err,1);
       if(u->nfull!=a->nfull || u->nrow!=a->nfull || u->ncol!=a->ncol || u->nrun!=a->nrun || u->tr!=a->tr || u->nstim!=a->nstim)
-         TR_FAIL("uncensored reference dimensions, runs, stimuli or TR do not match");
-      for(r=0;r<u->nrow;r++)if(u->good[r]!=r)TR_FAIL("uncensored reference must contain every original TR");
-      for(r=0;r<a->nrun;r++)if(u->runstart[r]!=a->runstart[r])TR_FAIL("uncensored reference RunStart does not match");
+         return xt_finish_trs(keep,selected,runs,"uncensored reference dimensions, runs, stimuli or TR do not match",1);
+      for(r=0;r<u->nrow;r++)if(u->good[r]!=r)return xt_finish_trs(keep,selected,runs,"uncensored reference must contain every original TR",1);
+      for(r=0;r<a->nrun;r++)if(u->runstart[r]!=a->runstart[r])return xt_finish_trs(keep,selected,runs,"uncensored reference RunStart does not match",1);
       for(r=0;r<a->nstim;r++)if(strcmp(a->stim[r].label,u->stim[r].label) || a->stim[r].bot!=u->stim[r].bot || a->stim[r].top!=u->stim[r].top)
-         TR_FAIL("uncensored reference stimulus ranges/labels do not match");
+         return xt_finish_trs(keep,selected,runs,"uncensored reference stimulus ranges/labels do not match",1);
       for(c=0;c<a->ncol;c++){
-         if(strcmp(a->collab[c],u->collab[c]))TR_FAIL("uncensored reference column labels do not match");
+         if(strcmp(a->collab[c],u->collab[c]))return xt_finish_trs(keep,selected,runs,"uncensored reference column labels do not match",1);
          for(r=0;r<a->nrow;r++)if(a->mat[(size_t)c*a->nrow+r]!=u->mat[(size_t)c*u->nrow+a->good[r]])
-            TR_FAIL("uncensored reference differs at a retained matrix value");
+            return xt_finish_trs(keep,selected,runs,"uncensored reference differs at a retained matrix value",1);
       }
    }
    /* A censored peak would lower the threshold and admit different TRs.
     * Requiring the full reference makes fractional selection reproducible. */
    if(o->tr_fraction && a->nrow<a->nfull && !u)
-      TR_FAIL("fractional selection on a censored matrix requires -uncensored to define the pre-censor peak");
+      return xt_finish_trs(keep,selected,runs,"fractional selection on a censored matrix requires -uncensored to define the pre-censor peak",1);
    /* Find the positive (not absolute) peak in the explicit run/window.
     * For absolute thresholds this pass still checks relevant values are finite. */
    for(r=0;r<ref->nrow;r++){
       int t=ref->good[r]-start;double v=ref->mat[(size_t)col*ref->nrow+r];
       if(t<lo || t>hi)continue;
-      if(!isfinite(v))TR_FAIL("selected ideal contains nonfinite values");
+      if(!isfinite(v))return xt_finish_trs(keep,selected,runs,"selected ideal contains nonfinite values",1);
       if(v>peak)peak=v;
    }
    if(o->tr_fraction){
-      if(peak<=0)TR_FAIL("selected run/window has no positive ideal-response peak");
+      if(peak<=0)return xt_finish_trs(keep,selected,runs,"selected run/window has no positive ideal-response peak",1);
       threshold*=peak;
    }
    /* Walk only retained observations. Subtracting start converts GoodList's
@@ -520,14 +528,10 @@ static int xt_show_trs(const THD_xmat *a,const THD_xmat *u,const XT_options *o,c
       int t=a->good[r]-start;double v=a->mat[(size_t)col*a->nrow+r];
       if(t>=lo && t<=hi && v>threshold)selected[n++]=t;
    }
-   if(!n)TR_FAIL("no retained TRs exceed the threshold in the selected run/window");
+   if(!n)return xt_finish_trs(keep,selected,runs,"no retained TRs exceed the threshold in the selected run/window",1);
    for(r=0;r<n;r++)printf("%s%d",r?",":"",selected[r]);
-   putchar('\n');free(keep);free(selected);NI_delete_int_array(runs);
-   return ferror(stdout)?1:0;
-bad:
-   if(*err)fprintf(stderr,"** %s\n",err);
-   free(keep);free(selected);if(runs)NI_delete_int_array(runs);return 1;
-#undef TR_FAIL
+   putchar('\n');
+   return xt_finish_trs(keep,selected,runs,err,ferror(stdout)?1:0);
 }
 
 /* Write a column subset plus provenance maps. All requested selection types

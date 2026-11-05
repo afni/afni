@@ -360,8 +360,8 @@ static void identity_members(INSYNC_infer *x,infer_worker *w,int paired)
 static int estimate(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng,
                     const unsigned char *fixed,unsigned char *chosen)
 {
-   const INSYNC_options *o=x->o; int ns=2*x->grid.nsub,b,g,i,j,ncomp=0,nkeep=0;
-   for(g=0;g<ng;g++){
+   const INSYNC_options *o=x->o; int ns=2*x->grid.nsub,b,g,i,j,ncomp=0,nkeep=0,valid=1;
+   for(g=0;g<ng && valid;g++){
       int n=0,unique=0;
       w->component_offset[g]=ncomp;
       for(i=0;i<w->count[g];i++){
@@ -370,14 +370,14 @@ static int estimate(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng,
          if(o->method==INSYNC_METHOD_LOO) n++;
          else for(j=i+1;j<w->count[g];j++) if(w->member[g][i]!=w->member[g][j]) n++;
       }
-      if(unique<2) goto invalid;
-      w->component_count[g]=n; ncomp+=n;
+      if(unique<2) valid=0;
+      else{ w->component_count[g]=n; ncomp+=n; }
    }
-   for(b=0;b<nb;b++){
+   for(b=0;b<nb && valid;b++){
       const float *matrix,*loo; int good=1,p=0;
       if(chosen) chosen[b]=0;
       if(fixed && !fixed[b]) continue;
-      if(!w->coverage[b]){ if(fixed) goto invalid; else continue; }
+      if(!w->coverage[b]){ if(fixed) valid=0; continue; }
       INSYNC_kernel_eval(w->kernel,w->length[b],w->data+w->offset[b],o->corr_metric,o->method,o->summary,ng,w->count,w->member,w->st,w->nv,w->pc);
       matrix=INSYNC_kernel_matrix(w->kernel); loo=INSYNC_kernel_loo(w->kernel);
       for(g=0;g<ng;g++) for(i=0;i<w->count[g];i++){
@@ -389,26 +389,27 @@ static int estimate(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng,
             v=matrix[(size_t)a*ns+c]; w->component[(size_t)b*ncomp+p++]=v; if(!isfinite(v)) good=0;
          }
       }
-      if(!good){ if(fixed) goto invalid; else continue; }
+      if(!good){ if(fixed) valid=0; continue; }
       if(chosen) chosen[b]=1;
       nkeep++;
    }
-   if(!nkeep || (aggregate && (nkeep<o->min_blocks || (double)nkeep/nb<o->min_block_frac || (!o->block_drop_common && nkeep!=nb)))) goto invalid;
-   for(g=0;g<ng;g++){
-      int nc=w->component_count[g],off=w->component_offset[g];
-      for(i=0;i<nc;i++){
-         int n=0;
-         for(b=0;b<nb;b++) if(fixed?fixed[b]:chosen[b]) w->scratch[n++]=w->component[(size_t)b*ncomp+off+i];
-         /* Store component aggregates in a disjoint tail; group scratch is
-            separate from block scratch and may sort its input in place. */
-         w->scratch[nb+i]=n==1?w->scratch[0]:INSYNC_summary(n,w->scratch,o->block_summary,w->scratch,NULL);
+   if(!nkeep || (aggregate && (nkeep<o->min_blocks || (double)nkeep/nb<o->min_block_frac || (!o->block_drop_common && nkeep!=nb)))) valid=0;
+   if(valid){
+      for(g=0;g<ng;g++){
+         int nc=w->component_count[g],off=w->component_offset[g];
+         for(i=0;i<nc;i++){
+            int n=0;
+            for(b=0;b<nb;b++) if(fixed?fixed[b]:chosen[b]) w->scratch[n++]=w->component[(size_t)b*ncomp+off+i];
+            /* Store component aggregates in a disjoint tail; group scratch is
+               separate from block scratch and may sort its input in place. */
+            w->scratch[nb+i]=n==1?w->scratch[0]:INSYNC_summary(n,w->scratch,o->block_summary,w->scratch,NULL);
+         }
+         w->st[g]=INSYNC_summary(nc,w->scratch+nb,o->summary,w->scratch+nb,NULL);
       }
-      w->st[g]=INSYNC_summary(nc,w->scratch+nb,o->summary,w->scratch+nb,NULL);
+   }else{
+      for(g=0;g<ng;g++) w->st[g]=NAN;
    }
-   return 1;
-invalid:
-   for(g=0;g<ng;g++) w->st[g]=NAN;
-   return 0;
+   return valid;
 }
 static void record_null(PERM_result *r,unsigned char *valid,int cell,const float *nulls,float *maxpos,float *maxneg,int tail)
 {
