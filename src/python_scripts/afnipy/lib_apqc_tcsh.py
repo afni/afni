@@ -3957,9 +3957,6 @@ num : int
     com    = ab.shell_com(cmd, capture=do_cap)
     com.run()
 
-    # minor formatting
-    olay_desc = 'template edges, {} space'.format(ap_ssdict['main_dset_sp'])
-
     # text above images
     otoptxt = []
     otoptxt.append("olay: [{}] '{}' (in {})".format( olaybrick, olaylabel, 
@@ -4000,6 +3997,234 @@ num : int
     }
     with codecs.open(osubjson, 'w', encoding='utf-8') as fff:
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
+
+    # Make pbar text
+    cmd = '''
+    abids_json_tool.py                                                       \
+        -overwrite                                                           \
+        -txt2json                                                            \
+        -delimiter_major  '::'                                               \
+        -delimiter_minor  ',,'                                               \
+        -input            "{opbarrt}.txt"                                    \
+        -prefix           "{opbarrt}.json"
+    '''.format( opbarrt=opbarrt )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+    
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
+    with codecs.open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
+
+    # Make NiiVue canvas text
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
+                                     olay_name=olay, itemid=qci,
+                                     verb=0 )
+    fff = open(onvhtml, 'w')
+    fff.write(nv_txt)
+    fff.close()
+    onvhtml_name = onvhtml.split('/')[-1]
+
+    return 0
+
+# -----------------------------------------------------------------
+
+# ["vlines_tcat_dir", 'var.1.scale.r01.nii.gz', 'stats.r*.nii.gz']
+# ['mask.nii.gz'] # secondary consideration
+def apqc_vstat_vline( ap_ssdict, obase, qcb, qci, 
+                      ulay, focusbox, olay, vso ):
+    """Make images of the volumetric statistics information for the vlines
+case.  These images are made in **highlight** mode, using transparent
+thresholding. Also create text for above/below images. This plotting
+is derived from vstat_stvol(), but has enough special considerations
+to be its own function.
+
+We now also read back in the pbar JSON dictionary, to help with
+driving AFNI-view and NiiVue instances.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+ulay : str
+    filename of underlay dataset
+focusbox : str
+    filename of dataset to use to focus in on part of the dataset
+    (i.e., to ignore empty slices)
+olay : str
+    filename of the overlay (stats) dset
+vso : vstat_obj
+    an instance of an object that holds a lot of effect estimate,
+    statistic, and colorbar information for plotting
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.sag.json'                   # only use sag imgs here
+    opbarrt  = opref + '.pbar'
+    onvhtml  = opref + '.niivue.html'                # output niivue canvas
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '# peruse vline PC statistical results: '
+    cmd   += 'thr [{}], olay [{}]'.format(vso.thr_index, vso.olay_index )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # do we have a mask here? changes how some stat thresholds are gotten
+    HAVE_MASK = 'mask' in focusbox
+
+    if HAVE_MASK :
+        p2  = 99                           # percentile: top of cbar 
+        mmm = "-mask {}".format(focusbox)  # perc calc within mask
+        ttt = " in mask"                   # text note on FOV for perc
+    else:
+        p2  = 98                           # percentile: top of cbar 
+        mmm = ""                           # no mask; perc across WB
+        ttt = " in full nonzero volume"    # text note on FOV for perc
+
+    cbar            = 'Plasma'
+    pval            = 0.01
+    pside           = '1sided'             # F-stat is only 1-sided
+    pbar_comm_range = "{}%ile {}".format(p2, ttt)
+    pbar_comm_thr   = "p={}, alpha on".format(pval)
+
+    # get ulay prefix (name from arg)
+    cmd    = '3dinfo -prefix ' + ulay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    ulay_pref = com.so[0].strip()
+
+    # get olay prefix and AFNI view space
+    cmd    = '3dinfo -prefix -av_space ' + olay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    olay_pref = lll[0]
+    avsp      = lll[1]
+
+    olaybrick = vso.olay_index
+    cmd    = '3dinfo -label {}"[{}]"'.format(olay, olaybrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    olaylabel = com.so[0].strip()
+
+    thrbrick = vso.thr_index
+    cmd    = '3dinfo -label {}"[{}]"'.format(olay, thrbrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    thrlabel = com.so[0].strip()
+
+    cmd    = '3dAttribute BRICK_STATAUX {}"[{}]"'.format(olay, thrbrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    thr_dof = ' '.join(lll[3:]) # one or more ints, joined as strings
+
+    # get top val for cbar of olay from %ile (either in mask, or not)
+    cmd    = '''
+    3dBrickStat -slow -perc_quiet -perclist 1 {} {} {}"[{}]"
+    '''.format(p2, mmm, 
+               olay, olaybrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].strip()
+    olay_topval = float(lll)
+
+    # what will minval of pbar be? 0, or -max?
+    if vso.olay_posonly :
+        olay_minval_str = "-pbar_posonly"
+        pbar_min        = "0"
+    else:
+        olay_minval_str = "-pass"
+        pbar_min        = "-{}".format(olay_topval)
+
+    cmd = '''
+    @chauffeur_afni                                                          \
+        -ulay              {ulay}                                            \
+        -box_focus_slices  {focusbox}                                        \
+        -olay              {olay}                                            \
+        -cbar              {cbar}                                            \
+        {olay_minval_str}                                                    \
+        -ulay_range        0% 99%                                            \
+        -func_range        {olay_topval}                                     \
+        -thr_olay_p2stat   {pval}                                            \
+        -thr_olay_pside    {pside}                                           \
+        -olay_alpha        Yes                                               \
+        -olay_boxed        No                                                \
+        -set_subbricks     0 {olaybrick} {thrbrick}                          \
+        -opacity           9                                                 \
+        -pbar_saveim       "{opbarrt}.jpg"                                   \
+        -pbar_comm_range   "{pbar_comm_range}"                               \
+        -pbar_comm_thr     "{pbar_comm_thr}"                                 \
+        -pbar_thr_alpha    Yes                                               \
+        -prefix            "{opref}"                                         \
+        -save_ftype        JPEG                                              \
+        -blowup            2                                                 \
+        -montx             7                                                 \
+        -monty             1                                                 \
+        -montgap           1                                                 \
+        -montcolor         black                                             \
+        -set_xhairs        OFF                                               \
+        -label_mode        1                                                 \
+        -label_size        4                                                 \
+        -no_cor -no_axi                                                      \
+        -cmd2script        {odoafni}                                         \
+        -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
+        -do_clean
+    '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
+                cbar=vso.olay_pbar, olay_minval_str=olay_minval_str, 
+                olay_topval=olay_topval, 
+                pval=pval, pside=pside,
+                olaybrick=olaybrick, thrbrick=thrbrick,
+                opbarrt=opbarrt, pbar_comm_range=pbar_comm_range, 
+                pbar_comm_thr=pbar_comm_thr, opref=opref,
+                odoafni=odoafni, qcb=qcb, qci=qci )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
+    # text above images
+    otoptxt = []
+    otoptxt.append("EPI variance lines: PC stats ({})".format( olay))
+    otoptxt.append("olay, thr: [{}] '{}' (df = {})".format( thrbrick, 
+                                                            thrlabel,
+                                                            thr_dof ))
+
+    # text below images
+    osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
+
+    # Make info above images
+    otopdict = {
+        'itemtype'    : 'VOL',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+        'av_file'     : odoafni,
+        'subtext'     : osubtxt,
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
 
     # Make pbar text
     cmd = '''
