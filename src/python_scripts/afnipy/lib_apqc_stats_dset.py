@@ -725,7 +725,8 @@ pre-labels (e.g., stimulus names).
                     bad_plabs.append(plab)
                 break
 
-            elif flab.startswith(plab) and flab.endswith('_Coef') :
+            elif flab.startswith((plab + '#', plab + '_GLT#')) and \
+                 flab.endswith('_Coef') :
                 # Now check if it is a good Coef/Tstat pairing
                 if not(is_label_some_Coef_with_Tstat(idx, list_label)) :
                     print("** ERROR: confused at coef check.\n"

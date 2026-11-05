@@ -173,11 +173,9 @@ B : list
               "".format(N))
 
     B = [0.0] * 3    # to store coord values
-    S = [1.0] * 3    # signum values, +/- 1
 
-    # coords where signs will flip
-    if A[0] > 0 :    S[0] = -1
-    if A[1] > 0 :    S[1] = -1
+    # signum values, +/- 1, determining coords where signs will flip
+    S = [-1.0, -1.0, 1.0]
 
     for i in range(3):
         B[i] = S[i] * A[i]

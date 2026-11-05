@@ -1353,37 +1353,34 @@ ap_ssdict : dict
             ap_ssdict['main_dset'] = ap_ssdict['final_anat']
 
     if not(HAVE_MAIN) and check_dep(ap_ssdict, ldep) :  # --- check for template
-        # pre-check, output might be used in a couple ways
-        cmd  = '''basename {}'''.format( ap_ssdict['template'] )
-        com  = ab.shell_com(cmd, capture=do_cap)
-        stat = com.run()
-        btemp = com.so[0] # always produces output, even if no file exists
+        template = ap_ssdict['template']
+        btemp = os.path.basename(template)
 
-        # search using full template name (might include path)
-        cmd  = '''@FindAfniDsetPath {}'''.format( ap_ssdict['template'] )
-        com  = ab.shell_com(cmd, capture=do_cap)
-        stat = com.run()
-
-        # only include path to template if it is *not* '.'
-        if com.so[0] != '.' :    path2dset = com.so[0] + '/'
-        else:                    path2dset = ''
-
-        if not(stat) and len(com.so) :
-            HAVE_MAIN = 1
-            ap_ssdict['main_dset'] = path2dset + btemp
-        else:
-            # search using basename of template only (no path)
-            cmd  = '''@FindAfniDsetPath {}'''.format( btemp )
-            com  = ab.shell_com(cmd, capture=do_cap)
+        # Try the supplied path first, then search by basename.
+        for candidate in (template, btemp):
+            cmd = '@FindAfniDsetPath {}'.format(candidate)
+            com = ab.shell_com(cmd, capture=do_cap)
             stat = com.run()
 
-            if not(stat) and len(com.so) :
-                HAVE_MAIN = 1
-                ap_ssdict['main_dset'] = path2dset + btemp
+            if stat or not com.so:
+                # ... move to next candidate
+                continue
+            path2dset = com.so[0].strip()
+            if not path2dset:
+                # ... move to next candidate
+                continue
+
+            if path2dset == '.' :
+                ap_ssdict['main_dset'] = btemp
             else:
-                print("** ERROR: Cannot find specified template: {}"
-                      "".format(ap_ssdict['template'] ))
-                sys.exit(1)
+                ap_ssdict['main_dset'] = os.path.join(path2dset, btemp)
+            HAVE_MAIN = 1
+            break
+
+        if not(HAVE_MAIN) :
+            print("** ERROR: Cannot find specified template: {}"
+                  "".format(template))
+            sys.exit(1)
 
     elif check_dep(ap_ssdict, ldep_alt1) :     # --------- check for anat
         HAVE_MAIN = 1
@@ -6102,30 +6099,36 @@ def vlines_parse_QC_txt(fname):
     Parameters
     ----------
     fname : str
-            name of text file
+        name of text file
 
     Return
     ------
     str_full : str
-            the full contents of the file, as a single string (it is only
-            one line, at present)
+        the full contents of the file, as a single string (it is only
+        one line, at present)
     str_name : str
-            name of the [0]th entry (e.g., 'inter' or 'r01', 'r02', ...)
+        name of the [0]th entry (e.g., 'inter' or 'r01', 'r02', ...)
 
     '''
 
     # default return, if error exiting
-    BAD_RETURN = ""
+    BAD_RETURN = ("", "")
 
-    if not(os.path.isfile( fname )) :    BAD_RETURN
+    if not(os.path.isfile( fname )) :
+        return BAD_RETURN
     
     fff = open(fname, 'r')
     X = fff.readlines()
     fff.close()
     
+    # is X empty?
+    if not(X):
+        return BAD_RETURN
+
     # parse first entry
     str_full = X[0].strip()
-    if not(str_full) :    BAD_RETURN
+    if not(str_full) :
+        return BAD_RETURN
 
     str_name = str_full.split(":")[0]
 
