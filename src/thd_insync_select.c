@@ -165,7 +165,7 @@ static void expand(INSYNC_schedule *s,int *cap,const INSYNC_options *o,int sourc
    s->requested=nominal.segment; s->nrequested=nominal.nsegment;
    if(o->window){
       long long at, last=(long long)stop-o->window+1;
-      if(last<start){ s->nempty++; return; }
+      if(last<start){ s->short_segment_count++; return; }
       for(at=start;at<=last;at+=o->step)
          add_segment(s,cap,source,row,label,segment,run,(int)at,(int)at+o->window-1,1);
    } else add_segment(s,cap,source,row,label,segment,run,start,stop,0);
@@ -702,7 +702,7 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
    }
    free(row_source);
    validate_nominal(s);
-   if(!s->nsegment){ xmat_counts(stderr,s); SEL_FAIL("no complete windows/blocks: %d source segments are shorter than -window",s->nempty); }
+   if(!s->nsegment){ xmat_counts(stderr,s); SEL_FAIL("no complete windows/blocks: %d source segments are shorter than -window",s->short_segment_count); }
    qsort(s->segment,s->nsegment,sizeof(*s->segment),by_source);
    starts=allocate(s->nsource,sizeof(int)); counts=allocate(s->nsource,sizeof(int));
    for(i=0;i<s->nsource;i++) starts[i]=-1;
@@ -818,7 +818,7 @@ int INSYNC_schedule_report(const INSYNC_options *o, THD_datatable *t, INSYNC_sch
       if(e->parent_id) fprintf(fp,"\tsel%06d",e->parent_id); else fputs("\tNA",fp);
       if(e->component_id) fprintf(fp,"\tsel%06d\n",e->component_id); else fputs("\tNA\n",fp);
    }
-   fprintf(report,"3dInSync selection preflight (schema 3)\nInput rows: %d\nUnique subject/condition sources: %d\nUnique selection IDs: %d\nExpanded source-segment rows: %d\nShort source segments producing zero windows: %d\n",t->nrow,s->nsource,s->nselection,s->nsegment,s->nempty);
+   fprintf(report,"3dInSync selection preflight (schema 3)\nInput rows: %d\nUnique subject/condition sources: %d\nUnique selection IDs: %d\nExpanded source-segment rows: %d\nShort source segments producing zero windows: %d\n",t->nrow,s->nsource,s->nselection,s->nsegment,s->short_segment_count);
    if(s->xmat_mode){
       fprintf(report,"Xmat threshold: ");
       if(o->xmat_blocks) fprintf(report,"%.17g of full-design peak; inclusive; overlap allowed\n",o->xmat_threshold);

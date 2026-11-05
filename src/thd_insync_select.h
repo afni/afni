@@ -26,7 +26,7 @@ typedef struct {
    int *runstart;
    INSYNC_source *source;
    INSYNC_segment *segment;
-   int nempty, nrequested, requested_capacity;
+   int short_segment_count, nrequested, requested_capacity;
    INSYNC_segment *requested;
    double tr;
    int xmat_mode, ndesign, nstim;

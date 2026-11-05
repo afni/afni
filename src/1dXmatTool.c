@@ -73,6 +73,7 @@ static void usage(void)
 "                    compressed censored rows. Censored TRs are always excluded.\n"
 "                    Empty, ambiguous or invalid queries fail with empty stdout.\n"
 "                    Cannot combine -show_trs with reports or file-writing modes.\n"
+"                                                                               \n"
 "Example (Bash; check selection before invoking 3dTstat):\n"
 "  trs=$(1dXmatTool -infile X.xmat.1D -uncensored X.nocensor.xmat.1D \\\n"
 "        -show_trs -runs 1 -select_stimuli face \\\n"
