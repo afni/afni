@@ -46,6 +46,13 @@
 #include "readme_afnigui.h"
 #include "readme_env.h"
 
+#ifdef DARWIN
+# include <X11/Shell.h>
+# include <X11/StringDefs.h>
+# include <Xm/TextF.h>
+# include <wchar.h>
+#endif
+
 /*------------------------------------------------------*/
 /* if the compiler wants to 'show off' the name of this
    edition of AFNI, then turn that macro into a string. */
@@ -2295,6 +2302,144 @@ static int check_string( char *targ , int ns , char *ss[] )
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*----------------------------------------------------------------------------*/
 
+/* BEGIN AFNI_DIRECT_SELECTION_PASTE
+   macOS Command+V for ASCII text, without Motif's selection-transfer actions.
+*/
+#ifdef DARWIN
+typedef struct { Widget target ; Atom utf8 ; } AFNI_selection_paste ;
+static Widget AFNI_paste_requestor = NULL ;
+static XtTranslations AFNI_paste_default_translations = NULL ;
+
+static void AFNI_paste_target_destroyed( Widget w, XtPointer cd, XtPointer cb )
+{
+   (void)w ; (void)cb ;
+   ((AFNI_selection_paste *)cd)->target = NULL ;
+}
+
+static void AFNI_paste_dispose( AFNI_selection_paste *req )
+{
+   if( req->target != NULL )
+      XtRemoveCallback(req->target,XmNdestroyCallback,
+                       AFNI_paste_target_destroyed,(XtPointer)req) ;
+   free(req) ;
+}
+
+static void AFNI_paste_receive( Widget requestor, XtPointer cd,
+                              Atom *selection, Atom *type, XtPointer value,
+                              unsigned long *length, int *format )
+{
+   AFNI_selection_paste *req = (AFNI_selection_paste *)cd ;
+   Widget w = req->target ;
+   unsigned char *bytes = (unsigned char *)value ;
+   wchar_t *text = NULL ;
+   XmTextPosition from, to, cursor, last ;
+   Boolean pending = True ;
+   unsigned long ii ;
+   int maximum ;
+   (void)requestor ; (void)selection ;
+
+   if( w == NULL ) goto done ;
+   if( *type == None || *type == XT_CONVERT_FAIL || value == NULL ){
+      WARNING_message("AFNI paste: unable to retrieve CLIPBOARD text") ;
+      goto done ;
+   }
+   if( *type != req->utf8 || *format != 8 || *length > 1048576UL ){
+      WARNING_message("AFNI paste: unsupported clipboard format or size") ;
+      goto done ;
+   }
+   if( *length == 0 || !XtIsSensitive(w) || !XmTextFieldGetEditable(w) ) goto done ;
+   cursor = XmTextFieldGetInsertionPosition(w) ;
+   last = XmTextFieldGetLastPosition(w) ;
+   XtVaGetValues(w,XmNpendingDelete,&pending,NULL) ;
+   from = to = cursor ;
+   if( !pending || !XmTextFieldGetSelectionPosition(w,&from,&to) ||
+       cursor < from || cursor > to ) from = to = cursor ;
+   maximum = XmTextFieldGetMaxLength(w) ;
+   if( from < 0 || to < from || to > last || maximum < 0 ||
+       *length > (unsigned long)maximum ||
+       (unsigned long)(last-(to-from)) > (unsigned long)maximum-*length ){
+      WARNING_message("AFNI paste: text exceeds this field's maximum length") ;
+      goto done ;
+   }
+   text = (wchar_t *)calloc((size_t)*length+1,sizeof(*text)) ;
+   if( text == NULL ){
+      WARNING_message("AFNI paste: cannot allocate text") ;
+      goto done ;
+   }
+   for( ii=0 ; ii < *length ; ii++ ){
+      if( bytes[ii] == '\r' || bytes[ii] == '\n' || bytes[ii] == '\t' ) text[ii] = L' ' ;
+      else if( bytes[ii] < 32 || bytes[ii] >= 127 ){
+         WARNING_message("AFNI paste: only ASCII text is supported") ;
+         goto done ;
+      } else text[ii] = (wchar_t)bytes[ii] ;
+   }
+   XmTextFieldReplaceWcs(w,from,to,text) ;
+   /* A verification callback may destroy the dialog during replacement. */
+   if( req->target != NULL ){
+      last = XmTextFieldGetLastPosition(req->target) ;
+      cursor = from + (XmTextPosition)*length ;
+      XmTextFieldSetInsertionPosition(req->target,(cursor < last)?cursor:last) ;
+   }
+done:
+   if( text != NULL ) free(text) ;
+   if( value != NULL ) XtFree((char *)value) ;
+   AFNI_paste_dispose(req) ;
+}
+
+static void AFNI_paste_selection_action( Widget w, XEvent *event,
+                                       String *params, Cardinal *num_params )
+{
+   AFNI_selection_paste *req ;
+   Display *display = XtDisplay(w) ;
+   (void)params ; (void)num_params ;
+   if( !XmIsTextField(w) || event == NULL || event->type != KeyPress ||
+       event->xkey.time == CurrentTime || !XtIsSensitive(w) ||
+       !XmTextFieldGetEditable(w) ) return ;
+   /* The unmapped requestor outlives dialogs closed during a transfer. */
+   if( AFNI_paste_requestor == NULL ){
+      AFNI_paste_requestor = XtVaCreatePopupShell(
+         "afniPaste",overrideShellWidgetClass,MAIN_shell,
+         XtNwidth,(XtArgVal)1,XtNheight,(XtArgVal)1,NULL) ;
+      XtRealizeWidget(AFNI_paste_requestor) ;
+   }
+   req = (AFNI_selection_paste *)calloc(1,sizeof(*req)) ;
+   if( req == NULL ){
+      WARNING_message("AFNI paste: cannot allocate selection request") ;
+      return ;
+   }
+   req->target = w ; req->utf8 = XInternAtom(display,"UTF8_STRING",False) ;
+   XtAddCallback(w,XmNdestroyCallback,AFNI_paste_target_destroyed,(XtPointer)req) ;
+   /* Xt may call back synchronously: do not access req after this call. */
+   XtGetSelectionValue(AFNI_paste_requestor,XInternAtom(display,"CLIPBOARD",False),
+                       req->utf8,AFNI_paste_receive,(XtPointer)req,event->xkey.time) ;
+}
+
+static void AFNI_paste_widget_created( Widget hooks, XtPointer cd, XtPointer cb )
+{
+   XtCreateHookData created = (XtCreateHookData)cb ;
+   (void)hooks ; (void)cd ;
+   if( created != NULL && created->widget != NULL &&
+       XmIsTextField(created->widget) && AFNI_paste_default_translations != NULL )
+      XtOverrideTranslations(created->widget,AFNI_paste_default_translations) ;
+}
+
+static void AFNI_initialize_paste( XtAppContext app, Widget shell )
+{
+   static XtActionsRec actions[] = {
+      { "AFNI-paste-selection", AFNI_paste_selection_action }
+   } ;
+   XtAppAddActions(app,actions,XtNumber(actions)) ;
+   AFNI_paste_default_translations = XtParseTranslationTable(
+      "Mod2<KeyPress>v: AFNI-paste-selection()") ;
+   if( AFNI_paste_default_translations != NULL )
+      XtAddCallback(XtHooksOfDisplay(XtDisplay(shell)),XtNcreateHook,
+                    AFNI_paste_widget_created,NULL) ;
+   else WARNING_message("AFNI paste: could not install Command+V binding") ;
+}
+#endif /* DARWIN */
+/* END AFNI_DIRECT_SELECTION_PASTE */
+
+
 int main( int argc , char *argv[] )
 {
    int ii ; int dienow=0 ;
@@ -2716,6 +2861,10 @@ int main( int argc , char *argv[] )
                                    NULL ) ;
 
    if( MAIN_shell == NULL ) ERROR_exit("Cannot initialize X11") ;
+
+#ifdef DARWIN
+   AFNI_initialize_paste( MAIN_app, MAIN_shell ) ;
+#endif
 
 #if 1
    { Display *dpy = XtDisplay(MAIN_shell) ;
