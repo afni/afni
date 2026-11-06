@@ -1,6 +1,10 @@
-# AFNI Docker V1 (`docker_v1`)
+# AFNI Docker Container
 
-This repository serves as a streamlined, direct approach to building or launching containerized versions of **AFNI (Analysis of Functional NeuroImages)**. It aims to reduce dependency conflicts and installation overhead, making it easier to deploy AFNI in a Docker on different operating systems (various Linux distributions and macOS) and on different CPU architectures (Intel/x86, Apple Silicon, ARM).  Windows is not yet supported.
+This repository serves as a streamlined, direct approach to building or launching containerized versions of **AFNI (Analysis of Functional NeuroImages)**. It aims to reduce dependency conflicts and installation overhead, making it easier to deploy AFNI in a Docker container on different operating systems (various Linux distributions and macOS) and on different CPU architectures (Intel/x86, Apple Silicon, ARM).  Windows is not yet supported.
+
+The docker container described here contains a full AFNI installation. It will be updated with each distributed build of the AFNI package.
+
+Below, we provide a description of the few background dependencies needed to use the docker container, and the convenient launcher script.  We also provide additional technical notes for system administrators or those who might be interested in them. 
 
 ## Repository Structure
 
@@ -46,7 +50,7 @@ These items should only need to be done once on your computer to setup the AFNI 
    Run the following command to download the script to your home directory:
    ```none
    cd
-   curl -O https://raw.githubusercontent.com/afni/docker_v1/refs/heads/main/launch_afni_docker.sh
+   curl -O https://raw.githubusercontent.com/afni/afni/refs/heads/master/src/docker/launch_afni_docker.sh
    ```
 
 ---
@@ -63,7 +67,7 @@ These items should only need to be done once on your computer to setup the AFNI 
    Run the following command to download the script to your home directory:
    ```none
    cd
-   curl -O https://raw.githubusercontent.com/afni/docker_v1/refs/heads/main/launch_afni_docker.sh
+   curl -O https://raw.githubusercontent.com/afni/afni/refs/heads/master/src/docker/launch_afni_docker.sh
    ```
 
 **NB:** If you are using Windows Subsystem Linux (WSL), you will also need to install an X-server, 
@@ -228,7 +232,7 @@ Then restart XQuartz and the terminal for the changes to take effect.
 # Technical notes for Docker (any OS)
 
 1. You can find the AFNI Docker Hub repository
-   [here](https://hub.docker.com/repository/docker/discoraj/afni_docker_universal/general).
+   [here](https://hub.docker.com/r/afni/afni_docker_universal).
    
 3. The docker container will be launched with the current user's 
    UID and GID. This allows you to create and access files in your 
@@ -237,8 +241,7 @@ Then restart XQuartz and the terminal for the changes to take effect.
 
 4. By default, the `launch_afni_docker.sh` will pull the latest version
    of the AFNI docker image from Docker Hub on first run or with the
-   `-tag latest` option. Currently the Docker Hub repository is owned by
-   Justin Rajendra (DiscoRaj) from the AFNI Group (SSCC at the NIH).
+   `-tag latest` option.
 
 ---
 
@@ -252,8 +255,8 @@ files under the afni_docker_universal directory, you can do the following.
 
 1. Get the current GitHub repository for the AFNI docker, with:
    ```bash
-   git clone https://github.com/afni/docker_v1.git
-   cd docker_v1/afni_docker_universal
+   git clone https://github.com/afni/afni.git
+   cd afni/src/docker/afni_docker_universal
    docker build -t afni_universal .
    ```
 
