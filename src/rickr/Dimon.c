@@ -169,6 +169,7 @@ static char * g_history[] =
     "                            (mistake: do not make Shruti angry)\n"
     " 4.36 Mar 24, 2025 [rickr]: keep both echo_rin and geme_rin\n"
     "                            (and improve description)\n"
+    " 4.37 Nov  6, 2026 [pt]:    more status checks and error-exits\n"
     "----------------------------------------------------------------------\n"
 };
 
@@ -858,7 +859,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                     if ( ac->state == ART_STATE_IN_USE )
                         ART_send_end_of_run( ac, run, seq_num, gD.level );
 
-                    show_run_stats( &gS );
+                    ret_val = show_run_stats( &gS );
 
                     if( n2proc > 0 ) {
                         fprintf(stderr,"\n** have %d unprocessed image(s)\n",
@@ -870,7 +871,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
                         fputc('\n', stderr);
                     }
 
-                    return 0;
+                    return ret_val != 0;
                 }
 
                 /* continue, regardless */
@@ -6718,6 +6719,8 @@ printf(
 */
 static void hf_signal( int signum )
 {
+    int rv = 0;
+
     switch ( signum )
     {
         default :
@@ -6728,7 +6731,7 @@ static void hf_signal( int signum )
         case SIGHUP  :
         case SIGINT  :
         case SIGTERM :
-            show_run_stats( &gS );
+            rv = show_run_stats( &gS );
             break;
     }
 
@@ -6744,7 +6747,7 @@ static void hf_signal( int signum )
     fflush(stderr);  /* in case it is redirected */
     fflush(stdout);
 
-    exit(0);
+    exit(rv != 0);
 }
 
 
@@ -6875,6 +6878,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     float    tr;
     int      num_valid, c, indent=0;
     int      first_run = -1, nspaces = 0;
+    int      rv = 0;
 
     /* If the user did not give a slice pattern string, use the default *
      * (default is "FROM_IMAGE" if siemens timing info).
@@ -7024,7 +7028,8 @@ static int create_gert_dicom( stats_t * s, param_t * p )
                        "** warning: oblique data, consider -use_obl_origin\n");
         }
 
-        fprintf(fp, "%*s     -@ < %s\n\n", indent, "", outfile);
+        fprintf(fp, "%*s     -@ < %s\n", indent, "", outfile);
+        fprintf(fp, "%*sif ( $status != 0 ) exit 1\n\n", indent, "");
         if( opts->num_chan > 1 ) fprintf(fp, "end\n\n");
 
         /* and possibly move output datasets there */
@@ -7058,7 +7063,9 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     /* and maybe the user wants to actually execute it */
     if( opts->gert_exec ) {
         sprintf(command, "tcsh -x %s", sfile);
-        system(command);
+        rv = system(command);
+        if( rv ) 
+            return rv;
     }
 
     return 0;
@@ -7451,6 +7458,7 @@ static int show_run_stats( stats_t * s )
 {
     char * tstr;
     int c;
+    int rv = 0;
 
     if ( s == NULL )
     {
@@ -7493,8 +7501,10 @@ static int show_run_stats( stats_t * s )
     putchar( '\n' );
 
     if ( gP.opts.gert_reco )
-        if ( create_gert_script( s, &gP ) )
+        if ( create_gert_script( s, &gP ) ) {
             fprintf(stderr,"** failed creating GERT script (and dataset)\n");
+            rv = 1;
+        }
 
     if( gP.opts.flist_file )
        create_file_list(&gP, gP.opts.flist_file, 0, NULL);
@@ -7510,7 +7520,7 @@ static int show_run_stats( stats_t * s )
 
     fflush( stdout );
 
-    return 0;
+    return rv;
 }
 
 
