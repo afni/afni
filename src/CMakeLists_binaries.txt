@@ -151,6 +151,7 @@ foreach(
   cat_matvec
   cdf
   count
+  count_afni
   dicom_hdr
   dicom_hinfo
   dicom_to_raw
