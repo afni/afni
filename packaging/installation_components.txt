@@ -290,6 +290,7 @@ count, corebinaries
 dicom_hdr, corebinaries
 dicom_hinfo, corebinaries
 dicom_to_raw, corebinaries
+dsetstat2p, corebinaries
 ent16, corebinaries
 epsim, corebinaries
 exx, corebinaries
@@ -331,6 +332,7 @@ nimel, corebinaries
 niml_feedme, corebinaries
 nimltest, corebinaries
 nsize, corebinaries
+p2dsetstat, corebinaries
 plugout_drive, corebinaries
 plugout_ijk, corebinaries
 plugout_tt, corebinaries
@@ -500,7 +502,6 @@ whirlgif, corebinaries
 @xyz_to_ijk, tcsh
 CMakeLists.txt, tcsh
 bin, tcsh
-dsetstat2p, tcsh
 fat_proc_align_anat_pair, tcsh
 fat_proc_axialize_anat, tcsh
 fat_proc_connec_vis, tcsh
@@ -513,7 +514,6 @@ fat_proc_grad_plot, tcsh
 fat_proc_imit2w_from_t1w, tcsh
 fat_proc_map_to_dti, tcsh
 fat_proc_select_vols, tcsh
-p2dsetstat, tcsh
 suma_change_spec, tcsh
 1d_tool.py, python
 1dplot.py, python
