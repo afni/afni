@@ -151,9 +151,11 @@ foreach(
   cat_matvec
   cdf
   count
+  count_afni
   dicom_hdr
   dicom_hinfo
   dicom_to_raw
+  dsetstat2p
   ent16
   epsim
   exx
@@ -188,6 +190,7 @@ foreach(
   niml_feedme
   nimltest
   nsize
+  p2dsetstat
   plugout_drive
   plugout_ijk
   plugout_tt
