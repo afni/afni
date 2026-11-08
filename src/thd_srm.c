@@ -4,6 +4,49 @@
   (deterministic and probabilistic), model memory management, and the
   linear-algebra kernels they stand on.
                                                      -- P Molfese, Oct 2026
+
+  How to read this file
+  ---------------------
+  A short glossary for readers new to neuroimaging:
+    voxel       one 3-D pixel of a brain image; here, one row ("feature") of a
+                subject's data matrix.  An atlas parcel or an EEG channel can
+                play the same role.
+    view        one subject's data matrix X_i (nvox[i] features x ntime
+                samples).  Different subjects may have different numbers of
+                voxels; they must share the same columns.
+    time point  one column; in fMRI one volume, acquired every TR (repetition
+                time, typically 1-2 s).  With "items" a column is one trial or
+                condition estimate instead.
+    run         a contiguous block of columns acquired in one scan; the code
+                calls these "segments" (nseg, seglen[]).
+    censoring   time points removed because of head motion etc.  When only
+                some subjects are censored at a time point, the fit treats
+                those values as "missing" for those subjects (SRM_params.obs).
+
+  The model is X_i ~= W_i S + noise, with W_i' W_i = I (see thd_srm.h).  The
+  file is ordered bottom-up:
+    1. small utilities: error text, a portable random-number generator;
+    2. dense linear algebra on small k x k matrices: a Jacobi eigensolver and
+       the "polar factor" that solves every orthogonal-Procrustes step;
+    3. kernels over the (large) data: W'X and X S', in double precision;
+    4. SRM_fit(): the EM loop for probabilistic SRM and the alternating loop
+       for deterministic SRM, on either the raw data ("voxel" kernel) or on
+       per-subject Gram matrices ("gram" kernel, mathematically identical);
+    5. step 3: a separate W per run, tied to a per-subject anchor;
+    6. step 4: SRM_update(), adding new subjects to a fitted S;
+    7. step 2: using a model (project, reconstruct, fit a new subject's W);
+    8. compression of tall views (nvox >> ntime) to an exact small factor;
+    9. the gauge (rotation) of the solution;
+   10. step 5: held-out metrics, reliability, z-scoring;
+   11. step 6: the plain-text model file.
+  ("step" numbers refer to the order in which the features were added.)
+
+  Notation used in the comments: k = nfeat (number of shared components),
+  T = ntime, V = nvox[i]; A' is the transpose of A; |A|^2 is the squared
+  Frobenius norm (sum of squares of all entries); <A,B> = sum of A.*B.
+  References: Chen et al. (2015) NIPS, "A Reduced-Dimension fMRI Shared
+  Response Model"; BrainIAK brainiak/funcalign/srm.py (SRM and DetSRM),
+  which this code follows step for step except where noted.
 ------------------------------------------------------------------------------*/
 
 #include <float.h>
@@ -24,6 +67,21 @@
 
 #include "thd_srm.h"
 
+/* Numerical constants.
+     SRM_EIG_MAXSWEEP   cap on Jacobi sweeps; a symmetric k x k matrix
+                        normally converges in 6-10 sweeps, so 60 only guards
+                        against pathological input.
+     SRM_EIG_TINY       Jacobi stops when the off-diagonal sum of squares is
+                        below this fraction of the total sum of squares
+                        (1e-28 = (1e-14)^2, i.e. off-diagonals at the level of
+                        double rounding).
+     SRM_POLAR_RANKTOL  in the polar factor A (A'A)^(-1/2), an eigenvalue of
+                        A'A at or below this fraction of the largest is treated
+                        as zero (that direction of A carries no signal).
+     SRM_RHO2_FLOOR     a noise variance rho2 is never allowed below this
+                        fraction of the view's mean variance per entry, so a
+                        view that the model fits perfectly cannot get an
+                        infinite weight 1/rho2. */
 #define SRM_EIG_MAXSWEEP     60
 #define SRM_EIG_TINY         1.0e-28    /* off-diagonal energy fraction       */
 #define SRM_POLAR_RANKTOL    1.0e-12    /* eigenvalue ratio of A'A            */
@@ -53,15 +111,21 @@ const char * SRM_strerror( int code )
    return "unknown error" ;
 }
 
+/*! calloc() that never asks for zero bytes (calloc(0,...) may return NULL,
+    which callers would mistake for out-of-memory). */
 static void * srm_calloc( size_t n , size_t sz )
 {
    if( n==0 ) n=1 ;
    return calloc(n,sz) ;
 }
 
-/*! splitmix64: portable, so a seed gives the same start on every platform. */
+/*! splitmix64: portable, so a seed gives the same start on every platform.
+    (rand() and drand48() differ across C libraries; reproducible random
+    starts are part of the program's contract.)  s is the 64-bit state; have
+    and spare cache the second normal deviate of each Box-Muller pair. */
 typedef struct { unsigned long long s ; int have ; double spare ; } srm_rng ;
 
+/*! Next 64 random bits (the published splitmix64 mixing constants). */
 static unsigned long long srm_next( srm_rng *r )
 {
    unsigned long long z = (r->s += 0x9E3779B97F4A7C15ULL) ;
@@ -72,9 +136,13 @@ static unsigned long long srm_next( srm_rng *r )
 
 static double srm_unif( srm_rng *r )         /* uniform on (0,1) */
 {
+   /* top 53 bits (a double's mantissa), offset by half a step so that 0 and 1
+      are never returned: log(u) below must stay finite */
    return (double)((srm_next(r) >> 11) + 0.5) * (1.0/9007199254740992.0) ;
 }
 
+/*! Standard normal deviate by the Box-Muller transform: two uniforms give two
+    independent normals; the second is kept in r->spare for the next call. */
 static double srm_normal( srm_rng *r )
 {
    double u,v,m ;
@@ -85,6 +153,11 @@ static double srm_normal( srm_rng *r )
    return m*cos(6.283185307179586*v) ;
 }
 
+/*! Seed a generator.  Each (seed, stream) pair gives an independent sequence,
+    so view i can draw its random start from stream i and get the same start
+    no matter which other views are in the fit, or in what order they are
+    processed by the threads.  The first two outputs are discarded to mix
+    nearby seeds apart. */
 static void srm_rng_init( srm_rng *r , unsigned long long seed , int stream )
 {
    r->s = seed*0x2545F4914F6CDD1DULL + (unsigned long long)(stream+1)*0x9E3779B97F4A7C15ULL ;
@@ -100,7 +173,15 @@ static void srm_rng_init( srm_rng *r , unsigned long long seed , int stream )
 
 /*! a: n x n symmetric, row-major, destroyed.  ev[n]: eigenvalues, descending.
     q: n x n, column j is the eigenvector of ev[j].  Returns 0, or 1 if the
-    matrix has non-finite entries. */
+    matrix has non-finite entries.
+
+    Cyclic Jacobi: for every off-diagonal pair (p,r) in turn, apply a plane
+    rotation J (identity except in rows/columns p and r) chosen so that the
+    (p,r) entry of J'AJ becomes exactly zero.  Later rotations can make it
+    nonzero again, but the total off-diagonal energy falls every sweep, so A
+    converges to diagonal (the eigenvalues), and the product of all the J's,
+    accumulated in q, holds the eigenvectors.  Each sweep is O(n^3), fine for
+    the k x k matrices used here (k is the number of shared components). */
 static int srm_eigsym( int n , double *a , double *ev , double *q )
 {
    int sweep,p,r,i,j ; double total=0.0 ;
@@ -117,6 +198,9 @@ static int srm_eigsym( int n , double *a , double *ev , double *q )
        for( r=p+1 ; r<n ; r++ ){
          double apq=a[p*n+r], theta, t, c, s ; int m ;
          if( fabs(apq) < 1.0e-300 ) continue ;
+         /* The rotation angle phi zeroes a_pr when cot(2 phi) = theta.  t = tan(phi)
+            is the smaller root of t^2 + 2 theta t - 1 = 0, written in the form
+            that avoids cancellation (Numerical Recipes, "jacobi"); c = cos, s = sin. */
          theta = (a[r*n+r]-a[p*n+p]) / (2.0*apq) ;
          t = (theta>=0.0 ? 1.0 : -1.0) / (fabs(theta)+sqrt(theta*theta+1.0)) ;
          c = 1.0/sqrt(t*t+1.0) ; s = t*c ;
@@ -153,11 +237,25 @@ static int srm_eigsym( int n , double *a , double *ev , double *q )
 /*============================================================================
   Matrix kernels.  X is nvox x ntime, W is nvox x nfeat, S is nfeat x ntime,
   all row-major.  Float data, double accumulation.
+
+  These are the only loops that touch the (large) data, so they dominate the
+  run time.  They are written to stream X row by row (one voxel's time series
+  is contiguous), which keeps memory access sequential.  The data are stored
+  as float to halve memory, but every sum is formed in double so that adding
+  up hundreds of thousands of voxels does not lose precision.
 ==============================================================================*/
 
 /*! P (k x Tr, row stride ldp, double) += weight * W' X, where X is nvox x Tr
     with row stride ldx (a column block of a wider matrix).  X is streamed once,
-    row by row. */
+    row by row.
+
+    W'X is the projection of a subject's data into the shared space: column t
+    is the k shared-component values that this subject's voxels imply at time
+    t.  Written as a sum of outer products over voxels f,
+        (W'X)[c][t] = sum_f W[f][c] * X[f][t],
+    so each voxel row of X is read exactly once.  The "_ld" (leading
+    dimension) form lets the caller pass one run's columns of a longer matrix
+    without copying them. */
 static void srm_wtx_acc_ld( const float *W , const float *X , size_t ldx , int V ,
                             int k , int Tr , double weight , double *P , size_t ldp )
 {
@@ -174,6 +272,7 @@ static void srm_wtx_acc_ld( const float *W , const float *X , size_t ldx , int V
    }
 }
 
+/*! srm_wtx_acc_ld for a whole V x T matrix (contiguous rows). */
 static void srm_wtx_acc( const float *W , const float *X , int V , int k , int T ,
                          double weight , double *P )
 {
@@ -181,7 +280,11 @@ static void srm_wtx_acc( const float *W , const float *X , int V , int k , int T
 }
 
 /*! A (V x k, double) = X S', X being V x Tr with row stride ldx and S being
-    k x Tr with row stride lds.  Rows are independent. */
+    k x Tr with row stride lds.  Rows are independent.
+
+    X S' is the cross-product of each voxel's time series with each shared
+    component's time series.  It is the matrix whose polar factor is the new
+    W in a Procrustes step (see srm_polar). */
 static void srm_xst_ld( const float *X , size_t ldx , const double *S , size_t lds ,
                         int V , int k , int Tr , double *A )
 {
@@ -197,6 +300,7 @@ static void srm_xst_ld( const float *X , size_t ldx , const double *S , size_t l
    }
 }
 
+/*! srm_xst_ld for contiguous V x T X and k x T S. */
 static void srm_xst( const float *X , const double *S , int V , int k , int T ,
                      double *A )
 {
@@ -206,7 +310,12 @@ static void srm_xst( const float *X , const double *S , int V , int k , int T ,
 /*! The eigen half of a polar factor.  K = A'A (k x k, destroyed).  Fills Q
     (eigenvectors in columns) and ev (descending), counts in *nbad the
     eigenvalues at or below SRM_POLAR_RANKTOL of the largest, and when there
-    are none sets M = K^(-1/2), so that polar(A) = A M. */
+    are none sets M = K^(-1/2), so that polar(A) = A M.
+
+    Why K^(-1/2): with the thin SVD A = U D V', A'A = V D^2 V', so
+    (A'A)^(-1/2) = V D^-1 V' and A (A'A)^(-1/2) = U D V' V D^-1 V' = U V',
+    which is exactly the polar factor.  Only the small k x k eigenproblem is
+    needed, never an SVD of the tall nvox x k matrix A. */
 static int srm_polar_eig( int k , double *K , double *Q , double *ev , double *M ,
                           int *nbad )
 {
@@ -231,13 +340,24 @@ static int srm_polar_eig( int k , double *K , double *Q , double *ev , double *M
     deficient (a direction with no signal), the missing columns of W are filled
     with deterministic random vectors orthogonal to the rest, so W always has
     orthonormal columns.  wk: 4*k*k doubles of scratch.  Returns 0, or
-    SRM_ERR_SINGULAR if A is zero or non-finite. */
+    SRM_ERR_SINGULAR if A is zero or non-finite.
+
+    This is the workhorse of SRM.  The orthogonal Procrustes problem
+        maximize <W, A> = trace(W'A)   subject to  W'W = I
+    is solved by W = polar(A) = U V' (Schoenemann 1966).  Every W update in
+    the fit has this form: minimizing |X - W S|^2 over orthonormal W expands
+    to |X|^2 - 2<W, X S'> + |S|^2 (because W'W = I makes |W S|^2 = |S|^2),
+    so the best W is polar(X S').  BrainIAK computes the same factor with
+    numpy's SVD.
+
+    `seed` makes the random fill of a rank-deficient A reproducible. */
 static int srm_polar( const double *A , int nrow , int k , float *W ,
                       double *wk , unsigned long long seed )
 {
    double *G=wk, *Q=wk+k*k, *M=wk+2*k*k, *ev=wk+3*k*k ;   /* ev uses k of k*k */
    int f,c,d,j,nbad=0,rc ; double lmax ;
 
+   /* G = A'A, upper triangle accumulated over rows, then mirrored */
    memset(G,0,sizeof(double)*(size_t)k*k) ;
    for( f=0 ; f<nrow ; f++ ){
      const double *a = A + (size_t)f*k ;
@@ -265,7 +385,11 @@ static int srm_polar( const double *A , int nrow , int k , float *W ,
      return SRM_OK ;
    } else {
      /* rank-deficient: U = [A q_j / sqrt(ev_j) for good j ; orthogonal fill],
-        then W = U Q'.  Rare, so the nrow x k temporary is acceptable. */
+        then W = U Q'.  Rare, so the nrow x k temporary is acceptable.
+        For a good eigenpair, A q_j / sqrt(ev_j) is the j-th left singular
+        vector u_j of A.  For a zero eigenvalue A gives no direction, so any
+        unit vector orthogonal to the others is an equally good maximizer of
+        <W,A>; a random one is drawn and Gram-Schmidt orthogonalized. */
      double *U = (double *)srm_calloc((size_t)nrow*k,sizeof(double)) ;
      srm_rng rng ; int pass ;
      if( U == NULL ) return SRM_ERR_MEMORY ;
@@ -310,7 +434,11 @@ static int srm_polar( const double *A , int nrow , int k , float *W ,
    }
 }
 
-/*! Random orthonormal nrow x k (modified Gram-Schmidt of a Gaussian matrix). */
+/*! Random orthonormal nrow x k (modified Gram-Schmidt of a Gaussian matrix).
+    This is the random start W_i of view i (stream = view index, normally).
+    Orthonormalizing Gaussian columns gives a W uniformly distributed over
+    orthonormal frames, so no direction is favoured.  BrainIAK instead uses QR
+    of uniform(0,1) entries; any orthonormal start is valid for the algorithm. */
 static int srm_random_orthonormal( float *W , int nrow , int k ,
                                    unsigned long long seed , int stream )
 {
@@ -343,6 +471,8 @@ static int srm_random_orthonormal( float *W , int nrow , int k ,
   Parameters, memory
 ==============================================================================*/
 
+/*! Defaults documented in thd_srm.h (SRM_params).  nfeat is left 0 so that a
+    caller who forgets to choose the dimension gets SRM_ERR_NFEAT. */
 void SRM_params_default( SRM_params *p )
 {
    if( p == NULL ) return ;
@@ -357,6 +487,7 @@ void SRM_params_default( SRM_params *p )
    p->coupling = SRM_COUPLING_SHARED ;
 }
 
+/*! Free the arrays inside fi (not fi itself, which is usually on the stack). */
 void SRM_free_fitinfo( SRM_fitinfo *fi )
 {
    if( fi == NULL ) return ;
@@ -364,6 +495,9 @@ void SRM_free_fitinfo( SRM_fitinfo *fi )
    fi->niter_done=0 ; fi->converged=0 ;
 }
 
+/*! Free a model and everything it owns.  Safe on NULL and on partially built
+    models (every pointer is either NULL or owned), which is what lets the
+    error paths below simply call it. */
 void SRM_free_model( SRM_model *m )
 {
    int ii,jj ;
@@ -386,6 +520,7 @@ void SRM_free_model( SRM_model *m )
    free(m) ;
 }
 
+/*! Threads OpenMP will use (1 without OpenMP); per-thread scratch is sized by it. */
 static int srm_max_threads( void )
 {
 #ifdef USE_OMP
@@ -395,6 +530,11 @@ static int srm_max_threads( void )
 #endif
 }
 
+/*! Peak-memory estimate for SRM_fit (see thd_srm.h).  It adds up the
+    allocations made by srm_fit_work: 4 bytes per float, 8 per double.  The
+    Gram-matrix term is counted only for views tall enough that AUTO could
+    choose that kernel; this is an estimate for a -memory_limit guard, not an
+    exact accounting. */
 double SRM_estimate_bytes( int nview , const int *nvox , int ntime ,
                            int nfeat , int algo , int copy_x )
 {
@@ -434,6 +574,10 @@ static double * srm_dup_d( const double *a , int n )
    return c ;
 }
 
+/*! Deep copy, optionally without view `drop` (see thd_srm.h).  On any
+    allocation failure the partial copy is freed and NULL returned.  The loop
+    below walks the source index ii and the destination index nn together;
+    at the dropped view nn is stepped back so the next view fills its slot. */
 SRM_model * SRM_model_copy( const SRM_model *m , int drop )
 {
    SRM_model *c ; int ii,jj,nn ; size_t sz ;
@@ -511,8 +655,36 @@ SRM_model * SRM_model_copy( const SRM_model *m , int drop )
 
 /*============================================================================
   Fit
+
+  Deterministic SRM (DET; BrainIAK DetSRM) minimizes
+        sum_i |X_i - W_i S|^2     subject to W_i'W_i = I
+  by alternating two exact steps:
+        S   = (1/N) sum_i W_i' X_i          (the best S for fixed W)
+        W_i = polar(X_i S')                  (the best W_i for fixed S)
+
+  Probabilistic SRM (PROB; BrainIAK SRM, Chen et al. 2015) treats each
+  column s_t of S as a latent Gaussian variable:
+        s_t ~ N(0, Sigma_s),    x_it = W_i s_t + e_it,   e_it ~ N(0, rho2_i I)
+  and maximizes the marginal likelihood of the data by EM:
+    E-step  the posterior of s_t given all views is Gaussian with
+              precision  Sigma_s^-1 + rho0 I,   rho0 = sum_i 1/rho2_i
+              mean       E[s_t] = Cov(s_t) sum_i W_i' x_it / rho2_i
+            (W_i'W_i = I is what makes the precision this simple).
+    M-step  W_i     = polar(X_i E[S]')
+            rho2_i  = ( |X_i|^2 - 2<W_i, X_i E[S]'> + |E[S]|^2 + T tr Cov )
+                      / (T V_i)
+            Sigma_s = Cov + E[S] E[S]' / T
+  The PROB rho2_i are what let a noisy subject count for less.
+
+  The loop is organized so that the objective is always computed from the
+  parameters in force at the start of an iteration, and the loop exits
+  before updating, so the returned W, S, rho2 and Sigma_s are mutually
+  consistent.  (BrainIAK's s_ is one E-step older than its W.)
 ==============================================================================*/
 
+/*! One view as the fit sees it: the data it iterates on (centered and with
+    missing values zeroed, possibly a private copy), its energy |x|^2, and its
+    observation mask. */
 typedef struct {
    int          nvox ;
    const float *x ;        /* the data the fit iterates on (missing: zero)   */
@@ -523,15 +695,20 @@ typedef struct {
    double       ndim ;     /* features it stands for (SRM_params.ndim)       */
 } srm_view ;
 
-/*! Per-thread scratch: A_i (V x k), a k x T accumulator, and eigen scratch. */
+/*! Per-thread scratch: A_i (V x k), a k x T accumulator, and eigen scratch.
+    Each OpenMP thread allocates its own, so threads never write to shared
+    buffers except at the explicitly ordered merges. */
 typedef struct { double *A , *loc , *wk ; } srm_ws ;
 
+/*! Free a workspace's buffers (safe after a failed init). */
 static void srm_ws_free( srm_ws *w )
 {
    free(w->A) ; free(w->loc) ; free(w->wk) ;
    w->A=w->loc=w->wk=NULL ;
 }
 
+/*! Allocate a workspace for views of up to vmax features (loc only if asked).
+    On failure everything is freed and SRM_ERR_MEMORY returned. */
 static int srm_ws_init( srm_ws *w , int vmax , int k , int T , int want_loc )
 {
    w->A   = (double *)srm_calloc((size_t)vmax*k,sizeof(double)) ;
@@ -545,7 +722,17 @@ static int srm_ws_init( srm_ws *w , int vmax , int k , int T , int want_loc )
 
 /*! asum (k x T) = sum_i weight[i] * W_i' X_i  (weight NULL means 1).
     The views are computed in parallel but added to asum in view order, so the
-    rounding, and hence the whole fit, is identical for any thread count. */
+    rounding, and hence the whole fit, is identical for any thread count.
+
+    This is the "sufficient statistic" of every iteration: for DET it is N
+    times S, for PROB (weight 1/rho2_i) it is the data term of the posterior
+    mean.  Reproducibility: floating-point addition is not associative, so if
+    threads added their results to asum in whatever order they finished, the
+    last bits of S would depend on timing.  The `ordered` clause makes each
+    thread compute its view's W_i'X_i privately (the expensive part, in
+    parallel) and then wait its turn to add it, in view order (cheap, serial).
+    Errors from a thread are recorded in err under a critical section; OpenMP
+    forbids breaking out of a parallel loop, so later iterations just skip. */
 static int srm_pass_sums( int nview , const srm_view *vw , float * const *W ,
                           const double *weight , int vmax , int k , int T ,
                           double *asum )
@@ -580,9 +767,12 @@ SRM_PRAGMA(omp ordered)
    return err ;
 }
 
-/*! Procrustes step for every view: W_i = polar(X_i S').  If a_out is
-    non-NULL, ab_out[i] receives <W_i,X_i S'>  (needed by the PROB variance
-    update).  S is k x T, double. */
+/*! Procrustes step for every view: W_i = polar(X_i S').  If wa_out is
+    non-NULL, wa_out[i] receives <W_i,X_i S'>  (needed by the PROB variance
+    update).  S is k x T, double.  Views are independent, so they run in
+    parallel with no merge; each view's own arithmetic is serial, so the
+    result does not depend on the thread count.  The seed for a rank-deficient
+    fill differs per view (seed + i). */
 static int srm_pass_procrustes( int nview , const srm_view *vw , float **W ,
                                 const double *S , int vmax , int k , int T ,
                                 unsigned long long seed , double *wa_out )
@@ -618,7 +808,17 @@ SRM_PRAGMA(omp critical(srm_err))
 
 /*! post = Q diag(lam/(1+rho0 lam)) Q' for symmetric PSD sigma (k x k), and the
     log-determinant of I + rho0*sigma.  Never inverts sigma, so a rank-deficient
-    prior covariance is fine. */
+    prior covariance is fine.
+
+    This is the PROB E-step covariance, Cov(s_t) = (Sigma_s^-1 + rho0 I)^-1.
+    With Sigma_s = Q diag(lam) Q', the matrix Sigma_s^-1 + rho0 I has the same
+    eigenvectors and eigenvalues 1/lam + rho0, so its inverse has eigenvalues
+    lam/(1 + rho0 lam): no inverse of Sigma_s is ever formed, and a zero lam
+    simply gives 0.  BrainIAK writes the same matrix as
+    Sigma_s (I - rho0 (Sigma_s^-1 + rho0 I)^-1).
+    logdet = log det(I + rho0 Sigma_s) = log det(Sigma_s^-1 + rho0 I)
+    + log det Sigma_s, the two Cholesky log-determinants in BrainIAK's
+    likelihood.  log1p keeps it accurate when rho0 lam is small. */
 static int srm_posterior( int k , const double *sigma , double rho0 ,
                           double *post , double *logdet , double *wk )
 {
@@ -640,7 +840,15 @@ static int srm_posterior( int k , const double *sigma , double rho0 ,
     there has precision Sigma_s^-1 + rho0t[t] I (rho0t: the sum of 1/rho2 over those views), so one
     eigendecomposition Sigma_s = Q diag(ev) Q' serves every t: Cov(s_t) = Q diag(ev/(1+rho0t ev)) Q'.
     Sd (k x T) = E[s_t] = Cov(s_t) asum_t; trt[t] = tr Cov(s_t); postsum (k x k) = sum_t Cov(s_t);
-    *logdet = sum_t log det(I + rho0t[t] Sigma_s).  wk: 3*k*k doubles. */
+    *logdet = sum_t log det(I + rho0t[t] Sigma_s).  wk: 3*k*k doubles.
+
+    Why per time point: when subject i is censored at t, x_it is simply not
+    data, so only the observed subjects inform s_t.  Their precisions add, so
+    rho0 becomes a function of t.  Because every view contributes a multiple
+    of the identity (W_i'W_i = I), all T posteriors share Sigma_s's
+    eigenvectors: one k x k eigendecomposition, then O(k^2) work per t.
+    In the loop, f[j] is the j-th eigenvalue of Cov(s_t), b = diag(f) Q' asum_t,
+    and Sd_t = Q b; g accumulates sum_t f for postsum. */
 static int srm_posterior_obs( int k , int T , const double *sigma , const double *rho0t ,
                               const double *asum , double *Sd , double *trt , double *postsum ,
                               double *logdet , double *wk )
@@ -695,6 +903,7 @@ SRM_PRAGMA(omp parallel for schedule(static))
    }
 }
 
+/*! Dot product of two double arrays of length n (serial, so deterministic). */
 static double srm_dot( size_t n , const double *a , const double *b )
 {
    size_t i ; double acc=0.0 ;
@@ -712,6 +921,15 @@ static double srm_dot( size_t n , const double *a , const double *b )
   Each view keeps C and GC = G C; X is read once to form G and once at the
   end to form W.  The work in a view is serial and views are added in order,
   so, as for the voxel kernels, the result does not depend on the threads.
+
+  Why this pays off: an fMRI view has V ~ 10^4..10^5 voxels but T ~ 10^3
+  time points.  The voxel kernel reads all V x T numbers twice per
+  iteration.  Here the V-sized work happens once (forming the (T+k)^2 Gram
+  matrix); each iteration then costs O((T+k) T k), independent of V.  The
+  identities above hold because every quantity the fit needs is an inner
+  product of things in span(Z):  W'X = C'Z'X = C'G[:,0:T] (the first T columns
+  of G = Z'Z are Z'X), and the Gram matrix of A = Z B is B'G B.  Only the
+  final W = Z C needs the voxels again (srm_gram_form_w).
 ==============================================================================*/
 
 #define SRM_GRAM_NB  64     /* voxels per panel when forming G */
@@ -723,7 +941,11 @@ typedef struct {
    double **C , **GC ;     /* [nview*ncoef] nz x k                            */
 } srm_gstate ;
 
-/*! Whether to iterate on Gram matrices (see SRM_params.kernel). */
+/*! Whether to iterate on Gram matrices (see SRM_params.kernel).  For AUTO it
+    compares rough multiply-add counts over niter iterations: cv for the
+    voxel kernel (2 V T k per view per iteration: W'X and X S'), cg for
+    forming G and the final W once plus the per-iteration coefficient work.
+    A view shorter than T+k never uses GRAM (G would be larger than X). */
 static int srm_use_gram( const SRM_params *p , int nview , const int *nvox ,
                          int T , int k )
 {
@@ -742,7 +964,14 @@ static int srm_use_gram( const SRM_params *p , int nview , const int *nvox ,
 /*! G (nz x nz, nz = T+k) = Z'Z, Z = [X | W0] (V x nz).  Panels of voxels are
     copied to double and G is accumulated in 4 x 4 tiles of its upper
     triangle; every entry adds the voxels in order.  Serial: the caller runs
-    the views in parallel. */
+    the views in parallel.
+
+    Implementation: nzp is nz rounded up to a multiple of 4 (padding columns
+    are zero), so the 4 x 4 register tiles never run off the edge.  A panel
+    P holds SRM_GRAM_NB voxel rows of Z converted to double; each tile's 16
+    partial sums stay in registers (acc[]) across the panel's voxels before
+    being added to Gp.  This is a hand-blocked SYRK (Z'Z) without a BLAS
+    dependency.  The result is written to both triangles of G. */
 static int srm_gram_make( const float *X , const float *W0 , int V , int T ,
                           int k , double *G )
 {
@@ -775,6 +1004,7 @@ static int srm_gram_make( const float *X , const float *W0 , int V , int T ,
    return SRM_OK ;
 }
 
+/*! Free every G, C and GC of a Gram state (safe on a partial init). */
 static void srm_gstate_free( srm_gstate *g , int nview )
 {
    int ii ;
@@ -785,7 +1015,9 @@ static void srm_gstate_free( srm_gstate *g , int nview )
 }
 
 /*! G for every view (Z = [X | W0]), and every coefficient set at C = [0 ; I],
-    which is W = W0. */
+    which is W = W0.  Then G C is just the last k columns of G (the GC
+    initialization below).  ncoef is 1 for a shared-W fit, or 1+nseg for a
+    run-coupled fit (the anchor, then one set per run). */
 static int srm_gstate_init( srm_gstate *g , int nview , const srm_view *vw ,
                             float * const *W0 , int k , int T , int ncoef )
 {
@@ -861,7 +1093,12 @@ static void srm_gmul( int nz , int k , const double *G , const double *Bt ,
     coefficients of W = polar(A), and GC = G C.  As in srm_polar, a direction
     with no signal is filled with a deterministic random vector, drawn here in
     the coefficients and made G-orthonormal to the rest, so W stays in the span
-    of Z.  wk: 4*k*k doubles. */
+    of Z.  wk: 4*k*k doubles.
+
+    The same algebra as srm_polar, with inner products taken through G:
+    A'A = B'Z'Z B = B'H, and polar(A) = A M = Z (B M), so C = B M and
+    G C = H M.  "G-orthonormal" means orthonormal under <u,v> = u'G v, which is
+    the ordinary inner product of the voxel-space vectors Z u and Z v. */
 static int srm_polar_coef( int nz , int k , const double *G , const double *B ,
                            const double *H , double *C , double *GC , double *wk ,
                            unsigned long long seed )
@@ -939,7 +1176,8 @@ static int srm_polar_coef( int nz , int k , const double *G , const double *B ,
    return SRM_OK ;
 }
 
-/*! [S' ; 0] (nz x k) from S (k x T). */
+/*! [S' ; 0] (nz x k) from S (k x T).  This is B for A = X S' = Z [S' ; 0]
+    (the W0 part of Z gets zero weight).  Caller frees; NULL on failure. */
 static double * srm_gram_st( const double *S , int k , int T , int nz )
 {
    double *St=(double *)srm_calloc((size_t)nz*k,sizeof(double)) ; int c,t ;
@@ -949,7 +1187,8 @@ static double * srm_gram_st( const double *S , int k , int T , int nz )
 }
 
 /*! asum (k x T) = sum_i weight[i] W_i' X_i on Gram matrices; columns
-    c0[r] .. c0[r]+seglen[r]-1 use coefficient set q0+r.  Views added in order. */
+    c0[r] .. c0[r]+seglen[r]-1 use coefficient set q0+r.  Views added in order.
+    W_i'X_i = C'Z'X = (G C)[0:T,:]' : column t of W_i'X_i is row t of GC. */
 static int srm_gpass_sums( int nview , const srm_gstate *g , const double *weight ,
                            int q0 , int nseg , const int *c0 , const int *seglen ,
                            int k , int T , double *asum )
@@ -968,7 +1207,9 @@ static int srm_gpass_sums( int nview , const srm_gstate *g , const double *weigh
 }
 
 /*! Procrustes step for every view on Gram matrices: B = [S' ; 0], H = G B,
-    C = polar.  wa_out[i] = <W_i , X_i S'> if non-NULL. */
+    C = polar.  wa_out[i] = <W_i , X_i S'> if non-NULL; that is
+    <Z C, Z B> = sum C.*(G B) = sum (G C).*B, and since B is zero below row T
+    only the first T rows of GC enter. */
 static int srm_gpass_procrustes( int nview , srm_gstate *g , const double *S ,
                                  int k , int T , unsigned long long seed ,
                                  double *wa_out )
@@ -1024,7 +1265,11 @@ static void srm_gpass_pen( int nview , const srm_gstate *g , int nseg , int k ,
 }
 
 /*! srm_cpass_mstep on Gram matrices: W_ir = polar(X_ir S_r' + pull_i W_i)
-    with the old anchor, then W_i = polar(sum_r W_ir). */
+    with the old anchor, then W_i = polar(sum_r W_ir).
+    In coefficients: X_ir S_r' = Z [S_r' placed at run r's rows ; 0], and
+    pull*W_i = Z (pull*C_anchor), so B = pull*C_anchor + (S' restricted to the
+    run's rows), and H = G B is formed the same way from G's run columns and
+    pull*GC_anchor. */
 static int srm_gpass_mstep( int nview , srm_gstate *g , const double *pull ,
                             const double *S , int nseg , const int *c0 ,
                             const int *seglen , int k , int T ,
@@ -1113,7 +1358,12 @@ static int srm_fit_coupled( int nview , int ntime , const int *nvox ,
                             SRM_model **model , SRM_fitinfo *info ) ;
 
 /*! Owns temporary buffers and partial results.  Worker aliases borrow them;
-    acquisitions and successful transfers update this owner together. */
+    acquisitions and successful transfers update this owner together.
+    (Pattern used throughout this file: the *_work function stores every
+    allocation in this struct as it goes and may return early on any error;
+    the public wrapper then frees whatever the struct still holds.  Ownership
+    "moves" to the caller by setting the struct's pointer to NULL.  This gives
+    one cleanup path without goto.) */
 typedef struct {
    srm_view *vw ; float **W , **mu ;
    double *rho2 , *asum , *Sd , *sigma_s , *post , *wk , *wa , *objective ;
@@ -1121,6 +1371,7 @@ typedef struct {
    SRM_model *m ; srm_gstate gs ;
 } srm_fit_storage ;
 
+/*! Release everything still owned by a srm_fit_storage. */
 static void srm_fit_storage_free( srm_fit_storage *work , int nview )
 {
    int ii ;
@@ -1136,6 +1387,13 @@ static void srm_fit_storage_free( srm_fit_storage *work , int nview )
    SRM_free_model(work->m) ;
 }
 
+/*! The body of SRM_fit (shared W per subject; run-coupled fits are handed to
+    srm_fit_coupled).  Validates arguments, prepares the views, then iterates:
+    statistics -> objective -> convergence test -> update.  On success
+    *model (and info->objective) are transferred out of `work`.
+    Variable names: kk = k, T = ntime, Sd = current S (posterior mean for
+    PROB), asum = sum_i weight_i W_i'X_i, post = Cov(s_t), rho0 = sum 1/rho2,
+    wa[i] = <W_i, X_i Sd'>, miss = some view has missing time points. */
 static int srm_fit_work( int nview , int ntime , const int *nvox , float * const *x ,
                           const SRM_params *p , SRM_model **model , SRM_fitinfo *info ,
                           srm_fit_storage *work )
@@ -1234,7 +1492,8 @@ static int srm_fit_work( int nview , int ntime , const int *nvox , float * const
      for( ii=0 ; ii<nview ; ii++ ) for( t=0 ; t<T ; t++ ) nt[t]+=(vw[ii].obs==NULL || vw[ii].obs[t]) ;
    }
 
-   /* Start. */
+   /* Start.  Random orthonormal W (or a warm start), rho2 = 1, Sigma_s = I,
+      as in BrainIAK. */
    for( ii=0 ; ii<nview ; ii++ ){
      size_t sz=(size_t)nvox[ii]*kk ;
      W[ii] = (float *)malloc(sz*sizeof(float)) ;
@@ -1267,6 +1526,18 @@ static int srm_fit_work( int nview , int ntime , const int *nvox , float * const
      size_t nkt=(size_t)kk*T ;
 
      if( prob ){
+       /* E-step and objective.  The marginal log-likelihood (constant
+          -(T sum_i V_i / 2) log 2 pi omitted) of x_t ~ N(0, W Sigma_s W' + Psi),
+          with the views stacked and Psi = diag(rho2_i I), is, by the matrix
+          determinant lemma and the Woodbury identity (using W_i'W_i = I),
+            L = -T/2 [ sum_i V_i log rho2_i + log det(I + rho0 Sigma_s) ]
+                - 1/2 sum_i |X_i|^2/rho2_i  +  1/2 <asum, Cov asum>
+          which is the line `L = ...` below (Cov asum = Sd).  It equals
+          BrainIAK's SRM._likelihood.  V_i is vw[].ndim, the number of
+          ORIGINAL features: a compressed view (SRM_compress) has fewer rows
+          but stands for ndim features, each with its own noise term.  With
+          missing points each view's log rho2 term counts only its nobs
+          observed samples, and the log det term is summed per t. */
        double logdet=0.0 , logpsi=0.0 , xxw=0.0 ;
        double *wgt=(double *)srm_calloc(nview,sizeof(double)) ;
        if( wgt==NULL ) return SRM_ERR_MEMORY ;
@@ -1295,6 +1566,12 @@ static int srm_fit_work( int nview , int ntime , const int *nvox , float * const
        }
        free(wgt) ;
      } else {
+       /* DET: S = mean_i W_i'X_i, and because W_i'W_i = I,
+            sum_i |X_i - W_i S|^2 = sum_i |X_i|^2 - 2 N <S,S> + N |S|^2
+                                  = xxsum - N |S|^2,
+          so the objective needs no pass over the data beyond asum.  With
+          missing points, s_t is the mean over the n_t views observed at t
+          and the same algebra gives xxsum - sum_t n_t |s_t|^2. */
        double ss ;
        rc = gram ? srm_gpass_sums(nview,&work->gs,NULL,0,1,&zero,&T,kk,T,asum)
                  : srm_pass_sums(nview,vw,W,NULL,vmax,kk,T,asum) ;
@@ -1321,11 +1598,18 @@ static int srm_fit_work( int nview , int ntime , const int *nvox , float * const
      if( p->verb ) fprintf(stderr,"SRM iteration %d  objective %.10g\n",it,L) ;
      if( p->progress != NULL ) p->progress(it,p->niter,L,p->progress_ctx) ;
 
+     /* Stop on a small relative change of the objective, or after niter
+        updates.  Breaking here, before the update, keeps W/S/rho2/Sigma_s
+        consistent with objective[it]. */
      if( it>0 && fabs(L-Lprev) <= p->tol*fabs(L) ){ converged=1 ; break ; }
      if( it >= p->niter ) break ;
      Lprev = L ;
 
      if( prob ){
+       /* M-step (see the section comment).  W first; then rho2_i from the new
+          W: |X_i - W_i S|^2 in expectation over the posterior of S is
+          |X_i|^2 - 2<W_i, X_i Sd'> + |Sd|^2 + T tr(Cov), the last term being
+          the posterior uncertainty (BrainIAK's trace_sigma_s). */
        double trpost=0.0 , ss=srm_dot(nkt,Sd,Sd) ;
        int c,d,t ;
        for( c=0 ; c<kk ; c++ ) trpost += post[c*kk+c] ;
@@ -1359,6 +1643,7 @@ static int srm_fit_work( int nview , int ntime , const int *nvox , float * const
          sigma_s[c*kk+d] = sigma_s[d*kk+c] = (miss ? postsum[c*kk+d]/T : post[c*kk+d]) + acc/T ;
        }
      } else {
+       /* DET: only W changes; S is recomputed from it at the top of the loop */
        rc = gram ? srm_gpass_procrustes(nview,&work->gs,Sd,kk,T,p->seed+1000003ULL*(it+1),NULL)
                  : srm_pass_procrustes(nview,vw,W,Sd,vmax,kk,T,p->seed+1000003ULL*(it+1),NULL) ;
        if( rc != SRM_OK ) return rc ;
@@ -1366,7 +1651,9 @@ static int srm_fit_work( int nview , int ntime , const int *nvox , float * const
    }
 
    /* Package.  Sd, asum, post, sigma_s, rho2 are all consistent with the final
-      W here (the loop stops before it updates anything). */
+      W here (the loop stops before it updates anything).  With the Gram kernel
+      the W arrays still hold the START W0; srm_gram_form_w overwrites each with
+      Z C = X C[0:T] + W0 C[T:], which is why W[ii] is both input and output. */
    if( gram ){
      for( ii=0 ; ii<nview && rc==SRM_OK ; ii++ )
        rc = srm_gram_form_w(vw[ii].x,W[ii],nvox[ii],T,kk,work->gs.C[ii],W[ii]) ;
@@ -1415,6 +1702,8 @@ static int srm_fit_work( int nview , int ntime , const int *nvox , float * const
    return rc ;
 }
 
+/*! Public entry (contract in thd_srm.h): run srm_fit_work, then free
+    whatever it did not hand to the caller. */
 int SRM_fit( int nview , int ntime , const int *nvox , float * const *x ,
              const SRM_params *p , SRM_model **model , SRM_fitinfo *info )
 {
@@ -1424,6 +1713,9 @@ int SRM_fit( int nview , int ntime , const int *nvox , float * const *x ,
    return rc ;
 }
 
+/*! Best of nstart fits (contract in thd_srm.h).  Seeds are spaced by the
+    prime 7919 so the starts' random streams do not overlap.  Only the best
+    model so far is kept, so at most two models exist at once. */
 int SRM_fit_multistart( int nview , int ntime , const int *nvox ,
                         float * const *x , const SRM_params *p ,
                         int nstart , SRM_model **model , SRM_fitinfo *info ,
@@ -1466,6 +1758,25 @@ int SRM_fit_multistart( int nview , int ntime , const int *nvox ,
 
 /*============================================================================
   Step 3: a separate W per run, tied to a per-subject anchor
+
+  Why: a subject's voxel-to-component mapping can drift between scanning
+  runs (head position, scanner drift).  The coupled model gives subject i a
+  W_ir for each run r, plus an "anchor" W_i, and penalizes W_ir for moving
+  away from W_i.  The strength lambda is in units of time points (see
+  SRM_params.coupling in thd_srm.h): lambda = 0 frees the runs, lambda -> inf
+  is the shared-W model.
+
+  Objective (DET; minimized):
+      sum_ir |X_ir - W_ir S_r|^2 + tau_i sum_r |W_ir - W_i|^2
+  and |W_ir - W_i|^2 = 2k - 2<W_ir,W_i> for orthonormal W, which is the
+  2 tau (k - <W_ir,W_i>) form in the code.  Minimizing over W_ir with the
+  anchor fixed is the Procrustes problem for X_ir S_r' + tau_i W_i; minimizing
+  over the anchor with the W_ir fixed is the Procrustes problem for sum_r W_ir.
+
+  PROB (maximized): log-likelihood + tau_i sum_r <W_ir, W_i>.  The data term
+  enters the W_ir update divided by rho2_i, i.e. as <W_ir, X_ir S_r'>/rho2_i,
+  so after multiplying through by rho2_i the matrix to polarize is
+  X_ir S_r' + tau_i rho2_i W_i: hence pull = tau*rho2 below.
 ==============================================================================*/
 
 /*! asum (k x T) = sum_i weight[i] * sum_r W_ir' X_ir, run r being columns
@@ -1504,7 +1815,8 @@ SRM_PRAGMA(omp ordered)
    return err ;
 }
 
-/*! pen[i] = sum_r <W_ir , W_i> */
+/*! pen[i] = sum_r <W_ir , W_i>  (the coupling term of the objective; it is
+    nseg*k when every run W equals the anchor) */
 static void srm_cpass_pen( int nview , const int *nvox , float * const *Wa ,
                            float * const *Wr , int nseg , int k , double *pen )
 {
@@ -1523,7 +1835,10 @@ SRM_PRAGMA(omp parallel for schedule(dynamic))
 
 /*! The M-step for W: for every view, W_ir = polar(X_ir S_r' + pull_i W_i) for
     each run, with the OLD anchor, then the anchor W_i = polar(sum_r W_ir).
-    wa_out[i] = sum_r <W_ir , X_ir S_r'> (the data part), for the variance update. */
+    wa_out[i] = sum_r <W_ir , X_ir S_r'> (the data part), for the variance update.
+    Doing the runs first (with the old anchor) and then the anchor is block
+    coordinate ascent: each block is solved exactly given the others, so the
+    objective cannot get worse.  Aanc accumulates sum_r W_ir. */
 static int srm_cpass_mstep( int nview , const srm_view *vw , float **Wa ,
                             float **Wr , const double *pull , const double *S ,
                             int nseg , const int *c0 , const int *seglen ,
@@ -1575,6 +1890,7 @@ typedef struct {
    SRM_model *start , *m ; srm_gstate gs ;
 } srm_coupled_storage ;
 
+/*! Release everything still owned by a srm_coupled_storage. */
 static void srm_coupled_storage_free( srm_coupled_storage *work , int nview , const SRM_params *p )
 {
    int ii ;
@@ -1588,6 +1904,13 @@ static void srm_coupled_storage_free( srm_coupled_storage *work , int nview , co
    SRM_free_model(work->start) ; SRM_free_model(work->m) ;
 }
 
+/*! The body of the run-coupled fit (reached from srm_fit_work when
+    p->coupling != SRM_COUPLING_SHARED).  Same structure as srm_fit_work:
+    the E-step and the rho2 / Sigma_s updates are identical (the asum now
+    uses each run's own W_ir), the objective gains the penalty term, and the
+    W update is srm_cpass_mstep / srm_gpass_mstep.  Wa = anchors, Wr[i*nseg+r]
+    = run W, c0[r] = first column of run r, tau = prior weights (fixed after
+    iteration 0), pull = tau (DET) or tau*rho2 (PROB). */
 static int srm_fit_coupled_work( int nview , int ntime , const int *nvox ,
                             float * const *x , const SRM_params *p ,
                             SRM_model **model , SRM_fitinfo *info ,
@@ -1802,6 +2125,9 @@ static int srm_fit_coupled_work( int nview , int ntime , const int *nvox ,
      if( it >= p->niter ) break ;
      Lprev=L ;
 
+     /* W update.  For PROB the pull on W_ir is tau_i * rho2_i with the CURRENT
+        rho2_i (see the section comment); tau_i itself stays fixed so that the
+        objective being maximized does not change from iteration to iteration. */
      for( ii=0 ; ii<nview ; ii++ ) pull[ii] = prob ? tau[ii]*rho2[ii] : tau[ii] ;
      rc = gram ? srm_gpass_mstep(nview,&work->gs,pull,Sd,nseg,c0,p->seglen,
                                  kk,T,p->seed+1000003ULL*(it+1),wa)
@@ -1888,6 +2214,7 @@ static int srm_fit_coupled_work( int nview , int ntime , const int *nvox ,
    return rc ;
 }
 
+/*! Public wrapper for the coupled fit: run, then free what was not handed out. */
 static int srm_fit_coupled( int nview , int ntime , const int *nvox ,
                             float * const *x , const SRM_params *p ,
                             SRM_model **model , SRM_fitinfo *info )
@@ -1898,6 +2225,10 @@ static int srm_fit_coupled( int nview , int ntime , const int *nvox ,
    return rc ;
 }
 
+/*! Body of SRM_fit_view_coupled: for each run, A = X_r S_r' + coupling*s2*W_anchor,
+    then W_r = polar(A).  Sd, A and wk are caller-provided scratch.  s2 is the
+    mean squared entry of S, so that the anchor counts as `coupling` time
+    points' worth of X_r S_r' (see SRM_params.coupling). */
 static int srm_fit_view_coupled_work( const float *s , int nfeat , int ntime , const float *x ,
                           int nvox , int nseg , const int *seglen ,
                           const float *w_anchor , double coupling ,
@@ -1928,6 +2259,7 @@ SRM_PRAGMA(omp parallel for schedule(static))
    return SRM_OK ;
 }
 
+/*! Public entry (contract in thd_srm.h): validate, allocate scratch, run. */
 int SRM_fit_view_coupled( const float *s , int nfeat , int ntime , const float *x ,
                           int nvox , int nseg , const int *seglen ,
                           const float *w_anchor , double coupling ,
@@ -1952,6 +2284,8 @@ int SRM_fit_view_coupled( const float *s , int nfeat , int ntime , const float *
    return rc ;
 }
 
+/*! |W_ir - W_i|^2 / k (contract in thd_srm.h).  For orthonormal W this is
+    2 - 2<W_ir,W_i>/k: 0 when equal, 2 when the column spaces are orthogonal. */
 int SRM_run_deviation( const SRM_model *m , int iview , int irun , double *deviation )
 {
    const float *wr ; size_t jj , n ; double acc=0.0 ;
@@ -1968,6 +2302,14 @@ int SRM_run_deviation( const SRM_model *m , int iview , int irun , double *devia
 
 /*============================================================================
   Step 4: letting S absorb new subjects
+
+  Every quantity the E-step needs from the old subjects is a sum over them:
+  asum = sum_i W_i'X_i/rho2_i and rho0 = sum_i 1/rho2_i (per time point when
+  data are missing).  The model stores those sums (a_sum, rho_inv_sum,
+  nsubj_t, rho_inv_t), so new subjects can be added by iterating EM on the new
+  subjects' W and rho2 and on S and Sigma_s, with the old subjects' sums held
+  fixed.  The old W_i are not refit: that is the approximation, and the reason
+  m->drift is tracked.
 ==============================================================================*/
 
 /*! Grow every per-view array of m by nnew views.  On success the model owns
@@ -2013,6 +2355,7 @@ typedef struct {
    double *nt , *rho0t , *rold_t , *trt , *postsum , *new_nt , *new_rt ;
 } srm_update_storage ;
 
+/*! Release everything still owned by a srm_update_storage. */
 static void srm_update_storage_free( srm_update_storage *work , int nnew )
 {
    int ii ;
@@ -2025,6 +2368,12 @@ static void srm_update_storage_free( srm_update_storage *work , int nnew )
    free(work->nt) ; free(work->rho0t) ; free(work->rold_t) ; free(work->trt) ; free(work->postsum) ; free(work->new_nt) ; free(work->new_rt) ;
 }
 
+/*! The body of SRM_update.  Same loop as srm_fit_work, over the nnew new
+    views only: asum = Aold (the stored old-subject sum) + anew, and rho0 =
+    rho0_old + the new views' 1/rho2.  Each new view starts from SRM_fit_view
+    against the model's current S (a good start, unlike a random one).
+    Nothing in m is modified until the "commit" block at the end, so an error
+    leaves the model exactly as it was. */
 static int srm_update_work( SRM_model *m , int nnew , const int *nvox , float * const *x ,
                              const SRM_params *p , SRM_fitinfo *info ,
                              srm_update_storage *work )
@@ -2308,6 +2657,7 @@ static int srm_update_work( SRM_model *m , int nnew , const int *nvox , float * 
    return rc ;
 }
 
+/*! Public entry (contract in thd_srm.h). */
 int SRM_update( SRM_model *m , int nnew , const int *nvox , float * const *x ,
                 const SRM_params *p , SRM_fitinfo *info )
 {
@@ -2358,7 +2708,8 @@ SRM_PRAGMA(omp ordered)
    return err ;
 }
 
-/*! A (V x k, double) = X S' for one view; rows are independent. */
+/*! A (V x k, double) = X S' for one view; rows are independent, so a plain
+    parallel-for gives the same result for any thread count. */
 static void srm_xst_par( const float *X , const double *S , int V , int k , int T ,
                          double *A )
 {
@@ -2385,6 +2736,7 @@ static int srm_project_dbl( const float *W , const float *mu , int V , int k ,
    return SRM_OK ;
 }
 
+/*! s_out (k x Tn, float) = W'(x - mu): srm_project_dbl rounded to float. */
 static int srm_project_w( const float *W , const float *mu , int V , int k ,
                           const float *x , int Tn , float *s_out )
 {
@@ -2397,6 +2749,9 @@ static int srm_project_w( const float *W , const float *mu , int V , int k ,
    return rc ;
 }
 
+/*! Project view iview's data into the shared space (contract in thd_srm.h).
+    This is how a subject's data become comparable with every other subject's:
+    W_i' maps V_i voxels to the same k shared coordinates for all subjects. */
 int SRM_project( const SRM_model *m , int iview , const float *x , int ntime_new ,
                  float *s_out )
 {
@@ -2407,6 +2762,7 @@ int SRM_project( const SRM_model *m , int iview , const float *x , int ntime_new
                         m->nvox[iview],m->nfeat,x,ntime_new,s_out) ;
 }
 
+/*! As SRM_project with run irun's W when the model has one (thd_srm.h). */
 int SRM_project_run( const SRM_model *m , int iview , int irun , const float *x ,
                      int ntime_new , float *s_out )
 {
@@ -2421,6 +2777,13 @@ int SRM_project_run( const SRM_model *m , int iview , int irun , const float *x 
                         m->nvox[iview],m->nfeat,x,ntime_new,s_out) ;
 }
 
+/*! Shared response from held-out data of a subset of views (thd_srm.h).
+    Unweighted: the plain mean of the projections W_j'(x_j - mu_j) (the DET
+    estimate of S).  Weighted (PROB): the E-step posterior mean,
+        (Sigma_s^-1 + rho0 I)^-1 sum_j W_j'(x_j - mu_j)/rho2_j,
+    with rho0 summed over the selected views only, so it is on the same
+    (shrunken) scale as the fitted S.  Leaving the scored subject out of the
+    selection gives the leave-one-out reference used by the metrics. */
 int SRM_shared_response( const SRM_model *m , int nsel , const int *iview ,
                          float * const *x , int ntime_new , int weighted ,
                          float *s_out )
@@ -2470,6 +2833,8 @@ int SRM_shared_response( const SRM_model *m , int nsel , const int *iview ,
    return rc ;
 }
 
+/*! SRM_shared_response from projections already made (thd_srm.h): the same
+    weighting, without re-reading the voxel data. */
 int SRM_shared_from_projections( const SRM_model *m , int nsel , const int *iview ,
                                  float * const *proj , int ntime_new , int weighted ,
                                  float *s_out )
@@ -2505,6 +2870,11 @@ int SRM_shared_from_projections( const SRM_model *m , int nsel , const int *ivie
    return rc ;
 }
 
+/*! As above, with per-view missing time points (thd_srm.h).  Each t uses only
+    the views observed there, with the same eigen trick as srm_posterior_obs:
+    Sigma_s = Q diag(ev) Q' once, then (Sigma_s^-1 + r I)^-1 acc =
+    Q diag(ev/(1+r ev)) Q' acc for that t's precision sum r.  Scratch w holds
+    a, Q, ev and b (3k^2 + 3k doubles). */
 int SRM_shared_from_projections_obs( const SRM_model *m , int nsel , const int *iview ,
                                      float * const *proj , const unsigned char * const *obs ,
                                      int ntime_new , int weighted , float *s_out )
@@ -2551,6 +2921,8 @@ int SRM_shared_from_projections_obs( const SRM_model *m , int nsel , const int *
    return rc ;
 }
 
+/*! x_hat = W_i s + mu_i (thd_srm.h): the subject's voxel data predicted from
+    a shared response.  Rows are independent; each thread has a row buffer. */
 int SRM_reconstruct( const SRM_model *m , int iview , const float *s ,
                      int ntime_new , float *xhat )
 {
@@ -2579,6 +2951,13 @@ SRM_PRAGMA(omp for schedule(static))
    return SRM_OK ;
 }
 
+/*! Body of SRM_fit_view: W = polar(X_c S') against a FIXED S, and the
+    residual variance.  This is a single Procrustes step (no iteration is
+    needed because S does not change).  Centering uses
+    X_c S' = X S' - mu (S 1)', where ssum = S 1 is each component's sum over
+    time, so no centered copy of X is made.  rho2 uses
+    |X_c - W S|^2 = |X_c|^2 - 2<W, X_c S'> + |S|^2  (W'W = I).
+    Sd, A, wk, ssum, mu are caller-provided scratch (ssum zeroed). */
 static int srm_fit_view_work( const float *s , int nfeat , int ntime , const float *x ,
                   int nvox , int center , float *w_out , double *rho2_out ,
                   float *mu_out ,
@@ -2622,6 +3001,7 @@ static int srm_fit_view_work( const float *s , int nfeat , int ntime , const flo
    return SRM_OK ;
 }
 
+/*! Public entry (contract in thd_srm.h): the new-subject step. */
 int SRM_fit_view( const float *s , int nfeat , int ntime , const float *x ,
                   int nvox , int center , float *w_out , double *rho2_out ,
                   float *mu_out )
@@ -2687,6 +3067,9 @@ int SRM_model_add_view( SRM_model *m , const float *x , int nvox )
    return SRM_model_add_view_obs(m,x,nvox,NULL) ;
 }
 
+/*! Attach a new view to a fixed S (thd_srm.h).  With an observation mask the
+    observed columns of x and of S are gathered first, so W, rho2 and mu come
+    from the observed samples only. */
 int SRM_model_add_view_obs( SRM_model *m , const float *x , int nvox , const unsigned char *obs )
 {
    int rc , T , k , n=0 , t , f , c ; float *w=NULL , *mu=NULL , *xg=NULL , *sg=NULL ; double rho2=1.0 ;
@@ -2723,10 +3106,27 @@ int SRM_model_add_view_obs( SRM_model *m , const float *x , int nvox , const uns
 
 /*============================================================================
   Compressed views: R (rank x T) with R'R = X'X stands in for X (nvox x T)
+
+  Why this is exact.  Write X = U R with U'U = I (any such factorization;
+  here U = X R'(R R')^-1, which is orthonormal because R'R = X'X).  Then for
+  any W in the column span of U, W = U W_R with W_R'W_R = W'W, and
+      W'X = W_R' U'U R = W_R' R,     |X|^2 = trace(X'X) = |R|^2,
+      polar(X S') = polar(U R S') = U polar(R S').
+  Every quantity in the fit (W'X, |X|^2, <W, X S'>, polar steps) is
+  therefore the same when computed on R, and every W the fit produces lies
+  in span(X) = span(U) after the first Procrustes step.  The only
+  difference is the noise model: rho2 is a per-voxel variance, so its
+  denominators and the log-likelihood use the ORIGINAL feature count
+  (SRM_params.ndim) rather than R's rank.  The voxel map is recovered at the
+  end as W = U W_R = X R'(R R')^-1 W_R = X M (SRM_compress_map,
+  SRM_compress_expand).
 ==============================================================================*/
 
 /*! [X W0]'[X W0] ((T+k) x (T+k), double, both halves filled) for one view, in parallel over voxel blocks;
-    k = 0 (W0 NULL) is X'X. */
+    k = 0 (W0 NULL) is X'X.  Each thread forms the Gram matrix of a fixed
+    contiguous block of voxels; the blocks are then added in block order.
+    The block boundaries depend on the thread count, so the last bits can
+    differ between thread counts (thd_srm.h: "agree to rounding"). */
 static int srm_gram_of_xw( const float *x , const float *W0 , int k , int nvox , int T , double *G )
 {
    int nth=srm_max_threads() , err=SRM_OK , th , nz=T+k ; size_t nn=(size_t)nz*nz , q ;
@@ -2759,12 +3159,20 @@ SRM_PRAGMA(omp critical(srm_err))
 
 static int srm_rrt_solve( const float *R , int rank , int T , double *B , int ncol ) ;
 
+/*! R with R'R = X'X (contract in thd_srm.h); SRM_compress_ex with no start. */
 int SRM_compress( const float *x , int nvox , int ntime , double tol ,
                   float **R_out , int *rank_out )
 {
    return SRM_compress_ex(x,nvox,ntime,tol,0,0,0,R_out,rank_out,NULL) ;
 }
 
+/*! R, and optionally the compressed random start w0 = U'W0, from ONE pass
+    over the voxels (contract in thd_srm.h).  Steps:
+      1. G = X'X (T x T); if a start is wanted, the extra columns X'W0 come
+         from the same pass (Gz = [X W0]'[X W0]).
+      2. Pivoted Cholesky G ~= L L' (L is T x rank); R = L'.
+      3. w0 = U'W0 = (R R')^-1 R (X'W0).
+    Ownership: *R_out is allocated here and owned by the caller. */
 int SRM_compress_ex( const float *x , int nvox , int ntime , double tol , int nfeat , unsigned int seed , int stream ,
                      float **R_out , int *rank_out , float *w0_out )
 {
@@ -2791,7 +3199,16 @@ int SRM_compress_ex( const float *x , int nvox , int ntime , double tol , int nf
    if( !isfinite(tr) ){ free(Gz) ; free(G) ; free(L) ; free(dg) ; free(used) ; return SRM_ERR_NONFINITE ; }
    if( !(tr>0.0) ){ free(Gz) ; free(G) ; free(L) ; free(dg) ; free(used) ; return SRM_ERR_SINGULAR ; }
    thr=tol*tr ;
-   /* pivoted Cholesky, L[i*T+r] = column r of the factor: G ~ L L' over the original indices */
+   /* pivoted Cholesky, L[i*T+r] = column r of the factor: G ~ L L' over the original indices.
+      At step r the time point j with the largest remaining diagonal (the
+      largest variance not yet explained by columns 0..r-1) becomes the pivot;
+      column r of L is that time point's column of G, minus what earlier
+      columns explain, scaled by 1/sqrt of the pivot.  dg[] holds the
+      remaining diagonal.  Stopping when the largest remaining diagonal is
+      <= tol * trace(G) drops only directions carrying a negligible share of
+      the energy, so the factor has the numerical rank of X (<= T), and the
+      rows of R = L' are in pivot order, which does not matter because only
+      R'R is ever used. */
    for( r=0 ; r<T ; r++ ){
      int jm=-1 ; double dm=0.0 , lrr ;
      for( i=0 ; i<T ; i++ ) if( !used[i] && dg[i]>dm ){ dm=dg[i] ; jm=i ; }
@@ -2829,7 +3246,11 @@ SRM_PRAGMA(omp parallel for schedule(static))
    return SRM_OK ;
 }
 
-/*! Solve (R R') Y = B in place (B: rank x ncol, double), R rank x T float.  0 if ok. */
+/*! Solve (R R') Y = B in place (B: rank x ncol, double), R rank x T float.  0 if ok.
+    R R' (rank x rank) is symmetric positive definite because R has full row
+    rank (the pivoted Cholesky stopped before any null direction), so an
+    unpivoted Cholesky factorization followed by forward and back
+    substitution is enough. */
 static int srm_rrt_solve( const float *R , int rank , int T , double *B , int ncol )
 {
    double *A=(double *)malloc(sizeof(double)*(size_t)rank*rank) ; int a , b , t , c ;
@@ -2867,6 +3288,12 @@ SRM_PRAGMA(omp parallel for schedule(dynamic) private(b,t))
    return SRM_OK ;
 }
 
+/*! The compressed random start w0 = U'W0 for an already computed R (contract
+    in thd_srm.h).  W0 is regenerated exactly as SRM_fit would make it from
+    (seed, stream), so the compressed fit's first E-step sees the same W0'X
+    as the uncompressed fit: W0'X = W0'U R = (U'W0)' R.  (U'W0 is not itself
+    orthonormal, but only W0'X enters the first iteration, and after the first
+    Procrustes step every W is orthonormal again.) */
 int SRM_compress_start( const float *x , int nvox , int ntime , const float *R , int rank ,
                         int nfeat , unsigned int seed , int stream , float *w0_out )
 {
@@ -2909,6 +3336,8 @@ SRM_PRAGMA(omp critical(srm_err))
    return err ;
 }
 
+/*! M = R'(R R')^-1 v (thd_srm.h), so that X M = U v: with v = W_R (a W fitted
+    on R), X M is the W on the original voxels. */
 int SRM_compress_map( const float *R , int rank , int ntime , const float *v , int ncol , double *M_out )
 {
    int a , c , t , rc ; double *Y ;
@@ -2926,6 +3355,8 @@ int SRM_compress_map( const float *R , int rank , int ntime , const float *v , i
    return rc ;
 }
 
+/*! out = X M (thd_srm.h), one voxel row per task; columns in blocks of 64 so
+    the double accumulators fit in a fixed stack array. */
 int SRM_compress_expand( const float *x , int nvox , int ntime , const double *M , int ncol , float *out )
 {
    int f ;
@@ -2948,6 +3379,7 @@ SRM_PRAGMA(omp parallel for schedule(static))
    return SRM_OK ;
 }
 
+/*! One-view model wrapping a saved W (and mu), for -apply_W (thd_srm.h). */
 SRM_model * SRM_model_from_w( int nvox , int nfeat , const float *w , const float *mu )
 {
    SRM_model *m ;
@@ -2972,7 +3404,8 @@ SRM_model * SRM_model_from_w( int nvox , int nfeat , const float *w , const floa
    return m ;
 }
 
-/* V <- V Q for a nvox x k float matrix, Q k x k double */
+/* V <- V Q for a nvox x k float matrix, Q k x k double (rotates every row of
+   a W into the new gauge; rows are independent, so in parallel) */
 static void srm_rotate_rows( float *V , int nvox , int k , const double *Q )
 {
    int f ;
@@ -2991,6 +3424,16 @@ SRM_PRAGMA(omp parallel for schedule(static))
    }
 }
 
+/*! Body of SRM_canonicalize.  The fit is unique only up to a rotation Q:
+    (W_i Q, Q'S) reconstructs the data exactly as (W_i, S) does.  To make
+    the output reproducible and interpretable, Q is chosen as the
+    eigenvectors of S S' (so the rotated rows of S are uncorrelated, ordered
+    by decreasing variance: a PCA of S), and each component's sign is fixed by
+    a rule that does not depend on the arbitrary sign the eigensolver
+    returns: positive skewness (third moment), or, for a symmetric component,
+    a positive largest-magnitude sample.  Everything expressed in component
+    coordinates is rotated with it: W (and W_ir), Sigma_s -> Q'Sigma Q,
+    a_sum -> Q'a_sum.  rho2 and mu are rotation invariant. */
 static int srm_canonicalize_work( SRM_model *m ,
                           double *Sd , double *Sn , double *C , double *Q , double *ev , double *tmp )
 {
@@ -3053,6 +3496,8 @@ static int srm_canonicalize_work( SRM_model *m ,
    return SRM_OK ;
 }
 
+/*! Public entry (contract in thd_srm.h).  Refuses an updated model, whose
+    gauge earlier outputs already depend on. */
 int SRM_canonicalize( SRM_model *m )
 {
    int k , T , rc ;
@@ -3074,6 +3519,9 @@ int SRM_canonicalize( SRM_model *m )
    return rc ;
 }
 
+/*! The rotation R minimizing |R a - b| (thd_srm.h).  This is another
+    orthogonal Procrustes problem: |R a - b|^2 = |a|^2 + |b|^2 - 2<R, b a'>,
+    so R = polar(b a'). */
 int SRM_procrustes_rotation( const float *a , const float *b , int nfeat , int ntime ,
                              float *r_out )
 {
@@ -3094,6 +3542,12 @@ int SRM_procrustes_rotation( const float *a , const float *b , int nfeat , int n
 
 /*============================================================================
   Step 5: held-out metrics, reliability, preprocessing
+
+  "Held-out" means the metric is computed on data (time points or runs) that
+  were NOT used to fit W.  In-sample scores are optimistic because each W_i
+  has nvox*k free parameters.  The usual reference for subject i is the
+  shared response estimated from all OTHER subjects' held-out data, so a
+  score asks: does subject i's projected data agree with everyone else's?
 ==============================================================================*/
 
 /*! Pearson correlation of two double vectors of length n; 0 if either has no
@@ -3112,6 +3566,11 @@ static double srm_pearson( const double *a , const double *b , int n , int *vali
    return sab/sqrt(saa*sbb) ;
 }
 
+/*! Mean of correlations taken in Fisher-z space (z = atanh r), returned as r.
+    Averaging z rather than r is the standard way to average correlations,
+    because z is approximately normal with constant variance.  r is clipped
+    at +-0.9999999 so atanh stays finite.  valid (may be NULL) selects which
+    entries count; returns 0 if none do. */
 static double srm_fisher_mean( const double *r , const int *valid , int n )
 {
    double z=0.0 ; int i , cnt=0 ;
@@ -3124,6 +3583,11 @@ static double srm_fisher_mean( const double *r , const int *valid , int n )
    return (cnt>0) ? tanh(z/cnt) : 0.0 ;
 }
 
+/*! Reconstruction R^2 (thd_srm.h): how much of the subject's own voxel
+    variance is predicted by W_i s + mu_i.  The pooled value sums SSE and SST
+    over voxels before dividing, so high-variance voxels weigh more.  The SST
+    baseline is each voxel's mean over these held-out columns, so a
+    prediction no better than a constant gives R^2 <= 0. */
 int SRM_reconstruction_r2( const SRM_model *m , int iview , const float *x ,
                            const float *s , int ntime_new , double *r2 ,
                            float *vox_r2 )
@@ -3172,12 +3636,28 @@ SRM_PRAGMA(omp for schedule(static))
    return rc ;
 }
 
+/*! Time-segment matching with no missing data (thd_srm.h). */
 int SRM_segment_match( const float *a , const float *b , int nfeat , int ntime ,
                        int win , double *accuracy , double *chance )
 {
    return SRM_segment_match_obs(a,b,nfeat,ntime,win,NULL,accuracy,chance) ;
 }
 
+/*! Time-segment matching (Chen et al. 2015; BrainIAK SRM tutorial), with an
+    optional validity mask (thd_srm.h).
+
+    The question: take a short window (win consecutive time points) of
+    subject i's projected data; can it be found among all windows of the
+    reference?  Each window is flattened to nfeat*win numbers, centered and
+    scaled to unit length, so a dot product is a Pearson correlation.  The
+    window is "identified" if its own time position wins.  Windows that
+    overlap the true one (|i - j| < win, j != i) are excluded as candidates,
+    since they share samples and would be trivially similar.
+    Convention: nseg = ntime - win windows starting at 0 .. ntime-win-1, as in
+    BrainIAK's time_segment_matching (so the window that would end at the
+    last sample is not used); kept for comparability with published numbers.
+    chance = mean over scored windows of 1/(number of candidates).
+    Za/Zb hold the normalized windows of a and b, nseg x len. */
 int SRM_segment_match_obs( const float *a , const float *b , int nfeat , int ntime ,
                            int win , const unsigned char *valid ,
                            double *accuracy , double *chance )
@@ -3238,6 +3718,10 @@ SRM_PRAGMA(omp parallel for schedule(dynamic))
    return SRM_OK ;
 }
 
+/*! Item identification (thd_srm.h): each item's k-vector from a is correlated
+    (across components) with every item's k-vector from b; correct if the
+    best match is the same item.  Items are centered over components, so a
+    common offset across components does not drive the match. */
 int SRM_item_identify( const float *a , const float *b , int nfeat , int nitem ,
                        double *accuracy , double *chance )
 {
@@ -3276,6 +3760,8 @@ SRM_PRAGMA(omp parallel for schedule(static))
    return SRM_OK ;
 }
 
+/*! Per-component correlation over time and its Fisher-z mean (thd_srm.h):
+    the shared-space version of inter-subject correlation (ISC). */
 int SRM_component_corr( const float *a , const float *b , int nfeat , int ntime ,
                         float *r_out , double *r_mean )
 {
@@ -3310,10 +3796,18 @@ static int srm_inv_sqrt( int k , const double *G , double *out , double *wk )
    return SRM_OK ;
 }
 
+/*! Scratch for srm_shared_similarity_work (k x k matrices unless noted). */
 typedef struct {
    double *G1, *G2, *G12, *I1, *I2, *C, *M, *tmp, *wk, *ev, *Q ;
 } srm_similarity_work ;
 
+/*! Principal angles between the row spaces of s1 and s2.  With Gram
+    matrices G1 = s1 s1', G2 = s2 s2', G12 = s1 s2', the rows of
+    G1^(-1/2) s1 and G2^(-1/2) s2 are orthonormal bases of the two row spaces,
+    and C = G1^(-1/2) G12 G2^(-1/2) holds their inner products.  The singular
+    values of C are the cosines of the principal angles, so the eigenvalues of
+    C'C are the squared cosines, and their mean is trace(C'C)/k.  This is
+    rotation invariant, which is why it can compare two independent fits. */
 static int srm_shared_similarity_work( const float *s1 , const float *s2 , int nfeat , int nsamp ,
                            double *mean_cos2 , float *cos_out ,
                                        srm_similarity_work *w )
@@ -3354,6 +3848,7 @@ static int srm_shared_similarity_work( const float *s1 , const float *s2 , int n
    return SRM_OK ;
 }
 
+/*! Public entry (contract in thd_srm.h): allocate scratch, run, free. */
 int SRM_shared_similarity( const float *s1 , const float *s2 , int nfeat , int nsamp ,
                            double *mean_cos2 , float *cos_out )
 {
@@ -3374,6 +3869,9 @@ int SRM_shared_similarity( const float *s1 , const float *s2 , int nfeat , int n
    return rc ;
 }
 
+/*! Split-half reliability (thd_srm.h): pattern (per column, across rows) and
+    series (per row, across columns) correlations, each Fisher-z averaged
+    over the entries that have variance. */
 int SRM_split_reliability( const float *xa , const float *xb , int nrow , int ncol ,
                            double *r_pattern , double *r_series )
 {
@@ -3403,6 +3901,7 @@ int SRM_split_reliability( const float *xa , const float *xb , int nrow , int nc
    return rc ;
 }
 
+/*! Spearman-Brown prophecy formula: r' = f r / (1 + (f-1) r); NaN if undefined. */
 double SRM_spearman_brown( double r , double factor )
 {
    double den = 1.0 + (factor-1.0)*r ;
@@ -3410,6 +3909,8 @@ double SRM_spearman_brown( double r , double factor )
    return factor*r/den ;
 }
 
+/*! Copy the selected columns (thd_srm.h).  Returns the count, or -1 on bad
+    arguments. */
 int SRM_gather_columns( const float *x , int nrow , int ncol ,
                         const unsigned char *sel , float *out )
 {
@@ -3424,6 +3925,13 @@ int SRM_gather_columns( const float *x , int nrow , int ncol ,
    return n ;
 }
 
+/*! Z-score each feature within each run (thd_srm.h).  Why per run: fMRI
+    signal level and scale drift between scans, so each run's time series is
+    put on a common scale (mean 0, SD 1) before subjects are compared.  A
+    voxel constant in any run (outside the brain, or a masked-out region) has
+    no usable signal there; it is zeroed everywhere and flagged so the caller
+    can drop it.  The loop over features is parallel; nbad is a reduction and
+    a non-finite value is reported through err. */
 int SRM_zscore_segments( float *x , int nvox , int ntime , int nseg ,
                          const int *seglen , unsigned char *bad )
 {
@@ -3461,8 +3969,19 @@ SRM_PRAGMA(omp critical(srm_err))
 
 /*============================================================================
   Step 6: the model file, and the checks that guard its use
+
+  Format: see the "Saved models" block in thd_srm.h.  Writing goes to a
+  temporary file that is renamed over the target, so an interrupted write
+  never leaves a half file under the real name.  Reading slurps the whole
+  file into memory, parses it line by line into a srm_parsed struct
+  (srm_parse_model / srm_parse_model_line), validates the parsed values as a
+  whole (srm_validate_parsed_model), and only then builds the model
+  (srm_build_parsed_model), moving buffers out of the struct rather than
+  copying them.  Unknown keys and unknown data blocks are skipped, so files
+  from later versions with extra fields still load.
 ==============================================================================*/
 
+/*! A provenance record with the defaults (time axis, z-scored per run). */
 SRM_provenance * SRM_provenance_new( void )
 {
    SRM_provenance *pv=(SRM_provenance *)srm_calloc(1,sizeof(*pv)) ;
@@ -3471,6 +3990,7 @@ SRM_provenance * SRM_provenance_new( void )
    return pv ;
 }
 
+/*! Free a provenance record and its arrays (safe on NULL). */
 void SRM_provenance_free( SRM_provenance *pv )
 {
    int ii ;
@@ -3489,6 +4009,8 @@ static int srm_token_ok( const char *s )
    return 1 ;
 }
 
+/*! New time-axis data must have the same pre-censoring length and the same
+    run lengths as the model (thd_srm.h). */
 int SRM_provenance_check( const SRM_provenance *pv , int ntime_in , int nseg ,
                           const int *seglen )
 {
@@ -3508,6 +4030,9 @@ static int srm_keyidx_cmp( const void *a , const void *b )
    return strcmp(((const srm_keyidx *)a)->key,((const srm_keyidx *)b)->key) ;
 }
 
+/*! Item-key matching (thd_srm.h).  The model's keys are sorted once
+    (with their original column index) so each new key is found by binary
+    search, O(n log n) overall; `seen` catches a key given twice. */
 int SRM_provenance_match_items( const SRM_provenance *pv , int nkey ,
                                 char * const *key , int *perm )
 {
@@ -3541,6 +4066,8 @@ static int srm_all_finite_f( const float *a , size_t n )
 static int srm_all_finite_d( const double *a , size_t n )
 { size_t i ; for( i=0 ; i<n ; i++ ) if( !isfinite(a[i]) ) return 0 ; return 1 ; }
 
+/*! Write one "data NAME r c" block of floats.  %.9g is the shortest decimal
+    form that always reads back to the identical float (FLT_DECIMAL_DIG). */
 static void srm_put_floats( FILE *fp , const char *name , int r , int c , const float *a )
 {
    int i , j ;
@@ -3549,6 +4076,7 @@ static void srm_put_floats( FILE *fp , const char *name , int r , int c , const 
      fprintf(fp,"%.9g%c",(double)a[(size_t)i*c+j],(j==c-1) ? '\n' : ' ') ;
 }
 
+/*! The same for doubles; %.17g round-trips a double exactly (DBL_DECIMAL_DIG). */
 static void srm_put_doubles( FILE *fp , const char *name , int r , int c , const double *a )
 {
    int i , j ;
@@ -3557,6 +4085,9 @@ static void srm_put_doubles( FILE *fp , const char *name , int r , int c , const
      fprintf(fp,"%.17g%c",a[(size_t)i*c+j],(j==c-1) ? '\n' : ' ') ;
 }
 
+/*! Save a model (contract in thd_srm.h).  Everything is checked for
+    consistency and finiteness BEFORE the file is opened, so a refused model
+    never leaves a partial file behind. */
 int SRM_save_model( const char *fname , const SRM_model *m , const SRM_provenance *pv )
 {
    int ii , k , T , prob , kept=0 ; size_t jj ; char tmp[4200] ; FILE *fp ;
@@ -3633,12 +4164,17 @@ int SRM_save_model( const char *fname , const SRM_model *m , const SRM_provenanc
 
 /*---------------------------------------------------------------- reading */
 
+/* Small parsing helpers.  The file is held in one NUL-terminated buffer;
+   p always points into it, and eol at the '\n' (or NUL) ending the line. */
+
+/*! Skip spaces, tabs and line breaks. */
 static const char * srm_skip_ws( const char *p )
 {
    while( *p==' ' || *p=='\t' || *p=='\n' || *p=='\r' ) p++ ;
    return p ;
 }
 
+/*! End of the current line (the '\n' or the terminating NUL). */
 static const char * srm_eol( const char *p )
 {
    while( *p && *p!='\n' ) p++ ;
@@ -3658,6 +4194,7 @@ static int srm_read_num( const char **pp , double *out )
    return 1 ;
 }
 
+/*! An int that must lie within [p,eol) (it may not run onto the next line). */
 static int srm_line_int( const char *p , const char *eol , int *out )
 {
    char *end ; long v ;
@@ -3668,6 +4205,7 @@ static int srm_line_int( const char *p , const char *eol , int *out )
    *out=(int)v ; return 1 ;
 }
 
+/*! A finite double within [p,eol). */
 static int srm_line_double( const char *p , const char *eol , double *out )
 {
    char *end ; double v ;
@@ -3692,6 +4230,10 @@ static char * srm_line_word( const char *p , const char *eol , const char **next
    return w ;
 }
 
+/*! Everything read from a model file before it is validated and turned into
+    an SRM_model.  got_* / have_* flags record which keys and blocks were seen,
+    so a missing required field can be detected; arrays are owned here until
+    srm_build_parsed_model moves them out (setting the field to NULL). */
 typedef struct {
    int have_version ;
    int algo , axis , zscore , nfeat , ntime , nsubj , wseg , center , coupled , nsubj_eff , nupdate ;
@@ -3703,6 +4245,7 @@ typedef struct {
    double *nt , *rt ; int got_nt , got_rt ;
 } srm_parsed ;
 
+/*! Free the arrays a srm_parsed still owns. */
 static void srm_parsed_free( srm_parsed *ps )
 {
    int ii ;
@@ -3858,6 +4401,10 @@ static int srm_parse_model_line( srm_parsed *ps , const char *key ,
    return SRM_OK ;
 }
 
+/*! Split the buffer into lines and hand each "key rest-of-line" to
+    srm_parse_model_line, which may consume following lines (data blocks)
+    by moving p.  Comment lines (#) and blank lines are skipped; parsing stops
+    at "end". */
 static int srm_parse_model( const char *buf , srm_parsed *ps )
 {
    const char *p=buf ;
@@ -3877,6 +4424,9 @@ static int srm_parse_model( const char *buf , srm_parsed *ps )
    return SRM_OK ;
 }
 
+/*! Whole-file consistency checks: required keys present, sizes agree with
+    each other (e.g. seglen sums to ntime, the keep mask retains ntime points),
+    and values are in range.  Any failure is SRM_ERR_FORMAT. */
 static int srm_validate_parsed_model( const srm_parsed *ps )
 {
    int ii ;
@@ -3949,6 +4499,8 @@ static int srm_build_parsed_model( srm_parsed *ps , SRM_model **model , SRM_prov
    return SRM_OK ;
 }
 
+/*! Read a model file (contract in thd_srm.h): slurp, parse, validate, build.
+    Outputs are set only on success. */
 int SRM_load_model( const char *fname , SRM_model **model , SRM_provenance **pvout )
 {
    FILE *fp ; long len ; char *buf=NULL ;
@@ -3980,7 +4532,8 @@ int SRM_load_model( const char *fname , SRM_model **model , SRM_provenance **pvo
 }
 
 
-/* Indexed gather used by held-out scoring. */
+/* Indexed gather used by held-out scoring: y (V x n) = the columns col[0..n-1]
+   of x (V x T).  Caller frees; NULL on failure. */
 static float *srm_score_cols( const float *x , int V , int T , const int *col , int n )
 {
    int f,t ; float *y=(float *)malloc(sizeof(float)*(size_t)V*n) ;
@@ -3989,6 +4542,7 @@ static float *srm_score_cols( const float *x , int V , int T , const int *col , 
    return y ;
 }
 
+/*! SRM_fit_view on the observed columns only (thd_srm.h): gather, then fit. */
 int SRM_fit_view_obs( const float *s , int K , int T , const float *x , int V , int center ,
                       const unsigned char *obs , float *W , double *rho2 , float *mu )
 {
@@ -4005,6 +4559,11 @@ int SRM_fit_view_obs( const float *s , int K , int T , const float *x , int V , 
    free(xg) ; free(sg) ; return rc ;
 }
 
+/*! Adapt a subject's W to a few observed samples while staying near an
+    anchor (thd_srm.h): W = polar(X_c S' + lambda s2 W_anchor) on the gathered,
+    centered observed columns, i.e. SRM_fit_view_coupled with one run.
+    lambda = 0 is a free refit on those samples; large lambda keeps the anchor.
+    With no observed samples the anchor is returned unchanged. */
 int SRM_adapt_view( const float *s , int K , int T , const float *x , int V , const float *anchor ,
                     const float *mu , double lambda , const unsigned char *obs , SRM_model **out )
 {
@@ -4040,7 +4599,12 @@ int SRM_adapt_view( const float *s , int K , int T , const float *x , int V , co
 /*! Score one subject's held-out columns.  P is the subject's projected test
     data (K x len); ref_u the reference shared response for correlation and
     matching; ref_r the one used to reconstruct (the posterior mean for a PROB model).
-    model/iview locate the subject's W for the reconstruction. */
+    model/iview locate the subject's W for the reconstruction.
+    With a validity mask, correlation, item identification and R^2 use only
+    the valid columns (gathered), while segment matching is given the full
+    timeline plus the mask, so that a window spanning a gap is not treated as
+    if its samples were adjacent.  Results go in out[SRM_SCORE_*]; NaN marks a
+    metric not requested or not computable. */
 int SRM_score_view( const SRM_model *model , int iview , const float *xte , const float *P ,
                           const float *ref_u , const float *ref_r , int K , int len , int win ,
                           SRM_score_request w , const unsigned char *valid , double *out , float *vox_r2 )
