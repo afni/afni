@@ -31,6 +31,9 @@ void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
 
 
 /* mirror blur array at ends, all the way        */
+/* - outside bounds mirror at symmetric depth    */
+/*   - fix symmetry [6 Nov 2026 rickr]           */
+/* - note: endpoint is not mirrored              */
 /* (as macro for speed)                          */
 /* pad for full length m     [9 Feb 2022 rickr] */
 /*    RRR      - probably 'r' array              */
@@ -39,14 +42,25 @@ void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
 #ifdef BMIRROR
 #undef BMIRROR
 #endif
-#define BMIRROR(RRR,MMM,NDIM)                   \
-   do {                                         \
-      for( mm=1; mm <= MMM; mm++) {             \
-         RRR[MMM-mm] = RRR[MMM+mm];             \
-         RRR[MMM+NDIM-1+mm] = RRR[MMM+NDIM-mm]; \
-      }                                         \
+#define BMIRROR(RRR,MMM,NDIM)                     \
+   do {                                           \
+      for( mm=1; mm <= MMM; mm++) {               \
+         RRR[MMM-mm] = RRR[MMM+mm];               \
+         RRR[MMM+NDIM-1+mm] = RRR[MMM+NDIM-1-mm]; \
+      }                                           \
    } while(0)
 
+/* mirror into blur pads, like BMIRROR, but for RR access [9 Feb 2022 rickr] */
+#ifdef RMIRROR
+#undef RMIRROR
+#endif
+#define RMIRROR(MMM,NDIM)                       \
+   do {                                         \
+      for( mm=1; mm <= MMM; mm++) {             \
+         RR(ii,-mm) = RR(ii,mm);                \
+         RR(ii,NDIM-1+mm) = RR(ii,NDIM-1-mm);   \
+      }                                         \
+   } while(0)
 
 /*************************************************************************/
 /*!  Routine to blur a 3D volume with a Gaussian, using FFTs.
@@ -178,7 +192,8 @@ ENTRY("EDIT_blur_volume_3d") ;
 
      case MRI_short:
        fbot = ftop = sfim[0] ;
-       for( ii=1 ; ii < nxyz ; ii++ ) {
+       /* "waste" an i=0 op to populate ffim[0] */
+       for( ii=0 ; ii < nxyz ; ii++ ) {
               if( sfim[ii] < fbot ) fbot = sfim[ii] ;
          else if( sfim[ii] > ftop ) ftop = sfim[ii] ;
          if( as_float ) ffim[ii] = (float)sfim[ii] ; /* copy data as int */
@@ -194,7 +209,8 @@ ENTRY("EDIT_blur_volume_3d") ;
 
      case MRI_byte:
        fbot = ftop = bfim[0] ;
-       for( ii=1 ; ii < nxyz ; ii++ ) {
+       /* "waste" an i=0 op to populate ffim[0] */
+       for( ii=0 ; ii < nxyz ; ii++ ) {
               if( bfim[ii] < fbot ) fbot = bfim[ii] ;
          else if( bfim[ii] > ftop ) ftop = bfim[ii] ;
          if( as_float ) ffim[ii] = (float)bfim[ii] ; /* copy data as int */
@@ -618,6 +634,9 @@ STATUS("start z FFTs") ;
        case MRI_short:
          for( ii=0 ; ii < nxyz ; ii++ ) {
            if( as_float ) {  /* return floats to rounded shorts */
+              /* limit before type conversion */
+              if     ( ffim[ii] < fbot ) ffim[ii] = fbot ;
+              else if( ffim[ii] > ftop ) ffim[ii] = ftop ;
               if( ffim[ii] >= 0.0f ) sfim[ii] = (short)(ffim[ii]+0.5) ;
               else                   sfim[ii] = (short)(ffim[ii]-0.5) ;
            }
@@ -634,7 +653,11 @@ STATUS("start z FFTs") ;
 
        case MRI_byte:
          for( ii=0 ; ii < nxyz ; ii++ ) {
-           if( as_float ) bfim[ii] = (byte)(ffim[ii]+0.5) ; /* return to byte */
+           if( as_float ) {
+              if(      ffim[ii] < fbot ) ffim[ii] = fbot ;
+              else if( ffim[ii] > ftop ) ffim[ii] = ftop ;
+              bfim[ii] = (byte)(ffim[ii]+0.5) ; /* return to byte */
+           }
                 if( bfim[ii] < fbot ) bfim[ii] = fbot ;
            else if( bfim[ii] > ftop ) bfim[ii] = ftop ;
          }
@@ -953,8 +976,9 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        for( ii=0 ; ii < nx ; ii++ ) RR(ii,jj) = ff[ii+D*jj] ;  /* D = nx here */
      }
      for( ii=0 ; ii < nx ; ii++ ){
-       RR(ii,-1) = RR(ii,1) ; RR(ii,ny) = RR(ii,ny-2) ; /* edge reflection - */
-                                                   /* only 1 point reflected*/
+       /* replace : RR(ii,-1) = RR(ii,1) ; RR(ii,ny) = RR(ii,ny-2) ; */
+       /*           - only 1 point reflected                         */
+       RMIRROR(m,ny);  /* edge reflection in y    [6 Nov 2026 rickr] */
      }
 
      /* filter data in RR along y-direction, put into 2D SS array */
@@ -1270,18 +1294,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
 #undef  SS
 #define SS(i,k) ss[(k)+(i)*nz]
-
-/* mirror into blur pads, like BMIRROR, but for RR access [9 Feb 2022 rickr] */
-#ifdef RMIRROR
-#undef RMIRROR
-#endif
-#define RMIRROR(MMM,NDIM)                       \
-   do {                                         \
-      for( mm=1; mm <= MMM; mm++) {             \
-         RR(ii,-mm) = RR(ii,mm);                \
-         RR(ii,NDIM-1+mm) = RR(ii,NDIM-1-mm);   \
-      }                                         \
-   } while(0)
 
 
    rr = (float *)calloc(sizeof(float),nz2m*nx) ;  /* nz2m = nz+2*m */

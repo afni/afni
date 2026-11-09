@@ -239,8 +239,8 @@ static int ss_encode_role( THD_sampleset *ss, const char *column, int **code,
    return ss_encode_table_column(ss->metadata,column,code,level,nlevel,err,nerr) ;
 }
 
-THD_sampleset * THD_sampleset_from_table( const THD_datatable *dt,
-                                           const THD_sampleset_columns *given,
+static THD_sampleset * ss_from_table( const THD_datatable *dt,
+                                           const THD_sampleset_columns *given, int ntime,
                                            char *err, int nerr )
 {
    THD_sampleset *ss ; THD_sampleset_columns detected ; const THD_sampleset_columns *col=given ;
@@ -320,6 +320,13 @@ THD_sampleset * THD_sampleset_from_table( const THD_datatable *dt,
        if( ss->ndset==0 ) ss->nvox=DSET_NVOX(ds) ;
        ss->dset[dd]=ds ; ss->dset_name[dd]=base ; ss->ndset++ ;
      } else { ds=ss->dset[dd] ; free(base) ; }
+     if(ntime<0){
+       ntime=DSET_NVALS(ds);
+       if(ntime<1)return ss_fail(ss,err,nerr,"temporal trial dataset has no time points");
+     }
+     if( ntime>0 && (sel!=NULL || DSET_NVALS(ds)!=ntime) )
+       return ss_fail(ss,err,nerr,"dataTable (%s), row %d: temporal InputFile '%s' must be a whole dataset with exactly %d time points (found %d)",
+                      ss->source,rr+1,spec,ntime,DSET_NVALS(ds));
      if( sel!=NULL ){
        int *iv=MCW_get_thd_intlist(ds,(char *)sel) ;
        if( iv==NULL || iv[0]!=1 ){
@@ -328,12 +335,23 @@ THD_sampleset * THD_sampleset_from_table( const THD_datatable *dt,
                         ss->source,rr+1,spec,nsel) ;
        }
        brick=iv[1] ; free(iv) ;
-     } else if( DSET_NVALS(ds)!=1 )
+     } else if( ntime==0 && DSET_NVALS(ds)!=1 )
        return ss_fail(ss,err,nerr,"dataTable (%s), row %d: dataset '%s' has %d sub-bricks; select exactly one with [..]",
                       ss->source,rr+1,spec,DSET_NVALS(ds)) ;
      ss->sample_dset[rr]=dd ; ss->sample_brick[rr]=brick ;
    }
    return ss ;
+}
+
+THD_sampleset * THD_sampleset_from_table(const THD_datatable *dt,
+ const THD_sampleset_columns *columns,char *err,int nerr)
+{ return ss_from_table(dt,columns,0,err,nerr); }
+
+THD_sampleset * THD_sampleset_from_time_table(const THD_datatable *dt,
+ const THD_sampleset_columns *columns,int ntime,char *err,int nerr)
+{
+   if(ntime<0){ss_error(err,nerr,"temporal sample count must be nonnegative (zero infers the count)");return NULL;}
+   return ss_from_table(dt,columns,ntime?ntime:-1,err,nerr);
 }
 
 void THD_sampleset_print( const THD_sampleset *ss, FILE *fp )

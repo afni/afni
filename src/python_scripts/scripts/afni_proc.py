@@ -11,10 +11,10 @@ import string, sys, os
 from time import asctime
 
 # AFNI modules
-from afnipy.afni_base import *
-from afnipy.afni_util import *
-from afnipy.option_list import *
-from afnipy.db_mod import *
+from afnipy import afni_base as BASE
+from afnipy import afni_util as UTIL
+from afnipy import option_list as OL
+from afnipy import db_mod as DB
 from afnipy import lib_vars_object as VO
 from afnipy import ask_me
 from afnipy import lib_tedana_afni as TED
@@ -836,9 +836,10 @@ g_history = """
     8.11 Oct  9, 2026:
        - add rest examples demo 2a, 2b, 2c
        - rename old (and less basic) rest examples demo 2a,2b to 2e,2d
+    8.12 Nov  4, 2026: changed wildcard imports to aliases
 """
 
-g_version = "version 8.11, October 9, 2026"
+g_version = "version 8.12, November 4, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1036,26 +1037,26 @@ g_todo_str = """todo:
 BlockLabels  = ['tcat', 'postdata', 'despike', 'ricor', 'tshift', 'blip',
                 'align', 'volreg', 'combine', 'motsim', 'surf', 'blur',
                 'mask', 'scale', 'regress', 'tlrc', 'empty']
-BlockModFunc  = {'tcat'   : db_mod_tcat,     'postdata' : db_mod_postdata,
-                 'despike': db_mod_despike,
-                 'ricor'  : db_mod_ricor,    'tshift' : db_mod_tshift,
-                 'blip'   : db_mod_blip,
-                 'align'  : db_mod_align,    'volreg' : db_mod_volreg,
-                 'combine': db_mod_combine,  'motsim' : db_mod_motsim,
-                 'surf'   : db_mod_surf,     'blur'   : db_mod_blur,
-                 'mask'   : db_mod_mask,     'scale'  : db_mod_scale,
-                 'regress': db_mod_regress,  'tlrc'   : db_mod_tlrc,
-                 'empty'  : db_mod_empty}
-BlockCmdFunc  = {'tcat'   : db_cmd_tcat,     'postdata' : db_cmd_postdata,
-                 'despike': db_cmd_despike,
-                 'ricor'  : db_cmd_ricor,    'tshift' : db_cmd_tshift,
-                 'blip'   : db_cmd_blip,
-                 'align'  : db_cmd_align,    'volreg' : db_cmd_volreg,
-                 'combine': db_cmd_combine,  'motsim' : db_cmd_motsim,
-                 'surf'   : db_cmd_surf,     'blur'   : db_cmd_blur,
-                 'mask'   : db_cmd_mask,     'scale'  : db_cmd_scale,
-                 'regress': db_cmd_regress,  'tlrc'   : db_cmd_tlrc,
-                 'empty'  : db_cmd_empty}
+BlockModFunc  = {'tcat'   : DB.db_mod_tcat,     'postdata' : DB.db_mod_postdata,
+                 'despike': DB.db_mod_despike,
+                 'ricor'  : DB.db_mod_ricor,    'tshift' : DB.db_mod_tshift,
+                 'blip'   : DB.db_mod_blip,
+                 'align'  : DB.db_mod_align,    'volreg' : DB.db_mod_volreg,
+                 'combine': DB.db_mod_combine,  'motsim' : DB.db_mod_motsim,
+                 'surf'   : DB.db_mod_surf,     'blur'   : DB.db_mod_blur,
+                 'mask'   : DB.db_mod_mask,     'scale'  : DB.db_mod_scale,
+                 'regress': DB.db_mod_regress,  'tlrc'   : DB.db_mod_tlrc,
+                 'empty'  : DB.db_mod_empty}
+BlockCmdFunc  = {'tcat'   : DB.db_cmd_tcat,     'postdata' : DB.db_cmd_postdata,
+                 'despike': DB.db_cmd_despike,
+                 'ricor'  : DB.db_cmd_ricor,    'tshift' : DB.db_cmd_tshift,
+                 'blip'   : DB.db_cmd_blip,
+                 'align'  : DB.db_cmd_align,    'volreg' : DB.db_cmd_volreg,
+                 'combine': DB.db_cmd_combine,  'motsim' : DB.db_cmd_motsim,
+                 'surf'   : DB.db_cmd_surf,     'blur'   : DB.db_cmd_blur,
+                 'mask'   : DB.db_cmd_mask,     'scale'  : DB.db_cmd_scale,
+                 'regress': DB.db_cmd_regress,  'tlrc'   : DB.db_cmd_tlrc,
+                 'empty'  : DB.db_cmd_empty}
 AllOptionStyles = ['cmd', 'file', 'gui', 'sdir']
 
 # default block labels, and other labels (along with the label they follow)
@@ -1384,7 +1385,7 @@ class SubjProcSream:
         if self.verb > 1: self.user_opts.show('user_opts: ')
 
     def init_opts(self):
-        self.valid_opts = OptionList('afni_proc.py options')
+        self.valid_opts = OL.OptionList('afni_proc.py options')
 
         # input style options  rcr - update
         # self.valid_opts.add_opt('-opt_source', 1, [], AllOptionStyles)
@@ -1538,6 +1539,10 @@ class SubjProcSream:
                         helpstr='3dToutcount polort (default is as with 3dD)')
         self.valid_opts.add_opt('-find_var_line_blocks', -1, [],
                         helpstr="find_variance_lines.tcsh for given blocks")
+        self.valid_opts.add_opt('-find_var_line_opts', -1, [],
+                        helpstr="extra options for find_variance_lines.tcsh")
+        self.valid_opts.add_opt('-find_var_line_npc', 1, [],
+                        helpstr="num vline principle components to extract")
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
                         helpstr="compute correlations with spherical averages")
@@ -1579,7 +1584,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
                         helpstr='additional options directly for 3dDespike')
         self.valid_opts.add_opt('-despike_new', 1, [],
-                        acplist=g_despike_new_opts,
+                        acplist=DB.g_despike_new_opts,
                         helpstr="(yes/no/...) run 3dDespike with -NEW method")
 
         self.valid_opts.add_opt('-ricor_datum', 1, [],
@@ -1705,7 +1710,7 @@ class SubjProcSream:
                         helpstr='add options directly to @simulate_motion')
         # new motsim option
         self.valid_opts.add_opt('-volreg_motsim_create', -1, [],
-                        acplist=motsim_types,
+                        acplist=DB.motsim_types,
                         helpstr='create motion simulated dsets of given types')
         # rcr - move this
         self.valid_opts.add_opt('-regress_motsim_PC', 2, [],
@@ -1729,7 +1734,7 @@ class SubjProcSream:
                         helpstr='number of slices to pad by in volreg')
 
         self.valid_opts.add_opt('-combine_method', 1, [],
-                        acplist=g_oc_methods,
+                        acplist=DB.g_oc_methods,
                         helpstr='specify method for combining echoes per run')
         self.valid_opts.add_opt('-combine_opts_tedana', -1, [],
                         helpstr='specify extra options for tedana.py')
@@ -2011,7 +2016,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_opts_CS', -1, [],
                         helpstr='additional options directly to 3dClustSim')
         self.valid_opts.add_opt('-regress_run_clustsim', 1, [],
-                        acplist=clustsim_types,
+                        acplist=DB.clustsim_types,
                         helpstr="add 3dClustSim attrs to regression bucket")
 
         # PPI options
@@ -2020,10 +2025,10 @@ class SubjProcSream:
         
     def get_user_opts(self):
         self.valid_opts.check_special_opts(self.argv)
-        self.user_opts = read_options(self.argv, self.valid_opts)
+        self.user_opts = OL.read_options(self.argv, self.valid_opts)
         if self.user_opts == None: return 1     # error condition
         if len(self.user_opts.olist) == 0:      # no options: apply -help
-            show_program_help()
+            DB.show_program_help()
             return 0
         if self.user_opts.trailers:
             opt = self.user_opts.find_opt('trailers')
@@ -2047,8 +2052,8 @@ class SubjProcSream:
         # create empty file tracking list
         self.tlist = TrackedFlist(self, subj_id=self.subj_id)
 
-        if self.verb > 1: show_args_as_command(self.argv, "executing command:")
-        if self.verb > 4: show_args_as_command(sys.argv, "system command:")
+        if self.verb > 1: UTIL.show_args_as_command(self.argv, "executing command:")
+        if self.verb > 4: UTIL.show_args_as_command(sys.argv, "system command:")
         if self.verb > 1: self.show('end get_user_opts ')
 
     # apply the general options - many terminate program
@@ -2057,7 +2062,7 @@ class SubjProcSream:
         if opt != None: self.verb = int(opt.parlist[0])
 
         if opt_list.find_opt('-help'):     # just print help
-            show_program_help()
+            DB.show_program_help()
             return 0  # gentle termination
         
         if opt_list.find_opt('-help_section'):     # just print help
@@ -2069,7 +2074,7 @@ class SubjProcSream:
                EGS = self.egs()
                EGS.display_eg_all(aphelp=-1,verb=2)
             else:
-               show_program_help(section=section)
+               DB.show_program_help(section=section)
             return 0  # gentle termination
         
         if opt_list.find_opt('-help_tedana_files'):
@@ -2195,7 +2200,7 @@ class SubjProcSream:
         # --------------------------------------------------
 
         opt = opt_list.find_opt('-check_results_dir')
-        if opt_is_no(opt): self.check_rdir = 'no'
+        if OL.opt_is_no(opt): self.check_rdir = 'no'
 
         opt = opt_list.find_opt('-check_setup_errors')
         if opt and opt.parlist[0] == 'yes': self.check_setup_errors = 1
@@ -2215,7 +2220,7 @@ class SubjProcSream:
 
         opt = opt_list.find_opt('-copy_anat')
         if opt != None:
-            self.anat = gen_afni_name(opt.parlist[0])
+            self.anat = DB.gen_afni_name(opt.parlist[0])
             # rcr - set only if no view in anat?  (though still would not know)
             self.tlrcanat = self.anat.new(new_view='+tlrc')
 
@@ -2270,12 +2275,12 @@ class SubjProcSream:
 
         # do we check input datasets for existence?  default to yes
         opt = opt_list.find_opt('-test_for_dsets')
-        if not opt or opt_is_yes(opt): self.test_dsets = 1
+        if not opt or OL.opt_is_yes(opt): self.test_dsets = 1
         else:                          self.test_dsets = 0
 
         # do we test stim files for validity?  default to yes
         opt = opt_list.find_opt('-test_stim_files')
-        if not opt or opt_is_yes(opt): self.test_stims = 1
+        if not opt or OL.opt_is_yes(opt): self.test_stims = 1
         else:                          self.test_stims = 0
 
     def _have_me(self):
@@ -2324,7 +2329,7 @@ class SubjProcSream:
               return 1
            self.dsets = []
            for rind, dset in enumerate(o0.parlist):
-              aname = gen_afni_name(dset)
+              aname = DB.gen_afni_name(dset)
               if aname.selectors() != '': self.have_sels = 1
               aname.selquote = "'" # allow for $ in selector (default??)
               self.dsets.append(aname)
@@ -2362,7 +2367,7 @@ class SubjProcSream:
 
               dsets = []
               for rind, dset in enumerate(opt.parlist):
-                 dsets.append(gen_afni_name(dset))
+                 dsets.append(DB.gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have echo %d option %s without any dataset list" \
                        % (eind, oname))
@@ -2387,7 +2392,7 @@ class SubjProcSream:
 
               dsets = []
               for eind, dset in enumerate(opt.parlist):
-                 dsets.append(gen_afni_name(dset))
+                 dsets.append(DB.gen_afni_name(dset))
               if len(dsets) == 0:
                  print("** have run %d option %s without any dataset list" \
                        % (rind, oname))
@@ -2478,7 +2483,7 @@ class SubjProcSream:
            self.origview = view
            if self.verb > 0: print('-- applying view as %s' % view)
         elif not view:
-           view = dset_view(self.dsets[0].rel_input())
+           view = UTIL.dset_view(self.dsets[0].rel_input())
            self.view = view
            self.origview = view
            if self.verb > 0: print('-- applying input view as %s' % view)
@@ -2492,7 +2497,7 @@ class SubjProcSream:
         self.delta = dims
 
         # note obliquity of first EPI dset
-        self.dsets_obl = dset_is_oblique(self.dsets[0], self.verb)
+        self.dsets_obl = DB.dset_is_oblique(self.dsets[0], self.verb)
 
         return errs
 
@@ -2506,7 +2511,7 @@ class SubjProcSream:
         # or surface analysis
         opt = self.user_opts.find_opt('-surf_anat')
         if opt != None:
-           self.surf_anat = gen_afni_name(opt.parlist[0])
+           self.surf_anat = DB.gen_afni_name(opt.parlist[0])
 
         # init block either from DefLabels or -blocks
         opt = self.user_opts.find_opt('-blocks')
@@ -2618,7 +2623,7 @@ class SubjProcSream:
             return 1
 
         # no errors, just warn the user (for J Britton)   25 May 2011
-        uniq_list_as_dsets(self.dsets, 1)
+        UTIL.uniq_list_as_dsets(self.dsets, 1)
         self.check_block_order()
 
     def set_post_funcs(self):
@@ -2631,8 +2636,8 @@ class SubjProcSream:
 
         post_func_list = [
             #   option name                  function name (as string)
-            ['-radial_correlate_blocks',    'run_radial_correlate'],
-            ['-find_var_line_blocks',       'run_qc_var_line_blocks'],
+            ['-radial_correlate_blocks',    'DB.run_radial_correlate'],
+            ['-find_var_line_blocks',       'DB.run_qc_var_line_blocks'],
         ]
 
         for fstuff in post_func_list:
@@ -2887,12 +2892,12 @@ class SubjProcSream:
                   print('++ adding post_cstr to block %s:\n%s=======' \
                         % (block.label, block.post_cstr))
                cmd_str += block.post_cstr
-            self.write_text(add_line_wrappers(cmd_str))
+            self.write_text(UTIL.add_line_wrappers(cmd_str))
             if self.verb>3: block.show('+d post command creation: ')
             if self.verb>4: print('+d %s cmd: \n%s'%(block.label, cmd_str))
 
         if self.epi_review:
-            cmd_str = db_cmd_gen_review(self)
+            cmd_str = DB.db_cmd_gen_review(self)
             if cmd_str:
                 # no wrappers for QC block (out.ap_uvars.txt) [10 May 2022]
                 # self.write_text(add_line_wrappers(cmd_str))
@@ -2913,7 +2918,7 @@ class SubjProcSream:
         if errs > 0:
             # default to removing any created script
             opt = self.user_opts.find_opt('-keep_script_on_err')
-            if not opt or opt_is_no(opt):
+            if not opt or OL.opt_is_no(opt):
                 if os.path.isfile(self.script): os.remove(self.script)
             return 1    # so we print all errors before leaving
 
@@ -2962,14 +2967,14 @@ class SubjProcSream:
         # (use rpve to include NIfTI, etc.)
         dset = self.dsets[0].rpve(sel=1)
 
-        err, self.reps, self.tr = get_dset_reps_tr(dset, verb=self.verb)
+        err, self.reps, self.tr = UTIL.get_dset_reps_tr(dset, verb=self.verb)
         if err: return 1   # check for failure
 
         # set reps in each run
         self.reps_all = []
         self.reps_vary = 0
         for dr in self.dsets:
-            err, reps, tr = get_dset_reps_tr(dr.rpve(sel=1), verb=self.verb)
+            err, reps, tr = UTIL.get_dset_reps_tr(dr.rpve(sel=1), verb=self.verb)
             if err: return 1
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
@@ -2982,7 +2987,7 @@ class SubjProcSream:
         if self.have_me:
            for eind, esets in enumerate(self.dsets_me):
                for rind, dset in enumerate(esets):
-                  err, reps, tr = get_dset_reps_tr(dset.rpve(sel=1),
+                  err, reps, tr = UTIL.get_dset_reps_tr(dset.rpve(sel=1),
                                                    verb=self.verb)
                   if err: return 1
                   if reps != self.reps_all[rind]:
@@ -2996,14 +3001,14 @@ class SubjProcSream:
                       return 1
 
         # note data type and whether data is scaled
-        err, vlist = get_typed_dset_attr_list(dset, "BRICK_TYPES", int, verb=0)
+        err, vlist = UTIL.get_typed_dset_attr_list(dset, "BRICK_TYPES", int, verb=0)
         if not err and len(vlist) >= 1:
             self.datatype = vlist[0]
 
-        err, vlist = get_typed_dset_attr_list(dset, "BRICK_FLOAT_FACS", int,
+        err, vlist = UTIL.get_typed_dset_attr_list(dset, "BRICK_FLOAT_FACS", int,
                                               verb=0)
         if not err and len(vlist) >= 1:
-            if vals_are_constant(vlist, 0) or vals_are_constant(vlist, 1):
+            if UTIL.vals_are_constant(vlist, 0) or UTIL.vals_are_constant(vlist, 1):
                 self.scaled = 0
             else:
                 self.scaled = 1
@@ -3297,7 +3302,7 @@ class SubjProcSream:
         else: stat_inc = '@ nerrors += $status      # accumulate error count\n'
 
         self.write_text('# %s\n'  \
-                      '# script setup\n\n' % block_header('auto block: setup'))
+                      '# script setup\n\n' % DB.block_header('auto block: setup'))
 
         if len(stat_inc) > 0:
             self.write_text("# prepare to count setup errors\n" \
@@ -3305,7 +3310,7 @@ class SubjProcSream:
 
         # possibly check the AFNI version (via afni_history)
         opt = self.user_opts.find_opt('-check_afni_version')
-        if not opt or opt_is_yes(opt):
+        if not opt or OL.opt_is_yes(opt):
           self.write_text('# take note of the AFNI version\n' \
                           'afni -ver\n\n')
           self.write_text(                                                    \
@@ -3395,14 +3400,14 @@ class SubjProcSream:
             tstr += ' %s/stimuli\n' % self.od_var
             self.tlist.add_many(self.stims_orig, 'stim', pre='stimuli/',
                                 ftype='text')
-          self.write_text(add_line_wrappers(tstr))
+          self.write_text(UTIL.add_line_wrappers(tstr))
           self.write_text("%s\n" % stat_inc)
 
         if len(self.extra_stims) > 0: # copy extra stim files into stim dir
             tstr = '# copy extra stim files\n'   \
                   'cp %s %s/stimuli\n' %        \
                   (' '.join(self.extra_stims_orig), self.od_var)
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
             self.tlist.add_many(self.extra_stims_orig, 'stim', pre='stimuli/',
                                 ftype='1D')
@@ -3411,9 +3416,9 @@ class SubjProcSream:
         if opt and len(opt.parlist) > 0:
             tstr = '# copy external ortvec files into stimuli dir\n' \
                   'cp %s %s/stimuli\n' %                             \
-                      (' '.join(quotize_list(opt.parlist,'')),self.od_var)
+                      (' '.join(UTIL.quotize_list(opt.parlist,'')),self.od_var)
             self.tlist.add_many(opt.parlist, 'ortvec',ftype='1D',pre='stimuli/')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
         # do the same for per_run ortvecs, but need -pad_into_many_runs
@@ -3424,11 +3429,11 @@ class SubjProcSream:
             oanat = self.anat.nice_input()
             tstr = '# copy anatomy to results dir\n'     \
                   '3dcopy %s %s/%s\n' % (oanat, self.od_var, self.anat.prefix)
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
             # further use should assume AFNI format
-            self.anat.to_afni(new_view=dset_view(self.anat.nice_input()))
+            self.anat.to_afni(new_view=UTIL.dset_view(self.anat.nice_input()))
 
             # save original anat, since self.anat will change
             self.anat_orig = self.anat.new()
@@ -3447,7 +3452,7 @@ class SubjProcSream:
             tmp_local = self.tlrc_base.shortinput(head=1)
             tstr = '# copy template to results dir (for QC)\n' \
                   '3dcopy %s %s/%s\n' % (tmp_orig, self.od_var, tmp_local)
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
             # note: making a local copy should not affect other processing
@@ -3461,7 +3466,7 @@ class SubjProcSream:
                   (self.od_var, self.vr_ext_pre, self.vr_ext_base)
             self.tlist.add(self.vr_ext_base, self.vr_ext_pre, 'volreg_base',
                            ftype='dset')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
         # possibly copy over any volreg warp master
@@ -3472,7 +3477,7 @@ class SubjProcSream:
                    self.vr_warp_mast.prefix, self.vr_wmast_in)
             self.tlist.add(self.vr_wmast_in, self.vr_warp_mast.prefix,
                                    'warp_master', ftype='dset')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
         # possibly copy over any align EPI base
@@ -3482,16 +3487,16 @@ class SubjProcSream:
                   (self.od_var, self.align_epre, self.align_ebase)
             self.tlist.add(self.align_ebase, self.align_epre,
                            'epi_align_base', ftype='dset')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
         opt = self.user_opts.find_opt('-regress_motion_file')
         if opt and len(opt.parlist) > 0:
             tstr = '# copy external motion file into results dir\n' \
                   'cp %s %s\n' %                                   \
-                      (' '.join(quotize_list(opt.parlist,'')),self.od_var)
+                      (' '.join(UTIL.quotize_list(opt.parlist,'')),self.od_var)
             self.tlist.add_many(opt.parlist, 'motion', ftype='1D')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
         opt = self.user_opts.find_opt('-regress_censor_extern')
@@ -3500,7 +3505,7 @@ class SubjProcSream:
             tstr = '# copy external censor file into results dir\n' \
                   'cp %s %s\n' % (fname,self.od_var)
             self.tlist.add(fname, '', 'censor', ftype='1D')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
             self.censor_file = os.path.basename(fname)
             self.censor_count += 1
@@ -3518,7 +3523,7 @@ class SubjProcSream:
               if af.cname.view == '': af.cname.new_view(self.view)
               self.tlist.add(af.aname.nice_input(), af.cname.shortinput(),
                              'anat_follower', ftype='dset')
-           self.write_text(add_line_wrappers(tstr))
+           self.write_text(UTIL.add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
         # copy any -mask_import/ROI_import datasets as mask_import_LABEL
@@ -3533,7 +3538,7 @@ class SubjProcSream:
               # get label and dset params
               label = opt.parlist[0]
               dset  = opt.parlist[1]
-              dname = gen_afni_name(dset)
+              dname = DB.gen_afni_name(dset)
               dname.locate() # in case we need to find it
               # find in ROI dict
               aname = self.get_roi_dset(label)
@@ -3545,7 +3550,7 @@ class SubjProcSream:
               self.tlist.add(dset, aname.shortinput(), 'mask_import',
                              ftype='dset')
         if tstr:
-           self.write_text(add_line_wrappers(tstr+'\n'))
+           self.write_text(UTIL.add_line_wrappers(tstr+'\n'))
 
         # ------------------------------------------------------------------
         # copy any -tlrc_NL_warped_dsets files (self.nlw_priors dsets)
@@ -3561,7 +3566,7 @@ class SubjProcSream:
            # (priors[0] is anat in standard space)
            if self.nlw_priors[0].type == 'NIFTI':
               an = self.nlw_priors[0]
-              an = gen_afni_name('%s+tlrc' % an.prefix)
+              an = DB.gen_afni_name('%s+tlrc' % an.prefix)
               self.nlw_priors[0] = an
 
            self.tlist.add(anorig, an.shortinput(), 'NL_warp', ftype='dset')
@@ -3581,7 +3586,7 @@ class SubjProcSream:
            self.tlist.add(an.nice_input(), an.shortinput(),'NL_warp',
                           ftype='dset', view='+tlrc')
 
-           self.write_text(add_line_wrappers(tstr))
+           self.write_text(UTIL.add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
         # ------------------------------------------------------------------
@@ -3598,7 +3603,7 @@ class SubjProcSream:
            # (priors[0] is anat in standard space)
            if self.nlw_priors[0].type == 'NIFTI':
               an = self.nlw_priors[0]
-              an = gen_afni_name('%s+tlrc' % an.prefix)
+              an = DB.gen_afni_name('%s+tlrc' % an.prefix)
               self.nlw_priors[0] = an
 
            self.tlist.add(anorig, an.shortinput(), 'aff_warp', ftype='dset')
@@ -3610,7 +3615,7 @@ class SubjProcSream:
            self.tlist.add(an.nice_input(), an.shortinput(), 'aff_warp',
                           ftype='1D')
 
-           self.write_text(add_line_wrappers(tstr))
+           self.write_text(UTIL.add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
         # ------------------------------------------------------------------
@@ -3620,8 +3625,8 @@ class SubjProcSream:
         # output datasets are blip_dset_*
 
         bstr = ''
-        if isinstance(self.blip_in_for, afni_name):
-           self.blip_dset_for = gen_afni_name('blip_forward', view=self.view)
+        if isinstance(self.blip_in_for, BASE.afni_name):
+           self.blip_dset_for = DB.gen_afni_name('blip_forward', view=self.view)
            tstr = '# copy external -blip_forward_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_for.prefix,
@@ -3630,13 +3635,13 @@ class SubjProcSream:
                 self.blip_dset_for.shortinput(), 'blip_fwd', ftype='dset')
            bstr += tstr
 
-        if isinstance(self.blip_in_rev, afni_name):
+        if isinstance(self.blip_in_rev, BASE.afni_name):
            # if copying rev but not forward, add a comment
            if self.blip_in_for == None:
               bstr += '# will extract automatic -blip_forward_dset in tcat ' \
                       'block, below\n\n'
 
-           self.blip_dset_rev = gen_afni_name('blip_reverse', view=self.view)
+           self.blip_dset_rev = DB.gen_afni_name('blip_reverse', view=self.view)
            tstr = '# copy external -blip_reverse_dset dataset\n' \
                   '3dTcat -prefix %s/%s %s\n' %                  \
                   (self.od_var, self.blip_dset_rev.prefix,
@@ -3645,11 +3650,11 @@ class SubjProcSream:
            self.tlist.add(self.blip_in_rev.nice_input(),
                 self.blip_dset_rev.shortinput(), 'blip_rev', ftype='dset')
 
-        if isinstance(self.blip_in_med, afni_name):
+        if isinstance(self.blip_in_med, BASE.afni_name):
            if self.blip_in_med.prefix == 'NONE':
               tstr = "# median dset is 'NONE', skipping...\n"
            else:
-              self.blip_dset_med = gen_afni_name('blip_median_base',view=self.view)
+              self.blip_dset_med = DB.gen_afni_name('blip_median_base',view=self.view)
               tstr = '# copy external blip median warped dataset\n' \
                      '3dcopy %s %s/%s\n' %                          \
                      (self.blip_in_med.nice_input(), self.od_var,
@@ -3658,8 +3663,8 @@ class SubjProcSream:
                    self.blip_dset_med.shortinput(), 'blip_med', ftype='dset')
            bstr += tstr
 
-        if isinstance(self.blip_in_warp, afni_name):
-           self.blip_dset_warp = gen_afni_name('distortion_warp',view=self.view)
+        if isinstance(self.blip_in_warp, BASE.afni_name):
+           self.blip_dset_warp = DB.gen_afni_name('distortion_warp',view=self.view)
            tstr = '# copy external blip NL warp (transformation) dataset\n' \
                   '3dcopy %s %s/%s\n' %                                     \
                   (self.blip_in_warp.nice_input(), self.od_var,
@@ -3669,7 +3674,7 @@ class SubjProcSream:
            bstr += tstr
 
         if bstr != '':
-           self.write_text(add_line_wrappers(bstr))
+           self.write_text(UTIL.add_line_wrappers(bstr))
            self.write_text("%s\n" % stat_inc)
 
         # ------------------------------------------------------------------
@@ -3678,16 +3683,16 @@ class SubjProcSream:
         if opt and len(opt.parlist) > 0:
             tstr = '# copy extra files into results dir\n' \
                   'cp -rv %s %s\n' %                      \
-                      (' '.join(quotize_list(opt.parlist,'')),self.od_var)
+                      (' '.join(UTIL.quotize_list(opt.parlist,'')),self.od_var)
             self.tlist.add_many(opt.parlist, 'copy')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
         # copy ricor_regs last to possibly match 3dTcat TR removal
         if len(self.ricor_regs) > 0:
-            tstr = copy_ricor_regs_str(self)
+            tstr = DB.copy_ricor_regs_str(self)
             self.tlist.add_many(self.ricor_regs, 'ricor_regs', ftype='1D')
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
         if len(stat_inc) > 0:
@@ -3719,14 +3724,14 @@ class SubjProcSream:
         for opt in olist:
             fnames = opt.parlist[1:]
             cstr += 'cp %s %s/stimuli\n' % \
-                      (' '.join(quotize_list(fnames,'')),self.od_var)
+                      (' '.join(UTIL.quotize_list(fnames,'')),self.od_var)
             self.tlist.add_many(fnames, 'ortvec', ftype='1D', pre='stimuli/')
 
-        self.write_text(add_line_wrappers(cstr+'\n'))
+        self.write_text(UTIL.add_line_wrappers(cstr+'\n'))
 
     # and last steps
     def finalize_script(self):
-        tstr = '# %s\n\n' % block_header('auto block: finalize')
+        tstr = '# %s\n\n' % DB.block_header('auto block: finalize')
         self.write_text(tstr)
 
         if self.rm_rm and self.have_rm and len(self.rm_list) > 0:
@@ -3805,11 +3810,11 @@ class SubjProcSream:
               "mkdir preproc.data\n"                                       \
               "mv %s %s preproc.data\n\n"                                  \
               % (rm_files, mv_files)
-            self.write_text(add_line_wrappers(cmd_str))
+            self.write_text(UTIL.add_line_wrappers(cmd_str))
         elif self.user_opts.find_opt('-remove_preproc_files'):
             cmd_str = "# remove preprocessing files to save disk space\n"   \
                       "\\rm %s\n\n" % rm_files
-            self.write_text(add_line_wrappers(cmd_str))
+            self.write_text(UTIL.add_line_wrappers(cmd_str))
 
         # finished with all data processing
         self.write_text('# return to parent directory (just in case...)\n'
@@ -3831,9 +3836,9 @@ class SubjProcSream:
             for opt in self.user_opts.olist:
                 if opt.name == '-ask_me': continue
                 tstr += opt.name+' '
-                tstr += ' '.join(quotize_list(opt.parlist,''))
+                tstr += ' '.join(UTIL.quotize_list(opt.parlist,''))
             tstr += '\n'
-            self.write_text(add_line_wrappers(tstr))
+            self.write_text(UTIL.add_line_wrappers(tstr))
 
         return 0
 
@@ -3938,7 +3943,7 @@ class SubjProcSream:
                  istr, self.ssr_uvars,
                  istr)
 
-        cmd = add_line_wrappers(cmd)
+        cmd = UTIL.add_line_wrappers(cmd)
 
         if self.out_dir:
            ocmd = 'open_apqc.py -infiles %s/QC_$subj/index.html' % self.out_dir
@@ -4102,10 +4107,10 @@ class SubjProcSream:
            if name == '':
               print('** new_anat_follower requires name or aname')
               return None 
-           aname = gen_afni_name(name)
+           aname = DB.gen_afni_name(name)
 
         if label:
-           lname = gen_afni_name(label)
+           lname = DB.gen_afni_name(label)
            if lname.exist():
               print("** ERROR: anat_follower label exists as dataset: '%s'" \
                     % label)
@@ -4125,7 +4130,7 @@ class SubjProcSream:
         vo.set_var('cname',  aname)     # cname is current name
         if label: cppre = 'copy_af_%s' % label
         else:     cppre = aname.prefix
-        vo.set_var('cpname', gen_afni_name(cppre))
+        vo.set_var('cpname', DB.gen_afni_name(cppre))
         vo.set_var('dgrid',  dgrid)
         vo.set_var('label',  label)
         vo.set_var('erode',  0)         # 0=no, 1=pre, 2=post
@@ -4251,7 +4256,7 @@ class SubjProcSream:
            print('** new_anat_follower requires name or aname')
            return None
 
-        if aname == None: aname = gen_afni_name(name)
+        if aname == None: aname = DB.gen_afni_name(name)
         si = aname.shortinput()
 
         # warn user if dupe is seen (and on the same grid)
@@ -4282,13 +4287,13 @@ class SubjProcSream:
        """set roi_dict[key], but check for existence
           return non-zero on error
        """
-       if isinstance(aname, afni_name): newname = aname.shortinput()
+       if isinstance(aname, BASE.afni_name): newname = aname.shortinput()
        elif aname: newname = aname
        else: newname = 'NOT_YET_SET'
 
        if key in self.roi_dict:
           oname = self.roi_dict[key]
-          if isinstance(oname, afni_name): oldname = oname.shortinput()
+          if isinstance(oname, BASE.afni_name): oldname = oname.shortinput()
           else: oldname = 'NOT_YET_SET'
 
           if not overwrite:
@@ -4326,7 +4331,7 @@ class SubjProcSream:
           mesg = 'ROI key %-*s' % (maxlen, kstr)
           aname = self.roi_dict[key]
           if verb:
-             if isinstance(aname, afni_name):
+             if isinstance(aname, BASE.afni_name):
                 if verb > 1: aname.show(mesg=mesg, verb=verb-1)
                 else:        print("   %s : %s" % (mesg, aname.shortinput()))
              else:
@@ -4838,8 +4843,8 @@ class TrackedFlist:
        vo.short_out  = ''
 
        # make afni_name for any dset
-       vo.in_an  = gen_afni_name(vo.oldname)
-       vo.out_an = gen_afni_name(vo.newname)
+       vo.in_an  = DB.gen_afni_name(vo.oldname)
+       vo.out_an = DB.gen_afni_name(vo.newname)
        vo.short_in = vo.in_an.shortinput()
        vo.short_out = vo.out_an.shortinput()
 
@@ -4853,7 +4858,7 @@ class TrackedFlist:
           # set and check input view
           # (run locate in case we need to search for the dset)
           vo.in_an.locate()
-          vo.in_view = dset_view(vo.in_an.rel_input())
+          vo.in_view = UTIL.dset_view(vo.in_an.rel_input())
           if vo.in_view not in ['+orig', '+tlrc']:
              # do we fail?
              if not vo.in_an.exist():
@@ -4982,7 +4987,7 @@ class ProcessBlock:
                                 # (they should pass proc and block)
         if not label in BlockModFunc: return
 
-        self.opts = OptionList(label)                   # init option list
+        self.opts = OL.OptionList(label)                   # init option list
         BlockModFunc[label](self, proc, proc.user_opts) # add block
 
         if self.verb > 2:
@@ -5008,7 +5013,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
     rv = proc.get_user_opts()
     if rv != None:  # 0 is a valid return
        if rv != 0:
-          show_args_as_command(proc.argv, "** failed command (get_user_opts):")
+          UTIL.show_args_as_command(proc.argv, "** failed command (get_user_opts):")
        return rv, None
 
     # ----------------------------------------------------------------------
@@ -5027,12 +5032,12 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
     # run db_mod functions, and possibly allow other mods
     if proc.create_blocks():
-       show_args_as_command(proc.argv, "** failed command (create_blocks):")
+       UTIL.show_args_as_command(proc.argv, "** failed command (create_blocks):")
        return 1, None
 
     # ----------------------------------------------------------------------
     # run post mod functions (since we now know about most of the inputs)
-    if db_mod_post_process(proc):
+    if DB.db_mod_post_process(proc):
        return 1, None
 
     # ----------------------------------------------------------------------
@@ -5040,7 +5045,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
     rv = proc.create_script()
     if rv != None:  # terminal, but do not display command on 0
        if rv > 0:
-          show_args_as_command(proc.argv, "** failed command (create_script):")
+          UTIL.show_args_as_command(proc.argv, "** failed command (create_script):")
        return rv, None
 
     # possibly display list of tracked files

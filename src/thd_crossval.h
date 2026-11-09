@@ -14,6 +14,7 @@
 #define THD_CV_LEAVE_GROUP_OUT  1
 #define THD_CV_GROUPED_KFOLD    2
 #define THD_CV_FIXED            3
+#define THD_CV_TRAIN_ONLY       4
 
 typedef struct {
    int kind , nsample , nfold , nstratum ;
@@ -96,6 +97,9 @@ extern THD_foldplan * THD_foldplan_grouped_kfold(
                                       const char *group_column,
                                       const char *within_column, int k,
                                       char *err, int nerr ) ;
+
+/* One fit over all samples, with no test rows or evaluation. */
+extern THD_foldplan *THD_foldplan_train_only(int nsample,char *err,int nerr);
 
 /*! One fixed train/test split.  Every row must have exactly train_value or
     test_value in partition_column. */

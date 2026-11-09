@@ -1,6 +1,7 @@
 /* Dataset-agnostic ISC estimators; the dataset driver is in thd_insync.c. */
 #include <math.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "thd_insync.h"
@@ -217,4 +218,149 @@ float INSYNC_percentile( float *x, int n, float probability )
    pos=(double)(n-1)*(double)probability ;
    lo=(int)floor(pos) ; hi=(int)ceil(pos) ; frac=pos-(double)lo ;
    return (float)((1.0-frac)*(double)x[lo]+frac*(double)x[hi]) ;
+}
+
+/* Reusable selection workspace. Unlike the legacy similarity helper, constant
+   series produce invalid correlations here, never artificial zero edges. */
+struct INSYNC_kernel {
+   int nsub, capacity;
+   float *matrix, *ranked, *ref, *rankref, *values, *scratch, *loo;
+   insync_rank_pair *order;
+};
+
+INSYNC_kernel *INSYNC_kernel_new(int nsub,int capacity)
+{
+   INSYNC_kernel *w;
+   size_t ns=(size_t)nsub,nt=(size_t)capacity;
+   if(nsub<3 || capacity<3 || ns>SIZE_MAX/ns/sizeof(float) || ns>SIZE_MAX/nt/sizeof(float)) return NULL;
+   w=calloc(1,sizeof(*w)); if(!w) return NULL;
+   w->nsub=nsub; w->capacity=capacity;
+   w->matrix=malloc(ns*ns*sizeof(float)); w->ranked=malloc(ns*nt*sizeof(float));
+   w->ref=malloc(nt*sizeof(float)); w->rankref=malloc(nt*sizeof(float));
+   w->loo=malloc(ns*sizeof(float)); w->values=malloc(ns*sizeof(float)); w->scratch=malloc(ns*ns*sizeof(float));
+   w->order=malloc(nt*sizeof(*w->order));
+   if(!w->matrix || !w->ranked || !w->ref || !w->rankref || !w->values || !w->scratch || !w->order || !w->loo){ INSYNC_kernel_free(w); return NULL; }
+   return w;
+}
+
+void INSYNC_kernel_free(INSYNC_kernel *w)
+{
+   if(!w) return;
+   free(w->matrix); free(w->ranked); free(w->ref); free(w->rankref);
+   free(w->values); free(w->scratch); free(w->order); free(w->loo); free(w);
+}
+
+static void insync_kernel_rank(INSYNC_kernel *w,int n,const float *x,float *out)
+{
+   int i,j,k;
+   for(i=0;i<n;i++){
+      if(!isfinite(x[i])){ for(j=0;j<n;j++) out[j]=NAN; return; }
+      w->order[i]=(insync_rank_pair){x[i],i};
+   }
+   qsort(w->order,n,sizeof(*w->order),insync_rank_cmp);
+   for(i=0;i<n;i=j){
+      for(j=i+1;j<n && w->order[j].value==w->order[i].value;j++);
+      for(k=i;k<j;k++) out[w->order[k].index]=.5f*((float)(i+1)+(float)j);
+   }
+}
+
+/* Packed input is subject-major, with exactly nt retained samples per row.
+   Matrix remains available until the next evaluation for future export work.
+   Complete is a pair-graph flag, independent of the descriptive group count. */
+void INSYNC_kernel_eval(INSYNC_kernel *w,int nt,const float *data,int metric,
+                       int method,int summary,int ngroup,const int *gcount,
+                       int **gmember,float *stat,int *nvalid,int *complete)
+{
+   int i,j,g,t,ns=w->nsub; const float *features=data;
+   for(g=0;g<ngroup;g++){ stat[g]=NAN; nvalid[g]=complete[g]=0; }
+   for(i=0;i<ns;i++) w->loo[i]=NAN;
+   for(i=0;i<ns;i++) for(j=0;j<ns;j++) w->matrix[(size_t)i*ns+j]=NAN;
+   if(nt<3 || nt>w->capacity) return;
+   if(metric==INSYNC_CORR_SPEARMAN){
+      for(i=0;i<ns;i++) insync_kernel_rank(w,nt,data+(size_t)i*nt,w->ranked+(size_t)i*nt);
+      features=w->ranked;
+   }
+   for(i=0;i<ns;i++) for(j=i;j<ns;j++)
+      w->matrix[(size_t)i*ns+j]=w->matrix[(size_t)j*ns+i]=insync_pearson(nt,features+(size_t)i*nt,features+(size_t)j*nt);
+   for(g=0;g<ngroup;g++){
+      int nm=gcount[g],good=1;
+      for(i=0;i<nm;i++) for(j=i+1;j<nm;j++)
+         if(!isfinite(w->matrix[(size_t)gmember[g][i]*ns+gmember[g][j]])) good=0;
+      complete[g]=good;
+      if(method==INSYNC_METHOD_PAIRWISE)
+         stat[g]=INSYNC_pairwise_indexed(ns,w->matrix,nm,gmember[g],summary,w->scratch,nvalid+g);
+      else {
+         for(i=0;i<nm;i++){
+            int subject=gmember[g][i];
+            for(t=0;t<nt;t++){
+               double sum=0;
+               for(j=0;j<nm;j++) if(j!=i) sum+=data[(size_t)gmember[g][j]*nt+t];
+               w->ref[t]=(float)(sum/(nm-1));
+            }
+            if(metric==INSYNC_CORR_SPEARMAN){
+               insync_kernel_rank(w,nt,w->ref,w->rankref);
+               w->values[i]=insync_pearson(nt,w->ranked+(size_t)subject*nt,w->rankref);
+            } else w->values[i]=insync_pearson(nt,data+(size_t)subject*nt,w->ref);
+            w->loo[subject]=w->values[i];
+         }
+         stat[g]=INSYNC_summary(nm,w->values,summary,w->scratch,nvalid+g);
+      }
+   }
+}
+
+const float *INSYNC_kernel_matrix(const INSYNC_kernel *w){ return w?w->matrix:NULL; }
+
+const float *INSYNC_kernel_loo(const INSYNC_kernel *w){ return w?w->loo:NULL; }
+
+/* Each retained block contributes once to every edge/LOO subject. The caller
+   admits a common block set after coverage and complete-component checks. */
+void INSYNC_kernel_aggregate(INSYNC_kernel *w,int nblock,const float *blocks,
+   const unsigned char *keep,int method,int block_summary,int group_summary,
+   int ngroup,const int *gcount,int **gmember,float *stat,int *nvalid,int *complete)
+{
+   int i,j,b,g,n,ns=w->nsub; size_t stride=method==INSYNC_METHOD_PAIRWISE?(size_t)ns*ns:(size_t)ns;
+   for(g=0;g<ngroup;g++){ stat[g]=NAN; nvalid[g]=complete[g]=0; }
+   for(i=0;i<ns;i++){ w->loo[i]=NAN; for(j=0;j<ns;j++) w->matrix[(size_t)i*ns+j]=NAN; }
+   if(nblock<1 || nblock>w->capacity) return;
+   /* Do not silently omit a NaN for only one edge/subject. The admission
+      policy belongs to the caller, but identical support is enforced here. */
+   for(b=0;b<nblock;b++) if(keep[b]) for(g=0;g<ngroup;g++){
+      for(i=0;i<gcount[g];i++){
+         if(method==INSYNC_METHOD_LOO){ if(!isfinite(blocks[(size_t)b*stride+gmember[g][i]])) return; }
+         else for(j=i+1;j<gcount[g];j++) if(!isfinite(blocks[(size_t)b*stride+(size_t)gmember[g][i]*ns+gmember[g][j]])) return;
+      }
+   }
+   if(method==INSYNC_METHOD_PAIRWISE){
+      for(i=0;i<ns;i++) for(j=i+1;j<ns;j++){
+         for(n=0,b=0;b<nblock;b++) if(keep[b]) w->rankref[n++]=blocks[(size_t)b*stride+(size_t)i*ns+j];
+         w->matrix[(size_t)i*ns+j]=w->matrix[(size_t)j*ns+i]=n==1?w->rankref[0]:INSYNC_summary(n,w->rankref,block_summary,w->ref,NULL);
+      }
+   } else for(i=0;i<ns;i++){
+      for(n=0,b=0;b<nblock;b++) if(keep[b]) w->rankref[n++]=blocks[(size_t)b*stride+i];
+      w->loo[i]=n==1?w->rankref[0]:INSYNC_summary(n,w->rankref,block_summary,w->ref,NULL);
+   }
+   for(g=0;g<ngroup;g++){
+      if(method==INSYNC_METHOD_PAIRWISE){
+         stat[g]=INSYNC_pairwise_indexed(ns,w->matrix,gcount[g],gmember[g],group_summary,w->scratch,nvalid+g);
+         complete[g]=(size_t)nvalid[g]==(size_t)gcount[g]*(gcount[g]-1)/2;
+      } else {
+         for(i=0;i<gcount[g];i++) w->values[i]=w->loo[gmember[g][i]];
+         stat[g]=INSYNC_summary(gcount[g],w->values,group_summary,w->scratch,nvalid+g);
+         /* Admission requires finite LOO values for all subjects. This also
+            implies nonconstant subject series and a complete pair graph. */
+         complete[g]=nvalid[g]==gcount[g];
+      }
+   }
+}
+
+/* Export boundary: transform the final pair aggregate, never average z(group
+   summaries) or hand 3dISC the mean of untransformed block/group maps. */
+void INSYNC_kernel_fisher_matrix(const INSYNC_kernel *w,float *z)
+{
+   size_t i,n=(size_t)w->nsub*w->nsub;
+   for(i=0;i<n;i++){
+      float r=w->matrix[i];
+      if(!isfinite(r)) z[i]=NAN;
+      else { if(r>=1) r=.999999f; else if(r<=-1) r=-.999999f; z[i]=atanhf(r); }
+   }
 }

@@ -100,7 +100,7 @@ int THD_foldplan_validate( const THD_foldplan *p, char *err, int nerr )
    int ff,ii,*seen,*ntest,*nuse ;
    if( err!=NULL && nerr>0 ) err[0]='\0' ;
    if( p==NULL || p->nsample<1 || p->nfold<1 ) return cv_error(err,nerr,"empty fold plan") ;
-   if( p->kind<THD_CV_LEAVE_GROUP_OUT || p->kind>THD_CV_FIXED || p->nstratum<1 )
+   if( p->kind<THD_CV_LEAVE_GROUP_OUT || p->kind>THD_CV_TRAIN_ONLY || p->nstratum<1 )
      return cv_error(err,nerr,"fold plan has an invalid kind or stratum count") ;
    if( p->name==NULL || p->ntrain==NULL || p->ntest==NULL || p->train==NULL ||
        p->test==NULL || p->sample_test_fold==NULL || p->fold_stratum==NULL ||
@@ -118,7 +118,8 @@ int THD_foldplan_validate( const THD_foldplan *p, char *err, int nerr )
      if( p->name[ff]==NULL || p->train[ff]==NULL || p->test[ff]==NULL ){
        free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %d is incomplete",ff+1) ;
      }
-     if( p->ntrain[ff]<1 || p->ntest[ff]<1 ){
+     if( p->ntrain[ff]<1 || (p->kind!=THD_CV_TRAIN_ONLY && p->ntest[ff]<1) ||
+         (p->kind==THD_CV_TRAIN_ONLY && (p->nfold!=1 || p->ntrain[ff]!=p->nsample || p->ntest[ff]!=0)) ){
        free(seen) ; free(ntest) ; free(nuse) ; return cv_error(err,nerr,"fold %s has %d training and %d test samples",
                                                   p->name[ff],p->ntrain[ff],p->ntest[ff]) ;
      }
@@ -141,17 +142,30 @@ int THD_foldplan_validate( const THD_foldplan *p, char *err, int nerr )
        }
      }
    }
-   if(p->kind==THD_CV_FIXED)for(ii=0;ii<p->nsample;ii++)
+   if(p->kind==THD_CV_FIXED || p->kind==THD_CV_TRAIN_ONLY)for(ii=0;ii<p->nsample;ii++)
      if(nuse[ii]!=1 || (!ntest[ii] && p->sample_test_fold[ii]!=-1)){
        free(seen);free(ntest);free(nuse);
        return cv_error(err,nerr,"fixed folds must assign sample %d exactly once to training or test",ii+1);
      }
-   if( p->kind!=THD_CV_FIXED ) for( ii=0 ; ii<p->nsample ; ii++ ) if( ntest[ii]!=1 ){
+   if( p->kind!=THD_CV_FIXED && p->kind!=THD_CV_TRAIN_ONLY ) for( ii=0 ; ii<p->nsample ; ii++ ) if( ntest[ii]!=1 ){
      int count=ntest[ii] ;
      free(seen) ; free(ntest) ; free(nuse) ;
      return cv_error(err,nerr,"sample %d occurs in %d test folds; expected exactly one",ii+1,count) ;
    }
    free(seen) ; free(ntest) ; free(nuse) ; return 1 ;
+}
+
+THD_foldplan *THD_foldplan_train_only(int n,char *err,int nerr)
+{
+   char *labels[]={"All"};int i;THD_foldplan *p;
+   if(n<1){cv_error(err,nerr,"training needs samples");return NULL;}
+   p=cv_alloc(THD_CV_TRAIN_ONLY,n,1,1,"",NULL,labels,err,nerr);
+   if(!p)return NULL;
+   p->name[0]=strdup("Training");p->ntrain[0]=n;
+   p->train[0]=malloc(sizeof(int)*(size_t)n);p->test[0]=malloc(sizeof(int));
+   if(!p->name[0] || !p->train[0] || !p->test[0])return cv_fail(p,err,nerr,"cannot allocate training plan");
+   for(i=0;i<n;i++)p->train[0][i]=i;
+   return p;
 }
 
 THD_foldplan *THD_foldplan_from_assignments(

@@ -1,6 +1,7 @@
 /* Command-line interface; dataset processing lives in thd_insync.c. */
 #include "mrilib.h"
 #include "thd_insync.h"
+#include "thd_insync_select.h"
 #include "thd_permute.h"
 #include "thd_simmatrix.h"
 
@@ -16,12 +17,17 @@ static char *insync_options[] = {
    "-prefix", "-mask", "-isc_method", "-summary", "-group_column",
    "-nboot", "-boot_alpha", "-nperm", "-exact", "-seed", "-tail",
    "-1sided", "-2sided", "-bisided",
-   "-temporal_null", "-nnull", "-min_shift", "-temporal_tail",
+   "-temporal_null", "-temporal_censor", "-nnull", "-min_shift", "-temporal_tail",
    "-condition_column", "-condition_contrast", "-ncondperm",
    "-condition_exact", "-condition_tail", "-save_pairwise",
-   "-correlation", "-censor", "-zcensor", "-zcensor_warn", "-missing", "-atlas", "-roi_sel", "-roi_only", "-float16",
+   "-isc_model", "-isc_qVars", "-isc_qVarCenters", "-isc_gltCode", "-isc_jobs",
+   "-correlation", "-censor", "-censor_column", "-zcensor", "-zcensor_warn", "-missing", "-atlas", "-roi_sel", "-roi_only", "-float16",
    "-save_matrix", "-edges", "-edges_matrix", "-edges_rss", "-edges_events", "-edges_nnull",
    "-memory_limit", "-memory_override", "-quiet", "-progress",
+   "-check_table", "-whole_summary", "-window", "-step", "-run_starts", "-tr",
+   "-block_summary", "-block_missing", "-min_blocks", "-min_block_frac", "-block_weight",
+   "-min_valid", "-min_valid_frac", "-combine_blocks", "-segment_center",
+   "-xmat_stims", "-xmat_blocks", "-xmat_threshold", "-xmat_across_runs", "-xmat_runs",
    "-dataTable", "-dataTableFile", "-show_table", "-help", "-h", NULL
 } ;
 
@@ -104,8 +110,15 @@ static void usage_3dInSync(void)
 "  -censor FILE         One common 0/1 censor vector with one value per input\n"
 "                       time point. Retained time points are identical for all\n"
 "                       subjects, conditions, voxels, and ROIs. At least three\n"
-"                       must remain. Censoring cannot be combined with temporal\n"
-"                       nulls, whose circular timeline would become ambiguous.\n"
+"                       must remain. Censored temporal nulls require explicit\n"
+"                       -temporal_censor joint_shift (see censoring example below).\n"
+"\n"
+"  -censor_column NAME  Optional per-source censor column [Censor]. Files are\n"
+"                       finite 0/1 vectors on the full input timeline. Intersect\n"
+"                       all subjects/conditions with global -censor/-zcensor.\n"
+"                       Static ISC keeps its output layout and inference;\n"
+"                       temporal censoring uses explicit joint_shift mode. Save\n"
+"                       PREFIX.censor.tsv and PREFIX.common_censor.1D.\n"
 "\n"
 "  -zcensor             Omit a time point when any subject/condition input\n"
 "                       volume is all zero in the analysis mask. This creates\n"
@@ -196,6 +209,7 @@ static void usage_3dInSync(void)
 "                       one runnable PREFIX.C1__C2.3dISC.txt per ordered\n"
 "                       condition pairing plus PREFIX.3dISC.all.txt. Splitting\n"
 "                       is required by current 3dISC's one-row-per-pair rule.\n"
+"                       Run/block/window analyses write PREFIX.isc/ bundles; see below.\n"
 "\n"
 "  -nboot B             Draw B subject-bootstrap samples independently within\n"
 "                       each group and output percentile confidence limits.\n"
@@ -371,20 +385,415 @@ static void usage_3dInSync(void)
 "    * With a median over pairs, negative node ISC can simply mean the sample's\n"
 "      majority polarity is opposite. Do not read it as anti-synchrony.\n"
 "\n"
-"Example:                                                    ~1~\n"
+"Numbered examples: whole input, runs, blocks, and sliding windows ~1~\n"
 "\n"
-"  3dInSync -prefix movie_isc -mask brain+tlrc \134\n"
-"            -isc_method pairwise -summary median \134\n"
-"            -nboot 2000 -nperm 10000 -seed 314159 \134\n"
-"            -temporal_null timeshift -nnull 5000 -min_shift 10 \134\n"
-"            -dataTableFile subjects.txt\n"
+"  Examples 1-2 and 5a use the same basic subjects.txt table:\n"
+"  Subj Group InputFile\n"
+"  s01  A     s01/bold.nii.gz\n"
+"  s02  A     s02/bold.nii.gz\n"
+"  s03  A     s03/bold.nii.gz\n"
+"  s04  B     s04/bold.nii.gz\n"
+"  s05  B     s05/bold.nii.gz\n"
+"  s06  B     s06/bold.nii.gz\n"
+"  Include every subject, with at least three subjects per group. Subjects must\n"
+"  share stimulus time. Inputs retain their full original timelines.\n"
 "\n"
-"  # subjects.txt\n"
-"  Subj  Group    InputFile\n"
-"  s01   control  s01_movie_scale+tlrc\n"
-"  s02   control  s02_movie_scale+tlrc\n"
-"  s21   patient  s21_movie_scale+tlrc\n"
-"  s22   patient  s22_movie_scale+tlrc\n"
+"  1. Original whole-run / whole-input ISC\n"
+"\n"
+"     3dInSync -prefix whole_isc -isc_method pairwise -summary median \\\n"
+"              -dataTableFile subjects.txt\n"
+"\n"
+"     One estimate across the entire input timeline; no Xmat or window options\n"
+"     are needed. If inputs contain concatenated runs, this uses all their TRs\n"
+"     together. It does not average separate run correlations.\n"
+"     Optional subject inference: add -nboot 2000 and/or -nperm 10000 -seed 314159.\n"
+"     The group-permutation example requires the two groups shown above.\n"
+"\n"
+"     1b. Whole-input ISC with per-subject censor files\n"
+"\n"
+"     3dInSync -prefix whole_censored -nboot 2000 \\\n"
+"              -dataTableFile subjects_censored.txt\n"
+"\n"
+"     Add a Censor column to the SAME main table, for example:\n"
+"     Subj Group Censor        InputFile\n"
+"     s01  A     s01.censor.1D s01/bold.nii.gz\n"
+"     s02  A     s02.censor.1D s02/bold.nii.gz\n"
+"     s03  A     s03.censor.1D s03/bold.nii.gz\n"
+"     # Continue with the other subjects if using two groups.\n"
+"     A 1 retains a TR; a 0 censors it. Common support intersects source masks.\n"
+"\n"
+"  2. Separate ISC for each run\n"
+"\n"
+"     3dInSync -run_starts 0,200 -prefix run_isc \\\n"
+"              -dataTableFile subjects.txt\n"
+"\n"
+"     For two concatenated runs, run 1 starts at original TR 0 and run 2 at TR\n"
+"     200. Each run gets its own estimate. Supply the actual zero-based starts.\n"
+"     Add -whole_summary to ALSO obtain the whole-input estimate from example 1.\n"
+"     An Xmat table can supply run boundaries instead of -run_starts.\n"
+"\n"
+"  Examples 3-4 and 5b use subjects_xmat.txt (one row per subject):\n"
+"  Subj Group Xmat                  InputFile\n"
+"  s01  A     s01/X.nocensor.xmat.1D s01/bold.nii.gz\n"
+"  s02  A     s02/X.nocensor.xmat.1D s02/bold.nii.gz\n"
+"  s03  A     s03/X.nocensor.xmat.1D s03/bold.nii.gz\n"
+"  s04  B     s04/X.nocensor.xmat.1D s04/bold.nii.gz\n"
+"  s05  B     s05/X.nocensor.xmat.1D s05/bold.nii.gz\n"
+"  s06  B     s06/X.nocensor.xmat.1D s06/bold.nii.gz\n"
+"  Here Vis and Aud are example StimLabels; substitute your design's labels.\n"
+"  Blocks are modeled-response support above the chosen peak fraction, not\n"
+"  recovered stimulus onset/duration files. The full design defines boundaries.\n"
+"  See Xmat-defined runs and blocks below for regressors and censor inputs.\n"
+"\n"
+"  3. Separate ISC for each block WITHIN ONE selected run\n"
+"\n"
+"     3dInSync -xmat_blocks each -xmat_stims Vis,Aud -xmat_runs 1 \\\n"
+"              -xmat_threshold 0.5 -prefix run1_blocks \\\n"
+"              -dataTableFile subjects_xmat.txt\n"
+"\n"
+"     One estimate per individual Vis/Aud block in run 1. No sliding occurs:\n"
+"     each estimate uses that whole block's retained samples. Run IDs are\n"
+"     one-based. Choose the response threshold explicitly for your design.\n"
+"\n"
+"  4. Separate ISC for each block IN EACH run\n"
+"\n"
+"     3dInSync -xmat_blocks each -xmat_stims Vis,Aud \\\n"
+"              -xmat_threshold 0.5 -prefix all_run_blocks \\\n"
+"              -dataTableFile subjects_xmat.txt\n"
+"\n"
+"     Omitting -xmat_runs selects all runs; -xmat_runs 1,2 selects a subset.\n"
+"     Each individual block retains its run identity. Blocks are not combined.\n"
+"\n"
+"     4b. Also summarize same-type blocks separately for each run\n"
+"\n"
+"     3dInSync -xmat_blocks by_stim -xmat_stims Vis,Aud \\\n"
+"              -xmat_threshold 0.5 -block_summary median -prefix type_per_run \\\n"
+"              -dataTableFile subjects_xmat.txt\n"
+"\n"
+"     Retain individual block results AND add one Vis and one Aud aggregate per\n"
+"     run. Correlate within blocks, summarize corresponding pair/LOO components\n"
+"     across blocks, then summarize within groups. This is not concatenation.\n"
+"     Add -xmat_across_runs only if the desired type aggregate spans runs.\n"
+"\n"
+"  5. Sliding-window ISC\n"
+"\n"
+"     5a. Slide separately within each run\n"
+"\n"
+"     3dInSync -run_starts 0,200 -window 15 -step 1 -prefix sliding_runs \\\n"
+"              -dataTableFile subjects.txt\n"
+"\n"
+"     Windows have 15 TRs and advance by 1 TR. With TR=2 seconds, these are\n"
+"     30-second windows advancing every 2 seconds. No window crosses a run join.\n"
+"\n"
+"     5b. Slide within each individual block, separately in each run\n"
+"\n"
+"     3dInSync -xmat_blocks each -xmat_stims Vis,Aud -xmat_threshold 0.5 \\\n"
+"              -window 15 -step 1 -prefix sliding_blocks \\\n"
+"              -dataTableFile subjects_xmat.txt\n"
+"\n"
+"     Restart the sliding schedule at each block's beginning. Windows never\n"
+"     cross block/run boundaries. Blocks shorter than 15 TRs contribute no\n"
+"     windows; incomplete trailing windows are omitted and short blocks reported.\n"
+"     Add -xmat_runs 1 to restrict this example to one run. Sliding windows\n"
+"     require each, not by_stim; this does not average matched window positions\n"
+"     across repeated blocks.\n"
+"\n"
+"  6. Age-covariate modeling WITH 3dISC, using pair maps FROM 3dInSync\n"
+"\n"
+"     This is a two-program workflow: 3dInSync computes and exports ISC pair maps;\n"
+"     3dISC fits the mixed-effects model, age effect, and contrasts using R.\n"
+"     3dInSync itself does not fit a general covariate model. Its -isc_* options\n"
+"     configure the generated 3dISC commands; they do not fit the model directly.\n"
+"\n"
+"     Keep subject-level covariates in the main data table. This example models\n"
+"     one cohort; there is no Group column or group contrast.\n"
+"\n"
+"     # subjects_age.txt\n"
+"     Subj Age InputFile\n"
+"     s01  20  s01/bold.nii.gz\n"
+"     s02  22  s02/bold.nii.gz\n"
+"     s03  24  s03/bold.nii.gz\n"
+"     s04  26  s04/bold.nii.gz\n"
+"     s05  28  s05/bold.nii.gz\n"
+"     s06  30  s06/bold.nii.gz\n"
+"\n"
+"     # Step 1: compute pair maps and write 3dISC inputs/commands.\n"
+"     3dInSync -run_starts 0,200 -prefix age_runs -save_pairwise age_models \\\n"
+"              -isc_model 'I(Age1+Age2)+(1|Subj1)+(1|Subj2)' \\\n"
+"              -isc_qVars Age1,Age2 -isc_qVarCenters 25,25 \\\n"
+"              -isc_gltCode intercept '1 0' -isc_gltCode age_sum '0 1' \\\n"
+"              -dataTableFile subjects_age.txt\n"
+"\n"
+"     # Step 2: call 3dISC through the generated scripts to fit the models.\n"
+"     sh age_models.isc/run_all.sh\n"
+"\n"
+"     Age is copied into Age1/Age2 for the two members of each exported pair.\n"
+"     Center each age at 25 years, then model their SUM. The intercept is at\n"
+"     pair mean age 25; age_sum tests the slope per unit of the centered sum.\n"
+"     I(Age1+Age2) is symmetric: exchanging pair members leaves it unchanged.\n"
+"     Choose the centering age to suit the study; 25 is illustrative.\n"
+"\n"
+"     run_all.sh calls 3dISC once per requested run/block/window/summary. 3dISC\n"
+"     does the covariate modeling; 3dInSync's export step does not execute R.\n"
+"     Adding Age to the table alone does not adjust 3dInSync's ISC estimates or\n"
+"     permutation tests. 3dISC and its R dependencies must be available for step 2.\n"
+"\n"
+"     Use -run_starts 0 for a single whole-input model. For sliding windows, add\n"
+"     -window 15 -step 1. For block models, use the Xmat options from examples\n"
+"     3-4 and include Age alongside Xmat in the same main data table.\n"
+"\n"
+"  For examples 2-5, add -check_table to inspect expanded intervals before\n"
+"  estimation. Remove it to compute ISC. Runs, blocks, and windows have separate\n"
+"  result buckets plus a manifest; -whole_summary adds a full-input estimate.\n"
+"  Add -atlas parcels.nii.gz -roi_only to analyze parcel mean time series.\n"
+"  See the inference options below to add subject or temporal inference.\n"
+"  Explicit interval tables are an alternative to Xmat-defined blocks; their\n"
+"  Selection/Segment/Run/StartTR/StopTR columns are described below.\n"
+"\n"
+"Optional run/block/window estimates:             ~1~\n"
+"\n"
+"  Whole-input ISC above needs no window options or Xmat. The following\n"
+"  options estimate ISC for runs, blocks, windows, and summaries. Add -check_table to\n"
+"  validate schedules without loading BOLD samples or computing estimates.\n"
+"\n"
+"  In output tables, a 'selection' means one requested run, block, sliding\n"
+"  window, or combined-block/whole-input summary. SelectionID identifies that\n"
+"  analysis period; it does not mean selecting significant findings. Column\n"
+"  names (Selection, SelectionID) and filenames keep this technical label.\n"
+"\n"
+"  -check_table         Validate table, headers, and requested time intervals;\n"
+"                       write PREFIX.selections.tsv and PREFIX.selection_summary.txt.\n"
+"  -whole_summary       Also estimate the full original input timeline, with its\n"
+"                       censor mask. Separate whole_input role; not a window mean.\n"
+"  -window W            Complete sliding windows of W TRs (integer >=3).\n"
+"  -step S              Window step in TRs [1]; requires -window.\n"
+"  -run_starts LIST      Zero-based run starts, e.g. 0,100; first must be 0.\n"
+"  -tr SEC              Supply missing TR in seconds; reject header conflicts.\n"
+"  -min_valid N         Minimum retained samples per estimate [3], integer >=3.\n"
+"  -min_valid_frac F    Minimum retained/nominal fraction [0], in [0,1].\n"
+"                       Both gates apply after censoring and common missingness.\n"
+"  -combine_blocks block_summary|pool\n"
+"                       block_summary [default]: correlate within each block,\n"
+"                       summarize corresponding pair/LOO values across blocks,\n"
+"                       then apply the existing group -summary.\n"
+"                       pool: concatenate retained segments before correlation.\n"
+"  -block_summary median|fisher_mean  Across-block summary [median]; independent\n"
+"                       of the group -summary. A single admitted block is identity.\n"
+"  -block_missing require_all|drop_common  [require_all]. A block needs the\n"
+"                       per-block -min_valid count/fraction and finite values\n"
+"                       for every required pair/LOO subject in every group.\n"
+"                       drop_common removes that block from ALL groups' aggregates\n"
+"                       at the voxel; require_all invalidates the aggregate.\n"
+"  -min_blocks N        Minimum admitted blocks per aggregate [1], integer >=1.\n"
+"  -min_block_frac F    Minimum admitted/nominal block fraction [0], in [0,1].\n"
+"  -block_weight equal  Equal weights only; coverage weighting is not implemented.\n"
+"                       Block-summary options cannot be combined with pool.\n"
+"  -segment_center none|mean  With pool only: center each retained segment [none].\n"
+"\n"
+"  3dInSync -window 30 -step 10 -run_starts 0,100 \134\n"
+"           -prefix movie_windows -dataTableFile subjects.txt\n"
+"  One result bucket per run/block/window/summary: PREFIX.sel000001.nii.gz, etc.\n"
+"  One-dimensional inputs use .1D buckets. PREFIX.results.tsv lists completed\n"
+"  outputs and ends with Status: complete only after all requested analyses finish.\n"
+"  Individual components are retained alongside block summaries and pools.\n"
+"  Block-summary buckets append BlocksNominal, BlocksEligible, BlocksUsed per\n"
+"  condition. Every contributing edge/LOO subject uses exactly BlocksUsed blocks.\n"
+"  PREFIX.selXXXXXX.blocks.nii.gz (or .1D) records each block's retained TRs,\n"
+"  eligibility and final weight; PREFIX.block_support.tsv maps these bricks to\n"
+"  original block IDs/coordinates. Weights are 1/BlocksUsed, or zero if unused.\n"
+"  Aggregate ValidTR is the total over admitted blocks, zero if the aggregate\n"
+"  fails. Single-block outputs retain their own descriptive validity rules.\n"
+"  Support can differ across voxels/conditions; paired-condition contrasts\n"
+"  require identical coordinates and admitted support (see inference below).\n"
+"  Original condition/group ISC,N brick order is followed by ValidTR, Valid,\n"
+"  PairComplete, and difference-validity maps. Invalid ISC is stored as zero\n"
+"  with Valid=0; a real zero has Valid=1. Constant series invalidate correlations.\n"
+"  PairComplete tests the within-group pair graph; it is not export permission.\n"
+"  -missing error checks the requested union after common censoring; unselected\n"
+"  samples are ignored except with temporal nulls, which check full source runs.\n"
+"  -missing common filters across all sources/conditions.\n"
+"  -zcensor keeps its global raw-volume rule. Save the final common censor vector.\n"
+"\n"
+"  Subject-based inference for runs, blocks, windows, and summaries:\n"
+"  Add confidence intervals and group/condition tests to the ISC estimates.\n"
+"  Use -nboot, -nperm/-exact, or -condition_contrast with -ncondperm/-condition_exact.\n"
+"  Resampling draws are shared across requested runs/blocks/windows/summaries.\n"
+"  Group FWE/FDR covers all these results x conditions x space. Condition FWE/FDR\n"
+"  covers all matched results x effects x space. With -atlas, voxel AND parcel\n"
+"  tests form one family; -roi_only counts each parcel once. Bootstrap CIs are pointwise.\n"
+"  Results: .selXXXXXX.infer.nii.gz, .inference.tsv, .inference_draws.tsv and\n"
+"  (with atlas) .inference_roi.tsv; see .results.tsv for the completion marker.\n"
+"  Observed admitted blocks stay fixed during resampling; incomplete components\n"
+"  or any invalid null invalidate that test cell. Paired conditions must have\n"
+"  identical coordinates and admitted blocks. BootN/BootValid report usable draws\n"
+"  (at least 10 for CI). Invalid inference cells have p/q=1 and InferValid=0.\n"
+"  Global FDR memory is budgeted; output maps use a temporary disk spool.\n"
+"\n"
+"  Temporal-surrogate tests for runs, blocks, windows, and summaries:\n"
+"    3dInSync -window 30 -step 10 -run_starts 0,200 \134\n"
+"             -temporal_null timeshift -nnull 1000 -min_shift 10 \134\n"
+"             -whole_summary -prefix window_nulls -dataTableFile subjects.txt\n"
+"  Independent subject/run shifts or phases are generated on FULL original runs\n"
+"  before extracting windows/blocks. Never shift across a run join. Same draws\n"
+"  are reused across conditions, runs/blocks/windows/summaries and space. Draw 0 is the\n"
+"  original data. -min_shift is checked against each participating run length.\n"
+"  Supports individual windows/blocks, pooled segments (including mean centering),\n"
+"  component-first median/Fisher block summaries, and multi-run -whole_summary.\n"
+"  Fixed observed block support and require_all/drop_common apply to each draw.\n"
+"  TemporalISC/TP/TZ/TQ/TPFWE/TZFWE/TInferValid appear in the inference buckets.\n"
+"  Temporal FWE/FDR covers all requested runs/blocks/windows/summaries x conditions\n"
+"  x groups x space, separately from group/condition tests. -temporal_tail applies.\n"
+"  .temporal_draws.tsv records run seeds and shifts; phase factors use the seeded\n"
+"  THD_phase_set_factor generator. Phases preserve each run's DC and Nyquist.\n"
+"  All samples in participating runs must be finite and retained, including\n"
+"  samples outside requested windows. All-one censor masks are allowed; actual\n"
+"  censoring requires the explicit joint_shift option below. Nonparticipating\n"
+"  runs may be censored. A full-input summary makes every run participate.\n"
+"\n"
+"  Temporal-surrogate tests with censoring (explicit opt-in):\n"
+"    3dInSync -window 30 -run_starts 0,200 -temporal_null timeshift \134\n"
+"             -temporal_censor joint_shift -nnull 1000 -prefix censored_windows \134\n"
+"             -dataTableFile subjects_with_Censor.txt\n"
+"  joint_shift moves each subject/run signal AND its source censor masks by\n"
+"  the same offset. Global -censor is incorporated into each source mask before\n"
+"  shifting. Intersect shifted masks across ALL subjects/conditions on every\n"
+"  draw, then reapply count/fraction and block-admission gates. Never compress\n"
+"  the timeline. Windows, block summaries, pooling and whole summaries work.\n"
+"  No-window calls use separate result buckets (one per run).\n"
+"  Retained TRs and admitted blocks can differ from those in the observed estimate.\n"
+"  Every failed null draw counts as an exceedance in conservative TP/TPFWE\n"
+"  bounds. No skipping or retrying. FWE uses the prespecified family including\n"
+"  unresolved cells; BH includes observed-invalid cells with p=1. TNullN reports\n"
+"  finite draws including identity; TInferValid indicates an estimable OBSERVED\n"
+"  cell here, not a complete-null cell. Z/q are derived from the p-value bounds.\n"
+"  .temporal_support.tsv reports per-draw/component common counts/fractions.\n"
+"  Its component coverage flag is diagnostic; pooling gates the combined count.\n"
+"  Check TNullN and the unresolved-maxima count: one unreliable component can\n"
+"  make family-wide inference very conservative. This loss is not hidden.\n"
+"  Excluded source frames may contain nonfinite/artifact values; own-retained\n"
+"  samples must be finite throughout each participating run. Use float32 storage.\n"
+"  Censored phase inference, -zcensor, -missing common, alternative censor\n"
+"  cohorts, and coverage weights are not supported by this first release.\n"
+"  Joint shifts assume a suitable runwise signal/mask null; they do not correct\n"
+"  arbitrary task- or motion-related informative missingness.\n"
+"\n"
+"  ROI estimates for runs, blocks, windows, and summaries:\n"
+"    3dInSync -window 30 -step 10 -atlas parcels.nii.gz -roi_only \134\n"
+"             -whole_summary -prefix roi_windows -dataTableFile subjects.txt\n"
+"  -atlas retains voxelwise buckets and also estimates each mask-intersected\n"
+"  parcel mean time series using the same time intervals and estimator. -roi_only skips\n"
+"  voxelwise estimation and expands parcel results onto the atlas grid.\n"
+"  PREFIX.roi.tsv contains every ROI result/support brick with SelectionID,\n"
+"  Run, Stimulus, Condition, ROI, label, voxel count and value. Run=mixed denotes\n"
+"  a summary spanning runs (whole_input always uses Run=all).\n"
+"  PREFIX.bricks.tsv maps every file and zero-based brick selector to its label.\n"
+"  -save_matrix FILE writes ROI pair correlations for each run/block/window/summary,\n"
+"  including cross-group pairs, even with LOO summaries. Invalid pairs are nan, Valid=0.\n"
+"  Aggregate matrices use the same admitted blocks as the requested estimator.\n"
+"  These are descriptive r values; they are not 3dISC model bundles.\n"
+"  Atlas run/block/window analyses use float32; -float16 is ignored with a notice.\n"
+"  Source data are read once. One run/block/window/summary's result/support buffers\n"
+"  are resident at a time; scheduling metadata grows with the requested intervals.\n"
+"  Memory estimates include ROI matrices, full-grid outputs and worker storage.\n"
+"  Invalid output names, label collisions and overwrite conflicts fail before\n"
+"  BOLD loading. Only final Status: complete in results.tsv certifies the bundle.\n"
+"\n"
+"  3dInSync -check_table -window 30 -step 10 -run_starts 0,100 \134\n"
+"           -prefix movie_schedule -dataTableFile subjects.txt\n"
+"\n"
+"  For explicit intervals, repeat subject rows with these extra columns:\n"
+"  Subj Group Selection Segment Run StartTR StopTR InputFile\n"
+"  s01  A     Vis_all   b01     1   30      59     s01_movie.nii.gz\n"
+"  s01  A     Vis_all   b02     1   90      119    s01_movie.nii.gz\n"
+"  # Repeat the same interval rows for every other subject.\n"
+"  Run is one-based; StartTR/StopTR are zero-based, inclusive, within run.\n"
+"  A repeated Selection combines nonoverlapping segments. Sliding windows\n"
+"  stay inside each segment/run; short segments produce no windows (reported).\n"
+"  IDs/manifest order are canonical; original input row numbers are retained.\n"
+"  -censor can report retained counts without shifting any boundaries.\n"
+"  zcensor/nonfinite checks require image data and are reported as pending.\n"
+"  Xmat and optional Censor columns can supply run/block metadata (see below).\n"
+"  -check_table does not validate or run inference or pair-map exports.\n"
+"\n"
+"Xmat-defined runs and blocks (optional):            ~1~\n"
+"\n"
+"  One row per subject, or per subject/Condition:\n"
+"  Subj Group Xmat                  InputFile\n"
+"  s01  A     s01/X.nocensor.xmat.1D s01/bold.nii.gz\n"
+"  s02  A     s02/X.nocensor.xmat.1D s02/bold.nii.gz\n"
+"  # Include all subjects (at least three per group).\n"
+"\n"
+"  -xmat_blocks each|by_stim\n"
+"                       each: one estimate per response-defined block.\n"
+"                       by_stim: also aggregate blocks of each type per run.\n"
+"                       Individual blocks are retained alongside aggregates.\n"
+"  -xmat_stims LIST      Exact comma-separated StimLabels [all]; design order.\n"
+"  -xmat_threshold F     REQUIRED for blocks: 0 < F <= 1 of full-design peak.\n"
+"  -xmat_runs LIST       One-based comma-separated runs [all].\n"
+"  -xmat_across_runs     With by_stim, aggregate each type across selected runs.\n"
+"\n"
+"  3dInSync -check_table -xmat_blocks by_stim -xmat_stims Vis,Aud \134\n"
+"           -xmat_threshold 0.5 -prefix blocks -dataTableFile subjects.txt\n"
+"\n"
+"  Blocks follow modeled response support, not original stimulus timings.\n"
+"  Selected stimuli need one finite, nonnegative column each. Overlapping\n"
+"  stimuli retain shared TRs; overlap counts and subject-by-stimulus tables\n"
+"  are printed. Censor holes never split blocks. A full design is required:\n"
+"  if Xmat is censored, add an XmatFull column naming its uncensored design.\n"
+"  Optional Censor files are intersected with GoodList and common -censor;\n"
+"  per-subject Censor files are also supported in ordinary whole-run ISC.\n"
+"  Source files must retain the full timeline (no subbrick selectors).\n"
+"  Xmat alone supplies run/TR/censor metadata without selecting blocks.\n"
+"  -window/-step may subdivide each block, but cannot be combined with by_stim.\n"
+"  Use manual intervals or Xmat block expansion to define the analysis periods.\n"
+"  Omit -check_table to estimate individual blocks AND the requested summaries.\n"
+"  No ISC estimation is performed by -check_table.\n"
+"\n"
+"3dISC model bundles for runs, blocks, windows, and summaries: ~1~\n"
+"\n"
+"  -save_pairwise PREFIX  For run/block/window analyses, write PREFIX.isc/ with one\n"
+"                       Fisher-z pair bucket, common-valid mask, support bucket,\n"
+"                       data table and script per run/block/window/summary and ordered\n"
+"                       condition pairing. Includes cross-group subject pairs.\n"
+"  -isc_model FORMULA    Shared 3dISC formula [1+(1|Subj1)+(1|Subj2)].\n"
+"                       The default tests an intercept, not a group difference.\n"
+"  -isc_qVars LIST       Comma-separated exported numeric columns, e.g. Age1,Age2.\n"
+"  -isc_qVarCenters LIST Comma-separated finite centers, in qVars order. If omitted,\n"
+"                       3dISC uses its normal centering. Requires -isc_qVars.\n"
+"  -isc_gltCode NAME WEIGHTS  Repeat for each GLT; quote the numeric weights.\n"
+"                       Names must be unique. R checks model rank/GLT dimensions.\n"
+"  -isc_jobs N           Jobs for each generated fit [1], positive integer.\n"
+"                       -isc_* options require a run/block/window analysis and -save_pairwise.\n"
+"\n"
+"  3dInSync -window 30 -step 10 -save_pairwise movie_models \134\n"
+"           -prefix movie_windows -dataTableFile subjects.txt\n"
+"  # Later, explicitly run the generated models:\n"
+"  sh movie_models.isc/run_all.sh\n"
+"\n"
+"  Model scripts are generated, never run automatically. run_all.sh stops on\n"
+"  failure; each script requires a completed jobs.tsv. Scripts work from another\n"
+"  working directory. They cd to the absolute bundle directory; after moving a\n"
+"  bundle update those paths. All dataset/table references inside it are local.\n"
+"  Xmat/Censor/interval-control columns are excluded from model covariates. Genuine\n"
+"  covariates retain both copies, e.g. Age1,Age2. Column collisions, unrepresentable\n"
+"  R table tokens and nonnumeric qVars fail before BOLD loading. Subject order is\n"
+"  lexical. GroupPair uses lexically sorted group labels; no contrast is inferred.\n"
+"  3dISC swaps subject IDs internally, but does not swap custom covariate copies.\n"
+"  They are pair-slot values. A symmetric model expression such as I(Age1+Age2)\n"
+"  must be chosen explicitly; no mean/difference/similarity transform is inferred.\n"
+"  Cross-condition r is corr(Subj1/cond1,Subj2/cond2), not an average of orientations.\n"
+"  Cross-condition jobs require matching original block/sample coordinates.\n"
+"  Export is pairwise even for LOO descriptions. Block admission requires every\n"
+"  modeled edge finite; aggregation then uses the same admitted blocks for all\n"
+"  edges. Job-specific support maps record actual retained counts and weights.\n"
+"  Fisher z is applied AFTER the final pair-r aggregate; exact endpoints are\n"
+"  clamped to +/-0.999999. Model masks require every modeled edge to be finite.\n"
+"  Zero-support jobs fail with an incomplete bundle; masked zero placeholders\n"
+"  must not be fitted. -roi_only exports parcel-mean pair maps on the atlas grid;\n"
+"  -atlas without -roi_only exports voxelwise pair maps. Outputs are NIfTI even\n"
+"  for 1D inputs. One result/condition-pair export job is held in memory at a time.\n"
+"  Separate fits neither test changes across windows nor correct across result buckets.\n"
+"  Joint repeated-window mixed models remain deferred; 3dInSync resampling tests are available.\n"
 "\n"
 "Inference scope:                                          ~1~\n"
 "\n"
@@ -397,10 +806,9 @@ static void usage_3dInSync(void)
 "\n"
 "Scope boundary:                                            ~1~\n"
 "\n"
-"  This program's analysis is static ISC, plus the explicit edge modes above.\n"
-"  Dynamic/windowed ISC, ISFC, and ISPS require distinct estimands, outputs,\n"
-"  and null models and are not accepted as aliases here. They remain\n"
-"  candidates for explicit future modes.\n"
+"  This program supports whole-input, per-run, per-block and sliding-window ISC,\n"
+"  block summaries, subject-based and temporal-surrogate inference, and edge modes.\n"
+"  Additional ISFC and ISPS analyses remain candidates for explicit later modes.\n"
 "\n"
 "References:                                                 ~1~\n"
 "\n"
@@ -476,6 +884,125 @@ int main( int argc, char **argv )
      if( strcasecmp(argv[nopt],"-help")==0 || strcasecmp(argv[nopt],"-h")==0 ){
        usage_3dInSync() ; return 0 ;
      }
+     if(!strcasecmp(argv[nopt],"-block_summary")){
+       if(opts.block_summary_given) ERROR_exit("3dInSync: -block_summary given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -block_summary needs median or fisher_mean");
+       if(!strcmp(argv[nopt],"median")) opts.block_summary=INSYNC_SUMMARY_MEDIAN;
+       else if(!strcmp(argv[nopt],"fisher_mean")) opts.block_summary=INSYNC_SUMMARY_FISHER_MEAN;
+       else ERROR_exit("3dInSync: -block_summary must be median or fisher_mean");
+       opts.block_summary_given=1; nopt++; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-block_missing")){
+       if(opts.block_missing_given) ERROR_exit("3dInSync: -block_missing given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -block_missing needs require_all or drop_common");
+       if(!strcmp(argv[nopt],"drop_common")) opts.block_drop_common=1;
+       else if(strcmp(argv[nopt],"require_all")) ERROR_exit("3dInSync: -block_missing must be require_all or drop_common");
+       opts.block_missing_given=1; nopt++; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-min_blocks")){
+       if(opts.min_blocks_given) ERROR_exit("3dInSync: -min_blocks given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -min_blocks needs an integer");
+       opts.min_blocks=INSYNC_selection_int(argv[nopt++],1,"-min_blocks"); opts.min_blocks_given=1; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-min_block_frac")){
+       char *end; double f;
+       if(opts.min_block_frac_given) ERROR_exit("3dInSync: -min_block_frac given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -min_block_frac needs a fraction");
+       errno=0; f=strtod(argv[nopt],&end);
+       if(errno || end==argv[nopt] || *end || !isfinite(f) || f<0 || f>1) ERROR_exit("3dInSync: -min_block_frac must be in [0,1]");
+       opts.min_block_frac=f; opts.min_block_frac_given=1; nopt++; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-block_weight")){
+       if(opts.block_weight_given) ERROR_exit("3dInSync: -block_weight given twice");
+       if(++nopt>=argc || strcmp(argv[nopt],"equal")) ERROR_exit("3dInSync: only -block_weight equal is implemented; coverage weighting is deferred to M4a");
+       opts.block_weight_given=1; nopt++; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-min_valid")){
+       if(opts.min_valid_given) ERROR_exit("3dInSync: -min_valid given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -min_valid needs an integer");
+       opts.min_valid=INSYNC_selection_int(argv[nopt++],3,"-min_valid"); opts.min_valid_given=1; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-min_valid_frac")){
+       char *end; double f;
+       if(opts.min_valid_frac_given) ERROR_exit("3dInSync: -min_valid_frac given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -min_valid_frac needs a fraction");
+       errno=0; f=strtod(argv[nopt],&end);
+       if(errno || end==argv[nopt] || *end || !isfinite(f) || f<0 || f>1) ERROR_exit("3dInSync: -min_valid_frac must be in [0,1]");
+       opts.min_valid_frac=f; opts.min_valid_frac_given=1; nopt++; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-combine_blocks")){
+       if(opts.combine_given) ERROR_exit("3dInSync: -combine_blocks given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -combine_blocks needs block_summary or pool");
+       if(!strcmp(argv[nopt],"pool")) opts.combine_pool=1;
+       else if(strcmp(argv[nopt],"block_summary")) ERROR_exit("3dInSync: -combine_blocks must be block_summary or pool");
+       opts.combine_given=1; nopt++; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-segment_center")){
+       if(opts.segment_center_given) ERROR_exit("3dInSync: -segment_center given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -segment_center needs none or mean");
+       if(!strcmp(argv[nopt],"mean")) opts.segment_center=1;
+       else if(strcmp(argv[nopt],"none")) ERROR_exit("3dInSync: -segment_center must be none or mean");
+       opts.segment_center_given=1; nopt++; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-xmat_stims") || !strcasecmp(argv[nopt],"-xmat_runs") ){
+       char **dst=!strcasecmp(argv[nopt],"-xmat_stims")?&opts.xmat_stims:&opts.xmat_runs;
+       char *name=argv[nopt];
+       if(*dst) ERROR_exit("3dInSync: %s given twice",name);
+       if(++nopt>=argc) ERROR_exit("3dInSync: need a comma list after %s",name);
+       *dst=argv[nopt++]; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-xmat_blocks") ){
+       if(opts.xmat_blocks) ERROR_exit("3dInSync: -xmat_blocks given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: need each or by_stim after -xmat_blocks");
+       if(!strcmp(argv[nopt],"each")) opts.xmat_blocks=1;
+       else if(!strcmp(argv[nopt],"by_stim")) opts.xmat_blocks=2;
+       else ERROR_exit("3dInSync: -xmat_blocks must be each or by_stim");
+       nopt++; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-xmat_across_runs") ){
+       if(opts.xmat_across_runs) ERROR_exit("3dInSync: -xmat_across_runs given twice");
+       opts.xmat_across_runs=1; nopt++; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-xmat_threshold") ){
+       char *end; double value;
+       if(opts.xmat_threshold_given) ERROR_exit("3dInSync: -xmat_threshold given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: need a fraction after -xmat_threshold");
+       errno=0; value=strtod(argv[nopt],&end);
+       if(errno || end==argv[nopt] || *end || !isfinite(value) || value<=0 || value>1)
+         ERROR_exit("3dInSync: -xmat_threshold must satisfy 0 < F <= 1");
+       opts.xmat_threshold=value; opts.xmat_threshold_given=1; nopt++; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-whole_summary")){
+       if(opts.whole_summary) ERROR_exit("3dInSync: -whole_summary given twice");
+       opts.whole_summary=1; nopt++; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-check_table") ){
+       if( opts.check_table ) ERROR_exit("3dInSync: -check_table given twice") ;
+       opts.check_table=1 ; nopt++ ; continue ;
+     }
+     if( !strcasecmp(argv[nopt],"-window") || !strcasecmp(argv[nopt],"-step") ){
+       int win=!strcasecmp(argv[nopt],"-window"); char *name=argv[nopt];
+       if( (win && opts.window) || (!win && opts.step_given) )
+         ERROR_exit("3dInSync: %s given twice",name);
+       if(++nopt>=argc) ERROR_exit("3dInSync: need integer TRs after %s",name);
+       if(win) opts.window=INSYNC_selection_int(argv[nopt++],3,name);
+       else { opts.step=INSYNC_selection_int(argv[nopt++],1,name); opts.step_given=1; }
+       continue;
+     }
+     if( !strcasecmp(argv[nopt],"-run_starts") ){
+       if(opts.run_starts) ERROR_exit("3dInSync: -run_starts given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: need a comma list after -run_starts");
+       opts.run_starts=argv[nopt++]; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-tr") ){
+       char *end; double value;
+       if(opts.tr_given) ERROR_exit("3dInSync: -tr given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: need seconds after -tr");
+       errno=0; value=strtod(argv[nopt],&end);
+       if(errno || end==argv[nopt] || *end || !isfinite(value) || value<=0)
+         ERROR_exit("3dInSync: -tr must be positive finite seconds");
+       opts.selection_tr=value; opts.tr_given=1; nopt++; continue;
+     }
      if( strcasecmp(argv[nopt],"-prefix")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need an argument after -prefix") ;
        opts.prefix=argv[nopt++] ; continue ;
@@ -507,6 +1034,11 @@ int main( int argc, char **argv )
                 strcasecmp(argv[nopt],"scorr")==0 ) opts.corr_metric=SIM_SPEARMAN ;
        else ERROR_exit(PROGRAM_NAME ": -correlation must be pearson or spearman") ;
        nopt++ ; continue ;
+     }
+     if(!strcasecmp(argv[nopt],"-censor_column")){
+       if(opts.censor_column_given) ERROR_exit("3dInSync: -censor_column given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -censor_column needs a name");
+       opts.censor_column=argv[nopt++]; opts.censor_column_given=1; continue;
      }
      if( strcasecmp(argv[nopt],"-censor")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a 1D file after -censor") ;
@@ -614,8 +1146,29 @@ int main( int argc, char **argv )
        else ERROR_exit(PROGRAM_NAME ": -condition_tail must be two or one") ;
        nopt++ ; continue ;
      }
+     if(!strcasecmp(argv[nopt],"-isc_model") || !strcasecmp(argv[nopt],"-isc_qVars") || !strcasecmp(argv[nopt],"-isc_qVarCenters")){
+       char **dest=!strcasecmp(argv[nopt],"-isc_model")?&opts.isc_model:!strcasecmp(argv[nopt],"-isc_qVars")?&opts.isc_qvars:&opts.isc_centers;
+       if(*dest) ERROR_exit("3dInSync: %s given twice",argv[nopt]);
+       if(nopt+1>=argc || !*argv[nopt+1]) ERROR_exit("3dInSync: %s needs a nonempty argument",argv[nopt]);
+       *dest=argv[nopt+1]; nopt+=2; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-isc_jobs")){
+       if(opts.isc_jobs_given) ERROR_exit("3dInSync: -isc_jobs given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -isc_jobs needs an integer");
+       opts.isc_jobs=INSYNC_selection_int(argv[nopt++],1,"-isc_jobs"); opts.isc_jobs_given=1; continue;
+     }
+     if(!strcasecmp(argv[nopt],"-isc_gltCode")){
+       int n=opts.isc_nglt;
+       if(nopt+2>=argc) ERROR_exit("3dInSync: -isc_gltCode needs NAME and quoted WEIGHTS");
+       if(n>=1000) ERROR_exit("3dInSync: too many GLTs");
+       opts.isc_glt_names=realloc(opts.isc_glt_names,(n+1)*sizeof(char *));
+       opts.isc_glt_weights=realloc(opts.isc_glt_weights,(n+1)*sizeof(char *));
+       if(!opts.isc_glt_names || !opts.isc_glt_weights) ERROR_exit("3dInSync: cannot allocate GLTs");
+       opts.isc_glt_names[n]=argv[nopt+1]; opts.isc_glt_weights[n]=argv[nopt+2]; opts.isc_nglt++; nopt+=3; continue;
+     }
      if( strcasecmp(argv[nopt],"-save_pairwise")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a prefix after -save_pairwise") ;
+       if(opts.pair_prefix) ERROR_exit("3dInSync: -save_pairwise given twice");
        opts.pair_prefix=argv[nopt++] ; continue ;
      }
      if( strcasecmp(argv[nopt],"-nboot")==0 ){
@@ -664,6 +1217,11 @@ int main( int argc, char **argv )
        else ERROR_exit(PROGRAM_NAME ": -tail must be 1sided, 2sided, or bisided") ;
        nopt++ ; continue ;
      }
+     if( strcasecmp(argv[nopt],"-temporal_censor")==0 ){
+       if(opts.temporal_censor) ERROR_exit("3dInSync: -temporal_censor given twice");
+       if(++nopt>=argc || strcmp(argv[nopt],"joint_shift")) ERROR_exit("3dInSync: -temporal_censor requires joint_shift; fixed-mask and censored phase nulls are not supported");
+       opts.temporal_censor=1; nopt++; continue;
+     }
      if( strcasecmp(argv[nopt],"-temporal_null")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need timeshift or phase after -temporal_null") ;
        if( strcasecmp(argv[nopt],"timeshift")==0 || strcasecmp(argv[nopt],"shift")==0 )
@@ -710,5 +1268,8 @@ int main( int argc, char **argv )
    }
 
    if( nopt<argc ) ERROR_exit(PROGRAM_NAME ": unexpected argument '%s'",argv[nopt]) ;
+   if(opts.isc_model || opts.isc_qvars || opts.isc_centers || opts.isc_nglt || opts.isc_jobs_given){
+      if(!opts.pair_prefix || !INSYNC_selection_requested(&opts,tab)) ERROR_exit("3dInSync: -isc_* options require a selection request and -save_pairwise PREFIX");
+   }
    return INSYNC_run(&opts,tab,argc,argv) ;
 }

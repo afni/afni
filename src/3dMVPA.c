@@ -123,9 +123,97 @@ static void mvpa_progress_finish( MVPA_progress *p )
    }
 }
 
+/* Executable-level temporal audit context. Updated only outside the parallel
+   spatial loop; all row writers read the same latency. Ordinary schemas stay
+   byte-for-byte unchanged when temporal mode is off. */
+static int mvpa_time_enabled=0, mvpa_time_index=0;
+static double mvpa_time_seconds=0;
+static void mvpa_time_row(FILE *fp)
+{
+   if(mvpa_time_enabled){
+     fprintf(fp,"%d\t",mvpa_time_index);
+     if(isfinite(mvpa_time_seconds))fprintf(fp,"%.17g\t",mvpa_time_seconds);
+     else fputs("NA\t",fp);
+   }
+}
+static void mvpa_columns(const char *columns,FILE *fp)
+{
+   fputs("# Columns: ",fp);
+   if(mvpa_time_enabled)fputs("TimeIndex\tTimeSeconds\t",fp);
+   fputs(columns,fp);
+}
+
+/* Explicit seconds from a text file or AFNI inline 1D vector. Do not infer event timing from an
+   AFNI sampling interval or a GIFTI array's index. */
+static double *mvpa_read_time_axis(const char *path,int *count)
+{
+   FILE *fp;char line[4096];double *axis=NULL;int n=0;
+   if(!strncmp(path,"1D:",3)){
+     MRI_IMAGE *im;NI_str_array *tokens=NI_decode_string_list((char *)path+3,",");
+     int i,total=0;
+     /* Validate complete numeric tokens and bound expansion before asking the
+        native float-vector reader to allocate. In particular, its permissive
+        sscanf must not silently interpret '-0.100..0' as a single value. */
+     if(!tokens || !tokens->num)ERROR_exit(PROGRAM_NAME ": empty inline time axis");
+     for(i=0;i<tokens->num;i++){
+       char *p=tokens->str[i],*end;long copies=1;double value,step;
+       if(strchr(p,'%')){
+         errno=0;copies=strtol(p,&end,10);
+         if(errno || end==p || *end!='%' || copies<1 || copies>32760)
+           ERROR_exit(PROGRAM_NAME ": inline time axis sequence must be N%%start%%step, with 1 <= N <= 32760");
+         p=end+1;errno=0;value=strtod(p,&end);
+         if(errno || end==p || *end!='%' || !isfinite(value))
+           ERROR_exit(PROGRAM_NAME ": inline time axis sequence must be N%%start%%step");
+         p=end+1;errno=0;step=strtod(p,&end);
+         if(errno || end==p || *end || !isfinite(step) || step<=0)
+           ERROR_exit(PROGRAM_NAME ": inline time axis step must be finite and positive");
+       }else{
+         errno=0;value=strtod(p,&end);
+         if(errno || end==p || *end || !isfinite(value))
+           ERROR_exit(PROGRAM_NAME ": inline time axis needs finite values or N%%start%%step (not endpoint '..' ranges)");
+       }
+       if(copies>32760-total)ERROR_exit(PROGRAM_NAME ": too many time points (maximum 32760)");
+       total+=(int)copies;
+     }
+     NI_delete_str_array(tokens);
+     im=mri_1D_fromstring((char *)path+3);
+     if(!im || im->ny!=1 || im->nx!=total)ERROR_exit(PROGRAM_NAME ": inline time axis must be a single vector");
+     n=im->nx;axis=malloc(sizeof(double)*(size_t)n);
+     if(!axis)ERROR_exit(PROGRAM_NAME ": cannot allocate inline time axis");
+     for(i=0;i<n;i++){
+       axis[i]=MRI_FLOAT_PTR(im)[i];
+       if(!isfinite(axis[i]) || (i && axis[i]<=axis[i-1]))
+         ERROR_exit(PROGRAM_NAME ": time axis must be finite and strictly increasing after AFNI float conversion");
+     }
+     mri_free(im);*count=n;return axis;
+   }
+   fp=fopen(path,"r");
+   if(!fp)ERROR_exit(PROGRAM_NAME ": cannot read -time_axis '%s'",path);
+   while(fgets(line,sizeof(line),fp)){
+      char *p=line,*end;double value;
+      if(!strchr(line,'\n') && !feof(fp))ERROR_exit(PROGRAM_NAME ": time axis line exceeds 4095 characters");
+      while(isspace((unsigned char)*p))p++;
+      if(!*p || *p=='#')continue;
+      errno=0;value=strtod(p,&end);
+      if(errno || end==p || !isfinite(value))ERROR_exit(PROGRAM_NAME ": time axis needs finite seconds, one value per line");
+      while(isspace((unsigned char)*end))end++;
+      if(*end && *end!='#')ERROR_exit(PROGRAM_NAME ": time axis needs one value per line");
+      if(n && value<=axis[n-1])ERROR_exit(PROGRAM_NAME ": time axis must be strictly increasing");
+      if(n>=32760)ERROR_exit(PROGRAM_NAME ": too many time points (maximum 32760)");
+      {double *next=realloc(axis,sizeof(double)*(size_t)(n+1));
+       if(!next)ERROR_exit(PROGRAM_NAME ": cannot allocate time axis");
+       axis=next;}
+      axis[n++]=value;
+   }
+   if(ferror(fp))ERROR_exit(PROGRAM_NAME ": error reading time axis");
+   fclose(fp);
+   if(!n)ERROR_exit(PROGRAM_NAME ": empty time axis");
+   *count=n;return axis;
+}
+
 static char *mvpa_options[]={
-   "-save_model","-apply_model","-compare_predictions","-mode","-dataTable","-dataTableFile","-trial_manifest","-xmat_stims",
-   "-testTable","-testTableFile",
+   "-train_only","-apply_dset","-save_model","-apply_model","-compare_predictions","-mode","-dataTable","-dataTableFile","-trial_manifest","-xmat_stims",
+   "-testTable","-testTableFile","-time_resolved","-time_axis","-time_start","-time_step",
    "-target_column","-target_columns","-design_columns","-lambda","-score",
    "-enet_alpha","-enet_alpha_grid","-enet_l1_ratio","-enet_l1_ratio_grid",
    "-pls_components","-pls_components_grid","-svr_c","-svr_c_grid","-svr_epsilon","-svr_epsilon_grid",
@@ -179,7 +267,7 @@ static void usage_3dMVPA( void )
 "                         Subj identifies the subject for each row. Choose CV\n"
 "                         to match within-subject or held-out-subject prediction.\n"
 "                         InputFile must select one sub-brick when its dataset\n"
-"                         has more than one.\n"
+"                         has more than one, except with -time_resolved.\n"
 "                         A subject-level table with Xmat and whole-bucket\n"
 "                         InputFile columns is expanded to the same sample\n"
 "                         representation before analysis.\n"
@@ -213,6 +301,43 @@ static void usage_3dMVPA( void )
 "                         No beta-label matching or Xmat expansion is applied.\n"
 "                         Cannot accompany -dataTable, -dataTableFile, or\n"
 "                         -xmat_stims.\n"
+"\n"
+"  -time_resolved         Classify independently at each latency of whole trial\n"
+"                         datasets (GIFTI/NIML surfaces or volumes). One table\n"
+"                         row = one trial, InputFile = whole epoch, no selectors.\n"
+"                         All trials must share the same spatial domain and time\n"
+"                         axis. Reuses fixed trial folds and neighborhoods; all\n"
+"                         learned transforms and tuning refit at each latency.\n"
+"                         Requires direct tables and -mode classify. No model,\n"
+"                         coefficient/pattern export or -nperm in this version.\n"
+"                         Temporal generalization/windows are not performed.\n"
+"                         With no timing options, process every data column;\n"
+"                         TimeIndex is zero-based and TimeSeconds is NA. No\n"
+"                         physical times are inferred from dataset metadata.\n"
+"  -time_start SECONDS    Together with -time_step, label ALL input columns\n"
+"  -time_step SECONDS     using start + TimeIndex * step. Start must be finite;\n"
+"                         step must be finite and positive. Infer the count\n"
+"                         from the first trial; every other trial must match.\n"
+"                         Both options require -time_resolved, must be supplied\n"
+"                         together, and cannot accompany -time_axis.\n"
+"  -time_axis SPEC        Optional explicit axis: a text FILE with finite,\n"
+"                         strictly increasing SECONDS, one per line (comments #),\n"
+"                         or a quoted AFNI inline vector, e.g.\n"
+"                         '1D: 601%%-0.100%%0.001' (N%%start%%step). N is the number\n"
+"                         of samples: 601 values from -0.100 to +0.500 seconds.\n"
+"                         Explicit lists such as '1D: -0.1 0 0.075' also work.\n"
+"                         Inline values use AFNI's float-vector precision.\n"
+"                         Endpoint-only '..' ranges are not supported.\n"
+"                         Negative pre-event times and irregular spacing allowed.\n"
+"                         Count must match every trial's sub-brick count; this\n"
+"                         explicit shared axis defines event-relative timing.\n"
+"                         Output: PREFIX is a score bucket, one brick per latency\n"
+"                         in axis order; PREFIX.temporal.1D contains ROI/center\n"
+"                         scores, NFeat and NFold with TimeIndex (zero-based) and\n"
+"                         TimeSeconds. Requested prediction/fold/tuning/selection\n"
+"                         and PCA audits also prepend these two time columns.\n"
+"                         No temporal significance or between-latency test is\n"
+"                         implied by these descriptive held-out score curves.\n"
 "\n"
 "  -target_column NAME    Categorical classification or numeric decoding target.\n"
 "  -target_columns A,B    Multiple numeric decoding targets.\n"
@@ -315,9 +440,14 @@ static void usage_3dMVPA( void )
 "  -subject_column NAME   Subject role [auto-detect Subj].\n"
 "  -run_column NAME       Run role [auto-detect Run].\n"
 "  -item_column NAME      Item/trial role [auto-detect Trial or Item].\n"
+"                         Item labels may repeat: equal labels mean the same\n"
+"                         item identity, not a run-local trial counter. Run is\n"
+"                         not automatically prepended. For distinct trials use\n"
+"                         run-qualified IDs, e.g. s01_r01_t001, s01_r02_t001.\n"
 "  -fold_column NAME      Fold role [auto-detect Fold].\n"
 "  -sample_column NAME    Unique sample labels [auto-detect Sample; otherwise\n"
-"                         row000001, ...].\n"
+"                         row000001, ...]. Explicit Sample IDs must be unique\n"
+"                         across all rows, including both train/test tables.\n"
 "  -xmat_stims LIST       Comma-separated X-matrix stimuli to expand [all].\n"
 "\n"
 "Model options:                                              ~1~\n"
@@ -842,25 +972,45 @@ static void usage_3dMVPA( void )
 "                         permutations; a single large ROI can take a while\n"
 "                         before its first update. -quiet overrides this option.\n"
 "\n"
-"Saved ridge models (format version 1):                       ~1~\n"
+"Saved models (ridge v1; logistic v2):                       ~1~\n"
 "\n"
-"  -save_model FILE       Export the existing fixed-partition TRAINING fit.\n"
-"                         Requires ridge classify/decode, -partition_column or\n"
-"                         -testTable, and volume ROIs/searchlights. No full-data\n"
-"                         refit: the held-out rows never enter the saved model.\n"
+"  -train_only           Fit all labeled input rows and export -save_model.\n"
+"                         No test table, partition, outer CV or test labels.\n"
+"                         Supports ridge classify/decode and logistic classify.\n"
+"                         Tuning requires -inner_cv_column: fit preprocessing\n"
+"                         inside each inner split, select parameters, then fit\n"
+"                         all rows. Inner scores are model-selection results,\n"
+"                         not independent performance estimates. Run separately\n"
+"                         per subject unless pooling subjects is intentional.\n"
+"                         Writes PREFIX.training.1D (fit counts/penalties), plus\n"
+"                         requested tuning/selection/PCA audits. No score maps,\n"
+"                         held-out predictions, permutations or pattern export.\n"
+"                         -validate_only checks inputs without fitting/writing.\n"
+"  -save_model FILE       Export a ridge or logistic fitted model. Requires\n"
+"                         -train_only, -partition_column or -testTable, with\n"
+"                         volume ROIs/searchlights. With a fixed partition only\n"
+"                         training rows enter the model; no full-data refit.\n"
 "                         Stores ordered voxel features and image grid/space,\n"
 "                         target/class labels, nuisance column names/OLS fit,\n"
-"                         fitted scaling, feature selection, PCA and ridge state\n"
+"                         fitted scaling, feature selection, PCA and estimator state\n"
 "                         including response-specific penalties. Observed state\n"
 "                         is saved after permutation restoration. All units are\n"
 "                         kept in memory until the model is published atomically.\n"
-"                         V1 excludes encoding, surface inputs, ordinary multi-\n"
+"                         Export excludes encoding, surface inputs, ordinary multi-\n"
 "                         fold CV exports, run_center and -save_coefficients.\n"
 "                         Supported scales: none, feature_zscore, sample_center.\n"
 "  3dMVPA -apply_model FILE -dataTableFile NEW_TABLE -prefix OUT\n"
 "                         Standalone: -apply_model must be first. Also accepts\n"
 "                         -dataTable @FILE, -sample_column and -subject_column.\n"
 "                         No other analysis/fitted-setting overrides are allowed.\n"
+"  3dMVPA -apply_model FILE -apply_dset DSET -prefix OUT\n"
+"                         Alternative to a table: predict every sub-brick of an\n"
+"                         AFNI HEAD/BRIK or NIfTI dataset. Optional selectors\n"
+"                         preserve order and original zero-based brick indices,\n"
+"                         e.g. 'cleaned+orig[10..$]' or 'cleaned.nii.gz[8,12,9]'.\n"
+"                         Cannot combine with table input or role overrides.\n"
+"                         Models requiring nuisance columns need table input.\n"
+"                         GIfTI/surface saved models are not yet supported.\n"
 "                         NEW_TABLE has InputFile (one volume/brick per row) and\n"
 "                         the saved nuisance columns, if any. Targets are optional.\n"
 "                         If supplied, observed classes must be known and numeric\n"
@@ -870,14 +1020,44 @@ static void usage_3dMVPA( void )
 "                         The saved voxel order is used; no mask is redefined.\n"
 "                         Writes OUT.applied.1D: unit/sample/response predictions,\n"
 "                         predicted class and optional observed target. Class\n"
-"                         scores are ridge 0/1 outputs, not probabilities; exact\n"
+"                         scores (Prediction) are ridge 0/1 outputs, NOT\n"
+"                         probabilities, or logistic logits. Logistic adds a\n"
+"                         Probability column: softmax over all trained classes.\n"
+"                         Probabilities sum to one per ROI/sample but calibration\n"
+"                         on a new data domain is not guaranteed. Exact\n"
 "                         ties choose the first stored class. Never fits, tunes,\n"
 "                         computes held-out scores or performs inference. Using\n"
 "                         training rows here does not make predictions held-out.\n"
+"                         Output is long form: one row per ROI x class x sample\n"
+"                         (or ROI x continuous response x sample). A labeled\n"
+"                         mask trains one model per positive ROI value, using\n"
+"                         all its voxels; a binary mask trains one ROI model.\n"
+"                         -apply_dset appends SourceBrick, BrickLabel, TimeSeconds.\n"
+"                         TimeSeconds uses original dataset time metadata (NA\n"
+"                         without a recognized time axis), not stimulus timing.\n"
+"                         Whole-run baseline/nuisance cleanup is external; apply\n"
+"                         comparable cleanup to training and application data.\n"
 "                         All stage parameters and labels are versioned data;\n"
 "                         unsupported versions or malformed models are rejected.\n"
 "                         Grid checks cannot establish anatomical registration or\n"
 "                         acquisition compatibility; no registration is performed.\n"
+"\n"
+"Training block means and predicting an unlabeled run:         ~2~\n"
+"  3dTstat -mean -prefix block01.nii.gz 'cleaned.r01.nii.gz[8..11]'\n"
+"  # blocks.1D: Subj Run Condition InputFile; one mean image per block.\n"
+"  # rois.nii.gz: positive integers identify distinct, nonoverlapping ROIs.\n"
+"  3dMVPA -train_only -mode classify -dataTable @blocks.1D \\\n"
+"         -target_column Condition -mask rois.nii.gz -method logistic \\\n"
+"         -logistic_lambda 1 -save_model decoder.mvpa -prefix training\n"
+"  3dMVPA -apply_model decoder.mvpa -apply_dset cleaned.r03.nii.gz \\\n"
+"         -prefix predictions\n"
+"  # predictions.applied.1D: ROI x class x TR logits and probabilities.\n"
+"  # For ridge scores instead, replace -method logistic -logistic_lambda 1\n"
+"  # with -method ridge -lambda 1 and use a different model/prefix.\n"
+"  # Optional tuning: -logistic_lambda auto -inner_cv_column Run;\n"
+"  # ridge uses -lambda auto -inner_cv_column Run. Each inner training\n"
+"  # split must contain every class. Averaged-block tuning does not measure\n"
+"  # single-TR prediction accuracy; independent labeled TRs are needed for that.\n"
 "\n"
 "Standalone paired model comparisons:                         ~1~\n"
 "\n"
@@ -909,7 +1089,7 @@ static void usage_3dMVPA( void )
 "\n"
 "Preparing trial betas:                                      ~1~\n"
 "\n"
-"3dMVPA takes existing response maps, not BOLD time series. A short LSS route:\n"
+"Trial-beta fMRI analyses take response maps, not raw BOLD. A short LSS route:\n"
 "\n"
 "  1. afni_proc.py: preprocess all runs onto a common grid; inspect alignment,\n"
 "     censoring and masks. Retain each run's full-length scaled EPI.\n"
@@ -982,7 +1162,14 @@ static void usage_3dMVPA( void )
 "  s02  s02_r01 s02_t001 face      3.8    2.5     0.2    0.8       0.3      1.2   s02/lss/LSS.r01.nii.gz[0]\n"
 "  s02  s02_r01 s02_t002 house     2.7    1.6     0.1    0.4       0.7      0.5   s02/lss/LSS.r01.nii.gz[1]\n"
 "\n"
-"Include all trials/runs for each subject, with unique Item labels here.\n"
+"Include all trials/runs for each subject. Item denotes item identity; it\n"
+"need not be unique per row. If each trial is a distinct item, use IDs such\n"
+"as s01_r01_t001 and s01_r02_t001 (trial numbering can restart per run), or\n"
+"continue s01_t001, s01_t002, ... across runs. Reusing s01_t001 in two runs\n"
+"is accepted but identifies the same item for Item-based grouping or transfer\n"
+"overlap checks. Preserve that identity when a stimulus item truly repeats.\n"
+"Sample is different: it identifies an observation and must be unique even\n"
+"when Item repeats. If Sample is omitted, unique row IDs are generated.\n"
 "Condition is categorical; Rating/Arousal are numeric targets; Motion is a\n"
 "numeric nuisance covariate. Luminance/Contrast/Shape are numeric encoding\n"
 "predictors. Include only columns your command needs. All maps/masks must\n"
@@ -1183,6 +1370,63 @@ static void usage_3dMVPA( void )
 "\n"
 "Epsilon has Rating's units. Compare aligned held-out predictions with the\n"
 "ridge baseline; changing the loss does not guarantee improved prediction.\n"
+"\n"
+"16. Time-resolved MEG/EEG source classification:              ~1~\n"
+"\n"
+"One row per individual trial (not an evoked condition average), with one\n"
+"scalar source map per GIFTI data column, all on the same node domain:\n"
+"\n"
+"  Subj Run Sample   Condition InputFile\n"
+"  s01  r1  trial001 face      trial001.lh.func.gii\n"
+"  s01  r1  trial002 house     trial002.lh.func.gii\n"
+"  ... (all trials from all runs for this subject)\n"
+"\n"
+"latencies.1D contains one event-relative time in seconds per data column,\n"
+"e.g. -0.100, -0.099, ... on separate lines. Export matching scalar source\n"
+"orientations, vertex indexes/order, and event alignment for every trial.\n"
+"Process hemispheres separately unless explicitly constructing a shared domain.\n"
+"\n"
+"  3dMVPA -mode classify -dataTable @trials.1D \\\n"
+"         -target_column Condition -cv_column Run -method ridge \\\n"
+"         -mask lh.rois.niml.dset -time_resolved -time_axis latencies.1D \\\n"
+"         -save_predictions lh.predictions.1D -save_fold_scores lh.folds.1D \\\n"
+"         -prefix lh.decoding.niml.dset\n"
+"\n"
+"To process all latencies without specifying the number of samples, replace\n"
+"-time_axis latencies.1D above with:\n"
+"\n"
+"         -time_start -0.100 -time_step 0.001\n"
+"\n"
+"The count comes from the input columns; all trials must have the same count.\n"
+"Alternatively, omit -time_axis entirely and keep just -time_resolved to\n"
+"process every column with TimeIndex=0,1,2,... and TimeSeconds=NA. This does\n"
+"not infer event-relative timing from GIFTI or volume metadata.\n"
+"\n"
+"For regularly sampled trials, replace -time_axis latencies.1D above with:\n"
+"\n"
+"         -time_axis '1D: 601%%-0.100%%0.001'\n"
+"\n"
+"This is AFNI's N%%start%%step syntax: 601 samples starting at -0.100 seconds,\n"
+"with a 0.001-second step, ending at +0.500 seconds (both endpoints included).\n"
+"For -0.100 through 0 seconds at the same spacing, use:\n"
+"\n"
+"         -time_axis '1D: 101%%-0.100%%0.001'\n"
+"\n"
+"A range like '1D: -0.100..0' does not specify the step and is not accepted.\n"
+"The generated sample count must match every trial's number of data columns.\n"
+"\n"
+"For geodesic searchlights add -surf lh.white.gii -searchlight 10; the mask\n"
+"then defines eligible nodes (or omit it to use every represented node).\n"
+"Use a matching mesh with coordinates in mm and a SUMA-enabled build.\n"
+"\n"
+"The output bucket has one score map per latency; exact times and spatial-unit\n"
+"scores are in lh.decoding.niml.dset.temporal.1D. Trial folds are reused, but\n"
+"each latency gets independent training-only preprocessing, tuning and fits.\n"
+"Run subjects separately for individual curves/maps, or use explicit subject\n"
+"strata/held-out-subject CV to match the intended generalization question.\n"
+"Condition averages cannot substitute for trial-level cross-validation.\n"
+"No across-time inference is performed; significance at one time and not another\n"
+"does not establish a difference between those times.\n"
 "\n"
 "References:                                                 ~1~\n"
 "\n"
@@ -1411,6 +1655,7 @@ static void mvpa_write_spatial_prefix( FILE *fp, THD_3dim_dataset *mset,
                                        int searchlight, int surface )
 {
    int idx=rl->center[rr] ;
+   mvpa_time_row(fp);
    fputs(surface?"Node\t":searchlight?"Voxel\t":"ROI\t",fp) ;
    fprintf(fp,"%d\t",rl->val[rr]) ;
    mvpa_1D_text(fp,rl->lab[rr]?rl->lab[rr]:"NA") ; fputc('\t',fp) ;
@@ -1770,7 +2015,7 @@ static void mvpa_candidate_header(FILE *fp,int objective,int ridge,int pca)
            ridge==2?"first regression candidate":ridge?"larger lambda":"smaller C (if applicable)");
    fputs("# InnerNValid counts represented classes for ACC/BACC, one probability distribution for log_loss/brier, responses otherwise; normalized_mse excludes zero-baseline responses and permits all-undefined tie fallback.\n",fp);
    if(pca)fputs("# PCA enabled: CandidateID zero-based within unit/fold; order=feature_count,PCA_count,penalty; ties=smaller_feature_count_then_smaller_PCA_count_then_penalty. Inner effective counts can differ by fold/rank.\n",fp);
-   fputs("# Columns: Unit\tCVFold\tCVStratum\tCandidateID\tObjective\tFeatureSelection\tRequestedCount\tEffectiveCount\tPenaltyName\tPenalty\tInnerNFold\tInnerNTest\tInnerNValid\tInnerLoss\tSelected",fp);
+   mvpa_columns("Unit\tCVFold\tCVStratum\tCandidateID\tObjective\tFeatureSelection\tRequestedCount\tEffectiveCount\tPenaltyName\tPenalty\tInnerNFold\tInnerNTest\tInnerNValid\tInnerLoss\tSelected",fp);
    if(pca)fputs("\tPCARequested\tInnerPCAMin\tInnerPCAMax",fp);
    fputc('\n',fp);
 }
@@ -1790,7 +2035,7 @@ static void mvpa_candidate_write(FILE *fp,const THD_foldplan *plan,int unit,int 
       double chosen=rw?rw->selected_lambda[f]:(cw->svm || cw->logistic)?cw->class_selected[f]:0;
       double loss=pc?pc->loss[(((size_t)f*nk+c)*np+h)*nl+l]:sel?sel->loss[((size_t)f*nk+c)*nl+l]:rw?rw->inner_loss[(size_t)f*nl+l]:cw->class_loss[(size_t)f*nl+l];
       for(j=0;j<nested->inner[f]->nfold;j++)ntest+=nested->inner[f]->ntest[j];
-      fprintf(fp,"%d\t",unit);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
+      mvpa_time_row(fp);fprintf(fp,"%d\t",unit);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
       mvpa_1D_text(fp,plan->stratum_label[plan->fold_stratum[f]]);
       fprintf(fp,"\t%d\t%s\t%d\t%d\t%d\t%s\t",(c*np+h)*nl+l,THD_mvpa_tune_objective_name(objective),
               sel!=NULL,count,count<p?count:p,rw?(rw->regression?"regression_candidate":"lambda"):cw->logistic?"lambda":cw->svm?"C":"none");
@@ -1848,7 +2093,7 @@ static void mvpa_pca_open(mvpa_pca_audit *a,const char *prefix,const char *loadi
    snprintf(name,strlen(prefix)+32,"%s.pca.1D",prefix);a->summary=mvpa_open_audit(name,"PCA summary");
    fputs("# Observed outer-training PCA after nuisance, scaling and optional selection; centered, unwhitened. Eigenvalues are sample variances (NTrain-1). Effective count clips to numerical rank. Component=0 marks rank zero (one zero estimator input).\n",a->summary);
    fputs("# Rank threshold=64*DBL_EPSILON*max(NTrain,NFeat)*largest_eigenvalue; repeated eigenvalues have nonunique bases. All fits repeated under inner CV and permutations; observed audits restored.\n",a->summary);
-   fputs("# Columns: Unit\tCVFold\tCVStratum\tNTrain\tInputNFeat\tRequestedComponents\tEffectiveComponents\tNumericalRank\tComponent\tVariance\tVarianceRatio\tCumulativeRatio\tTotalVariance\n",a->summary);
+   mvpa_columns("Unit\tCVFold\tCVStratum\tNTrain\tInputNFeat\tRequestedComponents\tEffectiveComponents\tNumericalRank\tComponent\tVariance\tVarianceRatio\tCumulativeRatio\tTotalVariance\n",a->summary);
    if(nested){
       snprintf(name,strlen(prefix)+32,"%s.pca_tuning.1D",prefix);a->tuning=mvpa_open_audit(name,"PCA candidate audit");
       if(response_lambda)mvpa_response_header(a->tuning,objective);else mvpa_candidate_header(a->tuning,objective,ridge,1);
@@ -1856,7 +2101,7 @@ static void mvpa_pca_open(mvpa_pca_audit *a,const char *prefix,const char *loadi
    if(loading_file){
       a->loadings=mvpa_open_audit(loading_file,"PCA loadings");
       fputs("# PCA coordinates after nuisance/scaling/selection, not raw-input coefficients or activation patterns. Mean is training-only in this coordinate system; scores=(x-mean)*loading. Largest absolute loading positive; repeated-eigenvalue bases nonunique. FeatureIndex is original zero-based input column; Component is one-based (0 means rank zero, loading=0).\n",a->loadings);
-      fputs("# Columns: Unit\tCVFold\tCVStratum\tComponent\tFeatureIndex\tFeature\tMean\tLoading\n",a->loadings);
+      mvpa_columns("Unit\tCVFold\tCVStratum\tComponent\tFeatureIndex\tFeature\tMean\tLoading\n",a->loadings);
    }
    free(name);
 }
@@ -1871,14 +2116,14 @@ static void mvpa_pca_write(const mvpa_pca_audit *a,const THD_mvpa_pca *pc,
       for(k=0;k<(count?count:1);k++){
          double v=count?pc->variance[(size_t)f*cap+k]:0,ratio=pc->total[f]>0?v/pc->total[f]:0;
          FILE *fp=a->summary;cumulative+=ratio;
-         fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
+         mvpa_time_row(fp);fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
          mvpa_1D_text(fp,plan->stratum_label[plan->fold_stratum[f]]);
          fprintf(fp,"\t%d\t%d\t%d\t%d\t%d\t%d\t%.17g\t%.17g\t%.17g\t%.17g\n",plan->ntrain[f],p,
            pc->grid[pc->chosen[f]],count,pc->rank[f],count?k+1:0,v,ratio,cumulative,pc->total[f]);
          if(a->loadings)for(j=0;j<p;j++){
             int col=sel?sel->indices[(size_t)f*sel->max_feature+j]:j;
             double loading=count?pc->loadings[(size_t)f*cap*pc->model->max_feature+(size_t)k*p+j]:0;
-            fp=a->loadings;fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
+            fp=a->loadings;mvpa_time_row(fp);fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
             mvpa_1D_text(fp,plan->stratum_label[plan->fold_stratum[f]]);
             fprintf(fp,"\t%d\t%d\t",count?k+1:0,col);
             if(!names)mvpa_neural_id(text,sizeof(text),mset,rl->vox[unit].ar[col]);
@@ -2006,10 +2251,10 @@ static void mvpa_selection_open(mvpa_selection_audit *a,const char *prefix,
                  ridge?"mean_response_SSE_over_training_mean_baseline_SSE":metric==THD_METRIC_ACCURACY?"1-ACC":"1-BACC",
                  ridge==2?"first_regression_candidate":ridge?"largest_lambda":"smallest_C");
          else fprintf(fp,"# ties=smallest_requested_count_then_%s; all count/penalty pairs; observed fits restored after permutations\n",ridge==2?"first_regression_candidate":ridge?"largest_lambda":"smallest_C");
-         fputs("# Columns: Unit\tCVFold\tCVStratum\tInnerNFold\tRequestedCount\tEffectiveCount\tPenalty\tInnerLoss\tSelected\n",fp);a->tuning=fp;
+         mvpa_columns("Unit\tCVFold\tCVStratum\tInnerNFold\tRequestedCount\tEffectiveCount\tPenalty\tInnerLoss\tSelected\n",fp);a->tuning=fp;
       }else{
          fputs("# Observed outer-fold selection only; FeatureIndex is zero-based within the input pattern/design; Rank is one-based. Scores are descriptive, not p-values.\n",fp);
-         fputs("# Columns: Unit\tCVFold\tCVStratum\tNTrain\tInputNFeat\tRequestedCount\tEffectiveCount\tRank\tFeatureIndex\tFeature\tSelectionScore\n",fp);a->features=fp;
+         mvpa_columns("Unit\tCVFold\tCVStratum\tNTrain\tInputNFeat\tRequestedCount\tEffectiveCount\tRank\tFeatureIndex\tFeature\tSelectionScore\n",fp);a->features=fp;
       }
    }
 }
@@ -2022,7 +2267,7 @@ static void mvpa_selection_write(const mvpa_selection_audit *a,const THD_feature
    for(f=0;f<plan->nfold;f++){
       for(j=0;j<sel->count[f];j++){
          size_t at=(size_t)f*sel->max_feature+j;int col=sel->indices[at];FILE *fp=a->features;
-         fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
+         mvpa_time_row(fp);fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
          mvpa_1D_text(fp,plan->stratum_label[plan->fold_stratum[f]]);
          fprintf(fp,"\t%d\t%d\t%d\t%d\t%d\t%d\t",plan->ntrain[f],p,sel->grid[sel->chosen[f]],sel->count[f],j+1,col);
          if(!design_names)mvpa_neural_id(name,sizeof(name),mset,rl->vox[unit].ar[col]);
@@ -2031,7 +2276,7 @@ static void mvpa_selection_write(const mvpa_selection_audit *a,const THD_feature
       }
       if(a->tuning)for(c=0;c<sel->ngrid;c++)for(l=0;l<sel->npenalty;l++){
          FILE *fp=a->tuning;double penalty=grid?grid[l]:fixed;
-         fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
+         mvpa_time_row(fp);fprintf(fp,"%d\t",rl->val[unit]);mvpa_1D_text(fp,plan->name[f]);fputc('\t',fp);
          mvpa_1D_text(fp,plan->stratum_label[plan->fold_stratum[f]]);
          fprintf(fp,"\t%d\t%d\t%d\t%.17g\t%.17g\t%d\n",sel->nested->inner[f]->nfold,
                  sel->grid[c],sel->grid[c]<p?sel->grid[c]:p,penalty,
@@ -2826,9 +3071,9 @@ static void mvpa_validate_report(THD_sampleset *ss,const THD_foldplan *plan,
    const THD_nested_foldplan *nested,const THD_roilist *rl,
    const char *spatial_reference,const char *mode,const char *method,const char *target,int continuous,
    const int *classes,char **labels,int nclass,const int *groups,int lda,
-   int nperm,const char *permute_within)
+   int nperm,const char *permute_within,int ntime)
 {
-   int i,j,f,c,nfeature=0,warnings=0;char err[1024];
+   int i,j,f,c,t,nfeature=0,warnings=0;char err[1024];
    unsigned char *selected;intvec vox={0,NULL};float *values;
    THD_sampleset_identity *identity;
    printf("\n# 3dMVPA input validation (no model fitting)\n");
@@ -2875,7 +3120,7 @@ static void mvpa_validate_report(THD_sampleset *ss,const THD_foldplan *plan,
          for(c=0;c<nclass;c++){
             printf("%s\t%s\t%d\t%s\t%d\t%d\n",plan->name[f],
                    plan->stratum_label[plan->fold_stratum[f]],c,labels[c],train[c],test[c]);
-            if(!test[c]){
+            if(!test[c] && plan->kind!=THD_CV_TRAIN_ONLY){
                printf("# WARNING: fold %s has no test observations of class %s; its BACC omits that class.\n",
                       plan->name[f],labels[c]);warnings++;
             }
@@ -2911,18 +3156,24 @@ static void mvpa_validate_report(THD_sampleset *ss,const THD_foldplan *plan,
    for(i=0,j=0;i<ss->nvox;i++)if(selected[i])vox.ar[j++]=i;
    free(selected);
    for(i=0;i<ss->nsample;i++){
+     int original_brick=ss->sample_brick[i];
+     for(t=0;t<ntime;t++){
+      if(mvpa_time_enabled)ss->sample_brick[i]=t;
       if(!THD_roi_samples(ss,&i,1,&vox,values,err,sizeof(err)))
          ERROR_exit(PROGRAM_NAME ": %s",err);
       for(j=0;j<nfeature;j++)if(!isfinite(values[j]))
          ERROR_exit(PROGRAM_NAME ": sample %d (%s), selected voxel/node row %d is not finite",
                     i+1,ss->sample_label[i],vox.ar[j]);
+     }
+     ss->sample_brick[i]=original_brick;
    }
    free(values);free(vox.ar);
    printf("# SpatialUnits\t%d\n# SelectedFeatures\t%d\n# FiniteSelectedValues\t%llu\n",
-          rl->nroi,nfeature,(unsigned long long)ss->nsample*(unsigned long long)nfeature);
+          rl->nroi,nfeature,(unsigned long long)ss->nsample*(unsigned long long)nfeature*(unsigned long long)ntime);
    printf("# Values checked after AFNI loading/conversion; reader repairs of bad floats are not a raw-file integrity check.\n");
    printf("# Not checked: event-label correctness, beta/design correspondence beyond index ranges, anatomical QC, or upstream independence.\n");
-   printf("# No models fitted, no permutations generated, no result files written; output paths and solver convergence not checked.\n");
+   if(mvpa_time_enabled)printf("# No models fitted, no permutations generated, no result files written; temporal output paths checked, solver convergence not checked.\n");
+   else printf("# No models fitted, no permutations generated, no result files written; output paths and solver convergence not checked.\n");
    printf("# Validation PASS\t%d warning(s)\n",warnings);
 }
 
@@ -3340,24 +3591,146 @@ static void mvpa_model_preflight(const char *path,const char *prefix,const char 
    for(i=0;i<8;i++){snprintf(name,strlen(prefix)+32,"%s%s",prefix,suffix[i]);if(mvpa_pair_same_file(path,name))ERROR_exit(PROGRAM_NAME ": model and automatic audit paths must differ");}
    free(name);DSET_delete(tmp);
 }
+/* Fits the same ridge/logistic pipelines as fixed-partition evaluation, without scoring. */
+static void mvpa_train_model(THD_sampleset *ss,const THD_foldplan *plan,
+ THD_3dim_dataset *mask,THD_roilist *rl,THD_mvpa_model *model,const char *target,
+ const int *classes,char **labels,int nc,int scale,double lambda,
+ const THD_nested_foldplan *nested,const double *grid,int nl,int objective,
+ const float *nuisance,int nk,const int *features,int nf,const int *pcs,int npc,
+ int response_lambda,FILE *candidates,const mvpa_selection_audit *selection,
+ const mvpa_pca_audit *pca,const char *prefix,int quiet,int progress_mode,
+ int logistic,double tolerance,int max_iterations,int metric)
+{
+   char err[1024],*summary_name;char **names=NULL;int q=nc,r,i,j,pmax=THD_roilist_maxvox(rl);
+   float *y,*x;THD_mvpa_ridge_workspace *w=NULL;THD_mvpa_workspace *cw=NULL;FILE *summary;MVPA_progress progress;
+   if(classes){
+      y=calloc((size_t)ss->nsample*nc,sizeof(float));
+      if(y)for(i=0;i<ss->nsample;i++)y[(size_t)i*nc+classes[i]]=1;
+      names=labels;
+      if(nested)for(i=0;i<nested->inner[0]->nfold;i++){
+         const THD_foldplan *in=nested->inner[0];int *counts=calloc((size_t)nc,sizeof(int));
+         if(!counts)ERROR_exit(PROGRAM_NAME ": cannot check inner classes");
+         for(j=0;j<in->ntrain[i];j++)counts[classes[in->train[i][j]]]++;
+         for(j=0;j<nc;j++)if(!counts[j])ERROR_exit(PROGRAM_NAME ": inner fold %s has no class %s in training",in->name[i],labels[j]);
+         free(counts);
+      }
+   }else y=mvpa_numeric_columns(ss,target,&names,&q);
+   x=malloc(sizeof(float)*(size_t)ss->nsample*pmax);
+   if(logistic){
+      cw=THD_mvpa_workspace_alloc(plan,pmax,q,scale,NULL,err,sizeof(err));
+      if(!cw || !THD_mvpa_classification_set_logistic(cw,lambda,tolerance,max_iterations,metric,nested,grid,nl,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nuisance && !THD_preprocess_set_nuisance(cw->prep,nuisance,ss->nsample,nk,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nf && !THD_mvpa_classification_set_selection(cw,features,nf,nested,metric,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(npc && !THD_mvpa_classification_set_pca(cw,pcs,npc,nested,metric,pca->loadings!=NULL,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nested && !THD_mvpa_classification_set_objective(cw,objective,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+   }else{
+      w=THD_mvpa_ridge_workspace_alloc(plan,pmax,q,scale,err,sizeof(err));
+      if(!y || !x || !w)ERROR_exit(PROGRAM_NAME ": cannot allocate training workspace");
+      w->classification=classes!=NULL;
+      if(nuisance && !THD_preprocess_set_nuisance(w->prep,nuisance,ss->nsample,nk,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nested && !THD_mvpa_ridge_set_tuning(w,nested,grid,nl,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nf && !THD_mvpa_ridge_set_selection(w,features,nf,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(w->selection)w->selection->classes=classes;
+      if(npc && !THD_mvpa_ridge_set_pca(w,pcs,npc,pca->loadings!=NULL,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(nested && !THD_mvpa_ridge_set_objective(w,objective,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+      if(response_lambda && !THD_mvpa_ridge_enable_response_lambda(w,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+   }
+   if(!y || !x)ERROR_exit(PROGRAM_NAME ": cannot allocate training samples");
+   summary_name=malloc(strlen(prefix)+32);if(!summary_name)ERROR_exit(PROGRAM_NAME ": cannot name fit summary");
+   sprintf(summary_name,"%s.training.1D",prefix);summary=mvpa_open_audit(summary_name,"training summary");
+   fputs("# All supplied samples fitted; no held-out predictions or scores.\n# Inner tuning is model selection, not independent performance evaluation.\n# Columns: Unit\tResponse\tNTrain\tNFeat\tLambda\n",summary);
+   mvpa_progress_init(&progress,progress_mode,quiet,"Training",rl->nroi,"locations");
+   if(candidates)fputs("# Training-only: inner model selection; no independent performance estimate.\n",candidates);
+   for(r=0;r<rl->nroi;r++){
+      int p=rl->vox[r].nar;
+      if(logistic){
+            if(!THD_roi_samples(ss,NULL,ss->nsample,rl->vox+r,x,err,sizeof(err)) ||
+               !THD_mvpa_run_classification_cv(plan,0,x,p,classes,NULL,cw,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": training unit %d: %s",rl->val[r],err);
+            model->unit[r].fit=THD_mvpa_logistic_freeze(cw,err,sizeof(err));
+            if(!model->unit[r].fit)ERROR_exit(PROGRAM_NAME ": %s",err);
+            mvpa_candidate_write(candidates,plan,rl->val[r],p,objective,NULL,cw);
+            mvpa_pca_write(pca,cw->pca,plan,mask,rl,r,NULL,cw->selection);
+            mvpa_candidate_write(pca->tuning,plan,rl->val[r],p,objective,NULL,cw);
+            mvpa_selection_write(selection,cw->selection,plan,mask,rl,r,NULL,p,grid,cw->class_selected,lambda);
+         }else{
+         if(!THD_roi_samples(ss,NULL,ss->nsample,rl->vox+r,x,err,sizeof(err)) ||
+            !THD_mvpa_run_ridge_cv(w,x,p,y,q,NULL,lambda,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": training unit %d: %s",rl->val[r],err);
+         model->unit[r].fit=THD_mvpa_ridge_freeze(w,err,sizeof(err));
+         if(!model->unit[r].fit)ERROR_exit(PROGRAM_NAME ": %s",err);
+         mvpa_cont_candidates(candidates,w,mask,rl,r,p,q,names,0,objective);
+         mvpa_pca_write(pca,w->pca,plan,mask,rl,r,NULL,w->selection);
+         mvpa_cont_candidates(pca->tuning,w,mask,rl,r,p,q,names,0,objective);
+         {mvpa_selection_audit audit=*selection;if(response_lambda)audit.tuning=NULL;
+          mvpa_selection_write(&audit,w->selection,plan,mask,rl,r,NULL,p,grid,w->selected_lambda,lambda);}
+         if(response_lambda)mvpa_response_candidates(selection->tuning,w,mask,rl,r,p,q,names,0,objective);
+      }
+      for(i=0;i<q;i++){
+         fprintf(summary,"%d\t",rl->val[r]);mvpa_1D_text(summary,names[i]);
+         fprintf(summary,"\t%d\t%d\t%.17g\n",ss->nsample,p,logistic?cw->class_selected[0]:response_lambda?w->response_ridge->selected[i]:w->selected_lambda[0]);
+      }
+      mvpa_progress_advance(&progress);
+   }
+   {int bad=ferror(summary);if(fclose(summary))bad=1;if(bad)ERROR_exit(PROGRAM_NAME ": error writing fit summary");}
+   mvpa_progress_finish(&progress);
+   free(summary_name);free(x);free(y);if(!classes)THD_sampleset_free_levels(names,q);THD_mvpa_ridge_workspace_free(w);THD_mvpa_workspace_free(cw);
+}
+
+/* Expand selected original bricks into the ordinary application sample table. */
+static THD_datatable *mvpa_application_dataset(const char *spec)
+{
+   const char *sel=strchr(spec,'['),*end;char *base,*tokens[3],**tok;
+   THD_3dim_dataset *ds;THD_datatable *table;int *list=NULL,n,i,k;
+   size_t len=sel?(size_t)(sel-spec):strlen(spec);
+   if(!len || strchr(spec,'<') || strchr(spec,'{'))ERROR_exit(PROGRAM_NAME ": -apply_dset accepts a dataset with an optional sub-brick selector");
+   if(sel){end=strrchr(sel,']');if(!end || end[1])ERROR_exit(PROGRAM_NAME ": malformed -apply_dset selector");}
+   base=malloc(len+1);if(!base)ERROR_exit(PROGRAM_NAME ": cannot allocate dataset name");
+   memcpy(base,spec,len);base[len]=0;
+   ds=THD_open_dataset(base);if(!ds)ERROR_exit(PROGRAM_NAME ": cannot open application dataset '%s'",base);
+   if(DBLK_IS_NI_SURF_DSET(ds->dblk) || DBLK_IS_GIFTI(ds->dblk))ERROR_exit(PROGRAM_NAME ": saved model v1 requires volume inputs; surface model export is not supported");
+   if(sel){list=MCW_get_thd_intlist(ds,(char *)sel);if(!list || list[0]<1)ERROR_exit(PROGRAM_NAME ": invalid or empty -apply_dset selector");}
+   n=list?list[0]:DSET_NVALS(ds);
+   if(n<1 || n>(INT_MAX-3)/3)ERROR_exit(PROGRAM_NAME ": excessive application sample count");
+   tok=calloc((size_t)(n+1)*3,sizeof(char *));if(!tok)ERROR_exit(PROGRAM_NAME ": cannot allocate application table");
+   tokens[0]="Subj";tokens[1]="Sample";tokens[2]="InputFile";
+   for(k=0;k<3;k++)tok[k]=strdup(tokens[k]);
+   for(i=0;i<n;i++){
+      char id[80];int b=list?list[i+1]:i;
+      if(b<0 || b>=DSET_NVALS(ds))ERROR_exit(PROGRAM_NAME ": application sub-brick out of range");
+      snprintf(id,sizeof(id),"sample_%d_brick_%d",i,b);
+      tok[3+3*i]=strdup("Dataset");tok[4+3*i]=strdup(id);
+      tok[5+3*i]=malloc(len+40);if(!tok[5+3*i])ERROR_exit(PROGRAM_NAME ": cannot allocate brick selector");
+      snprintf(tok[5+3*i],len+40,"%s[%d]",base,b);
+   }
+   for(k=0;k<3*(n+1);k++)if(!tok[k])ERROR_exit(PROGRAM_NAME ": cannot allocate application tokens");
+   table=THD_parse_datatable(tok,3*(n+1),(char *)spec);
+   for(k=0;k<3*(n+1);k++)free(tok[k]);
+   free(tok);free(list);free(base);DSET_delete(ds);
+   if(!table)ERROR_exit(PROGRAM_NAME ": cannot expand application dataset");
+   return table;
+}
+
 static int mvpa_apply_model_command(int argc,char **argv)
 {
-   char *tablefile=NULL,*prefix="MVPA",*sample=NULL,*subject=NULL,*outname,*temp;int a,i,j,o,u,fd,failed=0,have_prefix=0;
+   char *dsetspec=NULL,*tablefile=NULL,*prefix="MVPA",*sample=NULL,*subject=NULL,*outname,*temp;int a,i,j,o,u,fd,failed=0,have_prefix=0;
    THD_mvpa_model *m;THD_datatable *table;THD_sampleset *ss;THD_sampleset_columns columns;
    char err[1024];FILE *fp;float *z=NULL,*prediction;int *observed;const char *modelpath;
-   if(argc<3)ERROR_exit(PROGRAM_NAME ": -apply_model requires a model file");modelpath=argv[2];
+   if(argc<3)ERROR_exit(PROGRAM_NAME ": -apply_model requires a model file");
+   modelpath=argv[2];
    for(a=3;a<argc;a++){
       if(a+1>=argc)ERROR_exit(PROGRAM_NAME ": missing saved-model application option argument");
       if(!strcasecmp(argv[a],"-dataTableFile") && !tablefile)tablefile=argv[++a];
       else if(!strcasecmp(argv[a],"-dataTable") && !tablefile && argv[a+1][0]=='@')tablefile=argv[++a]+1;
+      else if(!strcasecmp(argv[a],"-apply_dset") && !dsetspec)dsetspec=argv[++a];
       else if(!strcasecmp(argv[a],"-prefix") && !have_prefix){prefix=argv[++a];have_prefix=1;}
       else if(!strcasecmp(argv[a],"-sample_column") && !sample)sample=argv[++a];
       else if(!strcasecmp(argv[a],"-subject_column") && !subject)subject=argv[++a];
-      else ERROR_exit(PROGRAM_NAME ": -apply_model is standalone; accepts only one input table, -prefix, -sample_column and -subject_column; fitted settings cannot be overridden");
+      else ERROR_exit(PROGRAM_NAME ": -apply_model is standalone; accepts one input table or -apply_dset, -prefix, -sample_column and -subject_column; fitted settings cannot be overridden");
    }
-   if(!tablefile || !*prefix)ERROR_exit(PROGRAM_NAME ": -apply_model needs -dataTableFile TABLE and a nonempty prefix");
+   if((!tablefile && !dsetspec) || (tablefile && dsetspec) || !*prefix)ERROR_exit(PROGRAM_NAME ": -apply_model needs exactly one table or -apply_dset and a nonempty prefix");
+   if(dsetspec && (sample || subject))ERROR_exit(PROGRAM_NAME ": -apply_dset generates sample/subject IDs; role overrides require a table");
    m=THD_mvpa_model_read(modelpath,err,sizeof(err));if(!m)ERROR_exit(PROGRAM_NAME ": %s",err);
-   table=THD_read_datatable_file(tablefile);if(!table)ERROR_exit(PROGRAM_NAME ": cannot read application table");
+   if(dsetspec && m->ncovariate)ERROR_exit(PROGRAM_NAME ": saved nuisance columns require application table input, not -apply_dset");
+   table=dsetspec?mvpa_application_dataset(dsetspec):THD_read_datatable_file(tablefile);if(!table)ERROR_exit(PROGRAM_NAME ": cannot read application table");
    for(i=0;i<table->ncol;i++)for(j=0;j<i;j++)if(!strcasecmp(table->cname[i],table->cname[j]))ERROR_exit(PROGRAM_NAME ": duplicate application column '%s'",table->cname[i]);
    THD_sampleset_detect_columns(table,&columns);if(sample)columns.sample=sample;if(subject)columns.subject=subject;
    ss=THD_sampleset_from_table(table,&columns,err,sizeof(err));THD_free_datatable(table);
@@ -3385,15 +3758,18 @@ static int mvpa_apply_model_command(int argc,char **argv)
    outname=malloc(strlen(prefix)+32);temp=malloc(strlen(prefix)+48);
    if(!outname || !temp || (size_t)ss->nsample>SIZE_MAX/sizeof(float)/(size_t)m->nresponse)ERROR_exit(PROGRAM_NAME ": excessive model application size");
    snprintf(outname,strlen(prefix)+32,"%s.applied.1D",prefix);
-   if(mvpa_pair_same_file(outname,modelpath) || mvpa_pair_same_file(outname,tablefile))ERROR_exit(PROGRAM_NAME ": model application output cannot replace inputs");
+   if(mvpa_pair_same_file(outname,modelpath) || (tablefile && mvpa_pair_same_file(outname,tablefile)))ERROR_exit(PROGRAM_NAME ": model application output cannot replace inputs");
    for(i=0;i<ss->ndset;i++)if(mvpa_pair_same_file(outname,DSET_HEADNAME(ss->dset[i])) || mvpa_pair_same_file(outname,DSET_BRIKNAME(ss->dset[i])))ERROR_exit(PROGRAM_NAME ": model application output cannot replace input images");
    if(!THD_ok_overwrite() && THD_is_file(outname))ERROR_exit(PROGRAM_NAME ": model application output already exists");
    snprintf(temp,strlen(prefix)+48,"%s.tmp.XXXXXX",outname);fd=mkstemp(temp);if(fd<0)ERROR_exit(PROGRAM_NAME ": cannot create application output");
    fp=fdopen(fd,"w");if(!fp){close(fd);unlink(temp);ERROR_exit(PROGRAM_NAME ": cannot open application output");}
    prediction=malloc(sizeof(float)*(size_t)ss->nsample*m->nresponse);if(!prediction){fclose(fp);unlink(temp);ERROR_exit(PROGRAM_NAME ": cannot allocate predictions");}
-   fputs("# Frozen ridge model application; format=1; no fitting, tuning, held-out scores or inference.\n# Model\t",fp);mvpa_1D_text(fp,modelpath);
-   fprintf(fp,"\n# NTrain=%d; classification scores are 0/1 ridge outputs, not probabilities; ties choose first stored class.\n",m->ntrain);
-   fputs("# Columns: UnitType\tUnit\tUnitLabel\tNFeat\tTableRow\tSample\tSubject\tResponse\tPrediction\tPredictedClass\tObserved\n",fp);
+   fprintf(fp,"# Frozen %s model application; format=%d; no fitting, tuning, held-out scores or inference.\n# Model\t",m->estimator?"logistic":"ridge",m->estimator?2:1);mvpa_1D_text(fp,modelpath);
+   fprintf(fp,"\n# NTrain=%d; %s; ties choose first stored class.\n",m->ntrain,m->estimator?"Prediction is a logistic logit; Probability is softmax over classes":"classification scores are 0/1 ridge outputs, not probabilities");
+   fputs("# Columns: UnitType\tUnit\tUnitLabel\tNFeat\tTableRow\tSample\tSubject\tResponse\tPrediction\tPredictedClass\tObserved",fp);
+   if(m->estimator)fputs("\tProbability",fp);
+   if(dsetspec)fputs("\tSourceBrick\tBrickLabel\tTimeSeconds",fp);
+   fputc('\n',fp);
    for(u=0;u<m->nunit;u++){
       THD_mvpa_model_unit *unit=m->unit+u;intvec vox={0};float *x;
       if((size_t)ss->nsample>SIZE_MAX/sizeof(float)/(size_t)unit->nfeature){snprintf(err,sizeof(err),"excessive application feature matrix");failed=1;break;}
@@ -3402,12 +3778,22 @@ static int mvpa_apply_model_command(int argc,char **argv)
       if(!THD_roi_samples(ss,NULL,ss->nsample,&vox,x,err,sizeof(err)) || !THD_mvpa_frozen_predict(unit->fit,x,ss->nsample,unit->nfeature,z,m->ncovariate,prediction,err,sizeof(err))){free(x);failed=1;break;}
       free(x);
       for(i=0;i<ss->nsample;i++){
-         int best=0;for(o=1;o<m->nresponse;o++)if(prediction[(size_t)i*m->nresponse+o]>prediction[(size_t)i*m->nresponse+best])best=o;
+         double denom=0;int best=0;for(o=1;o<m->nresponse;o++)if(prediction[(size_t)i*m->nresponse+o]>prediction[(size_t)i*m->nresponse+best])best=o;
+         if(m->estimator)for(o=0;o<m->nresponse;o++)denom+=exp((double)prediction[(size_t)i*m->nresponse+o]-prediction[(size_t)i*m->nresponse+best]);
          for(o=0;o<m->nresponse;o++){
             fprintf(fp,"%s\t%d\t",m->searchlight?"Voxel":"ROI",unit->id);mvpa_1D_text(fp,unit->label);fprintf(fp,"\t%d\t%d\t",unit->nfeature,ss->table_row[i]+1);
             mvpa_1D_text(fp,ss->sample_label[i]);mvpa_pair_text(fp,mvpa_level(ss->subject_label,ss->subject[i]));mvpa_pair_text(fp,m->response[o]);
             fprintf(fp,"\t%.9g\t",prediction[(size_t)i*m->nresponse+o]);mvpa_1D_text(fp,m->classification?m->response[best]:"NA");
-            mvpa_pair_text(fp,observed[o]>=0?DT_CELL(ss->metadata,ss->table_row[i],observed[o]):"NA");fputc('\n',fp);
+            mvpa_pair_text(fp,observed[o]>=0?DT_CELL(ss->metadata,ss->table_row[i],observed[o]):"NA");
+            if(m->estimator)fprintf(fp,"\t%.9g",exp((double)prediction[(size_t)i*m->nresponse+o]-prediction[(size_t)i*m->nresponse+best])/denom);
+            if(dsetspec){
+               int b=ss->sample_brick[i];THD_3dim_dataset *ds=ss->dset[ss->sample_dset[i]];
+               double factor=DSET_TIMEUNITS(ds)==UNITS_SEC_TYPE?1:DSET_TIMEUNITS(ds)==UNITS_MSEC_TYPE?.001:0;
+               fprintf(fp,"\t%d",b);mvpa_pair_text(fp,DSET_BRICK_LABEL(ds,b));
+               if(DSET_NUM_TIMES(ds)>1 && factor && DSET_TR(ds)>0)fprintf(fp,"\t%.9g",factor*(DSET_TIMEORIGIN(ds)+b*DSET_TR(ds)));
+               else fputs("\tNA",fp);
+            }
+            fputc('\n',fp);
          }
       }
    }
@@ -3435,6 +3821,9 @@ int main( int argc, char **argv )
    char *subject_column=NULL,*run_column=NULL,*item_column=NULL ;
    char *fold_column=NULL,*sample_column=NULL,*xmat_stims=NULL ;
    int trial_manifest=0,validate_only=0,two_tables=0 ;
+   int time_resolved=0,ntime=1,it=0;char *time_axis_file=NULL,*time_table_name=NULL;
+   double *time_axis=NULL;THD_3dim_dataset *time_map=NULL;FILE *time_table=NULL;
+   double time_start=0,time_step=0;int have_time_start=0,have_time_step=0;
    char *maskname=NULL,*roi_sel=NULL,*searchlight=NULL,*surf_file=NULL ;
    char *prefix="MVPA",*method=NULL,*design_columns=NULL,*score_mode=NULL ;
    char *tune_metric_name=NULL,*save_tuning=NULL;FILE *candidate_audit=NULL;
@@ -3442,6 +3831,7 @@ int main( int argc, char **argv )
    char *feature_text=NULL;int feature_fixed=0,*feature_counts=NULL,nfeature_counts=0;
    char *pca_text=NULL,*save_pca_loadings=NULL;int pca_fixed=0,*pca_counts=NULL,npca_counts=0;
    mvpa_pca_audit pca_audit={0};
+   int train_only=0;
    char *pattern_prefix=NULL,*save_model=NULL;mvpa_pattern_audit pattern_audit={0};
    THD_mvpa_model *frozen_model=NULL;char *model_train_source=NULL,*model_test_source=NULL;
    mvpa_selection_audit selection_audit={0};
@@ -3486,6 +3876,18 @@ int main( int argc, char **argv )
 #define IS(s) (strcasecmp(argv[nopt],(s))==0)
 #define NEEDARG(what) do{ if(++nopt>=argc)ERROR_exit(PROGRAM_NAME ": need %s after '%s'",(what),argv[nopt-1]); }while(0)
      if( IS("-help") || IS("-h") ){ usage_3dMVPA() ; return 0 ; }
+     else if(IS("-time_resolved")){time_resolved=1;nopt++;}
+     else if(IS("-time_axis")){NEEDARG("a latency vector in seconds");if(time_axis_file)ERROR_exit(PROGRAM_NAME ": duplicate -time_axis");time_axis_file=argv[nopt++];}
+     else if(IS("-time_start") || IS("-time_step")){
+       int start=IS("-time_start");char *end;double value;
+       NEEDARG("a finite time in seconds");
+       if(start?have_time_start:have_time_step)ERROR_exit(PROGRAM_NAME ": duplicate %s",start?"-time_start":"-time_step");
+       errno=0;value=strtod(argv[nopt],&end);
+       if(errno || end==argv[nopt] || *end || !isfinite(value) || (!start && value<=0))
+         ERROR_exit(PROGRAM_NAME ": %s must be finite%s",start?"-time_start":"-time_step",start?"":" and positive");
+       if(start){time_start=value;have_time_start=1;}else{time_step=value;have_time_step=1;}
+       nopt++;
+     }
      else if( IS("-mode") ){ NEEDARG("classify, decode, or encode") ; mode=argv[nopt++] ; }
      else if(mvpa_reg_option(&reg,argc,argv,&nopt)){}
      else if( IS("-target_column") ){ NEEDARG("a column name") ; target_column=argv[nopt++] ; }
@@ -3666,6 +4068,7 @@ int main( int argc, char **argv )
        permute_within=argv[nopt++] ;
      }
      else if( IS("-prefix") ){ NEEDARG("an output prefix") ; prefix=argv[nopt++] ; }
+     else if(IS("-train_only")){if(train_only)ERROR_exit(PROGRAM_NAME ": -train_only specified twice");train_only=1;nopt++;}
      else if(IS("-save_model")){
        NEEDARG("a model filename");if(save_model)ERROR_exit(PROGRAM_NAME ": -save_model specified twice");save_model=argv[nopt++];
      }
@@ -3737,6 +4140,19 @@ int main( int argc, char **argv )
    if( mode==NULL || (strcasecmp(mode,"classify") && strcasecmp(mode,"decode") && strcasecmp(mode,"encode")) )
      ERROR_exit(PROGRAM_NAME ": -mode must be classify, decode, or encode") ;
    encoding=!strcasecmp(mode,"encode");continuous=encoding || !strcasecmp(mode,"decode");
+   if(time_resolved){
+     if(have_time_start!=have_time_step)ERROR_exit(PROGRAM_NAME ": -time_start and -time_step must be supplied together");
+     if(time_axis_file && have_time_start)ERROR_exit(PROGRAM_NAME ": -time_axis cannot accompany -time_start/-time_step");
+     if(continuous || train_only || save_model || coef_prefix || pattern_prefix)
+       ERROR_exit(PROGRAM_NAME ": -time_resolved currently supports held-out classification without model/coefficient/pattern export");
+     if(nperm)ERROR_exit(PROGRAM_NAME ": temporal permutation inference is not implemented; spatial correction alone does not correct across time");
+     if(trial_manifest || xmat_stims || (tab && THD_datatable_column(tab,"Xmat")>=0) ||
+        (test_tab && THD_datatable_column(test_tab,"Xmat")>=0))
+       ERROR_exit(PROGRAM_NAME ": -time_resolved requires direct trial tables, not beta manifests or Xmat expansion");
+     if(time_axis_file)time_axis=mvpa_read_time_axis(time_axis_file,&ntime);
+     else ntime=0; /* sample loader infers the common epoch length */
+     mvpa_time_enabled=1;
+   }else if(time_axis_file || have_time_start || have_time_step)ERROR_exit(PROGRAM_NAME ": time-axis options require -time_resolved");
    if(!method)method=continuous?"ridge":"centroid";
    mvpa_reg_configure(&reg,method,continuous,encoding,design_columns);
    if(reg.config.method){
@@ -3828,7 +4244,7 @@ int main( int argc, char **argv )
    if(nuisance_columns && coef_prefix)
      ERROR_exit(PROGRAM_NAME ": -save_coefficients cannot yet export nuisance-adjusted preprocessing; omit it with -nuisance_columns");
    if(save_model){
-     if(encoding || strcasecmp(method,"ridge"))ERROR_exit(PROGRAM_NAME ": -save_model v1 supports ridge decoding/classification only");
+     if(encoding || (strcasecmp(method,"ridge") && !logistic_class))ERROR_exit(PROGRAM_NAME ": -save_model supports ridge decoding/classification only, or logistic classification");
      if(preprocess==THD_PREP_RUN_CENTER || !strcasecmp(scale_name,"run_center"))ERROR_exit(PROGRAM_NAME ": -save_model v1 does not support run_center");
      if(coef_prefix)ERROR_exit(PROGRAM_NAME ": -save_model v1 cannot accompany the separate -save_coefficients refit");
      if(!THD_filename_ok(save_model))ERROR_exit(PROGRAM_NAME ": invalid model filename");
@@ -3881,6 +4297,15 @@ int main( int argc, char **argv )
      partition_column=transfer.column;train_value=transfer.train;test_value=transfer.test;
    }else if(transfer.train || transfer.test || transfer.subjects || transfer.items || transfer.sessions || transfer.session_column)
      ERROR_exit(PROGRAM_NAME ": transfer options require -transfer_column");
+   if(train_only){
+     if(!save_model)ERROR_exit(PROGRAM_NAME ": -train_only requires -save_model");
+     if(partition_column || test_tab || train_value || test_value || transfer.column || cv_column || cv_k || within_column)
+       ERROR_exit(PROGRAM_NAME ": -train_only cannot accompany test tables, partitions, transfer or outer CV");
+     if(nperm || permute_within || save_predictions || save_fold_scores || save_confusion || save_summary_scores || save_probability_scores || save_calibration || coef_prefix || pattern_prefix)
+       ERROR_exit(PROGRAM_NAME ": -train_only does not compute predictions, held-out scores, patterns or inference");
+     if((tune || logistic_tune || nfeature_counts>1 || npca_counts>1) && !inner_column)
+       ERROR_exit(PROGRAM_NAME ": tuned -train_only requires an explicit -inner_cv_column");
+   }
    if(partition_column){
      if(cv_column || cv_k || within_column)
        ERROR_exit(PROGRAM_NAME ": -partition_column/-testTable cannot accompany -cv, -cv_column, -cv_k, or -within_column");
@@ -3895,7 +4320,7 @@ int main( int argc, char **argv )
    }else{
      if(train_value || test_value)
        ERROR_exit(PROGRAM_NAME ": -train_value and -test_value require -partition_column");
-     if(!cv_column)ERROR_exit(PROGRAM_NAME ": -cv_column, -cv, or -partition_column is required");
+     if(!cv_column && !train_only)ERROR_exit(PROGRAM_NAME ": -cv_column, -cv, -partition_column or -train_only is required");
    }
    if( nperm==1 ) ERROR_exit(PROGRAM_NAME ": -nperm must be 0 or at least 2") ;
    if( nperm>0 && permute_within==NULL )
@@ -3938,7 +4363,7 @@ int main( int argc, char **argv )
    if(logistic_class){if(!THD_mvpa_logistic_objective(tune_requested,&tune_objective,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);}
    else if(!THD_mvpa_tune_objective_resolve(tune_requested,!continuous,continuous || ridge_class,metric,&tune_objective,err,sizeof(err)))
      ERROR_exit(PROGRAM_NAME ": %s",err);
-   if(save_model || transfer.column || save_probability_scores || save_calibration){model_train_source=tab->source?strdup(tab->source):NULL;model_test_source=test_tab && test_tab->source?strdup(test_tab->source):NULL;}
+   if(time_resolved || save_model || transfer.column || save_probability_scores || save_calibration){model_train_source=tab->source?strdup(tab->source):NULL;model_test_source=test_tab && test_tab->source?strdup(test_tab->source):NULL;}
    if(two_tables){
      expanded=mvpa_train_test_table(tab,test_tab);
      THD_free_datatable(tab);THD_free_datatable(test_tab);test_tab=NULL;
@@ -3965,9 +4390,36 @@ int main( int argc, char **argv )
    if( item_column!=NULL ) columns.item=item_column ;
    if( fold_column!=NULL ) columns.fold=fold_column ;
    if( sample_column!=NULL ) columns.sample=sample_column ;
-   ss=THD_sampleset_from_table(tab,&columns,err,sizeof(err)) ;
+   ss=time_resolved?THD_sampleset_from_time_table(tab,&columns,ntime,err,sizeof(err)):
+                    THD_sampleset_from_table(tab,&columns,err,sizeof(err)) ;
    THD_free_datatable(tab) ; tab=NULL ;
    if( ss==NULL ) ERROR_exit(PROGRAM_NAME ": %s",err) ;
+   if(time_resolved){
+     THD_sampleset_identity *identity=THD_sampleset_build_identity(ss,err,sizeof(err));
+     if(!identity)ERROR_exit(PROGRAM_NAME ": %s",err);
+     for(ii=0;ii<ss->nsample;ii++)if(identity->first_sample[ii]!=ii)
+       ERROR_exit(PROGRAM_NAME ": temporal rows %d and %d reference the same trial dataset",identity->first_sample[ii]+1,ii+1);
+     THD_sampleset_free_identity(identity);
+     if(!ntime)ntime=DSET_NVALS(ss->dset[0]);
+     if(ntime<1 || ntime>32760)ERROR_exit(PROGRAM_NAME ": temporal inputs require 1 to 32760 time points");
+     if(have_time_start){
+       time_axis=malloc(sizeof(double)*(size_t)ntime);
+       if(!time_axis)ERROR_exit(PROGRAM_NAME ": cannot allocate generated time axis");
+       for(ii=0;ii<ntime;ii++){
+         time_axis[ii]=time_start+(double)ii*time_step;
+         if(!isfinite(time_axis[ii]) || (ii && time_axis[ii]<=time_axis[ii-1]))
+           ERROR_exit(PROGRAM_NAME ": generated time axis must remain finite and strictly increasing");
+       }
+     }
+     if(show_samples || validate_only){
+       printf("# TimeResolved\t%d latencies; sample bricks below show the first latency only\n",ntime);
+       printf("# TimeAxisSource\t%s\n",time_axis_file?"explicit":have_time_start?"start_step":"index_only");
+       for(ii=0;ii<ntime;ii++){
+         printf("# TimeAxis\t%d\t",ii);
+         if(time_axis)printf("%.17g\n",time_axis[ii]);else puts("NA");
+       }
+     }
+   }
    if( show_samples ) THD_sampleset_print(ss,stdout) ;
    if(show_samples && two_tables){
      fputs("# Two-table sample provenance\n# Columns: TableRow\tSample",stdout);
@@ -3986,7 +4438,7 @@ int main( int argc, char **argv )
      if(!columns.subject || !columns.item)
        ERROR_exit(PROGRAM_NAME ": transfer requires explicit subject and item columns (Subj and Item/Trial, or role overrides)");
    }
-   plan=transfer.column ? THD_foldplan_fixed_within(ss,transfer.column,transfer.train,transfer.test,
+   plan=train_only ? THD_foldplan_train_only(ss->nsample,err,sizeof(err)) : transfer.column ? THD_foldplan_fixed_within(ss,transfer.column,transfer.train,transfer.test,
           !strcmp(transfer.subjects,"within")?columns.subject:NULL,err,sizeof(err))
         :partition_column ? THD_foldplan_fixed(ss,partition_column,train_value,test_value,err,sizeof(err))
         :(cv_k>0) ? THD_foldplan_grouped_kfold(ss,cv_column,within_column,cv_k,err,sizeof(err))
@@ -3994,7 +4446,7 @@ int main( int argc, char **argv )
    if( plan==NULL ) ERROR_exit(PROGRAM_NAME ": %s",err) ;
    if(two_tables && !transfer.column)mvpa_check_table_overlap(ss,plan);
    if(transfer.column)mvpa_transfer_check(&transfer,ss,plan,two_tables,continuous,encoding?design_columns:target_column);
-   if(save_model && (plan->kind!=THD_CV_FIXED || plan->nfold!=1))ERROR_exit(PROGRAM_NAME ": -save_model v1 requires one explicit fixed train/test partition; save within-subject transfer models one subject at a time");
+   if(save_model && !train_only && (plan->kind!=THD_CV_FIXED || plan->nfold!=1))ERROR_exit(PROGRAM_NAME ": -save_model v1 requires one explicit fixed train/test partition; save within-subject transfer models one subject at a time");
    if( !continuous && !THD_foldplan_check_classes(plan,class_id,nclass,transfer.column!=NULL,err,sizeof(err)) )
      ERROR_exit(PROGRAM_NAME ": %s",err) ;
    if(partition_column && !continuous)mvpa_fixed_class_order(plan,class_id,class_label,nclass);
@@ -4215,6 +4667,12 @@ int main( int argc, char **argv )
        mvpa_audit_preflight("regression audit",name,prefix,files,8,ss,mset);
      }free(name);
    }
+   if(train_only){
+     const char *files[]={save_model,save_tuning,save_pca_loadings,model_train_source};
+     char *name=malloc(strlen(prefix)+32);if(!name)ERROR_exit(PROGRAM_NAME ": cannot name training summary");
+     sprintf(name,"%s.training.1D",prefix);
+     mvpa_audit_preflight("training summary",name,prefix,files,4,ss,mset);free(name);
+   }
    if(save_model){
      const char *files[]={save_predictions,save_fold_scores,save_confusion,save_summary_scores,save_tuning,save_pca_loadings,model_train_source,model_test_source,transfer.audit};
      mvpa_model_preflight(save_model,prefix,files,9,ss,mset);
@@ -4231,11 +4689,58 @@ int main( int argc, char **argv )
      if(nclass>32760)ERROR_exit(PROGRAM_NAME ": too many class pattern bricks");
      mvpa_pattern_preflight(pattern_prefix,prefix,coef_prefix,files,8,mset,plan,rl);
    }
+   if(time_resolved){
+     const char *files[]={save_predictions,save_fold_scores,save_confusion,save_summary_scores,
+       save_tuning,save_pca_loadings,save_probability_scores,save_calibration,
+       time_axis_file && strncmp(time_axis_file,"1D:",3)?time_axis_file:NULL,ss->source};
+     time_table_name=malloc(strlen(prefix)+32);
+     if(!time_table_name)ERROR_exit(PROGRAM_NAME ": cannot name temporal scores");
+     sprintf(time_table_name,"%s.temporal.1D",prefix);
+     mvpa_audit_preflight("temporal scores",time_table_name,prefix,files,10,ss,mset);
+     time_map=EDIT_empty_copy(mset);
+     if(!time_map)ERROR_exit(PROGRAM_NAME ": cannot allocate temporal output");
+     EDIT_dset_items(time_map,ADN_prefix,prefix,ADN_nvals,ntime,ADN_ntt,0,
+       ADN_type,HEAD_FUNC_TYPE,ADN_func_type,FUNC_BUCK_TYPE,ADN_none);
+     /* Check all temporal outputs together, including aliases and overwrite
+        mode: no output may replace the axis, trial tables, images or mesh. */
+     {
+       const char *out[24],*input[]={time_axis_file && strncmp(time_axis_file,"1D:",3)?time_axis_file:NULL,model_train_source,model_test_source,surf_file};
+       char *generated[5];const char *suffix[]={".tuning.1D",".features.1D",".feature_tuning.1D",".pca.1D",".pca_tuning.1D"};
+       int enabled[]={nested && (ridge_class || svm_class || logistic_class),nfeature_counts>0,
+         nfeature_counts && nested,npca_counts>0,npca_counts && nested};
+       int no=0,ng=0,a,b;
+       out[no++]=DSET_HEADNAME(time_map);
+       if(strcmp(DSET_HEADNAME(time_map),DSET_BRIKNAME(time_map)))out[no++]=DSET_BRIKNAME(time_map);
+       out[no++]=time_table_name;
+       for(a=0;a<8;a++)if(files[a])out[no++]=files[a];
+       if(transfer.audit)out[no++]=transfer.audit;
+       for(a=0;a<5;a++)if(enabled[a]){
+         generated[ng]=malloc(strlen(prefix)+32);
+         if(!generated[ng])ERROR_exit(PROGRAM_NAME ": cannot check temporal outputs");
+         sprintf(generated[ng],"%s%s",prefix,suffix[a]);out[no++]=generated[ng++];
+       }
+       for(a=0;a<no;a++){
+         if(!THD_ok_overwrite() && THD_is_file((char *)out[a]))ERROR_exit(PROGRAM_NAME ": temporal output '%s' already exists",out[a]);
+         for(b=0;b<a;b++)if(mvpa_pair_same_file(out[a],out[b]))ERROR_exit(PROGRAM_NAME ": temporal outputs must have distinct paths");
+         for(b=0;b<4;b++)if(input[b] && mvpa_pair_same_file(out[a],input[b]))ERROR_exit(PROGRAM_NAME ": temporal output cannot replace input files");
+         for(b=0;b<=ss->ndset;b++){
+           THD_3dim_dataset *ds=b==ss->ndset?mset:ss->dset[b];
+           if(mvpa_pair_same_file(out[a],DSET_HEADNAME(ds)) || mvpa_pair_same_file(out[a],DSET_BRIKNAME(ds)))
+             ERROR_exit(PROGRAM_NAME ": temporal output cannot replace input images");
+         }
+       }
+       for(a=0;a<ng;a++)free(generated[a]);
+     }
+     if(!THD_copy_surface_node_domain(time_map,mset,err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+     THD_copy_labeltable_atr(time_map->dblk,mset->dblk);
+     tross_Copy_History(mset,time_map);tross_Make_History(PROGRAM_NAME,argc,argv,time_map);
+   }
    if(validate_only){
      if(reg.config.method)mvpa_reg_header(stdout,&reg);
      if(transfer.column)mvpa_transfer_report(stdout,&transfer,ss,plan,encoding?design_columns:target_column,class_label,nclass);
      free(transfer.audit);transfer.audit=NULL;
-     if(save_model)printf("# SavedModel\tversion_1_fixed_training_ridge_volume_pipeline\n# ModelFit\tno_validation_only\n");
+     if(train_only)printf("# TrainingOnly\tyes; all rows train; no held-out scores\n");
+     if(save_model)printf("# SavedModel\t%s_volume_pipeline\n# ModelFit\tno_validation_only\n",logistic_class?"version_2_logistic":"version_1_ridge");
      if(lambda_per_response)printf("# RidgePenaltyScope\tper_response\n# ConfigurationObjective\tmean_response_minimum_inner_loss\n# ResponseRidgeCost\touter_factors=min(number_of_responses,number_of_lambdas)_at_most; extra_audit_bytes~(8*nlambda+4)*nfold*nfeature_counts*npca_counts*nresponse_per_worker\n");
      if(pattern_prefix)printf("# ActivationPatterns\touter_training_ridge_joint_score_covariance_pseudoinverse\n# PatternCoordinates\tafter_nuisance_and_scale_before_selection_and_PCA\n# PatternFit\tno_validation_only\n");
      if(npca_counts){int j;printf("# PCAOrder\tnuisance_then_scale_all_columns_then_select_then_centered_PCA\n# PCAWhiten\tno\n# PCACounts");
@@ -4258,10 +4763,12 @@ int main( int argc, char **argv )
      }
      mvpa_validate_report(ss,plan,nested,rl,DSET_HEADNAME(mset),mode,method,encoding?design_columns:target_column,
                           continuous,class_id,class_label,nclass,group_id,lda_mode>=0,
-                          nperm,permute_within);
+                          nperm,permute_within,ntime);
      DSET_delete(mset);THD_roilist_free(rl);THD_nested_foldplan_free(nested);THD_foldplan_free(plan);
      THD_sampleset_free_levels(class_label,nclass);free(class_id);free(group_id);
      mvpa_reg_free(&reg);free(feature_counts);free(lambda_grid);free(svm_grid);free(logistic_grid);THD_sampleset_free(ss);free(nuisance);THD_sampleset_free_levels(nuisance_names,nnuisance);
+     if(time_map)DSET_delete(time_map);
+     free(time_axis);free(time_table_name);
      return 0;
    }
    { const char *audit[]={save_predictions,save_fold_scores,save_confusion,save_summary_scores,save_tuning};int ai;
@@ -4320,11 +4827,26 @@ int main( int argc, char **argv )
      free(transfer.audit);transfer.audit=NULL;
    }
    if(save_model)frozen_model=mvpa_model_metadata(mset,rl,ss,plan,target_column,continuous?NULL:class_label,continuous?0:nclass,nuisance_names,nnuisance,searchlight!=NULL);
+   if(frozen_model)frozen_model->estimator=logistic_class;
    if(pattern_prefix)mvpa_pattern_open(&pattern_audit,pattern_prefix,preprocess,nuisance_columns,!continuous);
    if(save_tuning){candidate_audit=mvpa_open_audit(save_tuning,"inner-CV candidate audit");if(lambda_per_response)mvpa_response_header(candidate_audit,tune_objective);else mvpa_candidate_header(candidate_audit,tune_objective,reg.config.method?2:continuous || ridge_class || logistic_class,npca_counts>0);}
    if(npca_counts)mvpa_pca_open(&pca_audit,prefix,save_pca_loadings,nested!=NULL,tune_objective,reg.config.method?2:continuous || ridge_class || logistic_class,lambda_per_response);
    if(nfeature_counts)mvpa_selection_open(&selection_audit,prefix,continuous,nested!=NULL,metric,nuisance_columns,reg.config.method?2:continuous || ridge_class || logistic_class,logistic_class?tune_objective:tune_requested,tune_objective,lambda_per_response);
    if(npca_counts && selection_audit.tuning && !lambda_per_response)fputs("# Losses condition on selected PCA count; all triples are in PREFIX.pca_tuning.1D.\n",selection_audit.tuning);
+   if(train_only){
+     mvpa_train_model(ss,plan,mset,rl,frozen_model,target_column,class_id,class_label,nclass,
+       preprocess,logistic_class?logistic_cost:lambda,nested,logistic_class?logistic_grid:lambda_grid,logistic_class?logistic_ngrid:nlambda,tune_objective,nuisance,nnuisance,
+       feature_counts,nfeature_counts,pca_counts,npca_counts,lambda_per_response,
+       candidate_audit,&selection_audit,&pca_audit,prefix,quiet,progress_mode,logistic_class,logistic_tolerance,logistic_max_iter,metric);
+     if(!THD_mvpa_model_write(save_model,frozen_model,THD_ok_overwrite(),err,sizeof(err)))ERROR_exit(PROGRAM_NAME ": %s",err);
+     if(!quiet)INFO_message(PROGRAM_NAME ": trained on all %d samples; wrote %s (no held-out scores)",ss->nsample,save_model);
+     THD_mvpa_model_free(frozen_model);THD_roilist_free(rl);DSET_delete(mset);
+     THD_nested_foldplan_free(nested);THD_foldplan_free(plan);THD_sampleset_free(ss);
+     mvpa_selection_close(&selection_audit);mvpa_pca_close(&pca_audit);
+     if(candidate_audit){int bad=ferror(candidate_audit);if(fclose(candidate_audit))bad=1;if(bad)ERROR_exit(PROGRAM_NAME ": error writing tuning audit");}
+     free(class_id);THD_sampleset_free_levels(class_label,nclass);free(nuisance);THD_sampleset_free_levels(nuisance_names,nnuisance);
+     free(feature_counts);free(pca_counts);free(lambda_grid);free(logistic_grid);free(group_id);mvpa_reg_free(&reg);return 0;
+   }
    if(continuous){
      mvpa_continuous_analysis(ss,plan,mset,rl,encoding,encoding?design_columns:target_column,
        preprocess,group_id,lambda,metric,prefix,save_predictions,save_fold_scores,
@@ -4398,7 +4920,7 @@ int main( int argc, char **argv )
        for( ip=0 ; ip<perm_set->nperm ; ip++ ) perm_max[ii][ip]=-FLT_MAX ;
      }
    }
-   if( searchlight==NULL ){
+   if( searchlight==NULL && !time_resolved ){
      table_name=(char *)malloc(strlen(prefix)+9) ;
      if( table_name==NULL ) ERROR_exit(PROGRAM_NAME ": out of memory naming the ROI table") ;
      sprintf(table_name,"%s.roi.1D",prefix) ;
@@ -4437,7 +4959,7 @@ int main( int argc, char **argv )
              "# Untested rows are excluded; group BACC is mean recall over present true classes.\n",confusion_fp);
        fputs("# Counts: true-class rows, predicted-class columns. Absent true classes: NTrue=0, Recall=NA.\n",confusion_fp);
        fputs("# CVFoldID is zero-based for Fold rows (NA elsewhere); CVStratum is explicit for Fold/Stratum rows.\n",confusion_fp);
-       fputs("# Columns: UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tScope\tGroup\tTrueClassID\tTrueClass\tNTrue\tRecall",confusion_fp);
+       mvpa_columns("UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tScope\tGroup\tTrueClassID\tTrueClass\tNTrue\tRecall",confusion_fp);
        for(ii=0;ii<nclass;ii++) fprintf(confusion_fp,"\tCountClass%d",ii);
        fputs("\tCVFoldID\tCVStratum\n",confusion_fp);
      }
@@ -4452,23 +4974,23 @@ int main( int argc, char **argv )
              "# Equal-group NTest sums tested rows; NCorrect/NClassPresent are NA; NGroups counts nonempty groups.\n"
              "# Untested rows are excluded. Empty groups have NTest=0 and ACC/BACC=NA.\n",summary_fp);
        fputs("# CVFoldID is zero-based for Fold rows (NA elsewhere); CVStratum is explicit for Fold/Stratum rows.\n",summary_fp);
-       fputs("# Columns: UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tScope\tGroup\tNTest\tNCorrect\tNClassPresent\tNGroups\tACC\tBACC\tCVFoldID\tCVStratum\n",summary_fp);
+       mvpa_columns("UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tScope\tGroup\tNTest\tNCorrect\tNClassPresent\tNGroups\tACC\tBACC\tCVFoldID\tCVStratum\n",summary_fp);
      }
    }
    if(save_probability_scores){
      probability_fp=mvpa_open_audit(save_probability_scores,"held-out probability scores");
      mvpa_write_audit_header(probability_fp,"held-out probability scores",target_column,class_label,nclass,searchlight!=NULL,surf_file!=NULL);
      mvpa_logistic_header(probability_fp,logistic_tolerance,logistic_max_iter);
-     fputs("# Means over tested rows only; empty groups=NA. Pooled, Fold, Subject and Stratum are descriptive; no population inference.\n"
-           "# Columns: UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tScope\tGroup\tNTest\tLogLoss\tBrier\tCVFoldID\tCVStratum\n",probability_fp);
+     fputs("# Means over tested rows only; empty groups=NA. Pooled, Fold, Subject and Stratum are descriptive; no population inference.\n",probability_fp);
+     mvpa_columns("UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tScope\tGroup\tNTest\tLogLoss\tBrier\tCVFoldID\tCVStratum\n",probability_fp);
    }
    if(save_calibration){
      calibration_fp=mvpa_open_audit(save_calibration,"held-out reliability bins");
      mvpa_write_audit_header(calibration_fp,"held-out reliability bins",target_column,class_label,nclass,searchlight!=NULL,surf_file!=NULL);
      mvpa_logistic_header(calibration_fp,logistic_tolerance,logistic_max_iter);
      fputs("# Per class, pooled held-out raw probabilities; 10 equal-width bins [lo,hi), final bin includes 1. Empty bins=NA.\n"
-           "# Descriptive calibration assessment only, no calibration transform fitted; pooling across subjects/folds can hide differences.\n"
-           "# Columns: UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tClassID\tClass\tBin\tLower\tUpper\tNTest\tMeanProbability\tObservedFrequency\n",calibration_fp);
+           "# Descriptive calibration assessment only, no calibration transform fitted; pooling across subjects/folds can hide differences.\n",calibration_fp);
+     mvpa_columns("UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tClassID\tClass\tBin\tLower\tUpper\tNTest\tMeanProbability\tObservedFrequency\n",calibration_fp);
    }
    if( save_predictions!=NULL ){
      prediction_fp=mvpa_open_audit(save_predictions,"prediction audit") ;
@@ -4481,7 +5003,7 @@ int main( int argc, char **argv )
      if(ridge_class)fputs("# Method: ridge; DecisionClass columns are 0/1-regression scores, not probabilities.\n",prediction_fp);
      if(lda_mode>=0)fprintf(prediction_fp,"# Method: %s; class_prior=%s; shrinkage=%.17g; relative_variance_floor=%.17g; decisions=centered_linear_discriminants_not_probabilities\n",
                            method,empirical_prior?"empirical":"equal",lda_mode==THD_LDA_DIAGONAL?0:shrinkage,variance_floor);
-     fputs("# Columns: UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tTableRow\tSample\tSubj\tRun\tItem\tInputFold\tCVFold\tCVStratum\tObserved\tPredicted\tCorrect",prediction_fp) ;
+     mvpa_columns("UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tTableRow\tSample\tSubj\tRun\tItem\tInputFold\tCVFold\tCVStratum\tObserved\tPredicted\tCorrect",prediction_fp) ;
      for( ii=0 ; ii<nclass ; ii++ ) fprintf(prediction_fp,"\tDecisionClass%d",ii) ;
      if(logistic_class)for(ii=0;ii<nclass;ii++)fprintf(prediction_fp,"\tProbabilityClass%d",ii);
      if(two_tables)mvpa_source_fields(prediction_fp,ss,-1);
@@ -4497,7 +5019,7 @@ int main( int argc, char **argv )
      if(svm_class)fprintf(fold_fp,"# Method: svm; loss=squared_hinge; intercept_penalized=1; tolerance=%.17g; max_iter=%d; inner_objective=1-%s; ties=smallest_C\n",svm_tolerance,svm_max_iter,tune_requested==THD_TUNE_DEFAULT?THD_mvpa_metric_name(metric):THD_mvpa_tune_objective_name(tune_objective));
      if(lda_mode>=0)fprintf(fold_fp,"# Method: %s; class_prior=%s; covariance_denominator=ntrain-nclass; relative_variance_floor=%.17g\n",
                            method,empirical_prior?"empirical":"equal",variance_floor);
-     fputs("# Columns: UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tCVFold\tStratum\tNTrain\tNTest\tACC\tBACC",fold_fp) ;
+     mvpa_columns("UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tCVFold\tStratum\tNTrain\tNTest\tACC\tBACC",fold_fp) ;
      if(svm_class)fputs("\tC\tInnerNFold\tInnerLoss\tSolverIterations\tSolverResidual",fold_fp);
      if(logistic_class)fputs("\tLambda\tInnerNFold\tInnerLoss\tSolverIterations\tSolverResidual\tLogLoss\tBrier",fold_fp);
      if(ridge_class)fputs("\tLambda\tInnerNFold\tInnerNValid\tInnerLoss",fold_fp);
@@ -4511,20 +5033,34 @@ int main( int argc, char **argv )
      mvpa_tune_header(class_tuning,tune_requested,tune_objective);
      if(logistic_class){
        fprintf(class_tuning,"# method=logistic; inner_group=%s; objective=%s; loss=minimized; ties=largest_lambda; aggregation=pooled_held_out_rows\n",inner_column,THD_mvpa_tune_objective_name(tune_objective));
-       fputs("# Columns: Unit\tCVFold\tCVStratum\tInnerNFold\tLambda\tInnerLoss\tSelected\n",class_tuning);
+       mvpa_columns("Unit\tCVFold\tCVStratum\tInnerNFold\tLambda\tInnerLoss\tSelected\n",class_tuning);
      }else if(svm_class){
        fprintf(class_tuning,"# method=svm; inner_group=%s; objective=1-%s; ties=smallest_C; intercept_penalized=1\n",inner_column,tune_requested==THD_TUNE_DEFAULT?THD_mvpa_metric_name(metric):THD_mvpa_tune_objective_name(tune_objective));
-       fputs("# Columns: Unit\tCVFold\tCVStratum\tInnerNFold\tC\tInnerLoss\tSelected\n",class_tuning);
+       mvpa_columns("Unit\tCVFold\tCVStratum\tInnerNFold\tC\tInnerLoss\tSelected\n",class_tuning);
      }else{
      if(tune_requested==THD_TUNE_DEFAULT)fprintf(class_tuning,"# method=ridge; coding=one_hot_0_1; inner_group=%s; objective=mean_class_SSE_over_training_mean_baseline_SSE; ties=largest_lambda\n",inner_column);
      else fprintf(class_tuning,"# method=ridge; coding=one_hot_0_1; inner_group=%s; objective=%s; ties=largest_lambda\n",inner_column,THD_mvpa_tune_objective_name(tune_objective));
-     fputs("# Columns: Unit\tCVFold\tCVStratum\tInnerNFold\tInnerNValid\tLambda\tInnerLoss\tSelected\n",class_tuning);
+     mvpa_columns("Unit\tCVFold\tCVStratum\tInnerNFold\tInnerNValid\tLambda\tInnerLoss\tSelected\n",class_tuning);
      }
    }
    if( searchlight!=NULL && !quiet )
      INFO_message(PROGRAM_NAME ": %d centers, at most %d features, %d worker%s",
                   rl->nroi,maxvox,nworker,nworker==1?"":"s") ;
 
+   if(time_resolved){
+     time_table=mvpa_open_audit(time_table_name,"temporal scores");
+     fprintf(time_table,"# Independent per-latency classification; fixed trial folds; metric=%s. Descriptive held-out scores, no temporal inference.\n",THD_mvpa_metric_name(metric));
+     mvpa_columns("UnitType\tUnitID\tUnitLabel\tI\tJ\tK\tNFeat\tSCORE\tACC\tBACC\tNFold\n",time_table);
+   }
+   for(it=0;it<ntime;it++){
+     if(time_resolved){
+       mvpa_time_index=it;mvpa_time_seconds=time_axis?time_axis[it]:NAN;
+       for(ii=0;ii<ss->nsample;ii++)ss->sample_brick[ii]=it;
+       if(!quiet){
+         if(time_axis)INFO_message(PROGRAM_NAME ": latency %d/%d: %.9g seconds",it+1,ntime,time_axis[it]);
+         else INFO_message(PROGRAM_NAME ": latency %d/%d: TimeIndex=%d (seconds unspecified)",it+1,ntime,it);
+       }
+     }
    mvpa_progress_init(&progress,progress_mode,quiet,"Classification",rl->nroi,"locations");
    AFNI_OMP_START ;
 #ifdef USE_OMP
@@ -4592,7 +5128,7 @@ int main( int argc, char **argv )
                                 surf_file!=NULL,ss,plan,class_id,class_label,
                                 workspace[tid],&class_audit);
        if(ok && (probability_fp || calibration_fp))mvpa_write_probability_audits(probability_fp,calibration_fp,mset,rl,rr,searchlight!=NULL,surf_file!=NULL,ss,plan,class_id,class_label,workspace[tid]);
-       if(ok && frozen_model){frozen_model->unit[rr].fit=THD_mvpa_ridge_freeze(workspace[tid]->ridge_cv,localerr,sizeof(localerr));if(!frozen_model->unit[rr].fit)ERROR_exit(PROGRAM_NAME ": %s",localerr);}
+       if(ok && frozen_model){frozen_model->unit[rr].fit=logistic_class?THD_mvpa_logistic_freeze(workspace[tid],localerr,sizeof(localerr)):THD_mvpa_ridge_freeze(workspace[tid]->ridge_cv,localerr,sizeof(localerr));if(!frozen_model->unit[rr].fit)ERROR_exit(PROGRAM_NAME ": %s",localerr);}
        if(ok && pattern_prefix)mvpa_pattern_write(&pattern_audit,workspace[tid]->ridge_cv,mset,rl,rr,class_label,nclass,argc,argv);
        if(ok && candidate_audit)mvpa_candidate_write(candidate_audit,plan,rl->val[rr],rl->vox[rr].nar,
          tune_objective,workspace[tid]->ridge_cv,workspace[tid]);
@@ -4610,7 +5146,7 @@ int main( int argc, char **argv )
        if(ok && class_tuning && (svm_class || logistic_class)){
          int f,l;const THD_mvpa_workspace *sw=workspace[tid];
          for(f=0;f<plan->nfold;f++)for(l=0;l<sw->class_ngrid;l++){
-           fprintf(class_tuning,"%d\t",rl->val[rr]);mvpa_1D_text(class_tuning,plan->name[f]);
+           mvpa_time_row(class_tuning);fprintf(class_tuning,"%d\t",rl->val[rr]);mvpa_1D_text(class_tuning,plan->name[f]);
            fputc('\t',class_tuning);mvpa_1D_text(class_tuning,plan->stratum_label[plan->fold_stratum[f]]);
            fprintf(class_tuning,"\t%d\t%.17g\t%.17g\t%d\n",nested->inner[f]->nfold,
              sw->class_grid[l],sw->class_loss[(size_t)f*sw->class_ngrid+l],sw->class_grid[l]==sw->class_selected[f]);
@@ -4619,7 +5155,7 @@ int main( int argc, char **argv )
        if(ok && class_tuning && ridge_class){
          int f,l;const THD_mvpa_ridge_workspace *rw=workspace[tid]->ridge_cv;
          for(f=0;f<plan->nfold;f++)for(l=0;l<nlambda;l++){
-           fprintf(class_tuning,"%d\t",rl->val[rr]);mvpa_1D_text(class_tuning,plan->name[f]);
+           mvpa_time_row(class_tuning);fprintf(class_tuning,"%d\t",rl->val[rr]);mvpa_1D_text(class_tuning,plan->name[f]);
            fputc('\t',class_tuning);mvpa_1D_text(class_tuning,plan->stratum_label[plan->fold_stratum[f]]);
            fprintf(class_tuning,"\t%d\t%d\t%.17g\t%.17g\t%d\n",nested->inner[f]->nfold,
              rw->inner_nvalid[f],lambda_grid[l],rw->inner_loss[(size_t)f*nlambda+l],lambda_grid[l]==rw->selected_lambda[f]);
@@ -4630,6 +5166,22 @@ int main( int argc, char **argv )
    }
    AFNI_OMP_END ;
    mvpa_progress_finish(&progress);
+   if(failed)ERROR_exit(PROGRAM_NAME ": time index %d: %s",it,runerr);
+   if(time_resolved){
+     char label[80];
+     EDIT_substitute_brick(time_map,it,MRI_float,NULL);
+     THD_roilist_paint(DSET_ARRAY(time_map,it),rl,score);
+     if(time_axis)snprintf(label,sizeof(label),"%s_t%05d_%.9gs",metric==THD_METRIC_ACCURACY?"ACC":"BACC",it,time_axis[it]);
+     else snprintf(label,sizeof(label),"%s_t%05d",metric==THD_METRIC_ACCURACY?"ACC":"BACC",it);
+     EDIT_BRICK_LABEL(time_map,it,label);EDIT_BRICK_TO_NOSTAT(time_map,it);EDIT_BRICK_FACTOR(time_map,it,0.0f);
+     for(rr=0;rr<rl->nroi;rr++){
+       mvpa_write_spatial_prefix(time_table,mset,rl,rr,searchlight!=NULL,surf_file!=NULL);
+       fprintf(time_table,"\t%.9g\t%.9g\t%.9g\t%.0f\n",score[rr],acc[rr],bacc[rr],nfold[rr]);
+     }
+   }
+   } /* latency loop: folds, neighborhoods, data and workspaces are shared */
+   if(time_table){int bad=ferror(time_table);if(fclose(time_table))bad=1;
+     if(bad)ERROR_exit(PROGRAM_NAME ": error writing temporal scores");}
    if( prediction_fp!=NULL ){
      if( ferror(prediction_fp) ) io_failed=1 ;
      if( fclose(prediction_fp)!=0 ) io_failed=1 ;
@@ -4667,9 +5219,9 @@ int main( int argc, char **argv )
      THD_bh_fdr_masked(rl->nroi,perm_result->p_unc,NULL,qval) ;
    }
 
-   oset=mvpa_make_roi_map(mset,rl,prefix,score,nfeat,nfold,perm_result,qval,
+   oset=time_resolved?time_map:mvpa_make_roi_map(mset,rl,prefix,score,nfeat,nfold,perm_result,qval,
                           metric==THD_METRIC_ACCURACY?"ACC":"BACC",argc,argv) ;
-   if( searchlight==NULL ){
+   if( searchlight==NULL && !time_resolved ){
      mvpa_write_roi_table(table_name,rl,score,acc,bacc,nfeat,nfold,
                           THD_mvpa_metric_name(metric),target_column,class_label,nclass,
                           perm_result,qval,permute_within,nuisance_columns) ;
@@ -4681,7 +5233,8 @@ int main( int argc, char **argv )
                   surf_file?"surface searchlight mesh node":
                   searchlight?"searchlight center":"ROI",
                   rl->nroi==1?"":"s",plan->nfold) ;
-     if( table_name!=NULL ) INFO_message(PROGRAM_NAME ": wrote ROI table %s",table_name) ;
+     if(time_resolved)INFO_message(PROGRAM_NAME ": wrote %d latency maps and %s",ntime,time_table_name);
+     if( table_name!=NULL && !time_resolved ) INFO_message(PROGRAM_NAME ": wrote ROI table %s",table_name) ;
      if( save_predictions!=NULL ) INFO_message(PROGRAM_NAME ": wrote predictions %s",save_predictions) ;
      if( save_fold_scores!=NULL ) INFO_message(PROGRAM_NAME ": wrote fold scores %s",save_fold_scores) ;
      if(save_confusion) INFO_message(PROGRAM_NAME ": wrote confusion/recall %s",save_confusion);
@@ -4711,5 +5264,6 @@ int main( int argc, char **argv )
    free(nfeat) ; free(nfold) ; free(qval) ; free(table_name) ;
    mvpa_selection_close(&selection_audit);free(feature_counts);mvpa_pca_close(&pca_audit);free(pca_counts);mvpa_pattern_close(&pattern_audit);
    free(lambda_grid);free(svm_grid);free(logistic_grid);free(class_tunefile);
+   free(time_axis);free(time_table_name);
    return 0 ;
 }

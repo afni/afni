@@ -43,6 +43,7 @@ set run_proc  = 0       # do we run the resulting proc script?
 
 set blur_size = 0
 set template  = MNI152_2009_template_SSW.nii.gz
+set vline_npc = 0       # ap -find_var_line_npc (0 mean do not apply)
 set verb      = 1
 
 # run_clustsim is not relevant for rest
@@ -64,6 +65,7 @@ $prog modification history:
 
    0.0  : Apr  8, 2024: same as ap_run_simple_rest.tcsh
                       - but for multi-echo data
+   0.4  : Nov  3, 2026: add -vline_num_pc
 
 EOF
 
@@ -72,7 +74,7 @@ POST_HIST:
 
 # ----------------------------------------------------------------------
 # parameters not controlled by user
-set script_version = 0.0   # see SHOW_HIST, just above
+set script_version = 0.4   # see SHOW_HIST, just above
 
 set prog = `basename $0`
 
@@ -155,6 +157,32 @@ while ( $ac <= $narg )
       @ nruns ++
 
    # -------------------- other opts --------------------
+   else if ( "$argv[$ac]" == '-blur_size' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -blur_size requires 1 parameter"
+         exit 1
+      endif
+      set blur_size = $argv[$ac]
+
+   else if ( "$argv[$ac]" == '-compressor' ) then
+      @ ac ++
+      if ( $ac > $narg ) then
+         echo "** -compressor requires 1 parameter"
+         exit 1
+      endif
+
+      if ( ! ( "$argv[$ac]" == "COMPRESS" || \
+               "$argv[$ac]" == "GZIP"     || \
+               "$argv[$ac]" == "BZIP2"    || \
+               "$argv[$ac]" == "PIGZ" ) ) then
+         echo "** Must use an allowed keyword for AFNI_COMPRESSOR env var:"
+         echo "   GZIP  COMPRESS  BZIP2  PIGZ"
+         exit 1
+      endif
+
+      setenv AFNI_COMPRESSOR $argv[$ac]
+
    else if ( "$argv[$ac]" == '-nt_rm' ) then
       @ ac ++
       if ( $ac > $narg ) then
@@ -192,31 +220,13 @@ while ( $ac <= $narg )
       endif
       set template = $argv[$ac]
 
-   else if ( "$argv[$ac]" == '-blur_size' ) then
+   else if ( "$argv[$ac]" == '-vline_num_pc' ) then
       @ ac ++
       if ( $ac > $narg ) then
-         echo "** -blur_size requires 1 parameter"
+         echo "** -vline_num_pc requires 1 parameter"
          exit 1
       endif
-      set blur_size = $argv[$ac]
-
-   else if ( "$argv[$ac]" == '-compressor' ) then
-      @ ac ++
-      if ( $ac > $narg ) then
-         echo "** -compressor requires 1 parameter"
-         exit 1
-      endif
-
-      if ( ! ( "$argv[$ac]" == "COMPRESS" || \
-               "$argv[$ac]" == "GZIP"     || \
-               "$argv[$ac]" == "BZIP2"    || \
-               "$argv[$ac]" == "PIGZ" ) ) then
-         echo "** Must use an allowed keyword for AFNI_COMPRESSOR env var:"
-         echo "   GZIP  COMPRESS  BZIP2  PIGZ"
-         exit 1
-      endif
-
-      setenv AFNI_COMPRESSOR $argv[$ac]
+      set vline_npc = $argv[$ac]
 
    # -echo is special case of -verb
    else if ( "$argv[$ac]" == '-echo' ) then
@@ -257,15 +267,16 @@ if ( $verb > 1 ) then
 cat << EOF
 ++ parameters for program $prog :
    anat        = $anat
+   blur_size   = $blur_size
    echo_times  = $echo_times
    epi_list    = $epi_list
    nt_rm       = $nt_rm
    reg_echo    = $reg_echo
-   blur_size   = $blur_size
    run_ap      = $run_ap
    run_proc    = $run_proc
    subjid      = $subjid
    template    = $template
+   vline_npc   = $vline_npc
    verb        = $verb
 EOF
 endif
@@ -355,6 +366,7 @@ afni_proc.py                                                        \
     -blocks                    tshift align tlrc volreg mask        \
                                combine blur scale regress           \
     -radial_correlate_blocks   tcat volreg regress                  \
+    -find_var_line_npc         $vline_npc \
     -copy_anat                 $anat \
     $opt_me_run \
     -echo_times                $echo_times \
@@ -415,6 +427,7 @@ afni_proc.py                                                        \
     -blocks                    tshift volreg mask                   \
                                combine blur scale regress           \
     -radial_correlate_blocks   tcat volreg regress                  \
+    -find_var_line_npc         $vline_npc \
     $opt_me_run \
     -echo_times                $echo_times \
     -combine_method            OC                                   \
@@ -622,6 +635,14 @@ optional parameters:
 
       This is used for anat/EPI alignment, as well as anat/template alignment.
 
+   -compressor COMP        : control automatic compression of *.BRIK files.
+                             'COMP' must be one of the allowed keywords for
+                             the AFNI_COMPRESSOR environment variable:
+                                GZIP  COMPRESS  BZIP2  PIGZ
+                             and you must have the associated program for
+                             compression installed (e.g., 'gzip')
+                             def: not set here
+
    -nt_rm NT               : num time points to remove from starts of runs
                              def: $nt_rm
 
@@ -637,13 +658,9 @@ optional parameters:
    -template TEMPLATE      : specify template for standard space
                              def: $template
 
-   -compressor COMP        : control automatic compression of *.BRIK files.
-                             'COMP' must be one of the allowed keywords for
-                             the AFNI_COMPRESSOR environment variable:
-                                GZIP  COMPRESS  BZIP2  PIGZ
-                             and you must have the associated program for
-                             compression installed (e.g., 'gzip')
-                             def: not set here
+   -vline_num_pc NPC       : specify the number of variance line PCs to compute
+                             def: $vline_npc
+                             0 means the PC computation will be skipped
 
    -verb VERB              : specify verbosity level (3 == -echo)
                              def: $verb

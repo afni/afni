@@ -53,6 +53,38 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Nov, 2026, RCR, "3dmerge", MINOR, TYPE_BUG_FIX,
+   "fix float initialization",
+   "Short to float was not initialized at [0].  Also, blurring was not quite\n"
+   "symmetric at volume edges.  A full edge mirror has now been applied for\n"
+   "large volumes (>512), as it was for smaller ones.\n"
+   "Thanks to Y Miyawaki for pointing out the [0] initialization."
+ } ,
+ {  4, Nov, 2026, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "change wildcard imports to aliases",
+   "This should have no functional change."
+ } ,
+
+ {  4, Nov, 2026, RCR, "afni-general", MICRO, TYPE_GENERAL,
+   "quiet some compiler warnings",
+   "suma_datasets.h: DSET_WRITE_1D_PURE[_TRANSPOSE]: hide stderr vs NULL test"
+ } ,
+
+ {  3, Nov, 2026, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -find_var_line_npc, apply -find_var_line_opts",
+   NULL
+ } ,
+
+ {  3, Nov, 2026, RCR, "ap_run_simple_rest.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -vline_num_pc",
+   NULL
+ } ,
+
+ {  3, Nov, 2026, RCR, "ap_run_simple_rest_me.tcsh", MINOR, TYPE_NEW_OPT,
+   "add -vline_num_pc",
+   NULL
+ } ,
+
  { 30, Oct, 2026, RCR, "1d_tool.py", MICRO, TYPE_ENHANCE,
    "add example getting the slice timing pattern from a JSON sidecar",
    NULL

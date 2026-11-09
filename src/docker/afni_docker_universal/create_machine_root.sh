@@ -1,11 +1,12 @@
 #!/bin/bash
 
-## 9/2026 Justin Rajendra
+############################################
+## 11/2026 Justin Rajendra
 ## admin level install for afni docker on x86 AND arm
 ## runs from the Dockerfile as root
 
 ## echo commands to terminal
-set -x
+set -ex
 
 ######################################
 ## update package manager and get some required packages
@@ -17,8 +18,8 @@ apt-get install -y curl tcsh sudo ffmpeg iputils-ping wget mesa-utils
 
 ######################################
 ## get the admin script for the afni install
-curl -O https://raw.githubusercontent.com/afni/afni/master/src/other_builds/OS_notes.linux_ubuntu_26_64_a_admin.txt
-bash OS_notes.linux_ubuntu_26_64_a_admin.txt
+curl -fLO https://raw.githubusercontent.com/afni/afni/master/src/other_builds/OS_notes.linux_ubuntu_26_64_a_admin.txt
+bash -e OS_notes.linux_ubuntu_26_64_a_admin.txt
 
 ######################################
 ## make folders and links for mounting local host drives and local syncs
