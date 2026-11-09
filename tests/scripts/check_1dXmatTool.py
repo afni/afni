@@ -215,6 +215,72 @@ def main():
     assert 'GltLabels' not in h and 'Nglt' not in h and 'ColumnMasks' not in h
     assert 'XmatDroppedAttributes' in h and 'BasisOption_000002' not in h
 
+    # Original input slots are not compact signal positions. A nuisance input
+    # at slot 2 leaves signal IDs 1 and 3, including an IM family at sparse ID 3.
+    sparse = {k.replace('_000002', '_000003'): v for k, v in attrs.items()}
+    sparse.update(ColumnGroups='-1,2@1,2@3', BasisNstim='5',
+                  BasisName_000003=' B raw name ', BasisFuture_000003='preserve me')
+    for name, metadata in [('sparse', sparse),
+                           ('range_only', {k: v for k, v in sparse.items() if k != 'ColumnGroups'}),
+                           ('groups_only', {k: v for k, v in sparse.items() if not k.startswith('BasisColumns_')}),
+                           ('legacy_dense', {k: v for k, v in attrs.items()
+                                             if k != 'ColumnGroups' and not k.startswith('BasisColumns_')})]:
+        write(w / (name+'.1D'), data, metadata)
+        run([tools['tool'], '-infile', name+'.1D', '-describe'])
+        split(src=name+'.1D', prefix=name)
+        path = w / (name+'.r02.xmat.1D')
+        h = header(path)
+        assert h['BasisOption_000001'] == '-stim_times_IM'
+        assert h['BasisFormula_000001'] == 'BLOCK(1,1)'
+        assert h['BasisColumns_000001'] == '1:2'
+        assert ints(h['ColumnGroups']) == ([-1, 1, 1] if 'ColumnGroups' in metadata else [0, 1, 1])
+        assert not any(k.endswith('_000003') for k in h)
+        if name != 'legacy_dense':
+            assert h['BasisFuture_000001'] == 'preserve me'
+            assert h['BasisName_000001'] == ' B raw name '
+        np.testing.assert_array_equal(np.loadtxt(path).astype('float32'), data[5:, [0, 3, 4]].astype('float32'))
+        split(src=path, prefix=name+'_again')
+        run([tools['tool'], '-infile', name+'.1D', '-select_stimuli', 'B',
+             '-drop_glts', '-prefix', name+'_selected'])
+        selected = w / (name+'_selected.xmat.1D')
+        np.testing.assert_array_equal(np.loadtxt(selected).astype('float32'), data[:, 3:5].astype('float32'))
+        assert header(selected)['BasisColumns_000001'] == '0:1'
+
+    # Supplied signal columns can have an ID but no event/basis attributes.
+    plain = {k: v for k, v in sparse.items() if not k.endswith('_000003')}
+    write(w / 'plain_signal.1D', data, plain)
+    split(src='plain_signal.1D', prefix='plain_signal')
+    assert not any(k.startswith('Basis') and '_' in k
+                   for k in header(w / 'plain_signal.r02.xmat.1D'))
+
+    # An unchanged 3dDeconvolve, rather than a header we manufacture, supplies
+    # the mixed indexed-source regression. Orphaned IDs must not be repaired in
+    # either producer just to accommodate a reader. Include appended ortvecs.
+    run([tools['deconvolve'], '-nodata', len(t), 1, '-polort', 1, '-nodmbase',
+         '-concat', '1D: 0 80', '-local_times', '-censor', 'censor.1D',
+         '-ortvec', 'local.1D', 'drift', '-num_stimts', 3,
+         '-stim_times_IM', 1, 'times.1D', 'BLOCK(1,1)', '-stim_label', 1, 'A B',
+         '-stim_file', 2, 'shared.1D', '-stim_base', 2, '-stim_label', 2, 'motion',
+         '-stim_times', 3, 'times.1D', 'SPMG2', '-stim_label', 3, 'other',
+         '-x1D', 'mixed.1D', '-x1D_uncensored', 'mixed.full.1D', '-x1D_stop'])
+    mh = header(w / 'mixed.1D')
+    assert mh['Nstim'] == '2' and int(mh['BasisNstim']) > 2
+    assert 'BasisOption_000003' in mh and 'BasisOption_000002' not in mh
+    description = run([tools['tool'], '-infile', 'mixed.1D', '-describe']).stdout
+    assert 'other' in description and 'option=-stim_times' in description
+    split(src='mixed.1D', prefix='mixed', extra=['-uncensored', 'mixed.full.1D'])
+    original = np.loadtxt(w / 'mixed.1D').astype('float32')
+    for ri in (1, 2):
+        prefix = f'mixed.r{ri:02d}'
+        h = header(w / (prefix+'.xmat.1D'))
+        rows = ints(h['XmatSourceRows']); cols = ints(h['XmatSourceColumns'])
+        np.testing.assert_array_equal(np.loadtxt(w / (prefix+'.xmat.1D')).astype('float32'),
+                                      original[np.ix_(rows, cols)])
+        assert h['BasisFormula_000002'] == 'SPMG2'
+        assert h['BasisOption_000002'] == '-stim_times'
+        assert 'BasisOption_000003' not in h
+        split(src=prefix+'.xmat.1D', prefix=prefix+'_again')
+
     def bad(data2, attrs2, message, extra=()):
         write(w / 'bad.1D', data2, attrs2)
         split(src='bad.1D', prefix='rejected', error=message, extra=extra)
@@ -223,7 +289,7 @@ def main():
     crossed = data.copy(); crossed[6, 1] = .2
     bad(crossed, attrs, 'cross-run support')
     zero = data.copy(); zero[:, 1] = 0
-    bad(zero, attrs, 'zero or cross-run support')
+    bad(zero, attrs, 'no nonzero value in the uncensored design')
     broken = data.copy(); broken[0, 0] = np.nan
     bad(broken, attrs, 'non-finite')
     bad(data[:5], dict(attrs, GoodList='0..4'), 'no retained rows',
@@ -239,6 +305,25 @@ def main():
     bad(data, dict(attrs, Nstim='3'), 'Nstim disagrees')
     bad(data, dict(attrs, ColumnGroups='0'), 'ColumnGroups length')
     bad(data, {k: v for k, v in attrs.items() if k != 'RunStart'}, 'requires explicit')
+    # Contradictory IDs, duplicate assignments, malformed suffixes/counts and
+    # ambiguous legacy headers remain errors, with no partial outputs.
+    bad(data, dict(sparse, ColumnGroups='-1,1,3,3,3'), 'ColumnGroups disagrees')
+    bad(data, dict(sparse, ColumnGroups='-1,2@1,2@2'), 'BasisColumns disagrees')
+    bad(data, dict(sparse, BasisColumns_000003='1:2'), 'BasisColumns disagrees')
+    bad(data, dict(sparse, BasisOption_000004='-stim_times'), 'unknown stimulus')
+    bad(data, dict(sparse, BasisOption_000003junk='-stim_times'), 'malformed Basis')
+    bad(data, dict(sparse, BasisOption_99999999999999='-stim_times'), 'malformed Basis')
+    bad(data, dict(sparse, BasisOption_3='-stim_times'), 'duplicate Basis')
+    bad(data, dict(sparse, BasisNstim='2'), 'exceeds BasisNstim')
+    bad(data, dict(sparse, Nstim='2junk'), 'Nstim disagrees')
+    bad(data, {k: v for k, v in sparse.items() if k != 'ColumnGroups'
+               and not k.startswith('BasisColumns_')}, 'ambiguous stimulus ID')
+    bad(data, {k: v for k, v in sparse.items() if k != 'StimBots'}, 'Nstim disagrees')
+    duplicate = {k: v for k, v in sparse.items() if not k.startswith('BasisColumns_')}
+    bad(data, dict(duplicate, ColumnGroups='-1,4@1'), 'duplicate stimulus ID')
+    # A sparse IM family crossing runs must still be recognized as IM.
+    sparse_crossed = data.copy(); sparse_crossed[1, 3] = .2
+    bad(sparse_crossed, sparse, 'cross-run support')
     # Shared non-IM signals are allowed across runs; zero nuisance columns drop.
     shared_attrs = dict(attrs, BasisOption_000001='-stim_times')
     write(w / 'shared.1D', crossed, shared_attrs)

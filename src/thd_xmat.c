@@ -1,6 +1,7 @@
 #include "mrilib.h"
 #include "thd_xmat.h"
 #include <errno.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -58,6 +59,157 @@ static int xm_stim_ranges_valid( const THD_xmat *xm )
        if( bot<=xm->stim[t].top && xm->stim[t].bot<=top ) return 0 ;
    }
    return 1 ;
+}
+
+static int xm_failure(char *,int,const char *);
+
+/* Strict nonnegative integer parsing avoids atoi's acceptance of trailing junk
+   and overflow. end receives the first character after the decimal digits. */
+static int xm_uint(const char *text,const char **end,int *value)
+{
+   unsigned int v=0;
+   if(!text || !isdigit((unsigned char)*text)) return 0;
+   do {
+      unsigned int digit=(unsigned int)(*text-'0');
+      if(v>((unsigned int)INT_MAX-digit)/10) return 0;
+      v=10*v+digit; text++;
+   } while(isdigit((unsigned char)*text));
+   *end=text; *value=(int)v; return 1;
+}
+
+/* 0: not an indexed Basis attribute; -1: malformed suffix; >0: source ID.
+   Decode rather than indexing an array by ID: IDs can be sparse and large. */
+static int xm_basis_id(const char *key)
+{
+   const char *p,*end; int id;
+   if(strncasecmp(key,"Basis",5) || !(p=strchr(key,'_'))) return 0;
+   if(!xm_uint(p+1,&end,&id) || *end || id<1) return -1;
+   return id;
+}
+
+/* Resolve compact signal positions to file IDs using independent evidence:
+   positive ColumnGroups, then exact BasisColumns ranges. Only legacy headers
+   with no contradictory sparse evidence may fall back to positions 1..Nstim.
+   BasisName is deliberately not evidence: 3dDeconvolve can keep raw whitespace
+   there while normalizing StimLabels. groups and ids are borrowed scratch. */
+static int xm_resolve_ids(const THD_xmat *x,const NI_int_array *groups,int *ids,
+                          char *err,int nerr)
+{
+   int s,t,c,i,j,id,b,top,count,dense=1;
+   const char *v,*end;
+   if(!xm_stim_ranges_valid(x))
+      return xm_failure(err,nerr,"invalid or overlapping stimulus ranges");
+   v=THD_xmat_attr(x,"Nstim");
+   if(v && (!xm_uint(v,&end,&count) || *end || count!=x->nstim))
+      return xm_failure(err,nerr,"Nstim disagrees with parsed stimulus metadata");
+   /* An entirely absent stimulus description is allowed for generic numeric
+      designs. A partial, nonempty description must never silently become zero
+      signals merely because the reader could not assemble matching lists. */
+   if(!x->nstim){
+      const char *names[]={"StimLabels","StimBots","StimTops"};
+      for(i=0;i<3;i++){
+         v=THD_xmat_attr(x,names[i]);
+         if(v && *v) return xm_failure(err,nerr,"incomplete stimulus metadata");
+      }
+   }
+   if(THD_xmat_attr(x,"ColumnGroups")){
+      if(!groups || groups->num!=x->ncol)
+         return xm_failure(err,nerr,"ColumnGroups length does not match the matrix");
+      for(s=0;s<x->nstim;s++){
+         id=groups->ar[x->stim[s].bot];
+         if(id<1) return xm_failure(err,nerr,"ColumnGroups disagrees with stimulus ranges");
+         for(c=x->stim[s].bot;c<=x->stim[s].top;c++)
+            if(groups->ar[c]!=id)
+               return xm_failure(err,nerr,"ColumnGroups disagrees with stimulus ranges");
+         ids[s]=id;
+      }
+      /* With explicit signal metadata, a positive group cannot belong to an
+         unlisted signal. Generic matrices without that metadata remain usable. */
+      if(x->nstim || THD_xmat_attr(x,"Nstim"))
+         for(c=0;c<x->ncol;c++) if(groups->ar[c]>0){
+            for(s=0;s<x->nstim;s++) if(c>=x->stim[s].bot && c<=x->stim[s].top) break;
+            if(s==x->nstim) return xm_failure(err,nerr,"ColumnGroups disagrees with stimulus ranges");
+         }
+   }
+   for(i=0;i<x->nattr;i++){
+      const char *key=x->attr_name[i];
+      id=xm_basis_id(key);
+      if(id<0) return xm_failure(err,nerr,"malformed Basis attribute stimulus ID");
+      if(!id) continue;
+      if(id>x->nstim) dense=0;
+      /* Two spellings of the same field/ID would otherwise make attachment
+         depend on attribute order (e.g. _1 and _000001). Reject that ambiguity. */
+      for(j=0;j<i;j++) if(xm_basis_id(x->attr_name[j])==id){
+         const char *p=strchr(key,'_'),*q=strchr(x->attr_name[j],'_');
+         if(p-key==q-x->attr_name[j] && !strncasecmp(key,x->attr_name[j],p-key))
+            return xm_failure(err,nerr,"duplicate Basis attribute stimulus ID");
+      }
+      if(strncasecmp(key,"BasisColumns_",13)) continue;
+      v=x->attr_value[i];
+      if(!xm_uint(v,&end,&b) || *end!=':' || !xm_uint(end+1,&end,&top) || *end)
+         return xm_failure(err,nerr,"BasisColumns disagrees with stimulus ranges");
+      for(s=0;s<x->nstim;s++) if(b==x->stim[s].bot && top==x->stim[s].top) break;
+      if(s==x->nstim || (ids[s] && ids[s]!=id))
+         return xm_failure(err,nerr,"BasisColumns disagrees with stimulus ranges");
+      ids[s]=id;
+   }
+   for(s=0;s<x->nstim;s++) if(ids[s] && ids[s]!=s+1) dense=0;
+   for(s=0;s<x->nstim;s++){
+      if(!ids[s]){
+         if(!dense) return xm_failure(err,nerr,"ambiguous stimulus ID: supply ColumnGroups or BasisColumns");
+         ids[s]=s+1;
+      }
+      for(t=0;t<s;t++) if(ids[s]==ids[t])
+         return xm_failure(err,nerr,"duplicate stimulus ID in signal ranges");
+   }
+   for(i=0;i<x->nattr;i++) if((id=xm_basis_id(x->attr_name[i]))>0){
+      for(s=0;s<x->nstim;s++) if(ids[s]==id) break;
+      if(s==x->nstim) return xm_failure(err,nerr,"a Basis attribute refers to an unknown stimulus");
+   }
+   /* BasisNstim counts original input slots (including nuisance), not signals.
+      It bounds IDs if present; equality with Nstim would reject valid AFNI. */
+   v=THD_xmat_attr(x,"BasisNstim");
+   if(v){
+      if(!xm_uint(v,&end,&count) || *end)
+         return xm_failure(err,nerr,"invalid BasisNstim");
+      for(s=0;s<x->nstim;s++) if(ids[s]>count)
+         return xm_failure(err,nerr,"stimulus ID exceeds BasisNstim");
+   }
+   return 1;
+}
+
+/* Resolve once on read; subsequently validate the stored association. This
+   wrapper owns scratch allocations on both success and failure. */
+static int xm_metadata(THD_xmat *x,int attach,char *err,int nerr)
+{
+   const char *v=THD_xmat_attr(x,"ColumnGroups");
+   NI_int_array *groups=v?NI_decode_int_list((char *)v,","):NULL;
+   int *ids=calloc((size_t)(x->nstim>0?x->nstim:1),sizeof(int));
+   int ok=0,s,i;
+   if(!ids) xm_failure(err,nerr,"out of memory");
+   else ok=xm_resolve_ids(x,groups,ids,err,nerr);
+   if(ok) for(s=0;s<x->nstim;s++){
+      if(attach){
+         x->stim[s].id=ids[s];
+         for(i=0;i<x->nattr;i++) if(xm_basis_id(x->attr_name[i])==ids[s]){
+            if(!strncasecmp(x->attr_name[i],"BasisOption_",12))
+               x->stim[s].option=strdup(x->attr_value[i]);
+            if(!strncasecmp(x->attr_name[i],"BasisFormula_",13))
+               x->stim[s].formula=strdup(x->attr_value[i]);
+         }
+      }else if(x->stim[s].id!=ids[s]){
+         ok=xm_failure(err,nerr,"stored stimulus ID disagrees with header metadata"); break;
+      }
+   }
+   free(ids); if(groups) NI_delete_int_array(groups);
+   return ok;
+}
+
+int THD_xmat_validate_metadata(const THD_xmat *x,char *err,int nerr)
+{
+   if(!x) return xm_failure(err,nerr,"no matrix");
+   /* attach=0 does not change x; the shared implementation only reads it. */
+   return xm_metadata((THD_xmat *)x,0,err,nerr);
 }
 
 THD_xmat * THD_xmat_read( const char *fname , char *err , int nerr )
@@ -152,17 +304,12 @@ THD_xmat * THD_xmat_read( const char *fname , char *err , int nerr )
      xm->nstim = sar->num ;
      xm->stim = (THD_xmat_stim *)calloc((size_t)(xm->nstim>0?xm->nstim:1),sizeof(THD_xmat_stim)) ;
      for( ii=0 ; ii < xm->nstim ; ii++ ){
-       char an[64] ;
        xm->stim[ii].label = strdup(sar->str[ii]) ;
        xm->stim[ii].bot = bot[ii] ; xm->stim[ii].top = top[ii] ;
        if( bot[ii] < 0 || top[ii] < bot[ii] || top[ii] >= xm->ncol ){
          xm_err(err,nerr,"'%s': a stimulus has columns outside the matrix",fname) ;
          NI_delete_str_array(sar) ; free(bot) ; free(top) ; NI_free_element(nel) ; THD_xmat_free(xm) ; return NULL ;
        }
-       snprintf(an,sizeof(an),"BasisOption_%06d",ii+1) ; a = NI_get_attribute_nocase(nel,an) ;
-       xm->stim[ii].option = (a != NULL) ? strdup(a) : NULL ;
-       snprintf(an,sizeof(an),"BasisFormula_%06d",ii+1) ; a = NI_get_attribute_nocase(nel,an) ;
-       xm->stim[ii].formula = (a != NULL) ? strdup(a) : NULL ;
      }
      if( !xm_stim_ranges_valid(xm) ){
        xm_err(err,nerr,"'%s': stimulus column ranges overlap",fname) ;
@@ -172,6 +319,7 @@ THD_xmat * THD_xmat_read( const char *fname , char *err , int nerr )
    if( sar != NULL ) NI_delete_str_array(sar) ;
    free(bot) ; free(top) ;
    NI_free_element(nel) ;
+   if(!xm_metadata(xm,1,err,nerr)){ THD_xmat_free(xm); return NULL; }
    return xm ;
 }
 
@@ -401,24 +549,30 @@ void THD_xmat_run_map_free(THD_xmat_run_map *m)
    free(m->rows); free(m->columns); free(m->inverse); free(m);
 }
 
-/* Shared by run extraction and arbitrary column selection. */
-static int xm_subset(const THD_xmat *a,THD_xmat *x,const THD_xmat_run_map *m,
-                     char *err,int nerr)
+/* Report a failed operation without changing ownership of its resources. */
+static int xm_failure(char *err,int nerr,const char *message)
+{
+   xm_err(err,nerr,"%s",message);
+   return 0;
+}
+
+/* Fill a subset using borrowed scratch arrays and decoded column groups.
+   The caller owns x, including any fields populated before a failure. */
+static int xm_subset_fill(const THD_xmat *a,THD_xmat *x,const THD_xmat_run_map *m,
+                     int *sm,int *g,NI_int_array *groups,char *err,int nerr)
 {
    int nr=m->nrow,nc=m->ncol,start=m->start,r,c,s,i,j;
-   int *sm=NULL,*g=NULL; NI_int_array *groups=NULL; const char *v;
    char key[128],buf[128];
-#define XM_FAIL(MSG) do{xm_err(err,nerr,"%s",MSG);goto fail;}while(0)
    /* This new object has no file identity until it is written and reread. */
    x->nrow=nr; x->ncol=nc;
    x->nfull=m->length; x->nrun=m->run<0?a->nrun:1; x->tr=a->tr;
    x->runstart=calloc((size_t)x->nrun,sizeof(int));
-   if(m->run<0 && x->runstart) memcpy(x->runstart,a->runstart,sizeof(int)*a->nrun); x->good=malloc(sizeof(int)*(size_t)nr);
+   if(m->run<0 && x->runstart) memcpy(x->runstart,a->runstart,sizeof(int)*a->nrun);
+   x->good=malloc(sizeof(int)*(size_t)nr);
    x->mat=malloc(sizeof(float)*(size_t)nr*nc); x->collab=calloc((size_t)nc,sizeof(char *));
    x->stim=calloc((size_t)(a->nstim?a->nstim:1),sizeof(THD_xmat_stim));
-   sm=malloc(sizeof(int)*(size_t)(a->nstim?a->nstim:1)); g=malloc(sizeof(int)*(size_t)nc);
    if(!x->runstart || !x->good || !x->mat || !x->collab || !x->stim || !sm || !g)
-      XM_FAIL("out of memory");
+      return xm_failure(err,nerr,"out of memory");
    for(r=0;r<nr;r++) x->good[r]=a->good[m->rows[r]]-start;
    for(c=0;c<nc;c++){
       x->collab[c]=strdup(a->collab[m->columns[c]]);
@@ -428,11 +582,12 @@ static int xm_subset(const THD_xmat *a,THD_xmat *x,const THD_xmat_run_map *m,
       int bot=-1,top=-1;
       sm[s]=-1;
       for(c=a->stim[s].bot;c<=a->stim[s].top;c++) if(m->inverse[c]>=0){
-         if(bot<0) bot=m->inverse[c]; top=m->inverse[c];
+         if(bot<0) bot=m->inverse[c];
+         top=m->inverse[c];
       }
       if(bot>=0){
          THD_xmat_stim *t=x->stim+x->nstim; sm[s]=x->nstim++;
-         t->bot=bot; t->top=top; t->label=strdup(a->stim[s].label);
+         t->id=sm[s]+1; t->bot=bot; t->top=top; t->label=strdup(a->stim[s].label);
          if(a->stim[s].option) t->option=strdup(a->stim[s].option);
          if(a->stim[s].formula) t->formula=strdup(a->stim[s].formula);
       }
@@ -441,119 +596,119 @@ static int xm_subset(const THD_xmat *a,THD_xmat *x,const THD_xmat_run_map *m,
       xm_set(x,a->attr_name[i],a->attr_value[i]);
    /* Renumber all per-stimulus Basis attributes, including future ones. */
    for(s=0;s<a->nstim;s++) if(sm[s]>=0){
-      char suffix[24]; snprintf(suffix,sizeof(suffix),"_%06d",s+1);
+      int have_basis=0;
       for(i=0;i<a->nattr;i++){
          const char *k=a->attr_name[i],*p=strchr(k,'_');
-         if(!strncasecmp(k,"Basis",5) && p && !strcmp(p,suffix)){
+         if(xm_basis_id(k)==a->stim[s].id){
+            have_basis=1;
             snprintf(key,sizeof(key),"%.*s_%06d",(int)(p-k),k,sm[s]+1);
             xm_set(x,key,a->attr_value[i]);
          }
       }
+      /* A supplied signal column need not have a basis block. Preserve that
+         absence; only event families get rebuilt BasisColumns metadata. */
+      if(!have_basis) continue;
       j=sm[s];
       snprintf(key,sizeof(key),"BasisColumns_%06d",j+1);
       snprintf(buf,sizeof(buf),"%d:%d",x->stim[j].bot,x->stim[j].top); xm_set(x,key,buf);
-      snprintf(key,sizeof(key),"BasisName_%06d",j+1); xm_set(x,key,x->stim[j].label);
+      snprintf(key,sizeof(key),"BasisName_%06d",j+1);
+      if(!THD_xmat_attr(x,key)) xm_set(x,key,x->stim[j].label);
    }
    xm_setint(x,"BasisNstim",x->nstim);
-   v=THD_xmat_attr(a,"ColumnGroups");
-   if(v){
-      groups=NI_decode_int_list((char *)v,",;");
-      if(!groups || groups->num!=a->ncol) XM_FAIL("ColumnGroups length does not match the matrix");
-      for(c=0;c<a->ncol;c++) if(groups->ar[c]>0 &&
-         (groups->ar[c]>a->nstim || xm_stim_at(a,c)!=groups->ar[c]-1))
-         XM_FAIL("ColumnGroups disagrees with stimulus ranges");
-   }
    for(c=0;c<nc;c++){
       int old=m->columns[c]; s=xm_stim_at(a,old);
       g[c]=groups?groups->ar[old]:0;
-      if(g[c]>0){
-         if(g[c]>a->nstim || sm[g[c]-1]<0 || s!=g[c]-1)
-            XM_FAIL("ColumnGroups disagrees with stimulus ranges");
-         g[c]=sm[g[c]-1]+1;
-      }else if(!groups && s>=0) g[c]=sm[s]+1;
+      /* sm is indexed by compact SIGNAL POSITION, never by source ID. The
+         output intentionally assigns dense IDs to its surviving signals. */
+      if(s>=0) g[c]=sm[s]+1;
+      else if(g[c]>0)
+         return xm_failure(err,nerr,"ColumnGroups disagrees with stimulus ranges");
    }
    xm_setlist(x,"ColumnGroups",nc,g); xm_sync_core(x);
    for(i=0;i<a->nattr;i++) if(!strncasecmp(a->attr_name[i],"Glt",3) ||
        !strcasecmp(a->attr_name[i],"Nglt") || !strcasecmp(a->attr_name[i],"ColumnMasks")){
       xm_set(x,"XmatDroppedAttributes","GLT attributes and ColumnMasks removed by subsetting");break;
    }
-   free(sm);free(g);if(groups)NI_delete_int_array(groups);return 1;
-fail:
-   free(sm);free(g);if(groups)NI_delete_int_array(groups);return 0;
-#undef XM_FAIL
+   return 1;
 }
 
-THD_xmat *THD_xmat_extract_run(const THD_xmat *a,const THD_xmat *u,
-   int run,double tol,THD_xmat_run_map **mapping,char *err,int nerr)
+/* Own temporary metadata arrays for both extraction and column selection. */
+static int xm_subset(const THD_xmat *a,THD_xmat *x,const THD_xmat_run_map *m,
+                     char *err,int nerr)
+{
+   int *sm=malloc(sizeof(int)*(size_t)(a->nstim?a->nstim:1));
+   int *g=malloc(sizeof(int)*(size_t)m->ncol),ok;
+   const char *v=THD_xmat_attr(a,"ColumnGroups");
+   NI_int_array *groups=v?NI_decode_int_list((char *)v,",;"):NULL;
+   ok=xm_subset_fill(a,x,m,sm,g,groups,err,nerr);
+   free(sm);free(g);if(groups)NI_delete_int_array(groups);
+   return ok;
+}
+
+/* Validate a full-timeline reference without requiring extractable IM runs. */
+int THD_xmat_validate_reference(const THD_xmat *a,const THD_xmat *u,
+                               char *err,int nerr)
+{
+   int r,c,s;
+   if(!xm_structure_valid(a) || !xm_structure_valid(u))
+      return xm_failure(err,nerr,"invalid reference matrix structure");
+   if(!THD_xmat_validate_metadata(a,err,nerr) ||
+      !THD_xmat_validate_metadata(u,err,nerr)) return 0;
+   if(u->nrow!=a->nfull || u->nfull!=a->nfull ||
+      u->ncol!=a->ncol || u->nrun!=a->nrun || u->nstim!=a->nstim || u->tr!=a->tr)
+      return xm_failure(err,nerr,"uncensored reference dimensions, stimuli or TR do not match");
+   for(r=0;r<u->nrow;r++) if(u->good[r]!=r)
+      return xm_failure(err,nerr,"uncensored reference must contain every full-timeline row");
+   for(r=0;r<a->nrun;r++) if(a->runstart[r]!=u->runstart[r])
+      return xm_failure(err,nerr,"uncensored reference RunStart does not match");
+   for(s=0;s<a->nstim;s++)
+      if(a->stim[s].id!=u->stim[s].id ||
+         strcmp(a->stim[s].formula?a->stim[s].formula:"",u->stim[s].formula?u->stim[s].formula:"") ||
+         a->stim[s].bot!=u->stim[s].bot || a->stim[s].top!=u->stim[s].top ||
+         strcmp(a->stim[s].label,u->stim[s].label) ||
+         strcmp(a->stim[s].option?a->stim[s].option:"",u->stim[s].option?u->stim[s].option:""))
+         return xm_failure(err,nerr,"uncensored reference stimulus metadata does not match");
+   for(c=0;c<a->ncol;c++){
+      for(r=0;r<u->nrow;r++)if(!isfinite(u->mat[(size_t)c*u->nrow+r]))
+         return xm_failure(err,nerr,"uncensored reference contains a non-finite value");
+      if(strcmp(a->collab[c],u->collab[c])) return xm_failure(err,nerr,"uncensored reference ColumnLabels do not match");
+      for(r=0;r<a->nrow;r++)
+         if(a->mat[(size_t)c*a->nrow+r]!=u->mat[(size_t)c*u->nrow+a->good[r]])
+            return xm_failure(err,nerr,"uncensored reference differs at a retained matrix value");
+   }
+   return 1;
+}
+
+/* Populate caller-owned output objects; failure leaves them safe to destroy. */
+static int xm_extract_run(const THD_xmat *a,const THD_xmat *u,
+   int run,double tol,THD_xmat *x,THD_xmat_run_map *m,char *err,int nerr)
 {
    const THD_xmat *ref=u?u:a;
-   THD_xmat *x=NULL; THD_xmat_run_map *m=NULL;
-   NI_int_array *groups=NULL; int *sm=NULL,*g=NULL;
-   int r,c,s,i,j,start,end,nr=0,nc=0; const char *v; char key[80],buf[128];
-#define XM_FAIL(MSG) do{ xm_err(err,nerr,"%s",MSG); goto fail; }while(0)
-   if(mapping) *mapping=NULL;
+   int r,c,s,i,start,end,nr=0,nc=0; const char *v; char buf[128];
    if(err && nerr>0) *err='\0';
-   if(!mapping || !xm_structure_valid(a) ||
+   if(!xm_structure_valid(a) ||
       run<0 || run>=a->nrun || !isfinite(tol) || tol<0 || tol>=1)
-      XM_FAIL("invalid run extraction arguments (zero tolerance must be in [0,1))");
+      return xm_failure(err,nerr,"invalid run extraction arguments (zero tolerance must be in [0,1))");
    if(!THD_xmat_attr(a,"RunStart") || !THD_xmat_attr(a,"NRowFull") ||
       !THD_xmat_attr(a,"GoodList"))
-      XM_FAIL("run extraction requires explicit RunStart, NRowFull and GoodList");
-   v=THD_xmat_attr(a,"Nstim");
-   if(v && atoi(v)!=a->nstim) XM_FAIL("Nstim disagrees with parsed stimulus metadata");
-   if(a->nstim==0){
-      v=THD_xmat_attr(a,"StimLabels");
-      if(v && *v) XM_FAIL("incomplete stimulus metadata");
-   }
-   /* Refuse inconsistent BasisColumns rather than silently repairing a design. */
-   for(s=0;s<a->nstim;s++){
-      int b,t,n=0;
-      snprintf(key,sizeof(key),"BasisColumns_%06d",s+1); v=THD_xmat_attr(a,key);
-      if(v && (sscanf(v,"%d:%d%n",&b,&t,&n)!=2 || v[n] ||
-               b!=a->stim[s].bot || t!=a->stim[s].top))
-         XM_FAIL("BasisColumns disagrees with stimulus ranges");
-   }
-   for(i=0;i<a->nattr;i++){
-      const char *k=a->attr_name[i],*p=strchr(k,'_');
-      if(!strncasecmp(k,"Basis",5) && p && (atoi(p+1)<1 || atoi(p+1)>a->nstim))
-         XM_FAIL("a Basis attribute refers to an unknown stimulus");
-   }
-   if(u){
-      if(!xm_structure_valid(u) || u->nrow!=a->nfull || u->nfull!=a->nfull ||
-         u->ncol!=a->ncol || u->nrun!=a->nrun || u->nstim!=a->nstim || u->tr!=a->tr)
-         XM_FAIL("uncensored reference dimensions, stimuli or TR do not match");
-      for(r=0;r<u->nrow;r++) if(u->good[r]!=r)
-         XM_FAIL("uncensored reference must contain every full-timeline row");
-      for(r=0;r<a->nrun;r++) if(a->runstart[r]!=u->runstart[r])
-         XM_FAIL("uncensored reference RunStart does not match");
-      for(s=0;s<a->nstim;s++)
-         if(a->stim[s].bot!=u->stim[s].bot || a->stim[s].top!=u->stim[s].top ||
-            strcmp(a->stim[s].label,u->stim[s].label) ||
-            strcmp(a->stim[s].option?a->stim[s].option:"",u->stim[s].option?u->stim[s].option:""))
-            XM_FAIL("uncensored reference stimulus metadata does not match");
-      for(c=0;c<a->ncol;c++){
-         if(strcmp(a->collab[c],u->collab[c])) XM_FAIL("uncensored reference ColumnLabels do not match");
-         for(r=0;r<a->nrow;r++)
-            if(a->mat[(size_t)c*a->nrow+r]!=u->mat[(size_t)c*u->nrow+a->good[r]])
-               XM_FAIL("uncensored reference differs at a retained matrix value");
-      }
-   }
+      return xm_failure(err,nerr,"run extraction requires explicit RunStart, NRowFull and GoodList");
+   if(!THD_xmat_validate_metadata(a,err,nerr)) return 0;
+   if(u && !THD_xmat_validate_reference(a,u,err,nerr)) return 0;
    start=a->runstart[run]; end=start+THD_xmat_run_length(a,run);
-   m=calloc(1,sizeof(*m)); x=calloc(1,sizeof(*x));
-   if(!m || !x) XM_FAIL("out of memory");
+   if(!m || !x) return xm_failure(err,nerr,"out of memory");
    m->run=run; m->start=start; m->length=end-start; m->source_ncol=a->ncol;
    m->rows=malloc(sizeof(int)*(size_t)a->nrow);
    m->columns=malloc(sizeof(int)*(size_t)a->ncol);
    m->inverse=malloc(sizeof(int)*(size_t)a->ncol);
-   if(!m->rows || !m->columns || !m->inverse) XM_FAIL("out of memory");
+   if(!m->rows || !m->columns || !m->inverse) return xm_failure(err,nerr,"out of memory");
    for(r=0;r<a->nrow;r++) if(a->good[r]>=start && a->good[r]<end) m->rows[nr++]=r;
-   if(!nr) XM_FAIL("selected run has no retained rows");
+   if(!nr) return xm_failure(err,nerr,"selected run has no retained rows");
    for(c=0;c<a->ncol;c++){
       double peak=0,local=0,kept=0; int owner=-1,mixed=0;
       s=xm_stim_at(a,c);
       for(r=0;r<ref->nrow;r++){
          double z=fabs(ref->mat[(size_t)c*ref->nrow+r]);
-         if(!isfinite(z)) XM_FAIL("matrix contains a non-finite value");
+         if(!isfinite(z)) return xm_failure(err,nerr,"matrix contains a non-finite value");
          if(z>peak) peak=z;
       }
       for(r=0;r<ref->nrow;r++){
@@ -568,19 +723,26 @@ THD_xmat *THD_xmat_extract_run(const THD_xmat *a,const THD_xmat *u,
          double z=fabs(a->mat[(size_t)c*a->nrow+m->rows[r]]);
          if(z>kept) kept=z;
       }
-      if(xm_im(a,s) && (owner<0 || mixed)){
-         xm_err(err,nerr,"IM column '%s' has zero or cross-run support; run ownership is ambiguous",a->collab[c]);
-         goto fail;
+      if(xm_im(a,s) && owner<0){
+         if(!u && a->nrow<a->nfull)
+            xm_err(err,nerr,"IM column '%s' has no nonzero value in any retained row; the trial may be fully censored. Re-run with -uncensored <X.nocensor.xmat.1D> to identify the run and confirm",a->collab[c]);
+         else
+            xm_err(err,nerr,"IM column '%s' has no nonzero value in the uncensored design; check onsets and basis specification",a->collab[c]);
+         return 0;
+      }
+      if(xm_im(a,s) && mixed){
+         xm_err(err,nerr,"IM column '%s' has cross-run support; run ownership is ambiguous",a->collab[c]);
+         return 0;
       }
       if(xm_im(a,s) && local>0 && kept<=tol*peak){
-         xm_err(err,nerr,"IM column '%s' loses its support after censoring",a->collab[c]); goto fail;
+         xm_err(err,nerr,"IM column '%s' loses its support after censoring",a->collab[c]); return 0;
       }
       m->inverse[c]=-1;
       if(local>0 && kept>tol*peak){ m->inverse[c]=nc; m->columns[nc++]=c; }
    }
-   if(!nc) XM_FAIL("selected run has no active columns");
+   if(!nc) return xm_failure(err,nerr,"selected run has no active columns");
    m->nrow=nr; m->ncol=nc;
-   if(!xm_subset(a,x,m,err,nerr)) goto fail;
+   if(!xm_subset(a,x,m,err,nerr)) return 0;
    xm_setpath(x,"XmatSourceFile",a->fname);
    xm_setint(x,"XmatSourceRun",run+1); xm_setint(x,"XmatSourceStart",start);
    xm_setlist(x,"XmatSourceRows",nr,m->rows); xm_setlist(x,"XmatSourceColumns",nc,m->columns);
@@ -592,14 +754,28 @@ THD_xmat *THD_xmat_extract_run(const THD_xmat *a,const THD_xmat *u,
        !strcasecmp(a->attr_name[i],"Nglt") || !strcasecmp(a->attr_name[i],"ColumnMasks")){
       xm_set(x,"XmatDroppedAttributes","GLT attributes and ColumnMasks are not projected by run extraction"); break;
    }
-   free(sm); free(g); if(groups) NI_delete_int_array(groups);
-   *mapping=m; return x;
-fail:
-   free(sm); free(g); if(groups) NI_delete_int_array(groups);
-   THD_xmat_free(x); THD_xmat_run_map_free(m); return NULL;
-#undef XM_FAIL
+   return 1;
 }
 
+/* Return a new run subset and mapping together, or release both on failure. */
+THD_xmat *THD_xmat_extract_run(const THD_xmat *a,const THD_xmat *u,
+   int run,double tol,THD_xmat_run_map **mapping,char *err,int nerr)
+{
+   THD_xmat *x; THD_xmat_run_map *m;
+   if(mapping) *mapping=NULL;
+   if(!mapping){
+      xm_failure(err,nerr,"invalid run extraction arguments (zero tolerance must be in [0,1))");
+      return NULL;
+   }
+   x=calloc(1,sizeof(*x)); m=calloc(1,sizeof(*m));
+   if(xm_extract_run(a,u,run,tol,x,m,err,nerr)){
+      *mapping=m;return x;
+   }
+   THD_xmat_free(x);THD_xmat_run_map_free(m);
+   return NULL;
+}
+
+/* Return a selected matrix and mapping; destroy partial outputs on failure. */
 THD_xmat *THD_xmat_select_columns(const THD_xmat *a,const unsigned char *keep,
    int drop_glts,THD_xmat_run_map **mapping,char *err,int nerr)
 {
@@ -608,28 +784,31 @@ THD_xmat *THD_xmat_select_columns(const THD_xmat *a,const unsigned char *keep,
    if(!mapping || !keep || !xm_structure_valid(a)){
       xm_err(err,nerr,"%s","invalid column selection arguments");return NULL;
    }
+   if(!THD_xmat_validate_metadata(a,err,nerr)) return NULL;
    if(!drop_glts) for(c=0;c<a->nattr;c++)
       if(!strncasecmp(a->attr_name[c],"Glt",3) || !strcasecmp(a->attr_name[c],"Nglt")){
          xm_err(err,nerr,"%s","column selection requires -drop_glts when GLT metadata is present");return NULL;
       }
    m=calloc(1,sizeof(*m));x=calloc(1,sizeof(*x));
-   if(!m || !x)goto fail;
-   m->run=-1;m->length=a->nfull;m->nrow=a->nrow;m->source_ncol=a->ncol;
-   m->rows=malloc(sizeof(int)*a->nrow);m->columns=malloc(sizeof(int)*a->ncol);m->inverse=malloc(sizeof(int)*a->ncol);
-   if(!m->rows || !m->columns || !m->inverse)goto fail;
-   for(r=0;r<a->nrow;r++)m->rows[r]=r;
-   for(c=0;c<a->ncol;c++){
-      m->inverse[c]=-1;
-      if(keep[c]){m->inverse[c]=m->ncol;m->columns[m->ncol++]=c;}
+   if(m && x){
+      m->run=-1;m->length=a->nfull;m->nrow=a->nrow;m->source_ncol=a->ncol;
+      m->rows=malloc(sizeof(int)*a->nrow);m->columns=malloc(sizeof(int)*a->ncol);m->inverse=malloc(sizeof(int)*a->ncol);
+      if(m->rows && m->columns && m->inverse){
+         for(r=0;r<a->nrow;r++)m->rows[r]=r;
+         for(c=0;c<a->ncol;c++){
+            m->inverse[c]=-1;
+            if(keep[c]){m->inverse[c]=m->ncol;m->columns[m->ncol++]=c;}
+         }
+         if(!m->ncol) xm_err(err,nerr,"%s","column selection is empty");
+         else if(xm_subset(a,x,m,err,nerr)){
+            xm_setpath(x,"XmatSourceFile",a->fname);
+            xm_setlist(x,"XmatSourceRows",m->nrow,m->rows);xm_setlist(x,"XmatSourceColumns",m->ncol,m->columns);
+            xm_set(x,"CommandLine","THD_xmat_select_columns (see XmatSource* provenance)");
+            if(THD_xmat_attr(a,"CommandLine"))xm_set(x,"XmatSourceCommandLine",THD_xmat_attr(a,"CommandLine"));
+            *mapping=m;return x;
+         }
+      }
    }
-   if(!m->ncol){xm_err(err,nerr,"%s","column selection is empty");goto fail;}
-   if(!xm_subset(a,x,m,err,nerr))goto fail;
-   xm_setpath(x,"XmatSourceFile",a->fname);
-   xm_setlist(x,"XmatSourceRows",m->nrow,m->rows);xm_setlist(x,"XmatSourceColumns",m->ncol,m->columns);
-   xm_set(x,"CommandLine","THD_xmat_select_columns (see XmatSource* provenance)");
-   if(THD_xmat_attr(a,"CommandLine"))xm_set(x,"XmatSourceCommandLine",THD_xmat_attr(a,"CommandLine"));
-   *mapping=m;return x;
-fail:
    THD_xmat_free(x);THD_xmat_run_map_free(m);return NULL;
 }
 

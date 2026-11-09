@@ -150,6 +150,19 @@ with tempfile.TemporaryDirectory(prefix='xmat-features-') as tmp:
     base=['-mode','classify','-target_column','Condition','-cv_column','Run','-mask','mask.nii.gz','-validate_only']
     run(base+['-trial_manifest','manifest.trials.1D'],prog='mvpa',contains='Validation PASS')
     run(base+['-dataTableFile','selected.trials.1D'],prog='mvpa',contains='Validation PASS')
+    # An IM at original slot 3 must still be recognized by validation/export.
+    # Event volumes and source columns do not depend on that header ID.
+    sparse_attrs={k.replace('_000001','_000003'):v for k,v in attrs.items()}
+    sparse_attrs.update(ColumnGroups='2@-1,5@3,0',BasisNstim='3')
+    write(w/'sparse.1D',x,sparse_attrs)
+    run(['-infile','sparse.1D','-validate','-for','lss'],contains='Validation PASS')
+    run(['-infile','sparse.1D',*common[2:],'-prefix','sparse_manifest'])
+    sparse_text=(w/'sparse_manifest.trials.1D').read_text().splitlines()
+    sparse_rows=[dict(zip(fields,shlex.split(line),strict=True))
+                 for line in sparse_text if not line.startswith('#')]
+    for field in ['XColumn','Volume','Run','Condition','Item','InputFile']:
+        assert [r[field] for r in sparse_rows]==[r[field] for r in rows]
+    run(base+['-trial_manifest','sparse_manifest.trials.1D'],prog='mvpa',contains='Validation PASS')
     (w/'events.1D').write_text('# Columns: Run Volume Condition Item\n'+'\n'.join(events+events[:1])+'\n')
     run(common+['-prefix','bad_manifest'],code=1,contains='duplicate')
     assert not (w/'bad_manifest.trials.1D').exists()
