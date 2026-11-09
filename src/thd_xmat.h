@@ -32,6 +32,10 @@
 
 typedef struct {
    char *label ;         /* StimLabels entry                                  */
+   /* One-based ID in THIS file's ColumnGroups and Basis suffixes. Nstim and
+      stim[] count only signals: interleaved nuisance inputs can leave gaps in
+      these IDs. Public stimulus/item indices remain zero-based array indices. */
+   int   id ;
    int   bot , top ;     /* its columns of the matrix, inclusive              */
    char *option ;        /* BasisOption (-stim_times, -stim_times_IM, ...), or NULL */
    char *formula ;       /* BasisFormula (GAM, TENT(0,12,7), ...), or NULL    */
@@ -68,6 +72,15 @@ typedef struct {
     chars; may be NULL). */
 extern THD_xmat * THD_xmat_read( const char *fname , char *err , int nerr ) ;
 extern void       THD_xmat_free( THD_xmat *xm ) ;
+
+/*! Cross-check stimulus IDs, ranges and optional redundant header metadata.
+    Read matrices are already checked; use this before operating on modified
+    objects. Returns 0 with a diagnostic on inconsistent/ambiguous metadata. */
+extern int THD_xmat_validate_metadata(const THD_xmat *,char *,int);
+
+/*! Check a matching full-row reference, including retained values and metadata.
+    Borrows both matrices. Returns 0 with a diagnostic on mismatch. */
+extern int THD_xmat_validate_reference(const THD_xmat *,const THD_xmat *,char *,int);
 
 /*! A header attribute by name (case-insensitive), as written; NULL if absent. */
 extern const char * THD_xmat_attr( const THD_xmat *xm , const char *name ) ;
