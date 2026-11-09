@@ -68,3 +68,7 @@ AFNI_version.h
 
 #Cscope
 *cscope*
+
+# Local compiler cache seeded into CI Docker builders
+.ci-cache/
+tests/test-results/

@@ -62,10 +62,13 @@ else()
     DIRECTORY ../python_scripts/scripts/
     COMPONENT python
     DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+    # DIRECTORY installs otherwise default to non-executable files. These are
+    # command programs; permissions after PATTERN would apply only to its match.
+    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                     GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     PATTERN "__pycache__" EXCLUDE
     PATTERN "*.pyc" EXCLUDE
     PATTERN "__init__.py" EXCLUDE
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_EXECUTE WORLD_READ
     )
   install(
       DIRECTORY ../python_scripts/afnipy
