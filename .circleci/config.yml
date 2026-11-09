@@ -205,7 +205,8 @@ jobs:
 
   macos_build:
     macos:
-      xcode: "26.1.0"
+      xcode: "26.4.1"
+    resource_class: m4pro.medium
     working_directory: /tmp/src/afni
     steps:
       - checkout
