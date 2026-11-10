@@ -60,7 +60,7 @@ afni_history_struct rickr_history[] = {
 
  {  4, Nov, 2026, RCR, "3dmerge", MINOR, TYPE_BUG_FIX,
    "fix float initialization",
-   "Short to float was not initialzed at [0].  Also, blurring was not quite\n"
+   "Short to float was not initialized at [0].  Also, blurring was not quite\n"
    "symmetric at volume edges.  A full edge mirror has now been applied for\n"
    "large volumes (>512), as it was for smaller ones.\n"
    "Thanks to Y Miyawaki for pointing out the [0] initialization."
