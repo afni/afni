@@ -130,7 +130,7 @@ cat << EOF
 
       2. Launch the afni docker and update the local image:
 
-           bash ${prog} -tag latest
+           bash ${prog} -run -tag latest
 
       3. Launch the afni docker and see what the run command is:
 
