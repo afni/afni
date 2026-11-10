@@ -193,6 +193,25 @@ if [[ ${do_run} = 0 ]]; then
 fi
 
 #################################################
+## check base_tag (and update if nec)
+
+# these checks are mostly to recognize 2 formats of AFNI version tags:
+# "AFNI_YY.M.mm" or "YY.M.mm"
+
+if [[ "${base_tag}" == "latest" ]]; then
+    :
+elif [[ "${base_tag}" == "dev_ver"* ]]; then
+    :
+elif [[ "${base_tag}" == "AFNI_"* ]]; then
+    :
+else
+    # in this case, assume we have been given an AFNI version without
+    # preceding "AFNI_"
+    base_tag="AFNI_${base_tag}"
+    echo "++ base_tag : ${base_tag}"
+fi
+
+#################################################
 ## build docker image name
 
 dock_img="${base_img}:${base_tag}"
