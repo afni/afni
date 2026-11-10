@@ -67,7 +67,7 @@ Getting started with AFNI: quick guide links
     
     * `"Classified" program guide (AFNI programs grouped thematically) <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/classified_progs.html>`_
     
-    * `Quick Unix tutorial <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/unix_tutorial/index.html>`_
+    * `Quick Unix tutorial <https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/unix_tutorial/index.html>`_
 
 * Code, command, script and functionality examples
 
