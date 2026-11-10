@@ -203,10 +203,13 @@ that are exactly equivalent.
               in the vastness of space, so use with caution
 -ginormous_move : adds align_centers to giant_move. Useful for very far
               apart datasets
--small_move : same as '-large_move', but halves the default rotation and
-              shift limits to 3 degrees and 5 mm
+-small_move : same as '-large_move', but uses much smaller rotation and
+              shift limits of 3 degrees and 5 mm
+-medium_move : same refinements as '-large_move', but keeps smaller
+              rotation and shift limits of 15 degrees and 15 mm
 
-Notes on the big_move, large_move, giant_move and small_move options 
+Notes on the big_move, large_move, giant_move, small_move and medium_move
+options 
 
     These are a family of options to control 3dAllineate's search space
     and behavior. These mainly add a cluster of useful features, as well
@@ -232,7 +235,10 @@ Notes on the big_move, large_move, giant_move and small_move options
     shift. This might be particularly useful for slab/partial datasets.
 
     The small_move option is the same as large_move, but reduces the
-    default search limits from 6 degrees and 10 mm to 3 degrees and 5 mm.
+    rotation and shift search limits to 3 degrees and 5 mm.
+
+    The medium_move option is the same as large_move, but uses rotation and
+    translation search limits of 15 degrees and 15 mm.
 
     If your data starts out fairly close (probably the typical case
     for EPI and anatomical data), you can use the -big_move with 
@@ -767,6 +773,8 @@ class RegWrap:
                helpstr="Same as -giant_move but does not use cmass")
       self.valid_opts.add_opt('-small_move', 0, [], \
                helpstr="Same as -large_move but smaller shift and rotation")
+      self.valid_opts.add_opt('-medium_move', 0, [], \
+               helpstr="Same as -large_move but intermediate shift and rotation")
       self.valid_opts.add_opt('-ginormous_move', 0, [], \
                helpstr="Adds align_centers to giant_move")
       self.valid_opts.add_opt('-supersize', 0, [], \
@@ -1439,8 +1447,10 @@ class RegWrap:
       opt3 = self.user_opts.find_opt('-ginormous_move')
       #small move? (same as large_move, but with small shift+rotation)
       opt4 = self.user_opts.find_opt('-small_move')
+      #medium move? (same as large_move, but with med shift+rotation)
+      opt5 = self.user_opts.find_opt('-medium_move')
 
-      if(not (opt1 or opt2 or opt2b or opt3 or opt4)):
+      if(not (opt1 or opt2 or opt2b or opt3 or opt4 or opt5)):
          ps.AlOpt = "%s -onepass " % ps.AlOpt
       else:
          # resampling has the potential to cut off data
@@ -1451,7 +1461,7 @@ class RegWrap:
       if(opt1):
          ps.AlOpt = "%s -twopass " % ps.AlOpt
          
-      if(opt2 or opt2b or opt3 or opt4):
+      if(opt2 or opt2b or opt3 or opt4 or opt5):
          if featuresize  == 0.0 :
             fsize = 1
          else:
@@ -1461,11 +1471,15 @@ class RegWrap:
             ps.AlOpt =  \
             "%s -twobest 11 -twopass -maxrot 3 -maxshf 5 " \
             "-fineblur %s -source_automask+2" % (ps.AlOpt, fsize)
+         elif(opt5):
+            ps.AlOpt =  \
+            "%s -twobest 11 -twopass -maxrot 15 -maxshf 15 " \
+            "-fineblur %s -source_automask+2" % (ps.AlOpt, fsize)
          else:
             ps.AlOpt =  \
             "%s -twobest 11 -twopass -maxrot 45 -maxshf 40 " \
             "-fineblur %s -source_automask+2" % (ps.AlOpt, fsize)
-         if not(opt2b or opt4):
+         if not(opt2b or opt4 or opt5):
              ps.cmass = "cmass"
          ps.giant_move = 1
       else :
