@@ -876,6 +876,7 @@ Advanced usage (make_random_timing.py) ~1~
     and optional parameters in form (param=VALUE):
 
         dtype   : distribution type (default: dtype=decay)
+        dist    :                    ('dtype' and 'dist' are interchangeable)
 
                   decay:        shorter events are more likely
                                 see "NOTE: distribution of ISI"
@@ -1202,6 +1203,7 @@ options (specific to the advanced usage): ~2~
               -add_timing_class laugh  0.1 2.5 10 dist=decay_grid t_gran=0.1
                                   ^--- warning: not advisable in the scanner
 
+              -add_timing_class napA   2 5 8 dtype=uniform_grid
               -add_timing_class napA   2 5 8 dist=uniform_grid
               -add_timing_class napB   3.25
               -add_timing_class admin  2 2 2 basis='MION(2)'
@@ -1210,6 +1212,8 @@ options (specific to the advanced usage): ~2~
          Create a timing class, for either stimulus or rest.  Note that in the
          examples here, class names are just labels.  They can be used for
          stimulus or rest times.
+
+       * Either 'dist' or 'dtype' can be used for the distribution type.
 
          See "Overview of Timing Classes", above.
          See "Examples of -add_timing_class", above.
@@ -1546,9 +1550,10 @@ g_history = """
     3.8  Jun 25, 2021: add -rand_post_elist_partition for S Haller
     3.9  Feb 19, 2026: add -tr_locked to g_style_opts_old
     3.10 Oct 23, 2026: add -post_elist_merge
+    3.11 Nov 10, 2026: allow dist or dtype for distribution type
 """
 
-g_version = "version 3.10 October 23, 2026"
+g_version = "version 3.11 November 10, 2026"
 
 g_todo = """
    - specify basis function in stim class (can now do it in timing class)

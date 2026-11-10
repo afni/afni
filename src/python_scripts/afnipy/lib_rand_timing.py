@@ -98,7 +98,8 @@ class TimingClass:
           pval = pv[1]
 
           # now check one type at a time, else fail
-          if pvar == 'dist':
+          # I have somehow used both dist and dtype in the help <sigh>
+          if pvar in ['dist', 'dtype']:
              if pval not in g_valid_dist_types:
                 print(errstr)
                 print('** invalid dist = %s in %s' % (pval, pp))
