@@ -111,7 +111,7 @@ static char *srm_options[] = {
    "-censor", "-zcensor", "-zcensor_warn",
    "-axis", "-lss", "-item_column", "-repeated_stimulus", "-time_labels",
    "-model_in", "-update_S", "-run_coupling", "-cv_adapt", "-apply_W", "-score_by", "-cv_fit", "-balance", "-reliability", "-compress", "-no_compress",
-   "-nsplit", "-nperm", "-cv", "-cv_blocks", "-cv_metrics", "-match_window", "-loso_iter",
+   "-nsplit", "-nperm", "-cv", "-cv_blocks", "-cv_metrics", "-match_window", "-loso_iter", "-loso_start",
    "-save_W", "-save_recon", "-save_r2", "-proj_format", "-no_projected",
    "-memory_limit", "-memory_override", "-quiet", "-progress",
    "-dataTable", "-dataTableFile", "-show_table", "-help", "-h", NULL
@@ -586,8 +586,9 @@ static void usage_3dSRM(void)
 "  A new subject's W is fitted to their own data, so its fit to that data is\n"
 "  flattering by construction. Use -cv run with -model_in: W is then estimated\n"
 "  from all of the subject's runs but one (or blocks but one), and the subject\n"
-"  is scored on the part left out. The scores are then directly\n"
-"  comparable to those from -cv loso on the original subjects.\n"
+"  is scored on the part left out. The scores are\n"
+"  analogous to -cv loso on the original subjects, but use the full reference\n"
+"  group rather than a reference group with one subject removed.\n"
 "\n"
 "  -update_S            ** EXPERIMENTAL **\n"
 "                       Let S absorb the new subjects, and write a new\n"
@@ -700,21 +701,33 @@ static void usage_3dSRM(void)
 "                              on all OTHER subjects and every time point.\n"
 "                              Then estimate that subject's W from their own\n"
 "                              training runs and score them on a held-out run.\n"
-"                              The held-out data touch neither S nor any W, so\n"
+"                              With cold starts, their held-out data touch\n"
+"                              neither S nor any fitted W used for scoring, so\n"
 "                              the score is a clean estimate of how well a new\n"
 "                              person maps into an existing space. Folds\n"
 "                              within the subject are leave-one-run-out, or\n"
 "                              -cv_blocks contiguous blocks if there is one run.\n"
-"                              Costs one group fit per subject.\n"
+"                              Uses independent cold starts by default; costs\n"
+"                              one full group fit per subject (-niter, -tol,\n"
+"                              -nstart). Written projections are aligned to the\n"
+"                              pooled fit AFTER scoring; this output alignment\n"
+"                              itself depends on all subjects.\n"
 "\n"
 "  -cv_blocks B         Contiguous time blocks used as folds in place of runs\n"
 "                       when the data have a single run [2]. Time points near a\n"
 "                       block edge are autocorrelated with the other side, so\n"
 "                       scores are a little optimistic; separate runs are\n"
 "                       better.\n"
-"  -loso_iter M         Iterations for each leave-one-subject-out group refit.\n"
-"                       The refit starts from the full fit minus that subject,\n"
-"                       so a few iterations are enough [5].\n"
+"  -loso_start MODE     cold [default]: fit each leave-out model independently\n"
+"                       on the other subjects, using -niter, -tol and -nstart.\n"
+"                       Score in each leave-out model's own canonical basis.\n"
+"                       legacy: reproduce the old full-model warm start, with\n"
+"                       -loso_iter steps. WARNING: that start already contains\n"
+"                       the held-out subject's influence and can inflate scores.\n"
+"                       Requires -cv loso in fit mode (time or item axis).\n"
+"  -loso_iter M         Iterations for -loso_start legacy only [5]. Ignored for\n"
+"                       cold starts. More legacy iterations do not guarantee\n"
+"                       independence from the held-out subject.\n"
 "\n"
 "  -cv_metrics LIST     Comma list from: isc, match, r2 [all three].\n"
 "                       isc   : correlation of the subject's projected held-out\n"
@@ -804,7 +817,10 @@ static void usage_3dSRM(void)
 "                                   folds). Asks: do they use the reference\n"
 "                                   group's space? Reference subjects are scored\n"
 "                                   leave-one-subject-out, the others as new\n"
-"                                   subjects, so the scores are comparable.\n"
+"                                   subjects. Reference members use N-1 training\n"
+"                                   subjects; outside members use N. Both exclude\n"
+"                                   the scored subject with cold starts, but the\n"
+"                                   training sample sizes still differ.\n"
 "                                   Needs -cv loso.\n"
 "                       Held-out projections are rotated into the gauge of the\n"
 "                       fit to everyone, so all subjects' stay comparable.\n"
@@ -1247,6 +1263,7 @@ typedef struct {
    int     compress_given , no_compress ;
    char   *cvmode ;                  /* none | run | loso */
    int     cv_blocks , match_window , loso_iter ; int cv_blocks_given , match_window_given ;
+   int     loso_legacy , loso_start_given , loso_iter_given ;
    char   *cv_metrics , *fold_col , *score_by , *cv_fit ;
    int     balance , nsplit , nperm ;
    char   *reliability ; int rel_within , rel_split ;
@@ -2168,7 +2185,7 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
      if( !cx->quiet ) ININFO_message("%s (%s): %s after %d iterations",tag,f->name[ff],fi.converged?"converged":"iteration limit",fi.niter_done) ;
      rc=SRM_canonicalize(mf) ;
      if( rc!=SRM_OK ) ERROR_exit("could not canonicalize the fit for %s: %s",tag,SRM_strerror(rc)) ;
-     /* (canonicalizing only fixes the fold model's rotation; scores do not depend on it) */
+     /* Score in the fold model's own canonical basis (ISC is component-wise). */
 
      for( ii=0 ; ii<nsub ; ii++ ){                    /* each subject's held-out data in the shared space, once */
        P[ii]=(float *)malloc(sizeof(float)*(size_t)K*len) ;
@@ -2212,7 +2229,7 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
    }
 
    /* held-out projections in one gauge: each fold's S aligned to the full fit's, same rotation for all subjects.
-      This changes labels of components, never the scores (they were computed before this and are rotation-invariant).
+      This changes labels of components, never the scores (they were computed before this rotation).
       Each fold model has its own arbitrary rotation of the shared space.  Rm is the orthogonal K x K matrix that
       best maps the fold's training S onto the full fit's S on the same columns (Procrustes); applying it to the
       fold's projections puts every fold's stretch of the output series in the full fit's coordinates. */
@@ -2326,53 +2343,58 @@ static int srm_fit_view_obs( const float *str , int K , int Ttr , const float *x
    return rc ;
 }
 
-/*! -cv loso: for each subject ii, refit the group without them, then estimate their W from their own
-    training folds against that model's S and score them on each held-out fold (reference: that model's
-    S on the held-out columns, ste, for every metric).  Subject ii's held-out columns are never used to
-    estimate subject ii's own W.
+/*! -cv loso: fit the other subjects from an independent random start, using the
+    full iteration/tolerance/multistart settings.  Estimate subject ii's W from
+    their training columns against that S, then score their held-out columns.
+    The leave-out model is canonicalized independently before scoring.
+    No fitted parameters from subject ii enter the default leave-out fit.
+    mfull supplies only the gauge of written projections (after scoring).
 
-    How the leave-one-out group model is made: it is NOT a fresh fit.  It starts from the full fit to
-    everyone with subject ii removed (SRM_model_copy(mfull,ii): the others' W, rho2, Sigma_s) and runs
-    only -loso_iter (default 5) more iterations on the other subjects' data (all columns).
-
-    CAUTION (review 2026-11): because the full fit included subject ii (all runs, held-out ones too), the
-    others' W were fitted against an S that contained subject ii's data, and a few EM iterations do not
-    wash that out (SRM converges slowly).  The reference S then retains a component of subject ii's own
-    held-out data, which inflates their scores.  On NULL data with no shared signal (simulation, 10
-    subjects, k 10), the held-out ISC was about 0.17 and segment matching about 21% against ~1% chance
-    with 5 iterations, about 0.02 with 50, and at chance with a cold (random-start) fit to the others.
-    See ~/Desktop/3dRSA_Validation/srm_validation/loso_warmstart_leak.py (NumPy) and
-    loso_leak_srm_cli.py (the same with thd_srm.c via srm_cli).  The same applies wherever this function
-    is reached through srm_cv_one_fit (-cv_fit within / reference:GROUP, -balance), where the warm start
-    is the subset's own full fit.  Under -cv_fit reference the reference group is scored here (warm start,
-    affected) and the other groups by srm_cv_frozen (S fixed, never saw them, unaffected), so the two are
-    not on equal footing.  A clean variant would start each leave-one-out fit from a model that never saw
-    subject ii (e.g. a random start with the full iteration budget). */
+    Explicit -loso_start legacy reproduces the old full-model warm start with
+    -loso_iter steps.  The retained subjects' parameters still depend on ii,
+    including their held-out data, so those scores can be optimistic. */
 static void srm_cv_loso( const srm_ctx *cx , const SRM_model *mfull , const srm_folds *f , srm_want w ,
                          srm_cvres *res )
 {
    int nsub=cx->nsub , K=cx->K , T=cx->T , ii , jj , ff ; srm_prog bar ;
    const srm_opts *o=cx->o ;
+   if( o->loso_legacy )
+     WARNING_message("-loso_start legacy uses a fit that included the held-out subject; scores can be optimistic") ;
+   else if( !cx->quiet )
+     INFO_message("loso: independent cold starts, up to %d iterations, %d start(s) per subject",cx->par.niter,o->nstart) ;
    srm_prog_begin(&bar,cx->progress,cx->quiet,"loso","subjects",nsub) ;
    for( ii=0 ; ii<nsub ; ii++ ){
-     SRM_params par=cx->par ; SRM_model *mdrop , *ml=NULL ; SRM_fitinfo fi ;
+     SRM_params par=cx->par ; SRM_model *mdrop=NULL , *ml=NULL ; SRM_fitinfo fi ;
      int *nv=(int *)malloc(sizeof(int)*(size_t)(nsub-1)) ; float **xl=(float **)malloc(sizeof(float *)*(size_t)(nsub-1)) ;
      int q=0 , rc ; float *Ralign=(float *)malloc(sizeof(float)*(size_t)K*K) ;
      const unsigned char **ol=(const unsigned char **)calloc((size_t)nsub,sizeof(unsigned char *)) ;
      for( jj=0 ; jj<nsub ; jj++ ) if( jj!=ii ){ nv[q]=cx->sb[jj].nvox ; xl[q]=cx->sb[jj].x ; ol[q]=cx->sb[jj].obs ; q++ ; }
      if( cx->anymiss ) par.obs=(const unsigned char * const *)ol ;
-     mdrop=SRM_model_copy(mfull,ii) ;
-     if( mdrop==NULL ) ERROR_exit("out of memory copying the model for leave-one-out") ;
-     /* warm start from the full fit minus subject ii, for -loso_iter iterations: see the CAUTION above */
-     par.init=SRM_INIT_MODEL ; par.init_model=mdrop ; par.niter=o->loso_iter ; par.progress=NULL ; par.progress_ctx=NULL ;
+     par.progress=NULL ; par.progress_ctx=NULL ;
+     par.init=SRM_INIT_RANDOM ; par.init_model=NULL ;
+     if( o->loso_legacy ){
+       mdrop=SRM_model_copy(mfull,ii) ;
+       if( mdrop==NULL ) ERROR_exit("out of memory copying the model for leave-one-out") ;
+       par.init=SRM_INIT_MODEL ; par.init_model=mdrop ; par.niter=o->loso_iter ;
+     }
      if( par.coupling!=SRM_COUPLING_SHARED ){ par.nseg=cx->nrun ; par.seglen=cx->seglen ; }
      { srm_cmp cm ; int *oth=(int *)malloc(sizeof(int)*(size_t)nsub) , no=0 ;
        for( jj=0 ; jj<nsub ; jj++ ) if( jj!=ii ) oth[no++]=jj ;
        srm_cmp_set(cx->sb,cx->sidx,oth,no,K,&par,&cm) ;
-       rc=SRM_fit(nsub-1,T,nv,xl,&par,&ml,&fi) ;
+       if( o->loso_legacy ) rc=SRM_fit(nsub-1,T,nv,xl,&par,&ml,&fi) ;
+       else rc=SRM_fit_multistart(nsub-1,T,nv,xl,&par,o->nstart,&ml,&fi,NULL,NULL) ;
        srm_cmp_free(&cm) ; free(oth) ; }
      if( rc!=SRM_OK ) ERROR_exit("the leave-one-out fit without Subj %s failed: %s",cx->sb[ii].label,SRM_strerror(rc)) ;
+     if( !o->loso_legacy && !fi.converged && par.tol>0.0 && !cx->quiet )
+       WARNING_message("leave-one-out fit without Subj %s reached %d iterations without convergence",cx->sb[ii].label,fi.niter_done) ;
      SRM_free_fitinfo(&fi) ; SRM_free_model(mdrop) ;
+     if( !o->loso_legacy ){
+       /* ISC averages component-wise correlations, which depend on the basis.
+          Use the leave-out model's own canonical basis, as in run CV; aligning
+          to mfull before scoring would reintroduce the excluded subject. */
+       rc=SRM_canonicalize(ml) ;
+       if( rc!=SRM_OK ) ERROR_exit("could not canonicalize the leave-one-out fit for Subj %s: %s",cx->sb[ii].label,SRM_strerror(rc)) ;
+     }
      rc=SRM_procrustes_rotation(ml->s,mfull->s,K,T,Ralign) ;   /* for the projection output's gauge only */
      if( rc!=SRM_OK ) ERROR_exit("could not align the gauge for Subj %s: %s",cx->sb[ii].label,SRM_strerror(rc)) ;
 
@@ -2505,9 +2527,8 @@ static void srm_folds_subset_free( srm_folds *g , const srm_folds *f )
    if( f->scol!=NULL ){ free(g->scol) ; free(g->slen) ; }
 }
 
-/*! The full fit of a subset's subjects (warm start for leave-one-out, and the gauge of their projections).
-    A fresh fit (random start, full -niter): it never saw subjects outside the subset.  Its subjects are,
-    of course, all inside it, which is why a srm_cv_loso warm-started from it inherits the CAUTION there. */
+/*! Fit a subset for its in-sample reference and projection gauge.  Default
+    LOSO fits independently of this model; legacy LOSO warm-starts from it. */
 static SRM_model * srm_fit_subset( const srm_ctx *c , const char *what )
 {
    SRM_params par=c->par ; SRM_model *m=NULL ; SRM_fitinfo fi ; int j , rc ;
@@ -2627,8 +2648,8 @@ static void srm_draw( const int *a , int n , int k , unsigned long long seed , i
     sel[] is the reference group, scored leave-one-out, and others[] are scored as new subjects.
     Steps: a subset context and folds (shallow views of cx/f); the subset's full fit m; Rg, the rotation from
     m's gauge to the pooled fit's (for projections only); the ordinary CV scheme inside the subset; its
-    scores added into the whole-table accumulator acc.  Note the reference/others asymmetry described in the
-    srm_cv_loso CAUTION. */
+    scores added into the whole-table accumulator acc.  Reference subjects use
+    N-1 reference members; outside subjects use all N reference members. */
 static void srm_cv_one_fit( const srm_ctx *cx , const SRM_model *mpool , const srm_folds *f , srm_want w ,
                             srm_cvres *r , srm_cvacc *acc , const int *sel , int n , const int *oth , int no ,
                             int quiet , const char *what )
@@ -4432,6 +4453,18 @@ static void srm_memory_preflight( const srm_opts *o , const srm_data *d , int K 
    }
    me.shared=SRM_estimate_bytes(d->nsub,nv0,d->Tin,K,o->par.algo,0)
             + Wb*(nsegfit>0 ? (double)nsegfit : 0.0) + (o->nstart>1 ? Wb : 0.0) ;
+   if( do_cv && !strcasecmp(o->cvmode,"loso") ){
+     double state=12.0*K*d->Tin + 4.0*K*K + 4.0*d->nsub ; /* S, a_sum, Sigma, counts */
+     double model=Wb*(1.0+nsegfit) + (o->par.center ? Wb/K : 0.0) + state ;
+     int retained=(o->cv_fit!=NULL && strcasecmp(o->cv_fit,"pooled")) ? 2 : 1 ;
+     /* Pooled model, possibly a subset model, and either the legacy copy or
+        a cold coupled fit's shared-W initialization remain live during fitting. */
+     me.shared+=retained*model ;
+     if( o->loso_legacy ) me.shared+=model ;
+     else if( nsegfit>0 ) me.shared+=Wb+(o->par.center ? Wb/K : 0.0)+state ;
+     /* The ordinary estimate already includes W for the best multistart fit. */
+     if( !o->loso_legacy && o->nstart>1 ) me.shared+=model-Wb ;
+   }
    if(do_cv)me.shared+=srm_common_fold_bytes(o,d);
    me.system=(double)AFNI_get_memsize() ;
    me.limit=o->memory_limit_given ? o->memory_limit_gib*GIB : ((me.system>0.0) ? 0.80*me.system : 0.0) ;
@@ -5527,7 +5560,13 @@ int main( int argc , char **argv )
      else if( IS("-cv_metrics") ){ NEEDARG("a comma list") ; o.cv_metrics=argv[nopt++] ; }
      else if( IS("-match_window") ){ NEEDARG("an integer") ; o.match_window=atoi(argv[nopt++]) ; o.match_window_given=1 ;
        if( o.match_window<1 ) ERROR_exit("-match_window must be at least 1") ; }
-     else if( IS("-loso_iter") ){ NEEDARG("an integer") ; o.loso_iter=atoi(argv[nopt++]) ;
+     else if( IS("-loso_start") ){
+       const char *mode ; NEEDARG("cold or legacy") ; mode=argv[nopt++] ; o.loso_start_given=1 ;
+       if( !strcasecmp(mode,"cold") ) o.loso_legacy=0 ;
+       else if( !strcasecmp(mode,"legacy") ) o.loso_legacy=1 ;
+       else ERROR_exit("-loso_start must be cold or legacy") ;
+     }
+     else if( IS("-loso_iter") ){ NEEDARG("an integer") ; o.loso_iter=atoi(argv[nopt++]) ; o.loso_iter_given=1 ;
        if( o.loso_iter<1 ) ERROR_exit("-loso_iter must be at least 1") ; }
      else if( IS("-fold_column") ){ NEEDARG("a name") ; o.fold_col=argv[nopt++] ; }
      else if( IS("-cv_adapt") ){ NEEDARG("a fraction") ; o.cv_adapt=atof(argv[nopt++]) ; o.cv_adapt_given=1 ;
@@ -5628,6 +5667,12 @@ int main( int argc , char **argv )
      ERROR_exit("-fold_column is for -axis item; with -axis time the folds are the runs (or -cv_blocks)") ;
    if( o.fold_col!=NULL && strcasecmp(o.cvmode,"none")==0 ) ERROR_exit("-fold_column needs -cv run or -cv loso") ;
    if( o.concat!=NULL && o.axis_item ) ERROR_exit("-concat splits a time series into runs; it is for -axis time") ;
+   if( o.loso_start_given ){
+     if( strcasecmp(o.cvmode,"loso") ) ERROR_exit("-loso_start needs -cv loso") ;
+     if( o.model_in!=NULL || o.apply_W!=NULL ) ERROR_exit("-loso_start is for fitting, not -model_in or -apply_W") ;
+   }
+   if( o.loso_iter_given && !o.loso_legacy && !strcasecmp(o.cvmode,"loso") )
+     WARNING_message("-loso_iter is ignored with cold starts; use -niter and -tol (or explicitly -loso_start legacy)") ;
    if( o.cv_adapt_given ){
      if( o.model_in!=NULL || o.apply_W!=NULL ) ERROR_exit("-cv_adapt goes with -run_coupling in a fit: not with -model_in or -apply_W") ;
      if( o.par.coupling==SRM_COUPLING_SHARED )
