@@ -12,6 +12,88 @@
 
 #define PROGRAM_NAME "3dSRM"
 
+/*----------------------------------------------------------------------------
+  How to read this file
+  =====================
+
+  3dSRM is the command-line driver around the dataset-agnostic Shared Response
+  Model numerics in thd_srm.c / thd_srm.h (read the header comment of
+  thd_srm.h first: it defines the model X_i ~= W_i S + noise, the matrix
+  layouts, and the gauge).  Everything in THIS file is about getting data in
+  and results out: tables, datasets, censoring, normalization, cross-validation
+  bookkeeping, scores, and output files.  No SRM math lives here.
+
+  Program flow (main, at the bottom of the file)
+    1. Options are parsed into an srm_opts.  Many combinations are refused
+       early with a message saying what to do instead.
+    2. The data table (-dataTable / -dataTableFile; thd_datatable.h) is read.
+       One row per subject (x run, or x item).  Optional expansions: an Xmat
+       column on the item axis becomes one row per stimulus column (-axis item),
+       and -lss expands LSS event tables.
+    3. Two side paths leave main early:
+         -model_in : place NEW subjects into a saved model (srm_run_model_in).
+         -apply_W  : apply each subject's saved W to OTHER data of that subject
+                     (srm_run_apply_W).
+    4. The data stage (functions named srm_data_*), in this order:
+         table   -> subjects, runs, groups, masks           (srm_data_table / _items)
+         shape   -> open headers: lengths, grids, masks      (srm_data_shape / _items)
+         read    -> masked time series onto the input timeline (srm_data_read / _items)
+         censor  -> each subject's censored points: interp, drop, or missing
+         timeline-> keep the retained time points, pack the columns
+         normalize-> z-score each feature within each run, drop constant features
+       With -compress (the default when every subject has more voxels than time
+       points) the stage runs one subject at a time and each subject's data X
+       (voxels x T) is replaced by a small factor R (rank x T) with R'R = X'X
+       (srm_data_compress_stream).
+    5. The fit (SRM_fit_multistart), canonicalized so components are ordered
+       by variance (SRM_canonicalize).
+    6. Optional held-out scoring (-cv run | loso), possibly per group
+       (-cv_fit, -balance), per condition (-score_by), with permutation tests
+       (-nperm) and reliability (-reliability).
+    7. Outputs: PREFIX.S.1D, .objective.1D, .rho2.1D, .fit.txt, .scores*.txt,
+       the model file PREFIX.srm (SRM_save_model), and per-subject projections,
+       W maps, reconstructions and R^2 maps.
+
+  A short glossary for readers new to neuroimaging
+    dataset     An AFNI 3D+time file (BRIK/HEAD or NIfTI): a 3D grid of voxels,
+                with one volume (also called a sub-brick) per time point or per
+                statistic.  THD_open_dataset / DSET_* macros access it.
+    voxel       One grid location (a "feature" here).  A subject's matrix X has
+                one row per voxel inside the mask, one column per sample.
+    mask        A dataset whose nonzero voxels are the ones analyzed.  s->vox[f]
+                is the grid index of feature f.
+    grid        The geometry (dimensions, voxel size, orientation) of a dataset;
+                EQUIV_GRIDS checks two datasets share it.
+    TR          Repetition time: seconds between successive volumes.
+    run         One continuous scan.  Runs are concatenated in time; z-scoring,
+                interpolation and -cv folds respect the run boundaries.
+    censoring   Dropping time points with too much head motion.  afni_proc.py
+                writes a 0/1 censor file and, in its residual dataset ("errts"),
+                sets censored volumes to zero.  Its regression design
+                X.xmat.1D (thd_xmat.h) records RunStart (where runs begin in a
+                concatenated input) and GoodList (the uncensored time points).
+    time vs item axis
+                -axis time: columns are time points of one stimulus that every
+                subject experienced in sync (a movie).  -axis item: columns are
+                trial or condition betas, matched across subjects by label.
+    z-scoring   Per feature: subtract the mean and divide by the standard
+                deviation, here separately within each run (-zscore run).
+
+  The main structs
+    srm_opts   every command-line option (one instance, in main).
+    srm_subj   one subject: table rows, mask voxels, data x (nvox x T), the
+               censoring masks, and (-compress) the factor R in place of x.
+    srm_data   the whole table's data stage: subjects, runs, the input and the
+               retained timelines, the item keys.
+    srm_ctx    what the cross-validation code needs: subjects, T, K, params,
+               the -score_by factors.  Subsets of subjects get their own
+               shallow srm_ctx (srm_ctx_subset).
+    srm_folds  the held-out sets (runs, time blocks, or item levels); either one
+               common plan (thd_crossval.h) or each subject's own folds.
+    srm_cvres  the held-out scores [subject][fold][metric], per-level scores,
+               held-out projections, voxelwise R^2.
+------------------------------------------------------------------------------*/
+
 /*! Threads the fits may use (for the memory estimate). */
 static int srm_omp_threads( void )
 {
@@ -29,7 +111,7 @@ static char *srm_options[] = {
    "-censor", "-zcensor", "-zcensor_warn",
    "-axis", "-lss", "-item_column", "-repeated_stimulus", "-time_labels",
    "-model_in", "-update_S", "-run_coupling", "-cv_adapt", "-apply_W", "-score_by", "-cv_fit", "-balance", "-reliability", "-compress", "-no_compress",
-   "-nsplit", "-nperm", "-cv", "-cv_blocks", "-cv_metrics", "-match_window", "-loso_iter",
+   "-nsplit", "-nperm", "-cv", "-cv_blocks", "-cv_metrics", "-match_window", "-loso_iter", "-loso_start",
    "-save_W", "-save_recon", "-save_r2", "-proj_format", "-no_projected",
    "-memory_limit", "-memory_override", "-quiet", "-progress",
    "-dataTable", "-dataTableFile", "-show_table", "-help", "-h", NULL
@@ -62,7 +144,8 @@ static void usage_3dSRM(void)
 "Typical uses:\n"
 "  * Subject-wise k x time series in a common space (the 'projected' output)\n"
 "    for 3dRSA, 3dInSync, decoding, or a group t-test of a held-out score.\n"
-"  * Denoising: only activity shared across subjects survives the bottleneck.\n"
+"  * Dimension reduction that emphasizes shared responses. Noise can remain,\n"
+"    and task-specific or individual differences can be lost.\n"
 "  * Placing new subjects into an existing space, now or months later, from a\n"
 "    saved model and without the original subjects' data (see -model_in).\n"
 "\n"
@@ -504,8 +587,9 @@ static void usage_3dSRM(void)
 "  A new subject's W is fitted to their own data, so its fit to that data is\n"
 "  flattering by construction. Use -cv run with -model_in: W is then estimated\n"
 "  from all of the subject's runs but one (or blocks but one), and the subject\n"
-"  is scored on the part left out. The scores are then directly\n"
-"  comparable to those from -cv loso on the original subjects.\n"
+"  is scored on the part left out. The scores are\n"
+"  analogous to -cv loso on the original subjects, but use the full reference\n"
+"  group rather than a reference group with one subject removed.\n"
 "\n"
 "  -update_S            ** EXPERIMENTAL **\n"
 "                       Let S absorb the new subjects, and write a new\n"
@@ -567,10 +651,10 @@ static void usage_3dSRM(void)
 "\n"
 "Applying a subject's W to other data from the same subject: ~1~\n"
 "\n"
-"  The cleanest way to analyze a task is to align on data that are independent\n"
-"  of what you test: fit on a movie (or on some runs), then carry each subject\n"
-"  over to the task data with that subject's own W. Nothing about the task\n"
-"  labels then touches the alignment.\n"
+"  To keep task labels out of alignment fitting and model selection, learn W\n"
+"  on independent data, then apply each subject's W to their task data. The\n"
+"  retained dimensions must capture information useful for the new task;\n"
+"  success on the alignment stimulus alone does not establish that transfer.\n"
 "\n"
 "  -apply_W PREFIX      Use the W datasets from an earlier -save_W run (the\n"
 "                       PREFIX.W.SUBJ datasets and PREFIX.srm). For each table\n"
@@ -596,9 +680,10 @@ static void usage_3dSRM(void)
 "                       all of the subject's items instead, and this is said.\n"
 "\n"
 "                       The projected series of different subjects can then go\n"
-"                       to 3dRSA, 3dInSync, or a classifier. Since W is\n"
-"                       fitted on other data, an effect found there cannot come\n"
-"                       from the alignment.\n"
+"                       to 3dRSA, 3dInSync, or a classifier. Independent fitting\n"
+"                       avoids fitting the tested task labels, but normalization,\n"
+"                       dimension reduction and the alignment sample still\n"
+"                       affect the result. Test transfer on held-out task data.\n"
 "\n"
 "                       Requires that the earlier run used -save_W.\n"
 "\n""Validation:                                                 ~1~\n"
@@ -618,21 +703,33 @@ static void usage_3dSRM(void)
 "                              on all OTHER subjects and every time point.\n"
 "                              Then estimate that subject's W from their own\n"
 "                              training runs and score them on a held-out run.\n"
-"                              The held-out data touch neither S nor any W, so\n"
+"                              With cold starts, their held-out data touch\n"
+"                              neither S nor any fitted W used for scoring, so\n"
 "                              the score is a clean estimate of how well a new\n"
 "                              person maps into an existing space. Folds\n"
 "                              within the subject are leave-one-run-out, or\n"
 "                              -cv_blocks contiguous blocks if there is one run.\n"
-"                              Costs one group fit per subject.\n"
+"                              Uses independent cold starts by default; costs\n"
+"                              one full group fit per subject (-niter, -tol,\n"
+"                              -nstart). Written projections are aligned to the\n"
+"                              pooled fit AFTER scoring; this output alignment\n"
+"                              itself depends on all subjects.\n"
 "\n"
 "  -cv_blocks B         Contiguous time blocks used as folds in place of runs\n"
 "                       when the data have a single run [2]. Time points near a\n"
 "                       block edge are autocorrelated with the other side, so\n"
 "                       scores are a little optimistic; separate runs are\n"
 "                       better.\n"
-"  -loso_iter M         Iterations for each leave-one-subject-out group refit.\n"
-"                       The refit starts from the full fit minus that subject,\n"
-"                       so a few iterations are enough [5].\n"
+"  -loso_start MODE     cold [default]: fit each leave-out model independently\n"
+"                       on the other subjects, using -niter, -tol and -nstart.\n"
+"                       Score in each leave-out model's own canonical basis.\n"
+"                       legacy: reproduce the old full-model warm start, with\n"
+"                       -loso_iter steps. WARNING: that start already contains\n"
+"                       the held-out subject's influence and can inflate scores.\n"
+"                       Requires -cv loso in fit mode (time or item axis).\n"
+"  -loso_iter M         Iterations for -loso_start legacy only [5]. Ignored for\n"
+"                       cold starts. More legacy iterations do not guarantee\n"
+"                       independence from the held-out subject.\n"
 "\n"
 "  -cv_metrics LIST     Comma list from: isc, match, r2 [all three].\n"
 "                       isc   : correlation of the subject's projected held-out\n"
@@ -722,7 +819,10 @@ static void usage_3dSRM(void)
 "                                   folds). Asks: do they use the reference\n"
 "                                   group's space? Reference subjects are scored\n"
 "                                   leave-one-subject-out, the others as new\n"
-"                                   subjects, so the scores are comparable.\n"
+"                                   subjects. Reference members use N-1 training\n"
+"                                   subjects; outside members use N. Both exclude\n"
+"                                   the scored subject with cold starts, but the\n"
+"                                   training sample sizes still differ.\n"
 "                                   Needs -cv loso.\n"
 "                       Held-out projections are rotated into the gauge of the\n"
 "                       fit to everyone, so all subjects' stay comparable.\n"
@@ -952,7 +1052,10 @@ static void usage_3dSRM(void)
 "  on every line except the last row. For -dataTableFile, save the displayed\n"
 "  header and rows as plain text, without backslashes or shell quotes.\n"
 "  Time-series examples assume synchronized movie runs, with enough time\n"
-"  points and retained voxels for the requested number of features.\n"
+"  points and retained voxels for the requested number of features, including\n"
+"  in each training fold. These illustrate commands, not guaranteed biological\n"
+"  results. Numerical checks and held-out scores on the alignment stimulus\n"
+"  do not establish cross-task transfer or anatomical localization.\n"
 "\n"
 "  Example 1: Fit, with held-out run scores\n"
 "\n"
@@ -967,10 +1070,15 @@ static void usage_3dSRM(void)
 "  This writes movie_srm.srm for Examples 3 and 6. Example 8 shows how to\n"
 "  choose the number of features before fitting a final model.\n"
 "\n"
-"  Example 2: Subjects in native space, each with their own mask\n"
+"  Example 2: Native-space responses projected into shared features\n"
 "\n"
 "  3dSRM -prefix native_srm -nfeatures 30 -cv loso \\\n"
 "        -dataTableFile native.txt\n"
+"\n"
+"  Choose a mask for each subject that includes the system you want to study,\n"
+"  independently of the held-out effects. Grids and voxel counts may differ\n"
+"  across people. Within a person, their runs and mask must already be aligned\n"
+"  to the same anatomy and grid; the +orig suffix alone does not ensure this.\n"
 "\n"
 "  Contents of native.txt (at least 3 subjects for leave-one-subject-out):\n"
 "    Subj Run Mask          InputFile\n"
@@ -980,6 +1088,11 @@ static void usage_3dSRM(void)
 "    s02  r2  s02_mask+orig s02_r2+orig\n"
 "    s03  r1  s03_mask+orig s03_r1+orig\n"
 "    s03  r2  s03_mask+orig s03_r2+orig\n"
+"\n"
+"  SRM learns weighted combinations of these voxels from corresponding movie\n"
+"  responses. It does not label FFA, estimate a spatial warp, or move activity\n"
+"  to matching anatomical coordinates. Output locations index shared\n"
+"  components; they are not a brain grid for voxelwise cluster inference.\n"
 "\n"
 "  Example 3: Place new subjects in the model from Example 1 and score them\n"
 "\n"
@@ -998,7 +1111,7 @@ static void usage_3dSRM(void)
 "\n"
 "  3dSRM -prefix faces -axis item -nfeatures 20 -cv loso \\\n"
 "        -mask brain+tlrc -score_by Category -cv_fit reference:control \\\n"
-"        -balance 50 -reliability within,split -nperm 5000 \\\n"
+"        -balance 50 -nperm 5000 \\\n"
 "        -dataTableFile betas.txt\n"
 "\n"
 "  Sample rows from betas.txt:\n"
@@ -1017,26 +1130,37 @@ static void usage_3dSRM(void)
 "    s05  patient face_017  face     r2  s05_betas_r2+tlrc[2]\n"
 "\n"
 "  These are excerpts: include all subjects and items in the actual file.\n"
-"  Use at least 4 subjects per group for split reliability, enough training\n"
-"  items and voxels for 20 features, and repeated items in each category for\n"
-"  within-subject reliability (at least 3 per category for rel_series).\n"
+"  Use at least 3 control subjects for LOSO, enough subjects for the group\n"
+"  comparison, and enough training items and voxels for 20 features.\n"
 "  Item labels match stimuli across subjects even when volume order differs.\n"
-"  The reference-group comparison requires -cv loso.\n"
+"  The reference-group comparison requires -cv loso. These are comparisons\n"
+"  of held-out alignment scores, not voxelwise face-minus-house activation\n"
+"  tests. Controls use N-1 reference subjects, patients use all N. Balancing\n"
+"  group sizes does not remove this training-size difference.\n"
+"  For separate GLMs per run, add -zscore run (at least 3 items in each run).\n"
 "\n"
-"  Example 5: Align on the movie, then carry each subject over to the task\n"
+"  Example 5: Test whether movie-derived features transfer to a visual task\n"
 "\n"
-"  Fit the movie data from Example 1 again with -save_W, using a new prefix:\n"
+"  Use independent visual/movie data from the same subjects and masks that\n"
+"  cover the visual system of interest. The common ventral_temporal mask\n"
+"  below assumes anatomically aligned inputs; for native-space inputs use\n"
+"  per-subject masks as in Example 2. A story fit in an auditory mask does\n"
+"  not establish a useful alignment for a face/house task.\n"
 "\n"
-"  3dSRM -prefix movie -nfeatures 50 -save_W -mask brain+tlrc \\\n"
+"  Fit the movie runs with -save_W, using a new prefix:\n"
+"\n"
+"  3dSRM -prefix movie -nfeatures 50 -save_W -mask ventral_temporal+tlrc \\\n"
 "        -dataTable Subj Run InputFile \\\n"
 "                   s01 r1  s01_r1+tlrc \\\n"
 "                   s01 r2  s01_r2+tlrc \\\n"
 "                   s02 r1  s02_r1+tlrc \\\n"
 "                   s02 r2  s02_r2+tlrc\n"
 "\n"
-"  Apply those maps to task betas from the same subjects, on each subject's\n"
-"  movie-data grid. Quote dataset selectors in an inline table so the shell\n"
-"  passes the brackets to 3dSRM. Add rows for the remaining task items.\n"
+"  Register each subject's task data to their movie data before estimating\n"
+"  or resampling the betas. Matching grid headers is necessary but does not\n"
+"  establish anatomical alignment. Apply W to the corresponding voxels.\n"
+"  Quote selectors in an inline table so the shell passes the brackets.\n"
+"  The rows below are excerpts: add the remaining trials and subjects.\n"
 "\n"
 "  3dSRM -prefix task -axis item -apply_W movie \\\n"
 "        -dataTable Subj Item      InputFile \\\n"
@@ -1047,10 +1171,26 @@ static void usage_3dSRM(void)
 "                   s02 face_017  's02_task+tlrc[1]' \\\n"
 "                   s02 face_023  's02_task+tlrc[2]'\n"
 "\n"
+"  Each output trial is a K-component vector, W_i' times that subject's\n"
+"  prepared voxel pattern. No task mapping is fitted and no anatomical\n"
+"  activation map is relocated. The saved normalization is applied to the\n"
+"  NEW betas: here, with no Run column, each voxel is z-scored across items.\n"
+"  These features do not retain the original beta amplitude units. With\n"
+"  -zscore none in the saved fit, application still centers the new data.\n"
+"\n"
+"  Evaluate cross-subject classification or RSA on independent task data,\n"
+"  keeping test labels out of alignment/mask/K selection. Compare against\n"
+"  anatomical alignment and a dimension-matched baseline. Good movie scores\n"
+"  alone do not show that face/house information transfers. For claims about\n"
+"  FFA location or activation amplitude, use an independent localizer and\n"
+"  evaluate that anatomical/amplitude question explicitly.\n"
+"\n"
 "  Example 6: Add another site's subjects to the model from Example 1\n"
 "\n"
 "  As in Example 3, these subjects saw the same movie runs. -update_S updates\n"
 "  the shared response using the new subjects; the original data stay local.\n"
+"  This is an approximate update with the old W fixed. Here -cv run scores\n"
+"  new subjects against the pre-update S; it does not validate the updated S.\n"
 "\n"
 "  3dSRM -prefix movie_v2 -model_in movie_srm.srm -update_S -cv run \\\n"
 "        -mask brain+tlrc \\\n"
@@ -1062,15 +1202,22 @@ static void usage_3dSRM(void)
 "\n"
 "  Example 7: Allow each run its own W, tied to the subject's anchor\n"
 "\n"
-"  Use the same data as Example 1 to compare shared W with run-specific W:\n"
+"  Supply at least THREE synchronized runs per subject: each run-CV fit\n"
+"  needs two remaining runs for run-specific W. Compare with a shared-W fit\n"
+"  on the same three-run table. Adaptation uses the first quarter of the\n"
+"  held-out run; adapted and unadapted scores both use the remaining samples.\n"
+"  With K=50 and -cv_adapt 0.25, each run needs at least 200 retained samples\n"
+"  before any subject-specific missing samples in the adaptation portion.\n"
 "\n"
 "  3dSRM -prefix movie_rc -nfeatures 50 -run_coupling 200 -cv run \\\n"
 "        -cv_adapt 0.25 -mask brain+tlrc \\\n"
 "        -dataTable Subj Group   Run InputFile \\\n"
 "                   s01 control r1  s01_r1+tlrc \\\n"
 "                   s01 control r2  s01_r2+tlrc \\\n"
+"                   s01 control r3  s01_r3+tlrc \\\n"
 "                   s02 control r1  s02_r1+tlrc \\\n"
-"                   s02 control r2  s02_r2+tlrc\n"
+"                   s02 control r2  s02_r2+tlrc \\\n"
+"                   s02 control r3  s02_r3+tlrc\n"
 "\n"
 "  Example 8: Choose k using held-out scores\n"
 "\n"
@@ -1085,22 +1232,22 @@ static void usage_3dSRM(void)
 "        -mask brain+tlrc -dataTableFile subjects.txt\n"
 "\n"
 "  Inspect scan.nfeat.txt, then rerun Example 1 with the chosen -nfeatures\n"
-"  value and a fresh prefix to write the model and projected data.\n"
+"  value and a fresh prefix to write the model and projected data. Those\n"
+"  scores were used for model selection; evaluate the chosen setting on an\n"
+"  additional independent split for a final predictive claim.\n"
 "\n"
 "Reading the results:                                        ~1~\n"
 "\n"
-"  * The components have no fixed meaning. Any rotation of S, applied with the\n"
-"    opposite rotation to every W_i, fits equally well, and other seeds find\n"
-"    others. Do not test component 3's map across subjects, or compare\n"
-"    component numbers between runs of the program.\n"
-"  * Quantities that do not depend on that rotation are safe: the reconstruction\n"
-"    R^2, the mean projected-space correlation, and segment-matching accuracy.\n"
-"    Use their held-out versions for inference.\n"
-"  * Under -cv loso every subject's score comes from a model that never saw\n"
-"    them, so the scores are fair to compare between subjects and groups.\n"
-"    Under -cv run the subjects all contributed to the model that scores them\n"
-"    on other runs, which suits comparing methods, k, or ROIs, but is less\n"
-"    clean for between-subject inference.\n"
+"  * Components are coordinates in a learned representation, not named brain\n"
+"    regions. Do not match component numbers across independently fitted\n"
+"    models or interpret component locations as anatomical coordinates.\n"
+"  * Reconstruction R^2 is invariant to a consistent orthogonal rotation.\n"
+"    Component-wise ISC is not; do not assume all scores are rotation-invariant.\n"
+"    The default cold LOSO fits use their own canonical basis for scoring.\n"
+"  * Under default -cv loso, the group reference excludes the scored subject.\n"
+"    -loso_start legacy does not provide that independence. Training sample\n"
+"    size, noise and convergence still matter for group comparisons.\n"
+"    -cv run evaluates held-out runs of subjects included in training.\n"
 "  * To compare groups, use -cv_fit and -balance. A pooled model is built more\n"
 "    from the larger or less noisy group and maps that group better, with\n"
 "    nothing to do with the groups differing in function.\n"
@@ -1142,7 +1289,7 @@ static void usage_3dSRM(void)
 #define PROG_BAR  1
 #define SRM_CEN_INTERP 0          /* filled in, within the run, from the subject's neighbors */
 #define SRM_CEN_DROP   1          /* dropped for everyone */
-#define SRM_CEN_MISSING 2         /* missing for that subject only (not yet) */
+#define SRM_CEN_MISSING 2         /* missing for that subject only (SRM_params.obs) */
 
 #define PROG_LINE 2
 #define PROG_OFF  3
@@ -1165,6 +1312,7 @@ typedef struct {
    int     compress_given , no_compress ;
    char   *cvmode ;                  /* none | run | loso */
    int     cv_blocks , match_window , loso_iter ; int cv_blocks_given , match_window_given ;
+   int     loso_legacy , loso_start_given , loso_iter_given ;
    char   *cv_metrics , *fold_col , *score_by , *cv_fit ;
    int     balance , nsplit , nperm ;
    char   *reliability ; int rel_within , rel_split ;
@@ -1181,6 +1329,8 @@ typedef struct {
    int     given_algo , given_niter , given_tol , given_seed , given_zscore , given_coupling , given_mask ;
 } srm_opts ;
 
+/*! Fill o with the program defaults.  AFNI_SRM_KERNEL (VOXEL or GRAM) in the
+    environment forces one of the library's two fitting kernels, for testing. */
 static void srm_opts_default( srm_opts *o )
 {
    memset(o,0,sizeof(*o)) ;
@@ -1195,7 +1345,8 @@ static void srm_opts_default( srm_opts *o )
    o->proj_dset=1 ; o->progress=PROG_AUTO ;
 }
 
-/*! Comma list of positive integers. */
+/*! Comma list of positive integers (each 1..100000), e.g. "-nfeatures 10,20,50".
+    Returns a malloc'ed array and its length in *n, or NULL if any entry is bad. */
 static int * srm_parse_intlist( const char *s , int *n )
 {
    char *copy=strdup(s) , *tok ; int *v=NULL , nn=0 ;
@@ -1218,6 +1369,9 @@ typedef struct {
    char label[24] , unit[24] ;
 } srm_prog ;
 
+/*! Start a progress display: a redrawn bar on a terminal (PROG_BAR), or
+    periodic INFO lines (PROG_LINE, e.g. when stderr goes to a log).  Disabled
+    by -quiet, -progress off, or total <= 0. */
 static void srm_prog_begin( srm_prog *p , int mode , int quiet , const char *label ,
                             const char *unit , int total )
 {
@@ -1273,7 +1427,9 @@ static void srm_prog_end( srm_prog *p )
    }
 }
 
-/* progress for the fit: iterations of the current start */
+/* progress for the fit: iterations of the current start.  srm_fit_progress is
+   handed to the library as SRM_params.progress, and called once per iteration
+   with the objective; iteration 0 marks the beginning of a new random start. */
 typedef struct { srm_prog *bar ; int istart , nstart ; double first_obj ; const char *tag ; } fit_prog ;
 
 static void srm_fit_progress( int it , int niter , double obj , void *vctx )
@@ -1289,6 +1445,13 @@ static void srm_fit_progress( int it , int niter , double obj , void *vctx )
   Subjects and their data
 ==============================================================================*/
 
+/* One subject.  Life cycle of x: srm_data_read fills it as nvox_mask x Tin
+   (every input time point); srm_data_timeline packs it to the retained T
+   columns; srm_data_normalize z-scores it and drops constant rows (nvox <=
+   nvox_mask, vox[] compacted to match).  With -compress, x is then replaced by
+   R (rank x T, R'R = X'X), nvox becomes the rank, and ndim remembers how many
+   voxels R stands for.  All matrices are row-major, feature f's series at
+   x + f*T, as in thd_srm.h. */
 typedef struct {
    char   *label ;
    int     group ;
@@ -1324,7 +1487,18 @@ typedef struct {
 /*! The subjects of one fit (sb[sel[j]], j < n; sel NULL: sb[j]) with K components: each starts from the random
     start of its own index in the whole table (orig[], the whole-table index of each entry of sb; NULL: its
     position), whatever subset the fit is of; with -compress, also the voxel counts and those starts carried
-    into R.  Set into par; srm_cmp_free afterwards. */
+    into R.  Set into par; srm_cmp_free afterwards.
+
+    Why the stream matters: the library draws subject i's random starting W
+    from (seed, stream i).  Giving each subject its whole-table index as the
+    stream means a subject starts identically in the full fit and in every
+    subset or fold fit, so differences between fits are not start noise.  Why
+    w0: a compressed subject is R = U'X; the uncompressed fit's start W0 is
+    carried into that space as U'W0 (SRM_compress_ex), so the compressed fit
+    follows the uncompressed one step for step.  The w0 stored on the subject
+    was made for the largest K; the first K columns are the start for K
+    components because the random orthonormal start is built column by column
+    (Gram-Schmidt), so its first K columns are the K-column start. */
 typedef struct { double *ndim ; float **w0 ; int *stream ; int n ; SRM_params *par ; } srm_cmp ;
 
 static void srm_cmp_set( const srm_subj *sb , const int *orig , const int *sel , int n , int K , SRM_params *par , srm_cmp *c )
@@ -1348,6 +1522,7 @@ static void srm_cmp_set( const srm_subj *sb , const int *orig , const int *sel ,
    par->ndim=c->ndim ; par->w0=(float * const *)c->w0 ; c->par=par ;
 }
 
+/*! Undo srm_cmp_set: free its arrays and clear the borrowed pointers in par. */
 static void srm_cmp_free( srm_cmp *c )
 {
    int j ;
@@ -1357,6 +1532,8 @@ static void srm_cmp_free( srm_cmp *c )
 }
 
 
+/*! 1 if an input name is a text matrix: "1D:" inline syntax, or a name ending in
+    .1D (ignoring any [..] column selector). */
 static int srm_is1D( const char *name )
 {
    const char *br=strchr(name,'[') ; size_t n=br ? (size_t)(br-name) : strlen(name) ;
@@ -1375,8 +1552,9 @@ static void srm_safe( char *dst , size_t nd , const char *src )
    dst[i]='\0' ;
 }
 
-/*! Does a dataset with this prefix already exist, under any of AFNI's names? */
-/*! Does a dataset with this prefix exist?  If so and found!=NULL, its openable name goes in found. */
+/*! Does a dataset with this prefix already exist, under any of AFNI's names
+    (+orig/+tlrc/+acpc BRIK/HEAD, .nii, .nii.gz, or the name itself)?  If so and
+    found!=NULL, its openable name goes in found. */
 static int srm_dset_find( const char *prefix , char *found , size_t nfound )
 {
    static const char *suf[]={"+orig.HEAD","+tlrc.HEAD","+acpc.HEAD",".nii",".nii.gz",NULL} ;
@@ -1391,8 +1569,14 @@ static int srm_dset_find( const char *prefix , char *found , size_t nfound )
 
 static int srm_dset_exists( const char *prefix ){ return srm_dset_find(prefix,NULL,0) ; }
 
+/* A mask read once and shared by every subject that names it (subjects often
+   share one -mask).  mask[] is 0/1 over the grid's nvox voxels, nmask of them on. */
 typedef struct { char *name ; byte *mask ; int nvox , nmask ; THD_3dim_dataset *ds ; } mask_entry ;
 
+/*! The cached mask for name, loading it the first time (nonzero voxels, from
+    THD_makemask).  The cache array may be realloc'ed, so a returned pointer is
+    valid only until the next new mask is added.  ERROR_exit on an unreadable or
+    empty mask. */
 static mask_entry * srm_mask_get( mask_entry **cache , int *ncache , const char *name )
 {
    int ii ; mask_entry *e ;
@@ -1413,7 +1597,13 @@ static mask_entry * srm_mask_get( mask_entry **cache , int *ncache , const char 
 /*! Read dataset ds (masked voxels vox[0..nvox-1]) into x, a nvox x ldx array,
     columns col0 ... col0+nt-1.  Also flags, for -zcensor, volumes that are all
     zero in the mask.  Returns the number of non-finite values met (and the
-    first one's location) so the caller can name the culprit. */
+    first one's location) so the caller can name the culprit.
+
+    Volume by volume: THD_extract_float_brick returns volume tt as floats with
+    the brick's scale factor applied (datasets are often stored as shorts plus
+    a factor), and the masked voxels are scattered into column col0+tt of x.
+    Non-finite values are counted and stored as 0 here; callers treat any as an
+    error.  The dataset's bricks are unloaded at the end to free memory. */
 static int srm_read_dset( THD_3dim_dataset *ds , const int *vox , int nvox , float *x ,
                           int ldx , int col0 , byte *zero_flag , int *bad_t )
 {
@@ -1442,6 +1632,8 @@ static int srm_read_dset( THD_3dim_dataset *ds , const int *vox , int nvox , flo
   Output helpers
 ==============================================================================*/
 
+/*! Write a (nrow x ncol, row-major) as text, one row per line, after an
+    optional '# comment' line.  ERROR_exit if the file cannot be opened. */
 static void srm_write_matrix_1D( const char *fname , const float *a , int nrow , int ncol ,
                                  const char *comment )
 {
@@ -1470,8 +1662,10 @@ static void srm_write_transposed_1D( const char *fname , const float *a , int nc
    fclose(fp) ;
 }
 
-/*! Dataset of nbrick volumes on ds's grid; vol(b) returns the nvox-sized
-    buffer for brick b (the dataset takes ownership). */
+/*! Dataset of nbrick volumes on geom's grid, written as prefix.  vols[b] is
+    the full-grid (DSET_NVOX) float buffer for brick b; the dataset takes
+    ownership of each buffer (the caller frees only the vols array).  Bricks
+    are labelled label_stem1, label_stem2, ... and marked as non-statistics. */
 static void srm_write_grid_dset( THD_3dim_dataset *geom , const char *prefix , int nbrick ,
                                  float **vols , const char *label_stem , int argc , char **argv )
 {
@@ -1489,6 +1683,20 @@ static void srm_write_grid_dset( THD_3dim_dataset *geom , const char *prefix , i
 
 /*============================================================================
   Cross-validation
+
+  Vocabulary.  A "fold" is a set of held-out columns (a run, a time block, or
+  the items of one level of a table column).  For each fold a model is fit
+  without it, every subject's held-out data are projected into the shared
+  space (P = W_i' x), and each subject is scored against a REFERENCE built
+  only from the other subjects' held-out projections: the leave-one-out shared
+  response.  Three scores (SRM_score_view in thd_srm.c):
+    isc   per-component correlation of P with the reference, Fisher-z averaged;
+    match time-segment matching (or item identification on the item axis);
+    r2    reconstruction R^2 of the subject's held-out voxels from W_i times
+          the reference.  For a probabilistic model r2 uses the posterior-mean
+          reference (ref_r, weighted by 1/rho2 and shrunk by Sigma_s, the same
+          scale as the fitted S); isc and match use the plain mean (ref_u),
+          since correlation does not care about scale.
 ==============================================================================*/
 
 #define M_ISC SRM_SCORE_ISC
@@ -1536,6 +1744,9 @@ typedef struct {
                                              samples as score (which are the run's own W's), or NULL */
 } srm_cvres ;
 
+/*! -cv_metrics LIST -> which scores to compute (NULL: all three).  "ident" is
+    accepted for "match"; whether match means item identification is set later
+    from -axis. */
 static srm_want srm_parse_metrics( const char *s )
 {
    srm_want w ; char *copy , *tok ;
@@ -1554,7 +1765,9 @@ static srm_want srm_parse_metrics( const char *s )
 }
 
 /*! Common folds own one plan. The legacy field names are borrowed aliases;
-    subject-specific folds retain their existing representation for now. */
+    subject-specific folds retain their existing representation for now.
+    assignment[t] (t < T) is the fold of column t; the plan (thd_crossval.h)
+    lists each fold's test columns and its training complement, in order. */
 static void srm_common_folds( srm_folds *f , int T , const int *assignment , char **names , int nf )
 {
    char err[512];
@@ -1563,7 +1776,9 @@ static void srm_common_folds( srm_folds *f , int T , const int *assignment , cha
    f->nfold=f->plan->nfold; f->col=f->plan->test; f->len=f->plan->ntest; f->name=f->plan->name;
 }
 
-/*! Folds of the time axis: the runs, or with one run, contiguous blocks of time. */
+/*! Folds of the time axis: the runs, or with one run, contiguous blocks of time.
+    With blocks, the first T % blocks blocks get one extra time point, so
+    block lengths differ by at most one. */
 static void srm_make_folds( srm_folds *f , int nrun , const int *seglen , char **runname , int T , int blocks )
 {
    int ii,jj,acc=0,nf=(nrun>=2)?nrun:blocks;
@@ -1587,6 +1802,8 @@ static void srm_make_folds( srm_folds *f , int nrun , const int *seglen , char *
    free(names);free(assignment);
 }
 
+/*! Free a srm_folds: the common plan (which owns col/len/name), or the legacy
+    arrays, plus any per-subject folds (scol/slen, NULL-terminated by subject). */
 static void srm_free_folds( srm_folds *f )
 {
    int ii ;
@@ -1600,7 +1817,9 @@ static void srm_free_folds( srm_folds *f )
      free(f->scol) ; free(f->slen) ; }
 }
 
-/*! Columns col[0..len-1] of x (V x T), in that order, as a new V x len array. */
+/*! Columns col[0..len-1] of x (V x T), in that order, as a new V x len array.
+    This is how a fold's held-out (or training) data are cut out of a subject's
+    full matrix: each row is gathered independently.  ERROR_exit if out of memory. */
 static float * srm_cols_in( const float *x , int V , int T , const int *col , int len )
 {
    float *y=(float *)malloc(sizeof(float)*(size_t)V*(size_t)len) ; int f , t ;
@@ -1622,6 +1841,8 @@ static void srm_cols_in_into( const float *x , int V , int T , const int *col , 
    }
 }
 
+/*! The complement of srm_cols_in: every column of x (V x T) NOT in col[0..len-1],
+    in time order, as a new V x (T-len) array (a fold's training data). */
 static float * srm_cols_out( const float *x , int V , int T , const int *col , int len )
 {
    int Tr=T-len , f , t , q ; byte *out=(byte *)calloc((size_t)T,1) ;
@@ -1660,6 +1881,11 @@ static float *srm_training_cols( const srm_folds *f , int ff , const float *x , 
                   : srm_cols_out(x,V,T,col,len);
 }
 
+/*! Allocate r for nsub subjects x nfold folds: score[] zeroed; per-level scores,
+    -cv_adapt anchor scores start as NaN (= not scored).  want_proj: room for each
+    subject's K x T held-out projection.  want_vr2: voxelwise R^2, either summed
+    here directly, or, for compressed subjects (whose rows are not voxels),
+    deferred to srm_r2_note / srm_r2_make with an id telling this fit apart. */
 static void srm_cvres_alloc( srm_cvres *r , int nsub , int nfold , int want_proj , int want_vr2 , const srm_ctx *cx )
 {
    int ii ;
@@ -1702,6 +1928,11 @@ static void srm_cvres_free( srm_cvres *r )
   -compress -save_r2: a fold's voxelwise R^2 needs that fold's W on the voxels.  Each scored fold notes what
   it needs (its W and means in R, the reference it reconstructs from, the held-out columns); when the subject
   is read again, W = X M and the R^2 is made on the voxels exactly as SRM_score_view would have.
+
+  The jobs live in a file-scope list (srm_r2jobs), appended by srm_r2_note during scoring and consumed by
+  srm_r2_make while srm_write_outputs_reread re-reads each subject.  The math: a compressed subject is
+  R = U'X with U = X R'(RR')^-1 orthonormal; a W_R fitted in R's space is W = U W_R on the voxels, which
+  SRM_compress_map/expand compute as X M without forming U.  The list is not freed (process lifetime).
 ==============================================================================*/
 
 typedef struct {
@@ -1712,6 +1943,9 @@ typedef struct {
 
 static srm_r2job *srm_r2jobs=NULL ; static int srm_nr2job=0 ;
 
+/*! Note one scored fold for the deferred voxelwise R^2 (does nothing unless res->r2defer): copies of the
+    fold's held-out columns col[0..len-1] (and validity mask), of view iview's W and means in m (in R's
+    space), and of the reconstruction reference ref_r (K x len). */
 static void srm_r2_note( const srm_ctx *cx , const srm_cvres *res , int ii , int nfold , const int *col , int len ,
                          const unsigned char *valid , const SRM_model *m , int iview , const float *ref_r )
 {
@@ -1737,6 +1971,8 @@ static float * srm_r2_make( int ss , const float *x , int V , int T , const floa
      srm_r2job *j=srm_r2jobs+q ; int f , t , n=0 , *idx , rc , K=j->K , seen , z ;
      double *M , r2 ; float *Wv , *muv=NULL , *xg , *rg ; SRM_model *mv ;
      if( j->subj!=ss ) continue ;
+     /* count distinct fits (rid) that scored this subject: each fit's folds are averaged (1/nfold), then the
+        fits are averaged (1/nfit), as the uncompressed path accumulates them */
      for( seen=0,z=0 ; z<nfit ; z++ ) if( rids[z]==j->rid ) seen=1 ;
      if( !seen ){ rids=(int *)realloc(rids,sizeof(int)*(size_t)(nfit+1)) ; rids[nfit++]=j->rid ; }
      if( acc==NULL ) acc=(double *)calloc((size_t)V,sizeof(double)) ;
@@ -1744,6 +1980,7 @@ static float * srm_r2_make( int ss , const float *x , int V , int T , const floa
      for( t=0 ; t<j->len ; t++ ) if( j->valid==NULL || j->valid[t] ) idx[n++]=t ;
      if( n<3 && j->valid!=NULL ){ free(idx) ; continue ; }   /* as SRM_score_view: too few to score, 0 */
      M=(double *)malloc(sizeof(double)*(size_t)T*K) ; Wv=(float *)malloc(sizeof(float)*(size_t)V*K) ;
+     /* the fold's W (and means) on the voxels: W = X M, M = R'(RR')^-1 W_R */
      rc=SRM_compress_map(R,rank,T,j->W,K,M) ;
      if( rc==SRM_OK ) rc=SRM_compress_expand(x,V,T,M,K,Wv) ;
      if( rc==SRM_OK && j->mu!=NULL ){
@@ -1770,7 +2007,9 @@ static float * srm_r2_make( int ss , const float *x , int V , int T , const floa
 }
 
 /*! The -score_by levels of subject ii in fold ff: each level's held-out columns (where valid), scored as
-    SRM_score_view does.  Matching is among the level's own samples (windows inside it, or its items). */
+    SRM_score_view does.  Matching is among the level's own samples (windows inside it, or its items).
+    The level is passed to SRM_score_view as a validity mask m[t] (valid AND label == level), so the
+    whole-fold arrays are reused; windows that cross out of the level are skipped there. */
 static void srm_score_levels( const srm_ctx *cx , srm_cvres *res , int ii , int ff , int nfold , const int *col ,
                               int len , const unsigned char *valid , const SRM_model *model , int iview ,
                               const float *xte , const float *P , const float *ref_u , const float *ref_r , srm_want w )
@@ -1788,6 +2027,8 @@ static void srm_score_levels( const srm_ctx *cx , srm_cvres *res , int ii , int 
    free(m) ;
 }
 
+/*! ERROR_exit unless every fold has at least 3 columns and, for time-segment matching with window win,
+    at least 2*win+1 (so a window has non-overlapping candidates to be confused with). */
 static void srm_check_fold_lengths( const srm_folds *f , srm_want w , int win )
 {
    int ii , minlen=1<<30 ;
@@ -1868,11 +2109,14 @@ static void srm_adapt_run_scores( const srm_ctx *cx , const SRM_model *mf , int 
      Pa[jj]=srm_cols_range(P[jj],K,len,0,na) ; Pq[jj]=srm_cols_range(P[jj],K,len,na,nr) ;
      xr[jj]=srm_cols_range(xte[jj],V,len,na,nr) ; all[jj]=jj ;
      if( cx->sb[jj].obs!=NULL ){
+       /* -cenmode missing: this subject's observed flags over the fold, split into the first na and the rest */
        unsigned char *ot=srm_mask_cols(cx->sb[jj].obs,cx->T,col,len,0) ;
        oa[jj]=(unsigned char *)malloc((size_t)(na>0?na:1)) ; orr[jj]=(unsigned char *)malloc((size_t)nr) ;
        memcpy(oa[jj],ot,(size_t)na) ; memcpy(orr[jj],ot+na,(size_t)nr) ; free(ot) ;
      }
    }
+   /* the run's first na samples were not in the fit, so they have no S: use the plain mean of every subject's
+      anchor projection there (unweighted, weighted=0) as the target the run-specific W's are estimated against */
    rc=SRM_shared_from_projections_obs(mf,nsub,all,Pa,cx->anymiss ? (const unsigned char * const *)oa : NULL,na,0,sa) ;
    if( rc!=SRM_OK ) ERROR_exit("-cv_adapt: the shared response of run %d's first samples: %s",ff+1,SRM_strerror(rc)) ;
    if( cx->anymiss ) valid=(unsigned char *)malloc((size_t)nr) ;
@@ -1914,7 +2158,18 @@ static void srm_adapt_run_scores( const srm_ctx *cx , const SRM_model *mf , int 
    free(oa) ; free(orr) ; free(oo) ; free(valid) ;
 }
 
-/*! -cv run: leave one run (or block) out, refitting the group each time. */
+/*! -cv run: leave one run (or block) out, refitting the group each time.
+
+    For each fold ff:
+      1. gather every subject's training columns (xtr) and held-out columns (xte);
+      2. fit a fresh model mf to the training columns only (random start, same
+         per-subject streams as the full fit; nothing from the full fit is used);
+      3. project every subject's held-out data, P[ii] = W_ii' (xte - mu);
+      4. score subject ii against the leave-one-out reference of the others' P;
+      5. keep P (and the fold's S) to assemble the held-out projection output.
+    Every subject contributed to mf (through their training runs), which is why
+    the help calls -cv run less clean than loso for between-subject inference;
+    but no held-out column touches any fit. */
 static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const srm_folds *f , srm_want w ,
                             srm_cvres *res )
 {
@@ -1940,6 +2195,8 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
    for( ff=0 ; ff<f->nfold ; ff++ ){
      int len=f->len[ff] , *col=f->col[ff] , Ttr=T-len ;
      SRM_params par=cx->par ; SRM_model *mf=NULL ; SRM_fitinfo fi ; srm_prog bar ; fit_prog fp ;
+     /* segtr: the remaining runs' lengths for -run_coupling.  Fixed size: with more than 257 runs (256 left
+        after holding one out) it would overflow; no check guards this */
      int segtr[256] , rc , *all=(int *)malloc(sizeof(int)*(size_t)nsub) ;
      float **P=(float **)malloc(sizeof(float *)*(size_t)nsub) ;
      float *ref_u=(float *)malloc(sizeof(float)*(size_t)K*len) , *ref_r=(float *)malloc(sizeof(float)*(size_t)K*len) ;
@@ -1952,6 +2209,8 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
        all[ii]=ii ;
      }
      if( cx->anymiss ){                               /* each subject's observed samples, in and out of the fold */
+       /* otr: observed flags on the training columns, for the fit (SRM_params.obs); ote: on the held-out
+          columns, for scoring.  A NULL entry means the subject was observed everywhere. */
        otr=(unsigned char **)calloc((size_t)nsub,sizeof(unsigned char *)) ; ote=(unsigned char **)calloc((size_t)nsub,sizeof(unsigned char *)) ;
        for( ii=0 ; ii<nsub ; ii++ ){ otr[ii]=srm_mask_cols(cx->sb[ii].obs,T,f->plan->train[ff],Ttr,0) ; ote[ii]=srm_mask_cols(cx->sb[ii].obs,T,col,len,0) ; }
        par.obs=(const unsigned char * const *)otr ;
@@ -1975,6 +2234,7 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
      if( !cx->quiet ) ININFO_message("%s (%s): %s after %d iterations",tag,f->name[ff],fi.converged?"converged":"iteration limit",fi.niter_done) ;
      rc=SRM_canonicalize(mf) ;
      if( rc!=SRM_OK ) ERROR_exit("could not canonicalize the fit for %s: %s",tag,SRM_strerror(rc)) ;
+     /* Score in the fold model's own canonical basis (ISC is component-wise). */
 
      for( ii=0 ; ii<nsub ; ii++ ){                    /* each subject's held-out data in the shared space, once */
        P[ii]=(float *)malloc(sizeof(float)*(size_t)K*len) ;
@@ -2018,7 +2278,10 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
    }
 
    /* held-out projections in one gauge: each fold's S aligned to the full fit's, same rotation for all subjects.
-      This changes labels of components, never the scores (they were computed before this and are rotation-invariant). */
+      This changes labels of components, never the scores (they were computed before this rotation).
+      Each fold model has its own arbitrary rotation of the shared space.  Rm is the orthogonal K x K matrix that
+      best maps the fold's training S onto the full fit's S on the same columns (Procrustes); applying it to the
+      fold's projections puts every fold's stretch of the output series in the full fit's coordinates. */
    if( res->proj!=NULL ){
      for( ff=0 ; ff<f->nfold ; ff++ ){
        int len=f->len[ff] , *col=f->col[ff] , Ttr=T-len ; float R[1]={0} ;
@@ -2044,7 +2307,10 @@ static void srm_cv_by_runs( const srm_ctx *cx , const SRM_model *mfull , const s
 
 /*! -cv run with each subject's own folds (randomized items): every refit sees every item, but a subject's
     own held-out items are missing for that subject (SRM_params.obs).  The subject is then scored on those
-    items against everyone else's projections of the same items. */
+    items against everyone else's projections of the same items.
+    (Used when randomized run order makes each subject's folds differ, so no common set of columns can be
+    removed for everyone.  The fold's held-out items enter the fit through the OTHER subjects, which is fine:
+    the scored subject's own held-out data never do.) */
 static void srm_cv_by_runs_own( const srm_ctx *cx , const SRM_model *mfull , const srm_folds *f , srm_want w ,
                                 srm_cvres *res )
 {
@@ -2113,7 +2379,9 @@ static void srm_cv_by_runs_own( const srm_ctx *cx , const SRM_model *mfull , con
 }
 
 /*! A subject's W against a fixed S (k x Ttr) from its training columns (x: V x Ttr, the data without the
-    fold's columns col[0..len-1] of a T-column timeline), using only the samples it was observed at. */
+    fold's columns col[0..len-1] of a T-column timeline), using only the samples it was observed at.
+    The observed mask is cut to the training columns from the plan's train[] list when given (common folds),
+    else as the complement of col[] (per-subject folds).  W = polar(X_tr S_tr'), the Procrustes solution. */
 static int srm_fit_view_obs( const float *str , int K , int Ttr , const float *xtr , int V , int center ,
                              const unsigned char *obs , int T , const int *col , int len , float *Wf , float *mu ,
                              const int *train )
@@ -2124,34 +2392,59 @@ static int srm_fit_view_obs( const float *str , int K , int Ttr , const float *x
    return rc ;
 }
 
-/*! -cv loso: fit the group to everyone else, then estimate this subject's W from their own
-    training folds and score them on the held-out fold.  Neither S nor any other W ever saw the
-    subject's test data. */
+/*! -cv loso: fit the other subjects from an independent random start, using the
+    full iteration/tolerance/multistart settings.  Estimate subject ii's W from
+    their training columns against that S, then score their held-out columns.
+    The leave-out model is canonicalized independently before scoring.
+    No fitted parameters from subject ii enter the default leave-out fit.
+    mfull supplies only the gauge of written projections (after scoring).
+
+    Explicit -loso_start legacy reproduces the old full-model warm start with
+    -loso_iter steps.  The retained subjects' parameters still depend on ii,
+    including their held-out data, so those scores can be optimistic. */
 static void srm_cv_loso( const srm_ctx *cx , const SRM_model *mfull , const srm_folds *f , srm_want w ,
                          srm_cvres *res )
 {
    int nsub=cx->nsub , K=cx->K , T=cx->T , ii , jj , ff ; srm_prog bar ;
    const srm_opts *o=cx->o ;
+   if( o->loso_legacy )
+     WARNING_message("-loso_start legacy uses a fit that included the held-out subject; scores can be optimistic") ;
+   else if( !cx->quiet )
+     INFO_message("loso: independent cold starts, up to %d iterations, %d start(s) per subject",cx->par.niter,o->nstart) ;
    srm_prog_begin(&bar,cx->progress,cx->quiet,"loso","subjects",nsub) ;
    for( ii=0 ; ii<nsub ; ii++ ){
-     SRM_params par=cx->par ; SRM_model *mdrop , *ml=NULL ; SRM_fitinfo fi ;
+     SRM_params par=cx->par ; SRM_model *mdrop=NULL , *ml=NULL ; SRM_fitinfo fi ;
      int *nv=(int *)malloc(sizeof(int)*(size_t)(nsub-1)) ; float **xl=(float **)malloc(sizeof(float *)*(size_t)(nsub-1)) ;
      int q=0 , rc ; float *Ralign=(float *)malloc(sizeof(float)*(size_t)K*K) ;
      const unsigned char **ol=(const unsigned char **)calloc((size_t)nsub,sizeof(unsigned char *)) ;
      for( jj=0 ; jj<nsub ; jj++ ) if( jj!=ii ){ nv[q]=cx->sb[jj].nvox ; xl[q]=cx->sb[jj].x ; ol[q]=cx->sb[jj].obs ; q++ ; }
      if( cx->anymiss ) par.obs=(const unsigned char * const *)ol ;
-     mdrop=SRM_model_copy(mfull,ii) ;
-     if( mdrop==NULL ) ERROR_exit("out of memory copying the model for leave-one-out") ;
-     par.init=SRM_INIT_MODEL ; par.init_model=mdrop ; par.niter=o->loso_iter ; par.progress=NULL ; par.progress_ctx=NULL ;
+     par.progress=NULL ; par.progress_ctx=NULL ;
+     par.init=SRM_INIT_RANDOM ; par.init_model=NULL ;
+     if( o->loso_legacy ){
+       mdrop=SRM_model_copy(mfull,ii) ;
+       if( mdrop==NULL ) ERROR_exit("out of memory copying the model for leave-one-out") ;
+       par.init=SRM_INIT_MODEL ; par.init_model=mdrop ; par.niter=o->loso_iter ;
+     }
      if( par.coupling!=SRM_COUPLING_SHARED ){ par.nseg=cx->nrun ; par.seglen=cx->seglen ; }
      { srm_cmp cm ; int *oth=(int *)malloc(sizeof(int)*(size_t)nsub) , no=0 ;
        for( jj=0 ; jj<nsub ; jj++ ) if( jj!=ii ) oth[no++]=jj ;
        srm_cmp_set(cx->sb,cx->sidx,oth,no,K,&par,&cm) ;
-       rc=SRM_fit(nsub-1,T,nv,xl,&par,&ml,&fi) ;
+       if( o->loso_legacy ) rc=SRM_fit(nsub-1,T,nv,xl,&par,&ml,&fi) ;
+       else rc=SRM_fit_multistart(nsub-1,T,nv,xl,&par,o->nstart,&ml,&fi,NULL,NULL) ;
        srm_cmp_free(&cm) ; free(oth) ; }
      if( rc!=SRM_OK ) ERROR_exit("the leave-one-out fit without Subj %s failed: %s",cx->sb[ii].label,SRM_strerror(rc)) ;
+     if( !o->loso_legacy && !fi.converged && par.tol>0.0 && !cx->quiet )
+       WARNING_message("leave-one-out fit without Subj %s reached %d iterations without convergence",cx->sb[ii].label,fi.niter_done) ;
      SRM_free_fitinfo(&fi) ; SRM_free_model(mdrop) ;
-     rc=SRM_procrustes_rotation(ml->s,mfull->s,K,T,Ralign) ;
+     if( !o->loso_legacy ){
+       /* ISC averages component-wise correlations, which depend on the basis.
+          Use the leave-out model's own canonical basis, as in run CV; aligning
+          to mfull before scoring would reintroduce the excluded subject. */
+       rc=SRM_canonicalize(ml) ;
+       if( rc!=SRM_OK ) ERROR_exit("could not canonicalize the leave-one-out fit for Subj %s: %s",cx->sb[ii].label,SRM_strerror(rc)) ;
+     }
+     rc=SRM_procrustes_rotation(ml->s,mfull->s,K,T,Ralign) ;   /* for the projection output's gauge only */
      if( rc!=SRM_OK ) ERROR_exit("could not align the gauge for Subj %s: %s",cx->sb[ii].label,SRM_strerror(rc)) ;
 
      for( ff=0 ; ff<f->nfold ; ff++ ){                 /* folds within this subject */
@@ -2193,7 +2486,9 @@ static void srm_cv_loso( const srm_ctx *cx , const SRM_model *mfull , const srm_
 
 /*! -cv with -model_in: S is fixed.  Each subject's W is estimated from the training columns only
     and the subject is scored on the held-out columns against the model's own S there.  The model
-    never saw the subject, and the held-out columns touch neither W nor S. */
+    never saw the subject, and the held-out columns touch neither W nor S.  (Also used under -cv_fit
+    reference for the non-reference groups, against the reference group's fit.)  No gauge rotation is
+    needed: everything is already in the fixed model's coordinates. */
 static void srm_cv_frozen( const srm_ctx *cx , const SRM_model *m , const srm_folds *f , srm_want w ,
                            srm_cvres *res )
 {
@@ -2281,7 +2576,8 @@ static void srm_folds_subset_free( srm_folds *g , const srm_folds *f )
    if( f->scol!=NULL ){ free(g->scol) ; free(g->slen) ; }
 }
 
-/*! The full fit of a subset's subjects (warm start for leave-one-out, and the gauge of their projections). */
+/*! Fit a subset for its in-sample reference and projection gauge.  Default
+    LOSO fits independently of this model; legacy LOSO warm-starts from it. */
 static SRM_model * srm_fit_subset( const srm_ctx *c , const char *what )
 {
    SRM_params par=c->par ; SRM_model *m=NULL ; SRM_fitinfo fi ; int j , rc ;
@@ -2308,9 +2604,13 @@ static void srm_cv_dispatch( const srm_ctx *c , const SRM_model *mfull , const s
    else                                    srm_cv_by_runs(c,mfull,f,w,r) ;
 }
 
-/*! Running sums over the fits that score a subject. */
+/*! Running sums over the fits that score a subject.  With -balance B a subject can be scored by several
+    subset fits (or by none): each score is summed with a count (ssum/scnt, per subject x fold x metric; lsum/
+    lcnt per level; asum/acnt for the -cv_adapt anchor), and srm_cvacc_finish divides.  pdone: the subject's
+    held-out projection has been taken (from the first fit that scored it). */
 typedef struct { double *ssum , *scnt , *lsum , *lcnt , *vcnt , *asum , *acnt ; int *pdone ; } srm_cvacc ;
 
+/*! Zero-initialized sums sized like r (see srm_cvacc). */
 static void srm_cvacc_init( srm_cvacc *a , const srm_cvres *r )
 {
    size_t ns=(size_t)r->nsub*r->nfold*NMET , nl=(size_t)r->nsub*r->nfold*(r->L>0?r->L:1)*NMET ;
@@ -2322,7 +2622,7 @@ static void srm_cvacc_init( srm_cvacc *a , const srm_cvres *r )
 
 /*! Add a subset's results (its subject j is whole-table subject sel[j], with c->sb[j].nvox features).  Rg
     (K x K, or NULL) rotates its projections into the pooled gauge; a subject keeps the projections of the
-    first fit that scores it. */
+    first fit that scores it.  nsamp is copied, not summed (it is the same in every fit). */
 static void srm_cvacc_add( srm_cvacc *a , srm_cvres *r , const srm_cvres *s , const srm_ctx *c , const int *sel ,
                            const float *Rg , int K , int T )
 {
@@ -2373,7 +2673,8 @@ static void srm_cvacc_finish( srm_cvacc *a , srm_cvres *r , const srm_ctx *cx )
    free(a->ssum) ; free(a->scnt) ; free(a->lsum) ; free(a->lcnt) ; free(a->vcnt) ; free(a->pdone) ; free(a->asum) ; free(a->acnt) ;
 }
 
-/*! k of the n values a[] at random (seeded), ascending, into out. */
+/*! k of the n values a[] at random (seeded), ascending, into out.  Deterministic for a seed, so the
+    -balance subsets are reproducible (and listed in PREFIX.balance.txt). */
 static void srm_draw( const int *a , int n , int k , unsigned long long seed , int *out )
 {
    int *p=(int *)malloc(sizeof(int)*(size_t)n) , i , j , t ; unsigned long long z=seed ;
@@ -2393,7 +2694,11 @@ static void srm_draw( const int *a , int n , int k , unsigned long long seed , i
 #define SRM_FIT_REFERENCE 2
 
 /*! One fit of -cv_fit/-balance: subjects sel[] (ascending) form the model; with others != NULL (reference),
-    sel[] is the reference group, scored leave-one-out, and others[] are scored as new subjects. */
+    sel[] is the reference group, scored leave-one-out, and others[] are scored as new subjects.
+    Steps: a subset context and folds (shallow views of cx/f); the subset's full fit m; Rg, the rotation from
+    m's gauge to the pooled fit's (for projections only); the ordinary CV scheme inside the subset; its
+    scores added into the whole-table accumulator acc.  Reference subjects use
+    N-1 reference members; outside subjects use all N reference members. */
 static void srm_cv_one_fit( const srm_ctx *cx , const SRM_model *mpool , const srm_folds *f , srm_want w ,
                             srm_cvres *r , srm_cvacc *acc , const int *sel , int n , const int *oth , int no ,
                             int quiet , const char *what )
@@ -2444,6 +2749,8 @@ static void srm_cv_groups( const srm_ctx *cx , const SRM_model *mpool , const sr
    for( g=0 ; g<(mode==SRM_FIT_POOLED ? 1 : ng) ; g++ ){
      int nrep , n ;
      if( mode==SRM_FIT_REFERENCE && g!=refg ) continue ;
+     /* how many fits for this group: B random subsets of size nmin when balancing a group larger than the
+        smallest; otherwise the whole group once.  Pooled: B subsets, each nmin from every group. */
      nrep = (mode==SRM_FIT_POOLED) ? B : (B>0 && ngm[g]>nmin) ? B : 1 ;
      for( b=0 ; b<nrep ; b++ ){
        int no=0 , q ;
@@ -2503,7 +2810,16 @@ static SRM_model srm_model_view( const SRM_model *m , const int *sel , int n )
 
 static void srm_model_view_free( SRM_model *v ){ free(v->nvox) ; free(v->w) ; free(v->rho2) ; }
 
-/*! S of the subjects sel[], warm-started from the fit to everyone. */
+/*! S of the subjects sel[], warm-started from the fit to everyone (that fit's W, rho2 and Sigma_s for
+    these subjects), iterating up to -niter / -tol.
+
+    CAUTION (review 2026-11): both halves of a split start from the same pooled fit, which contains both
+    halves.  With few iterations the two S stay near the pooled S and their similarity is biased upward.
+    On NULL data (no shared signal; simulation with thd_srm.c via srm_cli, 12 subjects, k 10, 360 time
+    points) the split-half mean cos^2 was 0.053 after 30 iterations against a chance level of about 0.024
+    (cold fits), and unbiased (0.025) after 200.  See
+    ~/Desktop/3dRSA_Validation/srm_validation/reliability_split_warmstart.py.  The default -niter 500 /
+    -tol 1e-7 is probably long enough; small -niter values are not. */
 static SRM_model * srm_fit_half( const srm_ctx *cx , const SRM_model *mpool , const int *sel , int n )
 {
    SRM_params par=cx->par ; SRM_model *m=NULL , v=srm_model_view(mpool,sel,n) ; SRM_fitinfo fi ; int j , rc ;
@@ -2520,6 +2836,7 @@ static SRM_model * srm_fit_half( const srm_ctx *cx , const SRM_model *mpool , co
    return m ;
 }
 
+/*! The p-quantile (0..1) of n sorted values, interpolating linearly between neighbors; NaN if n < 1. */
 static double srm_pctile( const double *sorted , int n , double p )   /* linear interpolation */
 {
    double x=p*(n-1) ; int i=(int)floor(x) ;
@@ -2589,7 +2906,7 @@ static void srm_reliability_split( const srm_ctx *cx , const SRM_model *mpool , 
    free(mem) ; free(ha) ; free(hb) ; free(val) ;
 }
 
-/*! The same for one -score_by level. */
+/*! The same for one -score_by level: the mean over folds of metric met at level lv (NaN if never scored). */
 static double srm_subj_lmetric( const srm_cvres *r , int ii , int lv , int met )
 {
    int ff , n=0 ; double s=0.0 ;
@@ -2625,6 +2942,11 @@ static double srm_subj_ametric( const srm_cvres *r , int ii , int met )
 
 /*============================================================================
   -nperm: permutation tests on the per-subject scores (thd_permute.h).  Subjects are the exchangeable units.
+
+  A "family" is one test applied to several scores at once (e.g. group difference in isc, match, r2, overall
+  and per level).  Each relabeling (permutation of group labels, or sign flips of within-subject differences)
+  is applied to all rows of the family together, and the family-wise p uses the maximum |t| over the rows in
+  each relabeling: this controls the chance of any false positive within the family.
 ==============================================================================*/
 
 typedef struct { const int *grp ; } srm_tstat_ctx ;
@@ -2656,7 +2978,10 @@ static float srm_stat_onesample( float *y , int n , float *effect , void *ud )
    return (v>0.0) ? (float)(m/sqrt(v/c)) : 0.0f ;
 }
 
-/*! One family of tests: data[subject][element], a scheme, a statistic; rows to fp. */
+/*! One family of tests: data[subject][element], a scheme, a statistic; rows to fp.
+    exchange: PERM_EE permutes labels across subjects (group tests); PERM_ISE flips the sign of each subject's
+    value (within-subject differences).  exact=1 lets the library enumerate every relabeling when there are
+    no more than nperm of them. */
 static void srm_perm_family( FILE *fp , const srm_ctx *cx , float **data , int nel , char **elname , const char *test ,
                              const char *factor , const char *contrast , int exchange , PERM_statfunc sf , void *sd ,
                              int nperm , int *n1 , int *n2 )
@@ -2749,6 +3074,9 @@ static void srm_perm_tests( const srm_ctx *cx , const srm_cvres *r , srm_want w 
    free(data) ; free(elname) ; free(n1) ; free(n2) ; free(grp) ;
 }
 
+/*! PREFIX.scores_folds.txt (one row per subject x fold x level, 'all' first) and PREFIX.scores.txt (one row
+    per subject x level, the mean over folds, plus reliability columns and the table's numeric covariates).
+    Missing scores are written NA.  nsamp in scores.txt is summed over folds. */
 static void srm_write_scores( const srm_ctx *cx , const srm_folds *f , const srm_cvres *r , srm_want w ,
                               const char *mode , THD_datatable *tab , int *carry , int ncarry )
 {
@@ -2883,7 +3211,8 @@ static void srm_cv_summary( const srm_ctx *cx , const srm_cvres *r , srm_want w 
    }
 }
 
-/*! A feature to drop: variance zero in some run, for zscore none. */
+/*! A feature to drop: variance zero in some run, for zscore none.  (With z-scoring,
+    SRM_zscore_segments flags these itself.)  bad[f] gets 0/1; returns the count. */
 static int srm_flag_constant( float *x , int nvox , int ntime , int nseg , const int *seglen ,
                               unsigned char *bad )
 {
@@ -2902,7 +3231,8 @@ static int srm_flag_constant( float *x , int nvox , int ntime , int nseg , const
    return nb ;
 }
 
-/*! Keep only the rows with bad[f]==0, packed to the front. */
+/*! Keep only the rows with bad[f]==0, packed to the front (in place; vox[], the grid index of each row,
+    is packed the same way so maps can be written back to the right voxels).  Returns the rows kept. */
 static int srm_compact_rows( float *x , int nvox , int ntime , const unsigned char *bad , int *vox )
 {
    int f , q=0 ;
@@ -2919,6 +3249,10 @@ static int srm_compact_rows( float *x , int nvox , int ntime , const unsigned ch
   Fitting, applying a saved model, and applying a saved W all go through it.
 ==============================================================================*/
 
+/* The data stage's state.  Two timelines: the INPUT timeline (Tin columns: every volume of every run,
+   runs concatenated; c0in[r] and runlen[r] locate run r) and the RETAINED timeline (T columns, after
+   -censor / -cenmode drop; time_index[t] is the input column of retained column t, seglen[r] the retained
+   length of run r).  On the item axis both are the nitem item columns. */
 typedef struct {
    THD_datatable *tab ; THD_datatable_index *dx ;
    int nsub , nrun , have_run , ngroup ;
@@ -2940,7 +3274,11 @@ typedef struct {
    double *relitems ;                  /* -compress, -axis item -reliability within: as cx->rel, made while reading */
 } srm_data ;
 
-/*! Subjects, their runs, groups and masks, from the table. */
+/*! Subjects, their runs, groups and masks, from the table.
+    With a Run column the table is indexed by (Subj, Run): subject ss's run rr is table row
+    dx->row_of[ss*nrun+rr], so every subject must have every run (the index refuses gaps and duplicates).
+    Per-subject columns (Mask, Censor, Group) must agree across that subject's rows.  ERROR_exit on any
+    inconsistency, or fewer than min_subjects subjects. */
 static void srm_data_table( const srm_opts *o , THD_datatable *tab , srm_data *d , int min_subjects )
 {
    char *tab_cols[2] ; int ss , rr , jj ;
@@ -3018,7 +3356,8 @@ static void srm_data_table( const srm_opts *o , THD_datatable *tab , srm_data *d
 
 static void srm_int_list( char *dst , size_t nd , const int *a , int n ) ;
 
-/*! -concat: run starts, as a 1D list ('1D: 0 300 600' or a file); *n receives the count. */
+/*! -concat: run starts, as a 1D list ('1D: 0 300 600' or a file); *n receives the count.
+    Must start at 0 and strictly increase; ERROR_exit otherwise.  Returns a malloc'ed array. */
 static int * srm_read_concat( const char *spec , int *n )
 {
    MRI_IMAGE *cim=mri_read_1D((char *)spec) ; float *car ; int *st , ii ;
@@ -3052,7 +3391,10 @@ static int * srm_read_xmat( srm_subj *s , int *nrun , int *nfull )
    return st ;
 }
 
-/*! After srm_data_shape has read each subject's one input: the runs inside it, the same for everyone. */
+/*! After srm_data_shape has read each subject's one input: the runs inside it, the same for everyone.
+    Run starts come from -concat or from the first Xmat; every other Xmat must agree, and its NRowFull must
+    equal the input length (an Xmat from a censored-then-concatenated input would not).  On return nrun and
+    runlen[] describe the runs within the single input, and d->concat is set. */
 static void srm_data_concat_runs( const srm_opts *o , srm_data *d )
 {
    int ss , rr , nr=0 , nt=d->runlen[0] , *st=NULL , ncens=0 ;
@@ -3090,7 +3432,10 @@ static void srm_data_concat_runs( const srm_opts *o , srm_data *d )
 }
 
 /*! Open every input (header only for datasets): lengths, grids, masks.  With need_mask == 0
-    (applying a saved W) no mask is read; the features come from W. */
+    (applying a saved W) no mask is read; the features come from W.
+    Sets each subject's vox[] (the grid indices inside its mask, or 0..ncol-1 for a .1D) and the run
+    lengths, which must be identical for every subject: on the time axis column t means the same moment
+    of the stimulus for everyone.  The first run's dataset is kept open in s->geom for output geometry. */
 static void srm_data_shape( const srm_opts *o , srm_data *d , int need_mask , int Kmin )
 {
    int ss , rr , ii , jj ; THD_datatable *tab=d->tab ;
@@ -3158,7 +3503,9 @@ static void srm_data_shape( const srm_opts *o , srm_data *d , int need_mask , in
    }
 }
 
-/*! The retained time points: from -censor, or from a saved model's mask (given_keep). */
+/*! The retained time points: from -censor, or from a saved model's mask (given_keep).
+    d->keep[t] (t < Tin) is 1 for retained.  Subjects' own censoring is applied later
+    (srm_data_subject_censor), and only -cenmode drop changes keep there. */
 static void srm_data_censor( const srm_opts *o , srm_data *d , const unsigned char *given_keep )
 {
    int ii ;
@@ -3182,7 +3529,11 @@ static void srm_data_censor( const srm_opts *o , srm_data *d , const unsigned ch
    }
 }
 
-/*! Read every subject's masked time series, all runs, onto the input timeline. */
+/*! Read every subject's masked time series, all runs, onto the input timeline.
+    s->x becomes nvox_mask x Tin, run rr at columns c0in[rr]..  (with -concat/Xmat the one input fills all
+    columns).  A .1D input is time x features in the file; mri_read_1D returns it with nx = time points,
+    ny = features, so ar[f*nt+t] is feature f at time t.  With -zcensor, the all-zero volumes are flagged
+    per subject (s->zflag) and in d->zero_any. */
 static void srm_data_read( const srm_opts *o , srm_data *d )
 {
    srm_prog bar ; int ss , rr , ii ; THD_datatable *tab=d->tab ; int Tin=d->Tin ;
@@ -3229,6 +3580,9 @@ static void srm_interp_censored( float *x , int nvox , int Tin , int nrun , cons
 {
    int rr , f , t ;
    for( rr=0 ; rr<nrun ; rr++ ){
+     /* prv[t] / nxt[t]: the nearest uncensored time point at or before / at or after t within this run
+        (-1 if none).  A censored t between two kept points gets the straight-line value between them;
+        at a run's edge (only one side exists) it copies the nearest kept value.  Never crosses runs. */
      int a=c0[rr] , L=len[rr] , *prv=(int *)malloc(sizeof(int)*(size_t)L) , *nxt=(int *)malloc(sizeof(int)*(size_t)L) , last=-1 , any=0 ;
      for( t=0 ; t<L ; t++ ){ if( !cens[a+t] ){ last=t ; any=1 ; } prv[t]=last ; }
      if( !any ) ERROR_exit("Subj %s: every time point of run %s is censored; there is nothing to interpolate from",label,runname[rr]) ;
@@ -3248,7 +3602,11 @@ static void srm_interp_censored( float *x , int nvox , int Tin , int nrun , cons
 /*! Each subject's own censored time points: the Censor column (0 = censored), the Xmat's GoodList, and,
     with -zcensor, volumes that are all zero in the mask (afni_proc.py's errts zeroes censored volumes).
     -cenmode interp fills them in from the subject's neighbors in the same run; drop removes them for
-    everyone (allow_drop 0: the timeline belongs to a saved model, so it cannot). */
+    everyone (allow_drop 0: the timeline belongs to a saved model, so it cannot).
+    The three sources are combined (censored if any says so) into cens[t] on the input timeline.  This
+    runs BEFORE z-scoring, so the run means and SDs are computed from the filled-in series (interp) or the
+    observed samples only (missing, in srm_normalize_obs).  -cenmode missing only records s->miss_in here;
+    srm_data_timeline turns it into s->obs on the retained timeline. */
 static void srm_data_subject_censor( const srm_opts *o , srm_data *d , int allow_drop )
 {
    int ss , t , Tin=d->Tin , nsub_c=0 , tot=0 , lo=Tin , hi=0 ; byte *cens=(byte *)malloc((size_t)Tin) ;
@@ -3309,7 +3667,10 @@ static void srm_data_subject_censor( const srm_opts *o , srm_data *d , int allow
    }
 }
 
-/*! Apply -zcensor and the censor mask: the retained timeline, its run lengths, packed data. */
+/*! Apply -zcensor and the censor mask: the retained timeline, its run lengths, packed data.
+    Builds time_index[] / seglen[] from d->keep, checks every run keeps at least 3 points, makes each
+    -cenmode missing subject's obs[] (1 = observed) on the retained timeline (NULL if nothing is missing),
+    and repacks every s->x from Tin to T columns. */
 static void srm_data_timeline( const srm_opts *o , srm_data *d , int Kmin )
 {
    int ii , rr , ss ; int Tin=d->Tin ;
@@ -3394,7 +3755,15 @@ static THD_datatable * srm_xmat_items( const srm_opts *o , THD_datatable *tab )
 }
 
 /*! Subjects, runs, groups, masks, and the item keys of every subject, matched to the first
-    subject's order. */
+    subject's order.
+
+    Keys.  Each table row is one (subject, item) measurement.  An item a subject has once is keyed by its
+    label ("face_017"); an item measured several times gets one column per repeat, keyed "face_017:1",
+    "face_017:2", ... numbered in run order then table order (or "face_017:R" from the Repeat column).
+    The first subject's keys define the model's columns; every other subject's keys are looked up in a
+    sorted copy (canon, bsearch) so column j means the same stimulus for everyone, whatever the row
+    order.  A missing, extra, or differently repeated item is an ERROR_exit naming it.  s->irow[j] /
+    s->irun[j] record the table row and run of the subject's item in model column j. */
 static void srm_data_items( const srm_opts *o , THD_datatable *tab , srm_data *d , int min_subjects )
 {
    int icol_item , icol_rep , r , ss , jj , nsub=0 , *subj_of , *run_of , nrep=0 , minrun=-1 ; char **slab=NULL ;
@@ -3449,7 +3818,7 @@ static void srm_data_items( const srm_opts *o , THD_datatable *tab , srm_data *d
      ir=(srm_irow *)malloc(sizeof(srm_irow)*(size_t)n) ; key=(char **)calloc((size_t)n,sizeof(char *)) ;
      for( r=0,k=0 ; r<tab->nrow ; r++ ) if( subj_of[r]==ss ){ ir[k].row=r ; ir[k].run=run_of[r] ; ir[k].item=DT_CELL(tab,r,icol_item) ; k++ ; }
      qsort(ir,(size_t)n,sizeof(srm_irow),srm_irow_by_run) ;
-     for( k=0 ; k<n ; k++ ) ir[k].pos=k ;
+     for( k=0 ; k<n ; k++ ) ir[k].pos=k ;          /* pos: the row's place in run order, kept through re-sorts */
 
      /* repeats: an item's occurrences are Item:1, Item:2, ... in run order, then table order (or
         Item:R, R from the repeat column) */
@@ -3624,7 +3993,8 @@ static void srm_data_shape_items( const srm_opts *o , srm_data *d , int need_mas
 }
 
 /*! Read every item, one load per file.  A non-finite value, or an item that is zero everywhere
-    in the mask (a failed or missing estimate, usually), is an error naming the Subj and item. */
+    in the mask (a failed or missing estimate, usually), is an error naming the Subj and item.
+    s->x is nvox_mask x nitem, column j = model item j (sub-brick s->ibrick[j] of file s->ifile[j]). */
 static void srm_data_read_items( const srm_opts *o , srm_data *d )
 {
    srm_prog bar ; int ss , j , f , v , n=d->nitem , done=0 ; THD_datatable *tab=d->tab ; char extra[200] ;
@@ -3689,7 +4059,9 @@ static void srm_data_items_timeline( srm_data *d )
 /*! -axis item: z-score every feature over all of the subject's items (-zscore all), or over the
     items of each of the subject's own runs (-zscore run); with -zscore none, only check for features
     that never vary.  A run's items need not be adjacent columns, so they are gathered by run, done
-    as segments, and put back. */
+    as segments, and put back.
+    perm[] lists the columns run by run (perm[q] = original column), seg[] the number of items per run;
+    y = x with columns permuted, z-scored as contiguous segments, then scattered back through perm. */
 static int srm_item_normalize( srm_subj *s , int nitem , int nrun , int zscore , unsigned char *bad )
 {
    int *perm=(int *)malloc(sizeof(int)*(size_t)nitem) , *seg=(int *)calloc((size_t)nrun+1,sizeof(int)) ;
@@ -3798,7 +4170,10 @@ static void srm_make_item_folds( const srm_opts *o , const srm_data *d , srm_fol
 
 /*! -cenmode missing: z-score each feature over its observed samples, within each run (or over all
     of them, or with -zscore none only centered there), as SRM_zscore_segments does; missing
-    samples become 0.  A feature with no variance in its observed samples of some run is bad. */
+    samples become 0.  A feature with no variance in its observed samples of some run is bad.
+    Zero at the missing samples is what the library expects (they are never read, and a zero column adds
+    nothing to W'X or X S').  Note: with -zscore none, this centers within each run, whereas the ordinary
+    path leaves -zscore none data as given (the fit removes one overall mean). */
 static int srm_normalize_obs( srm_subj *s , int T , int nrun , const int *seglen , int zscore , unsigned char *bad )
 {
    int f , nb=0 ;
@@ -3822,7 +4197,14 @@ static int srm_normalize_obs( srm_subj *s , int T , int nrun , const int *seglen
 }
 
 /*! z-score within runs and deal with features that never vary: drop them (fitting), or zero them
-    and keep their place (applying a saved W, whose rows are fixed). */
+    and keep their place (applying a saved W, whose rows are fixed).
+    Why z-score per run: scanner drift and run-to-run baseline shifts change each voxel's mean and scale
+    between runs; normalizing within a run removes that, and uses only that run's own samples (so with
+    -zscore run a held-out run's normalization never borrows from the training runs; -zscore all, the item
+    axis default, normalizes over all of a subject's items, held-out folds included, an unsupervised step
+    that uses no labels).  Why drop constant features: a
+    voxel with zero variance (outside the brain, or zero-filled) carries no information and cannot be
+    z-scored. */
 static void srm_data_normalize( const srm_opts *o , srm_data *d , int zscore , int Kmin , int keep_rows )
 {
    int ss , total_drop=0 ; srm_prog bar ; char extra[160] ;
@@ -3887,7 +4269,10 @@ static char * srm_keys_comment( const char *head , char * const *key , int nkey 
    return c ;
 }
 
-/*! One subject's series in the shared space, K x T: a k x 1 x 1 dataset, or a text file. */
+/*! One subject's series in the shared space, K x T: a k x 1 x 1 dataset, or a text file.
+    The dataset form treats the K components as K "voxels" on a dummy 1 mm grid, with one volume per
+    time point (a time series with the input's TR) or per item (a bucket labelled by item key), so that
+    3dInSync and 3dRSA can read it like any dataset. */
 static void srm_write_proj( const srm_opts *o , const srm_subj *s , const float *P , int K , int T ,
                             const char *comment , char * const *collab , int argc , char **argv )
 {
@@ -3922,7 +4307,9 @@ static void srm_write_proj( const srm_opts *o , const srm_subj *s , const float 
 }
 
 /*! The outputs that exist for every subject: the data in the shared space (held out, when res
-    has them), W, voxelwise held-out R^2, and the reconstruction.  Subject ss is view voff+ss of m. */
+    has them), W, voxelwise held-out R^2, and the reconstruction.  Subject ss is view voff+ss of m.
+    Maps are written back on the subject's own grid: row f of W (feature f) goes to voxel s->vox[f], and
+    voxels outside the mask, or dropped as constant, are 0. */
 static void srm_write_subject_outputs( const srm_opts *o , const srm_data *d , const SRM_model *m , int voff ,
                                        const srm_cvres *res , int K , int argc , char **argv )
 {
@@ -4026,6 +4413,7 @@ static void srm_check_subject_outputs( const srm_opts *o , const srm_data *d )
    }
 }
 
+/*! ERROR_exit if PREFIX+suffix exists and -overwrite was not given. */
 static void srm_check_new_file( const srm_opts *o , const char *suffix )
 {
    char fn[THD_MAX_NAME] ;
@@ -4066,7 +4454,14 @@ static double srm_common_fold_bytes( const srm_opts *o , const srm_data *d )
           +nf*(4.0*sizeof(int)+4.0*sizeof(void *))+2.0*names+64.0;
 }
 
-/*! The memory contract, before the big allocations. */
+/*! The memory contract, before the big allocations.
+    The estimate has two parts.  input: the data themselves (4 bytes x voxels x Tin summed over subjects),
+    plus the larger of (a) the fold copies -cv run makes of every subject's training and test columns for
+    the largest fold, (T - shortest run + longest run)/T of the data, and (b) one input being read on its
+    full grid.  With -compress the data are factors of at most T x T per subject (doubled under -cv for the
+    fold copies), plus one subject held whole while it is read and its T x T Gram matrices.  shared: what
+    the library needs for the fit (SRM_estimate_bytes), plus W per run with -run_coupling and a second model
+    with -nstart.  THD_memory_plan_finish adds them up; the default limit is 80% of physical memory. */
 static void srm_memory_preflight( const srm_opts *o , const srm_data *d , int K , int do_cv , int nsegfit )
 {
    THD_memory_plan me ; double inb=0.0 , Wb=0.0 , onemax=0.0 , cvb=0.0 , rdb=0.0 ;
@@ -4107,6 +4502,18 @@ static void srm_memory_preflight( const srm_opts *o , const srm_data *d , int K 
    }
    me.shared=SRM_estimate_bytes(d->nsub,nv0,d->Tin,K,o->par.algo,0)
             + Wb*(nsegfit>0 ? (double)nsegfit : 0.0) + (o->nstart>1 ? Wb : 0.0) ;
+   if( do_cv && !strcasecmp(o->cvmode,"loso") ){
+     double state=12.0*K*d->Tin + 4.0*K*K + 4.0*d->nsub ; /* S, a_sum, Sigma, counts */
+     double model=Wb*(1.0+nsegfit) + (o->par.center ? Wb/K : 0.0) + state ;
+     int retained=(o->cv_fit!=NULL && strcasecmp(o->cv_fit,"pooled")) ? 2 : 1 ;
+     /* Pooled model, possibly a subset model, and either the legacy copy or
+        a cold coupled fit's shared-W initialization remain live during fitting. */
+     me.shared+=retained*model ;
+     if( o->loso_legacy ) me.shared+=model ;
+     else if( nsegfit>0 ) me.shared+=Wb+(o->par.center ? Wb/K : 0.0)+state ;
+     /* The ordinary estimate already includes W for the best multistart fit. */
+     if( !o->loso_legacy && o->nstart>1 ) me.shared+=model-Wb ;
+   }
    if(do_cv)me.shared+=srm_common_fold_bytes(o,d);
    me.system=(double)AFNI_get_memsize() ;
    me.limit=o->memory_limit_given ? o->memory_limit_gib*GIB : ((me.system>0.0) ? 0.80*me.system : 0.0) ;
@@ -4144,6 +4551,7 @@ static int * srm_carry_columns( const THD_datatable *tab , const srm_data *d , i
    return carry ;
 }
 
+/*! "a,b,c" for messages, truncated with "..." to fit nd bytes. */
 static void srm_int_list( char *dst , size_t nd , const int *a , int n )
 {
    size_t pos=0 ; int ii ;
@@ -4170,7 +4578,12 @@ static void srm_rel_halves( const float *xa , const float *xb , int V , int n , 
 
 /*! -repeated_stimulus: every run shows the same stimulus.  First each subject's reliability between the mean of the
     odd runs and the mean of the even ones (if asked); then the runs are averaged, and the fit sees one run.  The
-    runs must keep the same time points (the same censoring in each). */
+    runs must keep the same time points (the same censoring in each).
+    Run rr occupies retained columns rr*L .. rr*L+L-1 (every run has L).  Each time point of the averaged
+    run is the mean over the runs in which the subject was observed there (cnt[t] of them); with
+    -reliability within, the odd-numbered and even-numbered runs are first averaged separately and the two
+    halves correlated (srm_rel_halves, Spearman-Brown corrected to the full set).  Afterwards the data
+    have one run of L columns. */
 static void srm_average_repeats( const srm_opts *o , srm_data *d )
 {
    int L=d->seglen[0] , rr , ss , t , f , nmiss=0 ;
@@ -4256,10 +4669,20 @@ static void srm_subject_stage( const srm_opts *oq , srm_data *d , srm_data *d1 ,
    }
 }
 
-/*! -compress: each subject in turn is read, censored, z-scored (its repeats averaged), then replaced by R
+/*! -compress (srm_data_compress_stream, below): each subject in turn is read, censored, z-scored (its repeats averaged), then replaced by R
     (rank x T, R'R = X'X) and, for the fit's start, the random start carried into R; its voxels are freed
     before the next subject is read, so the data are never all in memory at once.  The timeline and runs
-    are the first subject's (every subject's are the same). */
+    are the first subject's (every subject's are the same).
+
+    Why R'R = X'X is enough (thd_srm.h, "Compressed views"): everything the fit and the scores do with X
+    goes through inner products of its columns (X'X) or through W, and W always lies in the span of X's
+    columns.  Writing X = U R with U orthonormal (voxels x rank), a fit on R with ndim = voxels gives
+    exactly the fit on X with W = U W_R: same S, rho2, objective, projections.  Column subsets (folds) of
+    R keep the property, since R[:,c]'R[:,c] = X[:,c]'X[:,c].  Maps on the voxels (-save_W, -save_recon,
+    -save_r2) need U, so those subjects are read again at the end (srm_write_outputs_reread).
+
+    The start: with -nstart 1, SRM_compress_ex also makes U'W0 for the random W0 that the uncompressed fit
+    would draw for this subject (stream ss), so the compressed fit begins at the same point. */
 /*! The repeated items (keys Item:n), grouped: nb groups, group q's columns cols[q][0..ncol[q]-1], first[q] its
     first.  Free with srm_rep_groups_free. */
 typedef struct { int nb , *first , **cols , *ncol ; } srm_repg ;
@@ -4291,6 +4714,8 @@ static void srm_reliability_items_one( const srm_data *d , srm_ctx *cx , const s
 
 static void srm_data_compress_stream( const srm_opts *o , srm_data *d , int K , srm_ctx *lc )
 {
+   /* see the -compress comment above srm_repg.  -cenmode drop needs everyone's censoring before anyone's
+      timeline is fixed, so that case reads the censor information first. */
    srm_opts oq=*o ; srm_prog bar ; int ss , rmin=1<<30 , rmax=0 , ncs=0 , ncens=0 , ndrop=0 ; double full=0.0 , kept=0.0 ;
    srm_data first ;                                   /* the first subject's timeline, put into d after the loop */
    oq.quiet=1 ; memset(&first,0,sizeof(first)) ;
@@ -4334,6 +4759,7 @@ static void srm_data_compress_stream( const srm_opts *o , srm_data *d , int K , 
        rc=SRM_compress(s->x,s->nvox,d1.T,0.0,&R,&r) ;
      if( rc!=SRM_OK ) ERROR_exit("Subj %s: could not compress the data: %s",s->label,SRM_strerror(rc)) ;
      if( r<K ) ERROR_exit("Subj %s: the data have rank %d after z-scoring; -nfeatures is %d",s->label,r,K) ;
+     /* from here on s->x is R (r x T), s->nvox the rank, s->ndim the voxel count it stands for */
      if( s->w0!=NULL ){ float *w=(float *)realloc(s->w0,sizeof(float)*(size_t)r*K) ; if( w!=NULL ) s->w0=w ; }
      s->ndim=s->nvox ; s->w0K=K ;
      full+=4.0*s->nvox*(double)d1.T ; kept+=4.0*r*(double)d1.T ;
@@ -4442,6 +4868,7 @@ static void srm_reliability_within( const srm_data *d , srm_ctx *cx )
   -score_by: the levels of each factor, and every subject's level at each column of the model
 ==============================================================================*/
 
+/*! The index of level v of factor fa, adding it as a new level if unseen. */
 static int srm_level_of( srm_ctx *cx , int fa , const char *v )
 {
    int q ;
@@ -4475,7 +4902,9 @@ static void srm_xmat_time_labels( const srm_opts *o , const srm_data *d , const 
 static void srm_build_labels_on( const srm_opts *o , const srm_data *d , srm_ctx *cx ) ;
 
 /*! -score_by levels of every column of every subject.  After -repeated_stimulus the labels are made on the
-    timeline before averaging, and every repeat must give a time point the same level. */
+    timeline before averaging, and every repeat must give a time point the same level.
+    Result: cx->lab[factor][subject][column] = level index (-1 = unlabelled); the levels of all factors are
+    numbered consecutively (fac_off[fa] is factor fa's first), L in all, which is how lscore is indexed. */
 static void srm_build_labels( const srm_opts *o , const srm_data *d , srm_ctx *cx )
 {
    srm_data dd ; int fa , ss , t , rr , L=d->T ;
@@ -4598,6 +5027,13 @@ static void srm_items_to_model( const srm_opts *o , srm_data *d , const SRM_prov
    free(perm) ;
 }
 
+/*! -model_in: map the table's (new) subjects into a saved model.
+    Order matters for honesty: (1) load the model and check the new data match its timeline (same input
+    length, runs, retained points); (2) prepare the data exactly as the model's were (its censor mask and
+    z-scoring); (3) with -cv, score each new subject against the model AS IT STANDS (srm_cv_frozen: S
+    fixed, W from training folds only), before anything changes; (4) then give each new subject a W against
+    S (SRM_model_add_view_obs), or with -update_S let S absorb them (SRM_update) and write a new model;
+    (5) write the outputs.  The new subjects are views nold.. of the model. */
 static void srm_run_model_in( srm_opts *o , THD_datatable *tab , int argc , char **argv )
 {
    srm_data d ; SRM_model *m=NULL ; SRM_provenance *pv=NULL ; SRM_fitinfo fi ; SRM_params par ;
@@ -4639,6 +5075,7 @@ static void srm_run_model_in( srm_opts *o , THD_datatable *tab , int argc , char
    /*-- the new data must be the model's own stimulus, in the model's own runs --*/
    if( !o->axis_item ){
      int *sl=(int *)calloc((size_t)d.nrun,sizeof(int)) , t ;
+     /* sl[rr]: run rr's retained length under the MODEL's keep mask, to compare with the model's seglen */
      rc=SRM_OK ;
      if( d.Tin!=pv->ntime_in || d.nrun!=pv->nseg ) rc=SRM_ERR_MISMATCH ;
      else {
@@ -4865,6 +5302,11 @@ static void srm_item_subjects( const srm_opts *o , THD_datatable *tab , srm_data
    }
 }
 
+/*! -apply_W PREFIX: project each table subject's NEW data through their own W saved by an earlier
+    -save_W run (PREFIX.W.SUBJ, plus PREFIX.srm for K and the z-scoring).  Nothing is fitted.  W's nonzero
+    voxels define the features (no mask), so the new data must be on W's grid.  Each subject is prepared
+    one at a time with the model's z-scoring (or, with -zscore none, centered on the new data since the
+    old means are not saved) and written as PREFIX.proj.SUBJ; missing samples are written as 0. */
 static void srm_run_apply_W( srm_opts *o , THD_datatable *tab , int argc , char **argv )
 {
    srm_data d ; SRM_model *m0=NULL ; SRM_provenance *pv=NULL ; int rc , ss , q , K , zs ;
@@ -4933,6 +5375,7 @@ static void srm_run_apply_W( srm_opts *o , THD_datatable *tab , int argc , char 
        fm=mri_to_float(im) ; ar=MRI_FLOAT_PTR(fm) ; nx=fm->nx ;
        if( fm->ny!=K ) ERROR_exit("'%s' has %d columns; the model has %d components",fn,fm->ny,K) ;
        if( nx!=s->nvox_mask ) ERROR_exit("Subj %s: W has %d rows but the new data have %d columns",s->label,nx,s->nvox_mask) ;
+       /* the 1D image is column-major (component c's column at ar + c*nx); W is row-major V x K */
        V=nx ; W=(float *)malloc(sizeof(float)*(size_t)V*K) ;
        for( f=0 ; f<V ; f++ ) for( c=0 ; c<K ; c++ ) W[(size_t)f*K+c]=ar[(size_t)c*nx+f] ;
        if( fm!=im ) mri_free(fm) ;
@@ -4946,6 +5389,7 @@ static void srm_run_apply_W( srm_opts *o , THD_datatable *tab , int argc , char 
        if( !EQUIV_GRIDS(wds,s->geom) )
          ERROR_exit("Subj %s: the new data are not on the grid of '%s' (W is applied on its own grid and voxels)",s->label,fn) ;
        DSET_load(wds) ; nvg=DSET_NVOX(wds) ; in=(byte *)calloc((size_t)nvg,1) ;
+       /* features = voxels where any component of W is nonzero (the fit's mask minus dropped voxels) */
        for( c=0 ; c<K ; c++ ){
          bim[c]=THD_extract_float_brick(c,wds) ; fb[c]=MRI_FLOAT_PTR(bim[c]) ;
          for( f=0 ; f<nvg ; f++ ) if( fb[c][f]!=0.0f ) in[f]=1 ;
@@ -5165,7 +5609,13 @@ int main( int argc , char **argv )
      else if( IS("-cv_metrics") ){ NEEDARG("a comma list") ; o.cv_metrics=argv[nopt++] ; }
      else if( IS("-match_window") ){ NEEDARG("an integer") ; o.match_window=atoi(argv[nopt++]) ; o.match_window_given=1 ;
        if( o.match_window<1 ) ERROR_exit("-match_window must be at least 1") ; }
-     else if( IS("-loso_iter") ){ NEEDARG("an integer") ; o.loso_iter=atoi(argv[nopt++]) ;
+     else if( IS("-loso_start") ){
+       const char *mode ; NEEDARG("cold or legacy") ; mode=argv[nopt++] ; o.loso_start_given=1 ;
+       if( !strcasecmp(mode,"cold") ) o.loso_legacy=0 ;
+       else if( !strcasecmp(mode,"legacy") ) o.loso_legacy=1 ;
+       else ERROR_exit("-loso_start must be cold or legacy") ;
+     }
+     else if( IS("-loso_iter") ){ NEEDARG("an integer") ; o.loso_iter=atoi(argv[nopt++]) ; o.loso_iter_given=1 ;
        if( o.loso_iter<1 ) ERROR_exit("-loso_iter must be at least 1") ; }
      else if( IS("-fold_column") ){ NEEDARG("a name") ; o.fold_col=argv[nopt++] ; }
      else if( IS("-cv_adapt") ){ NEEDARG("a fraction") ; o.cv_adapt=atof(argv[nopt++]) ; o.cv_adapt_given=1 ;
@@ -5266,6 +5716,12 @@ int main( int argc , char **argv )
      ERROR_exit("-fold_column is for -axis item; with -axis time the folds are the runs (or -cv_blocks)") ;
    if( o.fold_col!=NULL && strcasecmp(o.cvmode,"none")==0 ) ERROR_exit("-fold_column needs -cv run or -cv loso") ;
    if( o.concat!=NULL && o.axis_item ) ERROR_exit("-concat splits a time series into runs; it is for -axis time") ;
+   if( o.loso_start_given ){
+     if( strcasecmp(o.cvmode,"loso") ) ERROR_exit("-loso_start needs -cv loso") ;
+     if( o.model_in!=NULL || o.apply_W!=NULL ) ERROR_exit("-loso_start is for fitting, not -model_in or -apply_W") ;
+   }
+   if( o.loso_iter_given && !o.loso_legacy && !strcasecmp(o.cvmode,"loso") )
+     WARNING_message("-loso_iter is ignored with cold starts; use -niter and -tol (or explicitly -loso_start legacy)") ;
    if( o.cv_adapt_given ){
      if( o.model_in!=NULL || o.apply_W!=NULL ) ERROR_exit("-cv_adapt goes with -run_coupling in a fit: not with -model_in or -apply_W") ;
      if( o.par.coupling==SRM_COUPLING_SHARED )
@@ -5391,6 +5847,7 @@ int main( int argc , char **argv )
    srm_check_subject_outputs(&o,&d) ;
 
    /*-- compress (the default) when it saves memory: every subject has more features than time points (or items) --*/
+   /* (with fewer voxels than time points R would be no smaller than X, so there is nothing to gain) */
    if( !o.no_compress && !o.compress_given ){
      int ss2 , lim=o.axis_item ? d.nitem : d.Tin , few=0 ;
      for( ss2=0 ; ss2<nsub ; ss2++ ) if( d.sb[ss2].nvox_mask<=lim ) few++ ;
@@ -5515,11 +5972,13 @@ int main( int argc , char **argv )
      }
 
      for( ik=0 ; ik<o.nk ; ik++ ){
+       /* one pass per -nfeatures value: the full fit, its held-out scores, and (only when a single K was
+          given) the outputs.  With several K, only the comparison table PREFIX.nfeat.txt is written. */
        SRM_model *m=NULL ; SRM_fitinfo fi ; srm_prog bar ; fit_prog fp ; SRM_params par=o.par ;
        double *start_obj=(double *)calloc((size_t)o.nstart,sizeof(double)) ; int best=0 ;
        srm_cvres res ; int have_res=0 ;
        K=o.klist[ik] ; cx.K=K ;
-       par.nfeat=K ; par.center=(o.zscore==SRM_ZSCORE_NONE) ;
+       par.nfeat=K ; par.center=(o.zscore==SRM_ZSCORE_NONE) ;   /* z-scored data are already centered */
        if( par.coupling!=SRM_COUPLING_SHARED ){ par.nseg=nrun ; par.seglen=seglen ; }
        cx.par=par ;                                   /* the CV fits set their own masks */
        if( cx.anymiss ) par.obs=(const unsigned char * const *)obs_v ;
@@ -5551,6 +6010,8 @@ int main( int argc , char **argv )
        }
        rc=SRM_canonicalize(m) ;
        if( rc!=SRM_OK ) ERROR_exit("could not put the model in its canonical gauge: %s",SRM_strerror(rc)) ;
+       /* canonical gauge: S rotated to uncorrelated rows ordered by variance, signs fixed (thd_srm.h), so
+          component numbers are reproducible; every W is rotated with it, so W S is unchanged */
 
        /*-- held-out scoring --*/
        if( do_cv ){
@@ -5676,6 +6137,8 @@ int main( int argc , char **argv )
            char sn[128] ; srm_safe(sn,sizeof(sn),sb[ss].label) ; pv->label[ss]=strdup(sn) ;
          }
          { int *nvr=NULL ;                             /* -compress: the model's subjects have their voxel counts */
+           /* the model holds each compressed subject with nvox = rank; swap the real feature count (ndim)
+              in for the save, so the file records voxels rather than ranks, and restore it afterwards */
            if( sb[0].compressed ){ nvr=(int *)malloc(sizeof(int)*(size_t)nsub) ;
              for( ss=0 ; ss<nsub ; ss++ ){ nvr[ss]=m->nvox[ss] ; m->nvox[ss]=(int)sb[ss].ndim ; } }
            rc=SRM_save_model(fn,m,pv) ;

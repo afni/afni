@@ -2,6 +2,72 @@
 #define _THD_SRM_HEADER_
 
 /*----------------------------------------------------------------------------
+  START HERE (a primer for readers new to SRM or to neuroimaging)
+
+  What problem does this solve?
+    Several people watch the same movie (or hear the same story) in an MRI
+    scanner.  For each person we get a matrix X_i: one row per voxel (a small
+    cube of brain, the "feature"), one column per time point (one brain volume
+    every TR, typically 1-2 s).  Because brains differ, voxel 1000 in one
+    person does not do the same job as voxel 1000 in another, and people do
+    not even have the same number of voxels.  So the rows cannot be compared
+    directly, but the COLUMNS can: column t is the same moment of the movie
+    for everyone.
+
+    SRM finds a small number k of shared time courses S (k x T) that everyone's
+    brain expresses, plus, for each person, a "dictionary" W_i that says how
+    those k time courses are written into that person's voxels:
+
+        X_i  ~=  W_i S          W_i: voxels_i x k, orthonormal columns
+
+    Orthonormal columns (W_i' W_i = I) mean that W_i' X_i is simply that
+    person's data read out in the shared k-dimensional space ("projection"),
+    with no matrix inverse needed.  That is how two people with different
+    voxel counts end up with comparable k x T series.
+
+  How is it fitted?  (details and derivations are in thd_srm.c)
+    Deterministic SRM (SRM_ALGO_DET) alternates two exact least-squares steps:
+      * S = mean_i W_i' X_i                     (given every W_i)
+      * W_i = U V', where U D V' = svd(X_i S')  (given S; an "orthogonal
+        Procrustes" problem: the best rotation of S onto X_i)
+    Probabilistic SRM (SRM_ALGO_PROB, the default; Chen et al. 2015, as in
+    BrainIAK's SRM) treats S as random with covariance Sigma_s and gives each
+    subject an isotropic noise variance rho2_i, then runs EM:
+      * E-step: the posterior mean of S given the data, in which subject i is
+        weighted by 1/rho2_i, so noisy subjects count for less;
+      * M-step: the same Procrustes step for W_i, then closed-form updates of
+        rho2_i and Sigma_s.
+    Each iteration can only improve the objective (squared error for DET,
+    marginal log-likelihood for PROB), so the objective trace is a useful
+    sanity check: it must be monotone.
+
+  How the API is used (what 3dSRM does)
+    1. Preprocess each subject (z-score each voxel within each run:
+       SRM_zscore_segments) so features are centered and comparable.
+    2. SRM_fit() (or SRM_fit_multistart()) -> an SRM_model with S and every W_i.
+    3. SRM_canonicalize() so the arbitrary rotation of S is fixed (see Gauge).
+    4. To evaluate honestly, fit on some columns (runs) and score others:
+       SRM_project() a held-out run, build the leave-one-out reference from
+       the other subjects (SRM_shared_from_projections), then
+       SRM_component_corr / SRM_segment_match / SRM_reconstruction_r2, or
+       SRM_score_view(), which does all three.
+    5. SRM_save_model() so new subjects can be added later (SRM_fit_view,
+       SRM_model_add_view, SRM_update) without the original data.
+
+  Glossary used below
+    view      one matrix X_i, usually one subject (could be EEG channels or
+              atlas parcels; the library does not care what the rows are)
+    feature   one row of a view (a voxel, channel, or parcel); nvox[i] of them
+    sample    one column (a time point, or an "item" = one trial/condition
+              estimate matched across subjects by its label); ntime of them
+    run/segment  a contiguous block of columns recorded in one scan; z-scoring
+              and cross-validation folds respect run boundaries
+    censored/missing  a time point dropped (e.g. for head motion), either for
+              everyone or (SRM_params.obs) for one subject only
+    gauge     the arbitrary rotation R in (W_i R, R' S); see below
+------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------
   Dataset-agnostic Shared Response Model (SRM) numerics for 3dSRM.
 
   The model (Chen et al., NIPS 2015):    X_i  ~=  W_i S + noise
@@ -491,6 +557,14 @@ extern int SRM_model_add_view_obs( SRM_model *m , const float *x , int nvox ,
   of 150000 voxels and 1300 time points shrinks from 780 MB to 7 MB.
   Projections W'X, scores, S, rho2 and the objective are the same; voxel
   maps need X again: W = X M, M = SRM_compress_map(R, W_R).
+
+  In plain terms: a whole-brain subject has ~150,000 voxels but only ~1,300
+  time points, so the 150,000 rows of X are hugely redundant -- they span at
+  most a 1,300-dimensional space.  Every quantity the fit needs (W'X, X S',
+  |X|^2) depends on X only through X'X (time x time), so any smaller matrix R
+  with the same R'R gives exactly the same fit.  R is found by a Cholesky
+  factorization of X'X.  "ndim" tells the likelihood how many real voxels each
+  compressed view stands for, because the noise variance is per voxel.
 ------------------------------------------------------------------------------*/
 
 /*! R (rank x ntime, allocated here, *R_out) with R'R = X'X up to the

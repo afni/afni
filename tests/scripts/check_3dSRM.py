@@ -550,19 +550,12 @@ def case_cv(prog, cli, work, rng, mode, algo, runs, win=5, K_=3, niter=50, label
                     worst_proj = max(worst_proj, procrustes_residual(pj[:, c0:c0 + L], Pref))
             check("held-out projections equal the fold models' up to a rotation of the gauge", worst_proj, 2e-3)
         else:
-            # leave one subject out: warm start from the full fit without the subject, loso_iter = 5 steps
-            full = reference_fit(cli, work, name + "_full", pre, K_, niter, algo)
+            # Independent fit of the other subjects, with their whole-table RNG streams.
             for i in range(n):
                 oth = [j for j in range(n) if j != i]
-                dd = work / f"{name}_drop{i}"
-                dd.mkdir(parents=True, exist_ok=True)
-                extra = []
-                if algo == "prob":
-                    full["rho2"][oth].astype(np.float64).tofile(dd / "rho2.f64")
-                    full["sigma"].astype(np.float32).tofile(dd / "sigma.f32")
-                    extra = ["--init-rho2", str(dd / "rho2.f64"), "--init-sigma", str(dd / "sigma.f32")]
-                r = run_ours(cli, work, f"{name}_drop{i}", algo, [pre[j].astype(np.float32) for j in oth], K_, 5, False,
-                               init_w=[full["w"][j] for j in oth], extra=extra)
+                extra = ["--canon", "--streams", ",".join(map(str, oth))]
+                r = run_ours(cli, work, f"{name}_drop{i}", algo, [pre[j].astype(np.float32) for j in oth], K_, niter, False,
+                             extra=extra)
                 for fi_, (c0, L) in enumerate(folds):
                     tr = np.delete(pre[i], np.arange(c0, c0 + L), axis=1)
                     te = pre[i][:, c0:c0 + L]
@@ -1872,18 +1865,11 @@ def case_items_cv(prog, cli, work, rng, mode, algo, folds_by, k=5, niter=50, sco
                 worst_proj = max(worst_proj, procrustes_residual(pj[:, cols], r["w"][i].T @ pre[i][:, cols]))
         check("held-out item projections equal the fold models' up to a rotation of the gauge", worst_proj, 2e-3)
     else:
-        full = reference_fit(cli, work, name + "_full", pre, k, niter, algo)
         for i in range(n):
             oth = [j for j in range(n) if j != i]
-            dd = work / f"{name}_drop{i}"
-            dd.mkdir(parents=True, exist_ok=True)
-            extra = []
-            if algo == "prob":
-                full["rho2"][oth].astype(np.float64).tofile(dd / "rho2.f64")
-                full["sigma"].astype(np.float32).tofile(dd / "sigma.f32")
-                extra = ["--init-rho2", str(dd / "rho2.f64"), "--init-sigma", str(dd / "sigma.f32")]
-            r = run_ours(cli, work, f"{name}_drop{i}", algo, [pre[j].astype(np.float32) for j in oth], k, 5, False,
-                         init_w=[full["w"][j] for j in oth], extra=extra)
+            extra = ["--canon", "--streams", ",".join(map(str, oth))]
+            r = run_ours(cli, work, f"{name}_drop{i}", algo, [pre[j].astype(np.float32) for j in oth], k, niter, False,
+                         extra=extra)
             for fi_, cols in enumerate(own_folds[sub_order[i]]):
                 tr, te = np.delete(pre[i], cols, axis=1), pre[i][:, cols]
                 W = np_polar(tr @ np.delete(r["s"], cols, axis=1).T)
@@ -2323,18 +2309,14 @@ def case_missing(prog, cli, work, rng, mode, algo, win=5, niter=40):
                 sst = ((xv - xv.mean(1, keepdims=True)) ** 2).sum()
                 want[(names[i], fold_names[fi_])] = [int(valid.sum()), np_isc(P[i][:, valid], ref_u[:, valid]), acc, ch, 1.0 - sse / sst]
     else:
-        full = reference_fit(cli, work, name + "_full", pre, K, niter, algo, extra=obs_extra(d, "full", obsm))
         for i in range(n):
             oth = [j for j in range(n) if j != i]
+            extra = ["--canon", "--streams", ",".join(map(str, oth))]
             dd = work / f"{name}_drop{i}"
             dd.mkdir(parents=True, exist_ok=True)
-            extra = obs_extra(dd, "o", [obsm[j] for j in oth])
-            if algo == "prob":
-                full["rho2"][oth].astype(np.float64).tofile(dd / "rho2.f64")
-                full["sigma"].astype(np.float32).tofile(dd / "sigma.f32")
-                extra += ["--init-rho2", str(dd / "rho2.f64"), "--init-sigma", str(dd / "sigma.f32")]
-            r = run_ours(cli, work, f"{name}_drop{i}", algo, [pre[j].astype(np.float32) for j in oth], K, 5, False,
-                         init_w=[full["w"][j] for j in oth], extra=extra)
+            extra += obs_extra(dd, "o", [obsm[j] for j in oth])
+            r = run_ours(cli, work, f"{name}_drop{i}", algo, [pre[j].astype(np.float32) for j in oth], K, niter, False,
+                         extra=extra)
             for fi_, cols in enumerate(folds):
                 otr = np.delete(obsm[i], cols)
                 tr = np.delete(pre[i], cols, axis=1)[:, otr]
@@ -2798,7 +2780,7 @@ def ref_scores_run(cli, work, tag, pre, members, folds, algo, k, niter, win):
 
 
 def ref_scores_loso(cli, work, tag, pre, members, folds, algo, k, niter, win, others=()):
-    """-cv loso among the given subjects (the full fit of them, then each left out, 5 warm steps); others are
+    """Independent cold LOSO fits among the given subjects; others are
     scored as new subjects in the full fit of members (W from their training columns)."""
     out = {}
     full = reference_fit(cli, work, tag + "_full", [pre[i] for i in members], k, niter, algo,
@@ -2815,15 +2797,9 @@ def ref_scores_loso(cli, work, tag, pre, members, folds, algo, k, niter, win, ot
             out[(i, fi_)] = [np_isc(Pm, s_te), acc, ch, 1.0 - sse / sst]
     for q, i in enumerate(members):
         oth = [qq for qq in range(len(members)) if qq != q]
-        dd = work / f"{tag}_drop{q}"
-        dd.mkdir(parents=True, exist_ok=True)
-        extra = []
-        if algo == "prob":
-            full["rho2"][oth].astype(np.float64).tofile(dd / "rho2.f64")
-            full["sigma"].astype(np.float32).tofile(dd / "sigma.f32")
-            extra = ["--init-rho2", str(dd / "rho2.f64"), "--init-sigma", str(dd / "sigma.f32")]
-        r = run_ours(cli, work, f"{tag}_drop{q}", algo, [pre[members[qq]].astype(np.float32) for qq in oth], k, 5, False,
-                     init_w=[full["w"][qq] for qq in oth], extra=extra)
+        extra = ["--canon", "--streams", ",".join(str(members[qq]) for qq in oth)]
+        r = run_ours(cli, work, f"{tag}_drop{q}", algo, [pre[members[qq]].astype(np.float32) for qq in oth], k, niter, False,
+                     extra=extra)
         score(i, None, r["s"])
     for i in others:
         score(i, None, full["s"])
@@ -3248,7 +3224,146 @@ def main_items(args, cli, rng):
     case_items_cv(args.prog, cli, args.workdir, rng, "run", "det", "own")
 
 
+def case_loso_independence(prog, cli, work):
+    """Change the scored subject while keeping the independent group reference fixed.
+
+    Short, multistart fits expose initialization dependence without assuming
+    convergence. Two different subject-zero inputs must both match the same
+    other-subject reference, including centering and held-out reconstruction.
+    """
+    print("\n[LOSO excluded-subject independence, multistart and tolerance]", flush=True)
+    d = work / "loso_independence"
+    d.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(810)
+    n, V, L, k, niter = 4, 30, 20, 3, 15
+    x = [rng.standard_normal((V, 3 * L)).astype(np.float32) for _ in range(n)]
+    for algo in ("prob", "det"):
+        ref = run_ours(cli, work, f"independent_{algo}", algo, x[1:], k, niter, True,
+                       nstart=2, tol=1e-5, extra=["--canon", "--streams", "1,2,3"])
+        for trial in range(2):
+            # Only subject zero changes, and its offsets exercise training-only centering.
+            target = rng.standard_normal((V, 3 * L)).astype(np.float32) + trial * 3.0
+            lines = ["Subj Group Run InputFile"]
+            for i, a in enumerate([target] + x[1:]):
+                for f in range(3):
+                    path = d / f"sub{i}_run{f}.1D"
+                    np.savetxt(path, a[:, f * L:(f + 1) * L].T, fmt="%.9g")
+                    lines.append(f"sub{i} all r{f} {path}")
+            table = d / "table.txt"
+            table.write_text("\n".join(lines) + "\n")
+            prefix = d / f"{algo}_{trial}"
+            cmd = [prog, "-prefix", prefix, "-dataTableFile", table, "-cv", "loso",
+                   "-algorithm", algo, "-nfeatures", k, "-niter", niter, "-nstart", 2,
+                   "-tol", 1e-5, "-zscore", "none", "-no_compress", "-no_projected",
+                   "-progress", "off", "-overwrite"]
+            run(cmd)
+            _, rows = read_scores(str(prefix) + ".scores_folds.txt")
+            if trial == 1:
+                original_threads = ENV["OMP_NUM_THREADS"]
+                try:
+                    ENV["OMP_NUM_THREADS"] = "1"
+                    run(cmd)
+                finally:
+                    ENV["OMP_NUM_THREADS"] = original_threads
+                _, serial_rows = read_scores(str(prefix) + ".scores_folds.txt")
+                check(f"{algo}: one vs four threads, scores identical", float(rows != serial_rows), 0.0)
+            for f in range(3):
+                cols = np.arange(f * L, (f + 1) * L)
+                tr = np.delete(target, cols, axis=1).astype(np.float64)
+                mu = tr.mean(1, keepdims=True)
+                W = np_polar((tr - mu) @ np.delete(ref["s"], cols, axis=1).T)
+                te, S = target[:, cols] - mu, ref["s"][:, cols]
+                P = W.T @ te
+                acc, chance = np_segment_match(P, S, 9)
+                r2 = 1.0 - ((te - W @ S) ** 2).sum() / ((te - te.mean(1, keepdims=True)) ** 2).sum()
+                want = np.array([np_isc(P, S), acc, chance, r2])
+                got = np.array([num(v) for v in rows[f][4:8]])
+                check(f"{algo}, input {trial}, fold {f}: same independent reference", float(np.max(np.abs(want - got))), 5e-4)
+
+
+def case_loso_null(prog, cli, work):
+    """Fixed independent Gaussian subjects expose the old warm-start leakage.
+
+    Bounds deliberately separate the large legacy effect from null fluctuations;
+    they are regression thresholds, not SEs treating overlapping windows as
+    independent. Exact driver references below also check the fitting procedure.
+    """
+    print("\n[LOSO null leakage and explicit legacy reproduction]", flush=True)
+    d = work / "loso_null"
+    d.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(3)
+    n, V, L, k, niter = 10, 600, 120, 10, 200
+    raw = [rng.standard_normal((V, 3 * L)).astype(np.float32) for _ in range(n)]
+    pre, lines = [], ["Subj Group Run InputFile"]
+    for i, x in enumerate(raw):
+        z = np.empty_like(x, dtype=np.float64)
+        for f in range(3):
+            cols = slice(f * L, (f + 1) * L)
+            path = d / f"sub{i:02d}_run{f}.1D"
+            np.savetxt(path, x[:, cols].T, fmt="%.9g")
+            lines.append(f"sub{i:02d} all r{f} {path}")
+            seg = x[:, cols].astype(np.float64)
+            z[:, cols] = (seg - seg.mean(1, keepdims=True)) / seg.std(1, keepdims=True)
+        pre.append(z.astype(np.float32))
+    table = d / "table.txt"
+    table.write_text("\n".join(lines) + "\n")
+    base = [prog, "-dataTableFile", table, "-nfeatures", k, "-niter", niter,
+            "-tol", 0, "-progress", "off", "-overwrite", "-no_projected", "-cv", "loso"]
+    for algo in ("prob", "det"):
+        scores = {}
+        for mode, opts in (("default", ["-no_compress"]),
+                           ("cold", ["-loso_start", "cold", "-loso_iter", 1, "-compress"]),
+                           ("legacy", ["-loso_start", "legacy", "-loso_iter", 5, "-no_compress"])):
+            prefix = d / f"{algo}_{mode}"
+            p = run(base + ["-prefix", prefix, "-algorithm", algo] + opts)
+            if mode == "legacy":
+                check("legacy warns about optimistic scores", float("scores can be optimistic" not in p.stderr), 0.0)
+            if mode == "cold":
+                check("cold warns that -loso_iter is ignored", float("-loso_iter is ignored" not in p.stderr), 0.0)
+            head, rows = read_scores(str(prefix) + ".scores_folds.txt")
+            # Same layout as case_cv: subject, group, fold, nsamp, ISC, match, chance, R2.
+            a = np.array([[num(v) for v in row[4:8]] for row in rows])
+            scores[mode] = a
+            print(f"  {algo} {mode}: ISC={a[:, 0].mean():.5f}, match={a[:, 1].mean():.5f}, chance={a[:, 2].mean():.5f}", flush=True)
+            if mode != "legacy":
+                check(f"{algo} {mode}: null ISC", abs(a[:, 0].mean()), 0.04)
+                check(f"{algo} {mode}: null matching", abs(a[:, 1].mean() - a[:, 2].mean()), 0.03)
+        check(f"{algo}: compressed explicit cold matches uncompressed default", float(np.max(np.abs(scores["cold"] - scores["default"]))), 1e-6)
+        if algo == "prob":
+            check("legacy reproduces null inflation", float(scores["legacy"][:, 0].mean() <= 0.08), 0.0)
+        # Independent references for subject zero: all remaining subjects retain
+        # their original RNG streams. Legacy retains the canonical pooled gauge.
+        full = reference_fit(cli, work, f"null_{algo}_full", pre, k, niter, algo)
+        ini = work / f"null_{algo}_legacy"
+        ini.mkdir(exist_ok=True)
+        extra = []
+        if algo == "prob":
+            full["rho2"][1:].astype(np.float64).tofile(ini / "rho.f64")
+            full["sigma"].astype(np.float32).tofile(ini / "sig.f32")
+            extra = ["--init-rho2", str(ini / "rho.f64"), "--init-sigma", str(ini / "sig.f32")]
+        for mode in ("default", "legacy"):
+            legacy = mode == "legacy"
+            ref = run_ours(cli, work, f"null_{algo}_{mode}", algo, pre[1:], k,
+                           5 if legacy else niter, False,
+                           init_w=full["w"][1:] if legacy else None,
+                           extra=extra if legacy else ["--canon", "--streams", ",".join(map(str, range(1, n)))])
+            for f in range(3):
+                cols = np.arange(f * L, (f + 1) * L)
+                W = np_polar(np.delete(pre[0], cols, axis=1) @ np.delete(ref["s"], cols, axis=1).T)
+                P, S = W.T @ pre[0][:, cols], ref["s"][:, cols]
+                acc, chance = np_segment_match(P, S, 9)
+                want = np.array([np_isc(P, S), acc, chance])
+                check(f"{algo} {mode} null fold {f}: driver reference", float(np.max(np.abs(scores[mode][f, :3] - want))), 5e-4)
+    for opts, msg in ((["-loso_start", "folds"], "must be cold or legacy"),
+                      (["-loso_start", "cold", "-cv", "run"], "needs -cv loso"),
+                      (["-loso_start", "cold", "-model_in", "unused.srm"], "not -model_in or -apply_W")):
+        p = run(base + ["-prefix", d / "bad"] + opts, expect_ok=False)
+        check("invalid LOSO option rejected: " + msg, float(p.returncode == 0 or msg not in p.stdout + p.stderr), 0.0)
+
+
 def main_cv(args, cli, rng):
+    case_loso_null(args.prog, cli, args.workdir)
+    case_loso_independence(args.prog, cli, args.workdir)
     for mode in ("run", "loso"):
         for algo in ("prob", "det"):
             case_cv(args.prog, cli, args.workdir, rng, mode, algo, [60, 50, 70])
@@ -3275,6 +3390,7 @@ def main():
     ap.add_argument("--prog", type=Path, default=REPO / "build" / "targets_built" / "3dSRM")
     ap.add_argument("--workdir", type=Path, default=Path("check_3dsrm"))
     ap.add_argument("--srm-cli", help="a built srm_cli; compiled from the repo if omitted")
+    ap.add_argument("--only-loso-null", action="store_true", help="only the LOSO leakage regression")
     ap.add_argument("--only-stage3", action="store_true", help="only the -model_in, -update_S and -apply_W cases")
     ap.add_argument("--only-items", action="store_true", help="only the -axis item cases")
     ap.add_argument("--only-concat", action="store_true", help="only the -concat / Xmat cases")
@@ -3289,7 +3405,10 @@ def main():
     args.workdir.mkdir(parents=True, exist_ok=True)
     cli = build_cli(args.workdir, args.srm_cli)
     rng = np.random.default_rng(12)
-    if args.only_compress:
+    if args.only_loso_null:
+        case_loso_null(args.prog, cli, args.workdir)
+        case_loso_independence(args.prog, cli, args.workdir)
+    elif args.only_compress:
         case_compress(args.prog, cli, args.workdir, rng)
     elif args.only_repeat:
         case_repeated_stimulus(args.prog, cli, args.workdir, rng)
