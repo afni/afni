@@ -13,7 +13,7 @@ disco_docker_ver=$(curl -s "https://raw.githubusercontent.com/afni/afni/refs/hea
 docker build --platform=linux/amd64,linux/arm64 \
        -t afni/afni_docker_universal:${disco_docker_ver} \
        -t afni/afni_docker_universal:latest \
-       -t afni/afni_docker_universal:AFNI_${afni_ver} \
+       -t afni/afni_docker_universal:${afni_ver} \
        --progress=plain . 2>&1 | tee docker.build.log.txt
 
 docker image push --all-tags afni/afni_docker_universal \
