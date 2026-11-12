@@ -1,6 +1,7 @@
 """Synthetic warning/exit-code checks; also runnable directly with --tool.
 
-Set AFNI_XMAT_TOOL to test a specific build under pytest. Direct execution
+Under pytest, find the installed tool on PATH or set AFNI_XMAT_TOOL to an
+explicit executable path to test a specific build. Direct execution
 needs only the standard library, so diagnostics can be checked independently
 of the imaging dependencies used by the broader integration scripts.
 """
@@ -8,8 +9,29 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
+
+
+def find_xmat_tool():
+    """Return an absolute executable path; never fall back from a bad override."""
+    override = os.environ.get('AFNI_XMAT_TOOL')
+    if override is not None:
+        tool = Path(override).expanduser().resolve()
+        if override and tool.is_file() and os.access(tool, os.X_OK):
+            return str(tool)
+        raise FileNotFoundError(
+            f'AFNI_XMAT_TOOL={override!r} is not an executable file '
+            f'(resolved to {tool}).')
+
+    tool = shutil.which('1dXmatTool')
+    if tool:
+        return str(Path(tool).resolve())
+    raise FileNotFoundError(
+        f'1dXmatTool was not found on PATH={os.environ.get("PATH", os.defpath)!r}. '
+        'Add the intended AFNI installation to PATH or set AFNI_XMAT_TOOL '
+        'to its executable path.')
 
 
 def check_warnings(tool, directory):
@@ -180,8 +202,51 @@ def check_warnings(tool, directory):
 
 
 def test_xmat_warnings(tmp_path):
-    tool = os.environ.get('AFNI_XMAT_TOOL', str(Path(__file__).resolve().parents[2] / 'src' / '1dXmatTool'))
-    check_warnings(tool, tmp_path)
+    check_warnings(find_xmat_tool(), tmp_path)
+
+
+def test_xmat_tool_discovery(tmp_path, monkeypatch):
+    """PATH selects an installed tool, and an explicit build takes precedence."""
+    installed = tmp_path / '1dXmatTool'
+    override = tmp_path / 'custom-build'
+    for tool in (installed, override):
+        tool.write_text('#!/bin/sh\nexit 0\n')
+        tool.chmod(0o755)
+    monkeypatch.setenv('PATH', str(tmp_path))
+    monkeypatch.delenv('AFNI_XMAT_TOOL', raising=False)
+    assert find_xmat_tool() == str(installed)
+    monkeypatch.setenv('AFNI_XMAT_TOOL', str(override))
+    assert find_xmat_tool() == str(override)
+
+
+def test_xmat_tool_bad_override(tmp_path, monkeypatch):
+    """An invalid override must fail even when PATH contains a usable tool."""
+    import pytest
+
+    installed = tmp_path / '1dXmatTool'
+    installed.write_text('#!/bin/sh\nexit 0\n')
+    installed.chmod(0o755)
+    monkeypatch.setenv('PATH', str(tmp_path))
+    for override in ('', str(tmp_path / 'missing'), str(tmp_path)):
+        monkeypatch.setenv('AFNI_XMAT_TOOL', override)
+        with pytest.raises(FileNotFoundError, match='AFNI_XMAT_TOOL='):
+            find_xmat_tool()
+    installed.chmod(0o644)
+    monkeypatch.setenv('AFNI_XMAT_TOOL', str(installed))
+    with pytest.raises(FileNotFoundError, match='not an executable file'):
+        find_xmat_tool()
+
+
+def test_xmat_tool_missing(tmp_path, monkeypatch):
+    """Missing installations report the searched PATH and the override option."""
+    import pytest
+
+    monkeypatch.setenv('PATH', str(tmp_path))
+    monkeypatch.delenv('AFNI_XMAT_TOOL', raising=False)
+    with pytest.raises(FileNotFoundError) as error:
+        find_xmat_tool()
+    assert str(tmp_path) in str(error.value)
+    assert 'AFNI_XMAT_TOOL' in str(error.value)
 
 
 if __name__ == '__main__':
