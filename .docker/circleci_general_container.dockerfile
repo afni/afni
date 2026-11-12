@@ -18,7 +18,7 @@
 #
 # The above command will download an image from AFNI's dockerhub account
 #
-FROM alpine:3.12
+FROM alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f
 
 RUN apk add bash curl docker-cli docker-py git pigz py3-pytest python3 openssh shadow
 

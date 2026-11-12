@@ -1,4 +1,5 @@
 from argparse import Namespace
+import asyncio
 from collections import namedtuple, defaultdict
 import pathlib
 from pathlib import Path
@@ -166,6 +167,35 @@ def test_execute_cmd_args(params):
         timed_out = True
 
     assert timed_out == params["expected_to_timeout"]
+
+
+@pytest.mark.parametrize("exit_status", [0, 7])
+def test_execute_cmd_args_asynchronous(tmp_path, exit_status):
+    """Modern asyncio must capture both streams and preserve the child's status."""
+    stdout = tmp_path / "stdout.txt"
+    stderr = tmp_path / "stderr.txt"
+    script = (
+        "import sys; print('out'); print('err', file=sys.stderr); "
+        f"sys.exit({exit_status})"
+    )
+    loop = asyncio.new_event_loop()
+    try:
+        status = loop.run_until_complete(
+            tools.__execute_cmd_args_asynchronous(
+                [sys.executable, "-c", shlex.quote(script)],
+                logging,
+                stdout,
+                stderr,
+                tmp_path,
+                merge_error_with_output=False,
+                timeout=5,
+            )
+        )
+    finally:
+        loop.close()
+    assert status == exit_status
+    assert stdout.read_text() == "out\n"
+    assert stderr.read_text() == "err\n"
 
 
 def test_run_cmd_timeout(data, monkeypatch):
