@@ -1171,6 +1171,26 @@ if __name__ == "__main__":
     # --------------------------------------------------------------------
 
     # QC block: "warns"
+    # item    : variance lines, PC line plots
+
+    ldep     = ["vlines_tcat_dir"]
+    if lat.check_dep(ap_ssdict, ldep) :
+        # look for eigenvalue and eigenvector files
+        all_eig = glob.glob(ap_ssdict[ldep[0]] + '/' + 'pc.in*val_eig.1D')
+        all_eig.sort()
+        all_vec = glob.glob(ap_ssdict[ldep[0]] + '/' + 'pc.in*val_vec.1D')
+        all_vec.sort()
+        if len(all_eig) and len(all_vec) and (len(all_eig) == len(all_vec)) :
+
+            obase = 'qc_{:02d}'.format(idx)
+            cmd   = lat.apqc_warns_vline_plot( ap_ssdict, obase, "warns", 
+                                               'vlines_plot', RUN_STYLE )
+
+            idx  += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
     # item    : ROI stats for TSNR (final) via compute_ROI_stats.tcsh
 
     # not currently a uvar, check for known dir name in AP results

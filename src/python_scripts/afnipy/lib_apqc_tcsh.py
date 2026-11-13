@@ -6163,10 +6163,8 @@ num : int
     # output names/prefixes/etc.
     oname    = '_'.join([obase, qcb, qci])           # output name
     opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
-    otopjson = opref + '.json'             
+    otopjson = opref + '.json'
     odat     = opref + '.dat'
-    oimg     = opref + '_0' + '.sag.jpg'   
-    osubjson = opref + '_0' + '.sag.json'  
 
     if 1 :
         print("++ APQC create: " + oname); sys.stdout.flush() 
@@ -6331,6 +6329,168 @@ num : int
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
+
+# -----------------------------------------------------------------
+
+# ["vlines_tcat_dir", 'pc.in*val_eig.1D', 'pc.in*val_vec.1D']
+def apqc_warns_vline_plot( ap_ssdict, obase, qcb, qci, run_style ):
+    """Make 1D plots of vlines for run 1 in tcat block, if they were
+calculated and exist.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+run_style : str
+    mode of running, such as 'pythonic' or 'basic'
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.json'                       # only use sag imgs here
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '# plot vlines '
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # *********
+
+    # make list of lines to plot (more specific than before)
+
+    # first, get intersection line vecs, if any
+    rdir    = ap_ssdict["vlines_tcat_dir"]
+    all_vec = glob.glob(rdir + '/' + 'pc.inter*enum*val_vec.1D')
+    all_vec.sort()
+    # then, get all inner* ones, and sort, and grab first set of runs
+    all_inn = glob.glob(rdir + '/' + 'pc.inner.r*_vec.1D')
+    all_inn.sort()
+
+    # now find the first set of appropriate run files to add (or not)
+    rr = 1
+    while rr < len(all_inn) :
+        rstr = 'pc.inner.r{:02d}.*_vec.1D'.format(rr)
+
+        all_rr = glob.glob(rdir + '/' + rstr)
+        all_rr.sort()
+
+        if len(all_rr) :
+            all_vec = all_vec + all_rr
+        
+        if len(all_vec) :
+            break
+
+        rr+= 1
+
+    if len(all_vec) == 0 :
+        ab.WP("Oddly, could find to vline vec files to plot; skipping")
+
+    # all_vec now contains all the files we will use, and in order for
+    # display
+
+    ylabels = parse_names_for_vlines(all_vec)
+    if len(ylabels) :
+        ylabel_txt = '-ylabels {} '.format(' '.join(ylabels))
+    else:
+        ylabel_txt = ''
+
+    pldict = {
+        'infiles'    : ' '.join(all_vec),
+        'opref'      : opref,
+        'ptitle'     : "Variance line PCs",
+        'ylabel_txt' : ylabel_txt,
+    }
+
+    if run_style == 'pythonic' :
+        cmd = '''
+        1dplot.py                                                            \
+            -sepscl                                                          \
+            -boxplot_on                                                      \
+            -infiles        {infiles}                                        \
+            -xlabel         "vol index"                                      \
+            {ylabel_txt}                                                     \
+            -title          "{ptitle}"                                       \
+            -prefix         "{opref}.jpg"
+        '''.format(**pldict)
+        com    = ab.shell_com(cmd, capture=do_cap)
+        stat   = com.run()
+
+    # Setup text info for plot and toptxt
+    otoptxt = 'Principal components (PCs) for selected variance lines'
+
+    # Make info above and below images
+    otopdict = {
+        'itemtype'    : '1D',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    return 0
+
+
+
+def parse_names_for_vlines(L):
+    """Supplementary function. For a list of vline*/*vec.1D files, extract
+names for y-values in plot of PCs.  Output a list of those names,
+corresponding to input list L.
+
+    """
+
+    if len(L) == 0 :
+        return []
+
+    do_cap = True
+
+    M = []
+
+    for a in L :
+        # get num of PCs per file
+        cmd  = '''1d_tool.py -verb 0 -show_rows_cols -infile {}'''.format(a)
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+        npc  = int(com.so[0].split()[-1])  # 2 nums are output, get 2nd
+
+        b = a.split('/')[-1]   # get file name
+        if b.startswith('pc.inner.') :
+            c = b.replace('pc.inner.', '')      # remove start of file
+            d = c.split('.')
+            rr = d[0]   # run number
+            vv = d[1].replace('c', 'L')   # vline number
+        elif b.startswith('pc.inter.') :
+            c = b.replace('pc.inter.', '')  # remove start of file
+            d = c.split('.')
+            rr = 'all'   # run number
+            vv = d[1].replace('c', 'L')   # vline number
+            
+        for nn in range(npc):
+            # need quotes, bc of whitestring char
+            mmm = '"' + rr + '\n' + vv + ':' + str(nn+1) + '"'
+            M.append(mmm)
+
+    return M
+
 
 # -------------------------------------------------------------------
 
