@@ -65,6 +65,10 @@ RUN echo 'usermod -u "${USERID}" "${USERNAME}" &>/dev/null' >> /root/.bashrc
 RUN echo 'su "${USERNAME}"' >> /root/.bashrc
 RUN echo '    ' >> /root/.bashrc
 
+## setup path for non-interactive sessions
+ENV PATH="/usr/local/abin:${PATH}"
+ENV R_LIBS="/home/afni_user/R"
+
 ## go to the host home and bash it
 WORKDIR /home/external
 CMD ["/bin/bash"]
