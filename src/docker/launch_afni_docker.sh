@@ -24,11 +24,11 @@ disp_linux="$DISPLAY" ; disp_linux_help='$DISPLAY' # help file shows literal
 show_help() {
 cat << EOF
 
-   ----------------------------------------------------------------------------
+   ---------------------------------------------------------------------------
    $prog ~1~
 
-           Helper script to launch the afni docker on macOS and most Linux 
-           variants. This script does not need any arguments.  
+           Helper script to launch the afni docker on macOS and most Linux
+           variants. This script does not need any arguments.
 
            REQUIREMENTS: ~2~
 
@@ -43,32 +43,32 @@ cat << EOF
 
            NOTES: ~2~
 
-           1. The afni docker will be launched with the current user's home 
-              directory mounted to /home/external in the docker container. 
-              This allows you to access your files from within the docker 
-              container. The Docker program may give you a warning about this,  
+           1. The afni docker will be launched with the current user's home
+              directory mounted to /home/external in the docker container.
+              This allows you to access your files from within the docker
+              container. The Docker program may give you a warning about this,
               but it is safe to ignore.
 
-           2. The docker container will be launched with the current user's 
-              UID and GID. This allows you to create and access files in your 
-              home directory from within the docker container without 
+           2. The docker container will be launched with the current user's
+              UID and GID. This allows you to create and access files in your
+              home directory from within the docker container without
               permission issues.
 
-           3. On some Linux variants, the Docker Desktop may block X11 
-              forwarding. If this happens, you can try the -display option 
-              to set a different display environment variable. However, this 
-              may not work and the using Docker engine instead of the the 
-              Docker Desktop may be the only way to fix this issue. Please 
+           3. On some Linux variants, the Docker Desktop may block X11
+              forwarding. If this happens, you can try the -display option
+              to set a different display environment variable. However, this
+              may not work and the using Docker engine instead of the the
+              Docker Desktop may be the only way to fix this issue. Please
               see the Docker documentation for more information.
 
-           4. On Linux, the user needs to be in the docker group to run 
-              this script. If you are not in the docker group, the script 
+           4. On Linux, the user needs to be in the docker group to run
+              this script. If you are not in the docker group, the script
               will exit with an error. You need administrative privileges
-              to create the docker group and add yourself to the group. 
-              You can create the docker group with the following command: 
+              to create the docker group and add yourself to the group.
+              You can create the docker group with the following command:
                  sudo groupadd docker
-              You can add yourself to the docker group with the following 
-              command: 
+              You can add yourself to the docker group with the following
+              command:
                  sudo usermod -aG docker \$USER
               You need to restart your computer or log out and log back in for 
               the group changes to take effect. Running the script with sudo 
@@ -79,7 +79,7 @@ cat << EOF
               docker container.  If you only type 'exit' or 'Ctrl+d' ONCE, 
               you will be returned to the root shell in the docker container.
 
-   -----------------------------------------------------------------------------
+   ---------------------------------------------------------------------------
    Options: ~1~
 
       -run            : flag to launch the AFNI docker
@@ -121,7 +121,7 @@ cat << EOF
 
       -help           : Show this help (also shown if no options provided)
 
-   -----------------------------------------------------------------------------
+   ---------------------------------------------------------------------------
    Examples: ~1~
 
       1. Just launch the afni docker:
@@ -136,7 +136,7 @@ cat << EOF
 
            bash ${prog} -run -show_cmd
 
-   -----------------------------------------------------------------------------
+   ---------------------------------------------------------------------------
    Justin Rajendra 11/2026
 
 EOF
