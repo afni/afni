@@ -117,6 +117,13 @@ cat << EOF
                         docker
                         (def : ${base_img})
 
+      -show_tags TYPE : display possible tags to use after '-tag', with newest
+                        at the top.
+
+                        The argument TYPE is one of the following keywords:
+                          USER, ALL
+                        (NB: "ALL" shows some development-specific ones)
+
       -show_cmd       : Display the 'docker run ...' command when launching
 
       -help           : Show this help (also shown if no options provided)
@@ -140,6 +147,68 @@ cat << EOF
    Justin Rajendra 11/2026
 
 EOF
+exit 0
+}
+
+#################################################
+## display all (well, first 1000) possible tags
+show_tags() {
+
+# build web address for AFNI universal dockerhub repo
+
+namespace=afni
+repo=afni_docker_universal
+waddr="https://hub.docker.com/v2/namespaces/${namespace}"
+waddr="${waddr}/repositories/${repo}"
+waddr="${waddr}/tags?page_size=1000"
+
+# get list of tags, filter and sort a bit
+
+all_tag=( `wget -q -O - "${waddr}" \
+          | grep -o '"name": *"[^"]*' | grep -o '[^"]*$' \
+          | sort -r` )
+
+# build relevant lists
+
+sub_latest=()
+sub_afni=()
+sub_dev=()
+
+for tag in "${all_tag[@]}"; do
+    if [[ "${tag}" == "AFNI_"* ]]; then
+        sub_afni+=("${tag}")
+    elif [[ "${tag}" == "dev_ver_"* ]]; then
+        sub_dev+=("${tag}")
+    elif [[ "${tag}" == "latest" ]]; then
+        sub_latest+=("${tag}")
+    fi
+done
+
+sub_user=( "${sub_latest[@]}" "${sub_afni[@]}" )
+
+# make relevant subset
+
+if [[ "${tag_type}" == "ALL" ]]; then
+    tag_list=( "${sub_latest[@]}" "${sub_afni[@]}" "${sub_dev[@]}" )
+elif [[ "${tag_type}" == "USER" ]]; then
+    tag_list=( "${sub_latest[@]}" "${sub_afni[@]}" )
+elif [[ "${tag_type}" == "DEV" ]]; then
+    # hidden option, for Justin to user
+    tag_list=( "${sub_dev[@]}" )
+else
+    echo "** ERROR: unrecognized display label: ${tag_type}"
+    echo "   Choose one of:  USER, ALL"
+    exit -1
+fi
+
+# actually display tags
+
+echo "++ Found ${#tag_list[@]} tags:"
+
+for tag in "${tag_list[@]}"; do
+    echo "   ${tag}"
+done
+
 exit 0
 }
 
@@ -174,6 +243,10 @@ while [ $narg -le $amax ]; do
     elif [ "${argv[$narg]}" = "-display" ]; then
         ((narg++))
         disp="${argv[$narg]}"
+    elif [ "${argv[$narg]}" = "-show_tags" ]; then
+        ((narg++))
+        tag_type="${argv[$narg]}"
+        show_tags
     elif [ "${argv[$narg]}" = "-help" ] || \
          [ "${argv[$narg]}" = "-h" ]; then
         show_help
