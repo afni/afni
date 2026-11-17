@@ -112,8 +112,10 @@ nv_dict : dict
         else:
             nv_dict['do_alpha'] = 'false'
 
+        # NiiVue >= 1.0 draws the outline wholly outside the suprathreshold
+        # voxels, so 0.5 vox reaches as far as the old (centered) width of 1
         if pbar_dict['olay_boxed'] != 'No' :          # use box lines
-            nv_dict['do_boxed'] = 1
+            nv_dict['do_boxed'] = 0.5
         else:
             nv_dict['do_boxed'] = 0
         if 'olay_opacity' in pbar_dict :
@@ -141,7 +143,7 @@ nv_ulay_txt : str
 
     nv_ulay_txt = '''      {{ // ulay
         url:"{ulay}",
-        cal_max: {cal_max_ulay},
+        calMax: {cal_max_ulay},
       }}'''.format( **nv_dict )
 
     return nv_ulay_txt
@@ -209,9 +211,13 @@ nv_olay_txt : str
         nv_olay_txt+= '''
         colormapNegative: "{cmap_neg}",'''.format(**nv_dict)
 
+    if nv_dict['do_alpha'] == 'true' :
+        nv_olay_txt+= '''
+        colormapType: COLORMAP_TYPE.ZERO_TO_MAX_TRANSLUCENT_BELOW_MIN,'''
+
     nv_olay_txt+= '''
-        cal_min: 0,
-        cal_max: {cal_max_olay},
+        calMin: 0,
+        calMax: {cal_max_olay},
         opacity: {olay_opacity},
       }}'''.format(**nv_dict)
 
@@ -245,8 +251,8 @@ nv_thr_txt : str
         colormapNegative: "blue",'''.format(**nv_dict) # also not shown
 
     nv_thr_txt+= '''
-        cal_min: 0,
-        cal_max: {cal_max_thr},
+        calMin: 0,
+        calMax: {cal_max_thr},
         opacity: 0,
       }}'''.format(**nv_dict)
 
@@ -269,30 +275,27 @@ nv_then_txt : str
 
     """
 
-    ### NB: these colorbarVisible calls could be used, but we turn off
+    ### NB: these isColorbarVisible calls could be used, but we turn off
     ### using the extra NiiVue cbar now, because there is one below
     ### anyways:
-    #{nobj}.volumes[0].colorbarVisible = false; // no ulay bar
-    #{nobj}.volumes[1].colorbarVisible = true;  // yes olay bar
-    #{nobj}.volumes[2].colorbarVisible = false; // no thr bar
+    #{nobj}.volumes[0].isColorbarVisible = false; // no ulay bar
+    #{nobj}.volumes[1].isColorbarVisible = true;  // yes olay bar
+    #{nobj}.volumes[2].isColorbarVisible = false; // no thr bar
 
     nv_then_txt = '''
-      if ( {nobj}.volumes.length > 1 ) {{
-        {nobj}.volumes[1].alphaThreshold = {do_alpha}; // alpha for olay
-      }}
-      {nobj}.overlayOutlineWidth = {do_boxed};
-      {nobj}.opts.multiplanarForceRender = true;
-      {nobj}.backgroundMasksOverlays = true;'''.format(**nv_dict)
+      {nobj}.volumeOutlineWidth = {do_boxed};
+      {nobj}.showRender = SHOW_RENDER.ALWAYS;
+      {nobj}.volumeIsBackgroundMasking = true;'''.format(**nv_dict)
     # as of (large set of) NV changes b/t ver=0.38.0 and v=0.38.3,
     # modulateAlpha behaves differently, so we now (perhaps more
     # stably anyways) use setModulationImage() only if modAlpha (which
     # is int/flt) is nonzero
     if nv_dict['modAlpha'] :
         nv_then_txt+= '''
-      {nobj}.setModulationImage(
+      await {nobj}.setModulationImage(
         {nobj}.volumes[1].id,
         {nobj}.volumes[2].id,
-        modulateAlpha = {modAlpha} 
+        {modAlpha}
       ); // activate+specify mapping'''.format(**nv_dict)
     else:
         # just a comment 
@@ -302,12 +305,10 @@ nv_then_txt : str
 
     if nv_dict['coor_type'] == "SET_DICOM_XYZ" :
         nv_then_txt+= '''
-      {nobj}.scene.crosshairPos = '''.format(**nv_dict)
-        nv_then_txt+= '''{nobj}.mm2frac([{coors_str}]);'''.format(**nv_dict)
-        nv_then_txt+= ''' // jump to XYZ'''.format(**nv_dict)
+      {nobj}.setCrosshairPos([{coors_str}]); // jump to XYZ'''.format(**nv_dict)
 
     nv_then_txt+= '''
-      {nobj}.updateGLVolume();'''.format(**nv_dict)
+      await {nobj}.updateGLVolume();'''.format(**nv_dict)
 
     return nv_then_txt
 
@@ -400,7 +401,6 @@ otxt : str
 <html>
 <head>
   <link rel="stylesheet" type="text/css" href="extra_info/styles.css" />
-  <script src="/assets/niivue_afni.umd.js"> </script>
   <script type="text/javascript">
 
     /* show/hide olay in NV (for align checks)
@@ -410,10 +410,10 @@ otxt : str
     function niivue_ShowHideOlay(obj, bid) {
       let element = document.getElementById(bid);
       if (obj.volumes[1].opacity) {
-        obj.setOpacity(1, 0);
+        obj.setVolume(1, {opacity: 0});
         element.innerText = "View Olay";
       } else {
-        obj.setOpacity(1, 1);
+        obj.setVolume(1, {opacity: 1});
         element.innerText = "Hide Olay";
       }
     }
@@ -476,7 +476,11 @@ otxt : str
 
 '''.format( nid=nid, nobj=nobj )
 
-    ohtml+= '''  <script>
+    # NiiVue >= 1.0 is ES modules only (no UMD build)
+    ohtml+= '''  <script type="module">
+    import NiiVue, {{ COLORMAP_TYPE, SHOW_RENDER }}
+      from '/assets/niivue/niivue.webgl2.js';
+
     function reportCoorAndValues(data) {{
       // coord str
       let x = flt2str0_dir(data.mm[0], 3, 'RL')
@@ -505,20 +509,23 @@ otxt : str
 '''.format( nid=nid )
 
     ohtml+= '''
-    const {nobj} = new niivue.Niivue(
-      {{ logging: true, 
-        show3Dcrosshair: true,
-        onLocationChange: reportCoorAndValues,
+    const {nobj} = new NiiVue(
+      {{ logLevel: 'info',
+        is3DCrosshairVisible: true,
+        isColorbarVisible: false, // just use from HTML
+        isOrientCubeVisible: false,
+        isSagittalNoseLeft: {sagNoseLeft},
+        isRadiological: {isRadCon},
+        orientationTextPosition: 'corner',
       }}
     )
-    {nobj}.opts.isColorbar = false; // just use from HTML
-    {nobj}.opts.sagittalNoseLeft = {sagNoseLeft};
-    {nobj}.opts.isRadiologicalConvention = {isRadCon};
-    {nobj}.opts.isCornerOrientationText = true;
-    {nobj}.attachTo('{nid}');
+    window.{nobj} = {nobj}; // module scope is not global; buttons need it
+    {nobj}.addEventListener('locationChange',
+                            (e) => reportCoorAndValues(e.detail));
+    await {nobj}.attachTo('{nid}');
     {nobj}.loadVolumes([
 {nv_ulay_txt}{nv_olay_txt}{nv_thr_txt}
-    ]).then(()=>{{ // more actions{nv_then_txt}
+    ]).then(async ()=>{{ // more actions{nv_then_txt}
     }})'''.format( nv_ulay_txt=nv_ulay_txt, nv_olay_txt=nv_olay_txt,
                    nv_thr_txt=nv_thr_txt, nv_then_txt=nv_then_txt,
                    **nv_dict )

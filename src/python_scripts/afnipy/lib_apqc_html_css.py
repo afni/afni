@@ -562,6 +562,14 @@ canvas {
     aspect-ratio: 5 / 1; /* bit higher than value in toggle NV func */
     margin-left: auto; 
     margin-right: auto;
+    background-color: black;
+}
+
+/* NiiVue >= 1.0 no longer sizes its canvas to fill the container */
+.class_niivue canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 /* NV canvas button: show/hide olay (for align) */

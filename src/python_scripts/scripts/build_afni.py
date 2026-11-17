@@ -6,6 +6,7 @@
 import sys, os, platform
 import shutil
 import glob
+import hashlib, base64
 
 # AFNI libraries
 from afnipy import option_list as OL
@@ -400,6 +401,10 @@ other options:
           By default, even if NiiVue exists, it will be updated.  Use this
           option to avoid a new download.
 
+          NiiVue is installed as the 'niivue' directory (ES modules, from
+          the pinned @niivue/niivue npm package), plus niivue_afni.umd.js,
+          which QC directories from older AFNI versions still use.
+
           If -clean_root is 'no', NiiVue will not be updated.
 
       -verb LEVEL               : set the verbosity level (default 1)
@@ -449,17 +454,25 @@ g_history = """
    0.18 Sep 25, 2025
         - add missing return 0 at end of f_get_extras
         - flush buffers any place we print "please be patient"
+   0.19 Nov 13, 2026 - install NiiVue 1.0 (npm standalone build) as niivue/
 """
 
 g_prog = "build_afni.py"
-g_version = "%s, version 0.18, September 25, 2025" % g_prog
+g_version = "%s, version 0.19, November 13, 2026" % g_prog
 
 g_git_html    = "https://github.com/afni/afni.git"
 g_afni_site   = "https://afni.nimh.nih.gov"
 g_atlas_pack  = "afni_atlases_dist"      # package name
 g_atlas_html  = "%s/pub/dist/atlases/%s.tgz" % (g_afni_site, g_atlas_pack)
-g_niivue_file = "niivue_afni.umd.js"    # file name
+g_niivue_file = "niivue_afni.umd.js"    # file name (QC dirs of older AFNI)
 g_niivue_html = "%s/pub/dist/bin/misc/%s" % (g_afni_site, g_niivue_file)
+# NiiVue >= 1.0: ES modules, from dist/standalone of the pinned npm package
+g_niivue_dir  = "niivue"                # directory name
+g_niivue_tgz  = "niivue-1.0.0-rc.215.tgz"
+g_niivue_npm  = "https://registry.npmjs.org/@niivue/niivue/-/%s" % g_niivue_tgz
+# npm dist.integrity of g_niivue_tgz (base64 sha512)
+g_niivue_sha  = "RKpsVTBMoE/cBSL8wAhKX2w4QHKhUgKFaLMuFGo9LFCvKYqYPD6i" \
+                "hgAbdNYT8Izsn4gIwm92KJh4KXpETBxsfQ=="
 
 g_mesg_log   = []   # message history/log (if None, do not log)
 g_fast_log_m = None # immediate log file for message
@@ -560,6 +573,11 @@ def path_tail(somepath):
   else:
      return somepath[posn+1:]
 
+def file_sha512_b64(fname):
+   """return a file's sha512 as base64, the form of npm's dist.integrity"""
+   with open(fname, 'rb') as fp:
+      return base64.b64encode(hashlib.sha512(fp.read()).digest()).decode()
+
 # ---------------------------------------------------------------------------
 # dir object?  vname (var), dname (on disk), exists, prev,
 def dirobj(vname, dname, verb=1):
@@ -625,6 +643,7 @@ class MyInterface:
       self.sync_src_atlas  = ''     # directory to sync atlases from
       self.sync_src_make   = ''     # directory to sync make build from
       self.sync_src_niivue = ''     # file to sync niivue from
+      self.sync_src_nvdir  = ''     # directory to sync niivue from
       self.backup_abin     = ''     # directory of any abin backup
       self.backup_prefix   = 'backup.abin.' # prefix for any abin backup
 
@@ -1162,6 +1181,7 @@ class MyInterface:
          MESGi("atlas dir   : %s" % self.sync_src_atlas)
          MESGi("build dir   : %s" % self.sync_src_make)
          MESGi("niivue file : %s" % self.sync_src_niivue)
+         MESGi("niivue dir  : %s" % self.sync_src_nvdir)
          MESGi("install dir : %s" % self.backup_abin)
          MESGi("run install : %s" % self.run_install)
          MESG("")
@@ -1204,6 +1224,10 @@ class MyInterface:
             self.add_final_mesg("to possibly rsync NiiVue:")
             self.add_final_mesg("   rsync -av %s %s/" \
                % (self.sync_src_niivue, abin))
+         if self.sync_src_nvdir:
+            have_sync = 1
+            self.add_final_mesg("   rsync -av --delete %s %s/" \
+               % (self.sync_src_nvdir, abin))
 
          if not have_sync:
             MESGm("no make build, atlases or NiiVue to sync")
@@ -1264,6 +1288,12 @@ class MyInterface:
          self.add_final_mesg("NiiVue installed to %s" % abin)
          st, ot = self.run_cmd('rsync -av %s %s/ >> %s' \
                       % (self.sync_src_niivue, abin, self.rsync_file)) 
+         if st: return st
+
+      if self.sync_src_nvdir:
+         # --delete: chunk file names change between NiiVue versions
+         st, ot = self.run_cmd('rsync -av --delete %s %s/ >> %s' \
+                      % (self.sync_src_nvdir, abin, self.rsync_file)) 
          if st: return st
 
       # inform user how many backup directories exist, and possibly clean up
@@ -2007,6 +2037,9 @@ class MyInterface:
       st = self.f_get_niivue()
       if st: return st
 
+      st = self.f_get_niivue_dir()
+      if st: return st
+
       if self.verb > 2: MESGm("finished getting extras...")
 
       return 0
@@ -2157,6 +2190,52 @@ class MyInterface:
       # call anything else success
       elif self.verb > 2:
          MESGm("successful download of NiiVue")
+
+      return 0
+
+   def f_get_niivue_dir(self):
+      """download the pinned NiiVue npm package and keep its standalone
+         (dependency-free ES module) build as the niivue directory
+
+         - we start in the correct directory
+         - on failure, whine but proceed (keep any existing directory)
+
+         return 0 on success
+      """
+
+      nvdir = g_niivue_dir
+      tgz   = g_niivue_tgz
+      unpacked = 'package/dist/standalone'
+
+      if os.path.isdir(nvdir):
+         self.sync_src_nvdir = '%s/%s' % (self.do_root.abspath, nvdir)
+         if not self.update_niivue:
+            MESGm("will reuse existing NiiVue directory, %s" % nvdir)
+            return 0
+
+      MESGm("downloading NiiVue package, %s" % tgz)
+      st, ot = self.run_cmd('curl -f -O', g_niivue_npm)
+      if st == 0 and file_sha512_b64(tgz) != g_niivue_sha:
+         MESGe("NiiVue package does not match its npm integrity hash")
+         st = 1
+      if st == 0:
+         st, ot = self.run_cmd('tar xfz %s %s' % (tgz, unpacked))
+
+      if st:
+         MESGw("failed to get NiiVue package, proceeding anyway...")
+      else:
+         if os.path.exists(nvdir):
+            st, ot = self.run_cmd('rmtree', nvdir, pc=1)
+            if st: return st
+         st, ot = self.run_cmd('mv', [unpacked, nvdir], pc=1)
+         if st: return st
+         self.sync_src_nvdir = '%s/%s' % (self.do_root.abspath, nvdir)
+
+      # clean up, whether the download worked or not
+      if os.path.exists('package'):
+         self.run_cmd('rmtree', 'package', pc=1)
+      if os.path.exists(tgz):
+         self.run_cmd('rm', tgz)
 
       return 0
 
