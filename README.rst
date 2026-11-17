@@ -125,28 +125,71 @@ long-term stability is that it serves as an underlying part within
 several other software projects and pipeline tools in the
 field. Some projects that use AFNI include:
 
+* `ASLprep <https://aslprep.readthedocs.io/en/latest/>`_:
+  suite of software pipelines for processing of ASL MRI data
+* `BrainForge <https://brainforge.trendscenter.org/>`_:
+  cloud-enabled, web-based analysis platform for neuroimaging
+* `brainlife.io <https://brainlife.io/docs/>`_:
+  an open-source cloud platform to support neuroscience research
 * `BrainSuite <https://brainsuite.org/bfp/>`_: Functional Pipeline:
   open-source workflow for processing FMRI data
 * `C-PAC <https://fcp-indi.github.io/>`_: Configurable Pipeline for
   the Analysis of Connectomes software package
+* `DeepPrep <https://deepprep.readthedocs.io/en/latest/>`_:
+  neuroimaging preprocessing pipeline powered by deep learning
+  algorithms and a workflow manager
 * `DPABI <http://rfmri.org/DPABI>`_: Data Processing & Analysis for
   Brain Imaging software suite
 * `ENIGMA HALFpipe
   <https://enigma.ini.usc.edu/protocols/functional-protocols/>`_:
   software from a consortium combining imaging and genetics
+* `fMRIflows <https://github.com/miykael/fmriflows>`_:
+  FMRI processing pipeline tool, including group-level analyses
 * `fMRIPrep <https://github.com/nipreps/fmriprep>`_: FMRI
   preprocessing pipeline that combines tools from well-known software
   packages
+* `FreeSurfer <https://surfer.nmr.mgh.harvard.edu/fswiki>`_:
+  analysis package for structural and functional neuroimaging data
+* `FunMaps <https://github.com/persichetti-lab/FunMaps>`_:
+  a tool for parcellating resting state FMRI networks
+* `FuNP <https://gitlab.com/by9433/funp>`_:
+  FMRI preprocessing pipeline tool combining tools from well-known
+  packages
 * `LONI QC <https://qc.loni.usc.edu/>`_: data review platform for
   neuroimaging studies with one or more centers
+* `LUMEN <https://github.com/RuiLiGitLove/LUMEN>`_:
+  a deep-learning pipeline for segmentation and 3D morphological
+  analysis of cerebral lenticulostriate arteries from 7T TOF MRI
+* `macapype <https://macatools.github.io/macapype/>`_:
+  open-source framework for preparing and processing nonhuman
+  anatomical MRI data
+* `MEICA4 <https://github.com/ME-ICA/me-ica>`_:
+  software for denoising multiecho FMRI with independent component
+  analysis
 * `Micapipe <https://micapipe.readthedocs.io/en/latest/>`_: a 
   processing pipeline to analyze multimodal MRI data
+* `MRI-NIRS_Pipeline
+  <https://github.com/developmentaldynamicslab/MRI-NIRS_Pipeline>`_:
+  a complete pipeline for image reconstruction in fNIRS
+* `MRIQC <https://mriqc.readthedocs.io/en/stable/>`_:
+  extract image quality metrics from structural, functional and
+  diffusion MRI
 * `NeoRS <https://github.com/venguix/NeoRS>`_: Neonatal Resting 
   State fMRI data preprocessing pipeline
+* `Neptune <https://github.com/rangadeshpande/Neptune>`_:
+  a toolbox for processing spinal cord FMRI
 * `NeuroDebian <https://neuro.debian.net/>`_: an open, turnkey
   platform for neuroscience, integrating software
 * `NeuroDesk <https://www.neurodesk.org/>`_: open platform of data
   analysis environments for reproducible neuroimaging
+* `NeuroDocker <https://repronim.org/neurodocker/>`_:
+  command-line program that generates custom Dockerfiles and
+  Singularity for reproducible neuroimaging
+* `niimath <https://github.com/rordenlab/niimath>`_:
+  a multipurpose tool, cloning fslmaths and several AFNI programs
+* `NiiVue <https://niivue.com/>`_ and
+  `niivue-desktop <https://github.com/niivue/niivue-desktop>`_:
+  a cross-platform medical image viewer and desktop app
 * `Nipype
   <https://nipype.readthedocs.io/en/latest/api/generated/nipype.interfaces.afni.html>`_:
   an open-source initiative to integrate different packages in a
@@ -154,9 +197,35 @@ field. Some projects that use AFNI include:
 * `PESTICA <https://github.com/wanyongshinccf/PESTICA>`_ & 
   `SLOMOCO <https://github.com/wanyongshinccf/SLOMOCO>`_: 
   physio and slice-oriented motion correction tools
+* `PETprep <https://petprep.readthedocs.io/en/latest/>`_:
+  preprocessing of positron emission tomography (PET) imaging data
+* `PETsurfer <https://surfer.nmr.mgh.harvard.edu/fswiki/PetSurfer>`_:
+  a set of tools within FreeSurfer for end-to-end integrated MRI-PET
+  analysis
+* `PhiPipe <https://github.com/PHI-group/PhiPipe-release>`_:
+  a processing pipeline for resting state FMRI and DWI data
+* `PyDecNef <https://pydecnef.github.io/docs/>`_:
+  framework for real-time fMRI decoded neurofeedback
 * `QSIPrep <https://github.com/PennLINC/qsiprep_build>`_: 
   configure pipelines for processing diffusion-weighted MRI 
   (dMRI) data
+* `QuNex <https://qunex.readthedocs.io/en/latest/>`_:
+  platform for end-to-end neuroimaging processing and analytics
+* `RABIES <https://rabies.readthedocs.io/en/stable/>`_:
+  pipeline for rodent FMRI processing and quality control
+* `rPOP <https://github.com/LeoIacca/rPOP>`_:
+  PET-only processing of heterogeneous amyloid-PET data
+* `RTPSpy <https://github.com/mamisaki/RTPSpy>`_:
+  Python library for real-time fMRI (rtfMRI) data processing
+* `RWBfDPT
+  <https://github.com/GT-EmoryMINDlab/rodent-whole-brain-preprocessing-recipe>`_:
+  FMRI preprocessing toolbox for the whole brain of mice and rats
+* `SAM suite
+  <https://megcore.nih.gov/index.php/Source_Localization_-_SAM>`_:
+  synthetic aperture magnetometry tools for MEG source localization
+* `Scanbuddy
+  <https://scanbuddy.readthedocs.io/en/main/user_docs.html>`_:
+  fMRI motion plotting and SNR estimation at scan acquisition
 * `XCP-D <https://xcp-d.readthedocs.io/en/latest/>`_: 
   fMRI post-processing and noise regression pipeline
 
