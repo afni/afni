@@ -114,6 +114,8 @@ complement directly with the following projects:
 * `LayNii <https://github.com/layerfMRI/LAYNII>`_, for layer FMRI
   processing and visualization
 
+* `PsychoPy <https://psychopy.org/>`_, via AFNI real-time features
+
 * `tedana <https://tedana.readthedocs.io/en/stable/>`_,
   via ``afni_proc.py``
 
