@@ -1162,9 +1162,9 @@ if __name__ == "__main__":
                 focusbox = 'AMASK_FOCUS_ULAY'
 
             obase = 'qc_{:02d}'.format(idx)
-            cmd   = lat.apqc_vstat_vline( ap_ssdict, obase, "warns", 
-                                         'vlines_pc', ulay, focusbox, 
-                                         olay, vso )
+            cmd   = lat.apqc_warns_vline_stat( ap_ssdict, obase, "warns", 
+                                               'vlines_pc', ulay, focusbox, 
+                                               olay, vso )
 
             idx  += 1
 
