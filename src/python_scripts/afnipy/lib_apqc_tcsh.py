@@ -4028,237 +4028,6 @@ num : int
 
 # -----------------------------------------------------------------
 
-# ["vlines_tcat_dir", 'var.1.scale.r01.nii.gz', 'stats.r*.nii.gz']
-# ['mask.nii.gz'] # secondary consideration
-def apqc_vstat_vline( ap_ssdict, obase, qcb, qci, 
-                      ulay, focusbox, olay, vso ):
-    """Make images of the volumetric statistics information for the vlines
-case.  These images are made in **highlight** mode, using transparent
-thresholding. Also create text for above/below images. This plotting
-is derived from vstat_stvol(), but has enough special considerations
-to be its own function.
-
-We now also read back in the pbar JSON dictionary, to help with
-driving AFNI-view and NiiVue instances.
-
-Parameters
-----------
-ap_ssdict : dict
-    dictionary of subject uvars
-obase : str
-    start of output filenames, likely qc_<zeropadded idx>
-qcb : str
-    QC block ID
-qci : str
-    item ID of this information within the QC block
-ulay : str
-    filename of underlay dataset
-focusbox : str
-    filename of dataset to use to focus in on part of the dataset
-    (i.e., to ignore empty slices)
-olay : str
-    filename of the overlay (stats) dset
-vso : vstat_obj
-    an instance of an object that holds a lot of effect estimate,
-    statistic, and colorbar information for plotting
-
-Returns
-----------
-num : int
-    return 0 up on success, or a different int if failure
-
-    """
-
-    # output names/prefixes/etc.
-    oname    = '_'.join([obase, qcb, qci])           # output name
-    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
-    otopjson = opref + '.sag.json'                   # only use sag imgs here
-    opbarrt  = opref + '.pbar'
-    onvhtml  = opref + '.niivue.html'                # output niivue canvas
-    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
-
-    if 1 :
-        print("++ APQC create: " + oname); sys.stdout.flush() 
-
-    do_cap = True
-    cmd    = '# peruse vline PC statistical results: '
-    cmd   += 'thr [{}], olay [{}]'.format(vso.thr_index, vso.olay_index )
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-
-    # do we have a mask here? changes how some stat thresholds are gotten
-    HAVE_MASK = 'mask' in focusbox
-
-    if HAVE_MASK :
-        p2  = 99                           # percentile: top of cbar 
-        mmm = "-mask {}".format(focusbox)  # perc calc within mask
-        ttt = " in mask"                   # text note on FOV for perc
-    else:
-        p2  = 98                           # percentile: top of cbar 
-        mmm = ""                           # no mask; perc across WB
-        ttt = " in full nonzero volume"    # text note on FOV for perc
-
-    cbar            = 'Plasma'
-    pval            = 0.01
-    pside           = '1sided'             # F-stat is only 1-sided
-    pbar_comm_range = "{}%ile {}".format(p2, ttt)
-    pbar_comm_thr   = "p={}, alpha on".format(pval)
-
-    # get ulay prefix (name from arg)
-    cmd    = '3dinfo -prefix ' + ulay
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    ulay_pref = com.so[0].strip()
-
-    # get olay prefix and AFNI view space
-    cmd    = '3dinfo -prefix -av_space ' + olay
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    lll    = com.so[0].split()
-    olay_pref = lll[0]
-    avsp      = lll[1]
-
-    olaybrick = vso.olay_index
-    cmd    = '3dinfo -label {}"[{}]"'.format(olay, olaybrick)
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    olaylabel = com.so[0].strip()
-
-    thrbrick = vso.thr_index
-    cmd    = '3dinfo -label {}"[{}]"'.format(olay, thrbrick)
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    thrlabel = com.so[0].strip()
-
-    cmd    = '3dAttribute BRICK_STATAUX {}"[{}]"'.format(olay, thrbrick)
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    lll    = com.so[0].split()
-    thr_dof = ' '.join(lll[3:]) # one or more ints, joined as strings
-
-    # get top val for cbar of olay from %ile (either in mask, or not)
-    cmd    = '''
-    3dBrickStat -slow -perc_quiet -perclist 1 {} {} {}"[{}]"
-    '''.format(p2, mmm, 
-               olay, olaybrick)
-    com    = ab.shell_com(cmd, capture=do_cap)
-    stat   = com.run()
-    lll    = com.so[0].strip()
-    olay_topval = float(lll)
-
-    # what will minval of pbar be? 0, or -max?
-    if vso.olay_posonly :
-        olay_minval_str = "-pbar_posonly"
-        pbar_min        = "0"
-    else:
-        olay_minval_str = "-pass"
-        pbar_min        = "-{}".format(olay_topval)
-
-    cmd = '''
-    @chauffeur_afni                                                          \
-        -ulay              {ulay}                                            \
-        -box_focus_slices  {focusbox}                                        \
-        -olay              {olay}                                            \
-        -cbar              {cbar}                                            \
-        {olay_minval_str}                                                    \
-        -ulay_range        0% 99%                                            \
-        -func_range        {olay_topval}                                     \
-        -thr_olay_p2stat   {pval}                                            \
-        -thr_olay_pside    {pside}                                           \
-        -olay_alpha        Yes                                               \
-        -olay_boxed        No                                                \
-        -set_subbricks     0 {olaybrick} {thrbrick}                          \
-        -opacity           9                                                 \
-        -pbar_saveim       "{opbarrt}.jpg"                                   \
-        -pbar_comm_range   "{pbar_comm_range}"                               \
-        -pbar_comm_thr     "{pbar_comm_thr}"                                 \
-        -pbar_thr_alpha    Yes                                               \
-        -prefix            "{opref}"                                         \
-        -save_ftype        JPEG                                              \
-        -blowup            2                                                 \
-        -montx             7                                                 \
-        -monty             1                                                 \
-        -montgap           1                                                 \
-        -montcolor         black                                             \
-        -set_xhairs        OFF                                               \
-        -label_mode        1                                                 \
-        -label_size        4                                                 \
-        -no_cor -no_axi                                                      \
-        -cmd2script        {odoafni}                                         \
-        -c2s_text          'APQC, {qcb}: {qci}'                              \
-        -c2s_mont_1x1                                                        \
-        -do_clean
-    '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
-                cbar=vso.olay_pbar, olay_minval_str=olay_minval_str, 
-                olay_topval=olay_topval, 
-                pval=pval, pside=pside,
-                olaybrick=olaybrick, thrbrick=thrbrick,
-                opbarrt=opbarrt, pbar_comm_range=pbar_comm_range, 
-                pbar_comm_thr=pbar_comm_thr, opref=opref,
-                odoafni=odoafni, qcb=qcb, qci=qci )
-    com    = ab.shell_com(cmd, capture=do_cap)
-    com.run()
-
-    # text above images
-    otoptxt = []
-    otoptxt.append("EPI variance lines: PC stats ({})".format( olay))
-    otoptxt.append("olay, thr: [{}] '{}' (df = {})".format( thrbrick, 
-                                                            thrlabel,
-                                                            thr_dof ))
-
-    # text below images
-    osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
-
-    # store name of NiiVue html
-    onvhtml_name = onvhtml.split('/')[-1]
-
-    # Make info above images
-    otopdict = {
-        'itemtype'    : 'VOL',
-        'itemid'      : qci,
-        'blockid'     : qcb,
-        'blockid_hov' : lah.qc_blocks[qcb][0],
-        'title'       : lah.qc_blocks[qcb][1],
-        'text'        : otoptxt,
-        'nv_html'     : onvhtml_name,
-        'av_file'     : odoafni,
-        'subtext'     : osubtxt,
-    }
-    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
-        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
-
-    # Make pbar text
-    cmd = '''
-    abids_json_tool.py                                                       \
-        -overwrite                                                           \
-        -txt2json                                                            \
-        -delimiter_major  '::'                                               \
-        -delimiter_minor  ',,'                                               \
-        -input            "{opbarrt}.txt"                                    \
-        -prefix           "{opbarrt}.json"
-    '''.format( opbarrt=opbarrt )
-    com    = ab.shell_com(cmd, capture=do_cap)
-    com.run()
-    
-    # For AV/NV: get pbar/cmap info as dict (so must be done after
-    # pbar text is made)
-    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
-    with codecs.open(pbar_json, 'r') as fff:
-        pbar_dict = json.load(fff)
-
-    # Make NiiVue canvas text
-    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
-                                     ulay, pbar_dict, 
-                                     olay_name=olay, itemid=qci,
-                                     verb=0 )
-    fff = open(onvhtml, 'w')
-    fff.write(nv_txt)
-    fff.close()
-
-    return 0
-
-# -----------------------------------------------------------------
-
 # [PT: Feb 22, 2021] add in TSNR plots for final dset
 
 # ['tsnr_dset']
@@ -6163,7 +5932,7 @@ num : int
     # output names/prefixes/etc.
     oname    = '_'.join([obase, qcb, qci])           # output name
     opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
-    otopjson = opref + '.json'             
+    otopjson = opref + '.json'
     odat     = opref + '.dat'
     oimg     = opref + '_0' + '.sag.jpg'   
     osubjson = opref + '_0' + '.sag.json'  
@@ -6331,6 +6100,441 @@ num : int
         json.dump( osubdict, fff, ensure_ascii=False, indent=4 )
 
     return 0
+
+# -----------------------------------------------------------------
+
+# ["vlines_tcat_dir", 'var.1.scale.r01.nii.gz', 'stats.r*.nii.gz']
+# ['mask.nii.gz'] # secondary consideration
+def apqc_warns_vline_stat( ap_ssdict, obase, qcb, qci, 
+                           ulay, focusbox, olay, vso ):
+    """Make images of the volumetric statistics information for the vlines
+case.  These images are made in **highlight** mode, using transparent
+thresholding. Also create text for above/below images. This plotting
+is derived from vstat_stvol(), but has enough special considerations
+to be its own function.
+
+We now also read back in the pbar JSON dictionary, to help with
+driving AFNI-view and NiiVue instances.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+ulay : str
+    filename of underlay dataset
+focusbox : str
+    filename of dataset to use to focus in on part of the dataset
+    (i.e., to ignore empty slices)
+olay : str
+    filename of the overlay (stats) dset
+vso : vstat_obj
+    an instance of an object that holds a lot of effect estimate,
+    statistic, and colorbar information for plotting
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.sag.json'                   # only use sag imgs here
+    opbarrt  = opref + '.pbar'
+    onvhtml  = opref + '.niivue.html'                # output niivue canvas
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '# peruse vline PC statistical results: '
+    cmd   += 'thr [{}], olay [{}]'.format(vso.thr_index, vso.olay_index )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # do we have a mask here? changes how some stat thresholds are gotten
+    HAVE_MASK = 'mask' in focusbox
+
+    if HAVE_MASK :
+        p2  = 98                           # percentile: top of cbar 
+        mmm = "-mask {}".format(focusbox)  # perc calc within mask
+        ttt = " in mask"                   # text note on FOV for perc
+    else:
+        p2  = 95                           # percentile: top of cbar 
+        mmm = ""                           # no mask; perc across WB
+        ttt = " in full nonzero volume"    # text note on FOV for perc
+
+    cbar            = 'Plasma'
+    pval            = 0.01
+    pside           = '1sided'             # F-stat is only 1-sided
+    pbar_comm_range = "{}%ile {}".format(p2, ttt)
+    pbar_comm_thr   = "p={}, alpha on".format(pval)
+
+    # get ulay prefix (name from arg)
+    cmd    = '3dinfo -prefix ' + ulay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    ulay_pref = com.so[0].strip()
+
+    # get olay prefix and AFNI view space
+    cmd    = '3dinfo -prefix -av_space ' + olay
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    olay_pref = lll[0]
+    avsp      = lll[1]
+
+    olaybrick = vso.olay_index
+    cmd    = '3dinfo -label {}"[{}]"'.format(olay, olaybrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    olaylabel = com.so[0].strip()
+
+    thrbrick = vso.thr_index
+    cmd    = '3dinfo -label {}"[{}]"'.format(olay, thrbrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    thrlabel = com.so[0].strip()
+
+    cmd    = '3dAttribute BRICK_STATAUX {}"[{}]"'.format(olay, thrbrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].split()
+    thr_dof = ' '.join(lll[3:]) # one or more ints, joined as strings
+
+    # get top val for cbar of olay from %ile (either in mask, or not)
+    cmd    = '''
+    3dBrickStat -slow -perc_quiet -perclist 1 {} {} {}"[{}]"
+    '''.format(p2, mmm, 
+               olay, olaybrick)
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+    lll    = com.so[0].strip()
+    olay_topval = float(lll)
+
+    # what will minval of pbar be? 0, or -max?
+    if vso.olay_posonly :
+        olay_minval_str = "-pbar_posonly"
+        pbar_min        = "0"
+    else:
+        olay_minval_str = "-pass"
+        pbar_min        = "-{}".format(olay_topval)
+
+    cmd = '''
+    @chauffeur_afni                                                          \
+        -ulay              {ulay}                                            \
+        -box_focus_slices  {focusbox}                                        \
+        -olay              {olay}                                            \
+        -cbar              {cbar}                                            \
+        {olay_minval_str}                                                    \
+        -ulay_range        0% 99%                                            \
+        -func_range        {olay_topval}                                     \
+        -thr_olay_p2stat   {pval}                                            \
+        -thr_olay_pside    {pside}                                           \
+        -olay_alpha        Yes                                               \
+        -olay_boxed        No                                                \
+        -set_subbricks     0 {olaybrick} {thrbrick}                          \
+        -opacity           9                                                 \
+        -pbar_saveim       "{opbarrt}.jpg"                                   \
+        -pbar_comm_range   "{pbar_comm_range}"                               \
+        -pbar_comm_thr     "{pbar_comm_thr}"                                 \
+        -pbar_thr_alpha    Yes                                               \
+        -prefix            "{opref}"                                         \
+        -save_ftype        JPEG                                              \
+        -blowup            2                                                 \
+        -montx             7                                                 \
+        -monty             1                                                 \
+        -montgap           1                                                 \
+        -montcolor         black                                             \
+        -set_xhairs        OFF                                               \
+        -label_mode        1                                                 \
+        -label_size        4                                                 \
+        -no_cor -no_axi                                                      \
+        -cmd2script        {odoafni}                                         \
+        -c2s_text          'APQC, {qcb}: {qci}'                              \
+        -c2s_mont_1x1                                                        \
+        -do_clean
+    '''.format( ulay=ulay, focusbox=focusbox, olay=olay,
+                cbar=vso.olay_pbar, olay_minval_str=olay_minval_str, 
+                olay_topval=olay_topval, 
+                pval=pval, pside=pside,
+                olaybrick=olaybrick, thrbrick=thrbrick,
+                opbarrt=opbarrt, pbar_comm_range=pbar_comm_range, 
+                pbar_comm_thr=pbar_comm_thr, opref=opref,
+                odoafni=odoafni, qcb=qcb, qci=qci )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+
+    # text above images
+    otoptxt = []
+    otoptxt.append("EPI variance lines: PC stats ({})".format( olay))
+    otoptxt.append("olay, thr: [{}] '{}' (df = {})".format( thrbrick, 
+                                                            thrlabel,
+                                                            thr_dof ))
+
+    # text below images
+    osubtxt = '{}:{}.pbar.json'.format(lah.PBAR_FLAG, oname)
+
+    # store name of NiiVue html
+    onvhtml_name = onvhtml.split('/')[-1]
+
+    # Make info above images
+    otopdict = {
+        'itemtype'    : 'VOL',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+        'nv_html'     : onvhtml_name,
+        'av_file'     : odoafni,
+        'subtext'     : osubtxt,
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    # Make pbar text
+    cmd = '''
+    abids_json_tool.py                                                       \
+        -overwrite                                                           \
+        -txt2json                                                            \
+        -delimiter_major  '::'                                               \
+        -delimiter_minor  ',,'                                               \
+        -input            "{opbarrt}.txt"                                    \
+        -prefix           "{opbarrt}.json"
+    '''.format( opbarrt=opbarrt )
+    com    = ab.shell_com(cmd, capture=do_cap)
+    com.run()
+    
+    # For AV/NV: get pbar/cmap info as dict (so must be done after
+    # pbar text is made)
+    pbar_json = '{opbarrt}.json'.format(opbarrt=opbarrt)
+    with codecs.open(pbar_json, 'r') as fff:
+        pbar_dict = json.load(fff)
+
+    # Make NiiVue canvas text
+    nv_txt = lanv.make_niivue_2dset( ap_ssdict['odir_qc'],
+                                     ulay, pbar_dict, 
+                                     olay_name=olay, itemid=qci,
+                                     verb=0 )
+    fff = open(onvhtml, 'w')
+    fff.write(nv_txt)
+    fff.close()
+
+    return 0
+
+# -----------------------------------------------------------------
+
+# ["vlines_tcat_dir", 'pc.in*val_eig.1D', 'pc.in*val_vec.1D']
+def apqc_warns_vline_plot( ap_ssdict, obase, qcb, qci, run_style ):
+    """Make 1D plots of vlines for run 1 in tcat block, if they were
+calculated and exist.
+
+Parameters
+----------
+ap_ssdict : dict
+    dictionary of subject uvars
+obase : str
+    start of output filenames, likely qc_<zeropadded idx>
+qcb : str
+    QC block ID
+qci : str
+    item ID of this information within the QC block
+run_style : str
+    mode of running, such as 'pythonic' or 'basic'
+
+Returns
+----------
+num : int
+    return 0 up on success, or a different int if failure
+
+    """
+
+    # output names/prefixes/etc.
+    oname    = '_'.join([obase, qcb, qci])           # output name
+    opref    = ap_ssdict['odir_img'] + '/' + oname   # prefix = path + name
+    otopjson = opref + '.json'                       # only use sag imgs here
+    odoafni  = 'run_' + oname + '.tcsh'              # AV script name
+
+    if 1 :
+        print("++ APQC create: " + oname); sys.stdout.flush() 
+
+    do_cap = True
+    cmd    = '# plot vlines '
+    com    = ab.shell_com(cmd, capture=do_cap)
+    stat   = com.run()
+
+    # make list of lines to plot (more specific than before)
+
+    # first, get intersection line vecs, if any
+    rdir    = ap_ssdict["vlines_tcat_dir"]
+    all_vec = glob.glob(rdir + '/' + 'pc.inter*enum*val_vec.1D')
+    all_vec.sort()
+    # then, get all inner* ones, and sort, and grab first set of runs
+    all_inn = glob.glob(rdir + '/' + 'pc.inner.r*_vec.1D')
+    all_inn.sort()
+
+    # now find the first set of appropriate run files to add (or not)
+    rr = 1
+    while rr < len(all_inn) :
+        rstr = 'pc.inner.r{:02d}.*_vec.1D'.format(rr)
+
+        all_rr = glob.glob(rdir + '/' + rstr)
+        all_rr.sort()
+
+        if len(all_rr) :
+            all_vec = all_vec + all_rr
+        
+        if len(all_vec) :
+            break
+
+        rr+= 1
+
+    if len(all_vec) == 0 :
+        ab.WP("Oddly, could find to vline vec files to plot; skipping")
+
+    # all_vec now contains all the files we will use, and in order for
+    # display
+
+    # get ylabels, eigenvalue/frac explained, and number of PCs
+    ylabels, eig_perc, npc = parse_names_for_vlines(all_vec)
+
+    if len(ylabels) :
+        ylabel_txt = '-ylabels {} '.format(' '.join(ylabels))
+    else:
+        ylabel_txt = ''
+
+    if len(eig_perc) :
+        # format the percent variance explained
+        llabels = ["'{:2d}%'".format(int(x)) for x in eig_perc]
+        llocs   = ["upper_right"]*len(llabels)
+        leg_txt = '-legend_on '
+        leg_txt+= '-legend_locs {} '.format(' '.join(llocs))
+        leg_txt+= '-legend_labels {} '.format(' '.join(llabels))
+    else:
+        leg_txt = ''
+
+    pldict = {
+        'infiles'    : ' '.join(all_vec),
+        'opref'      : opref,
+        'ptitle'     : "Variance line PCs (with percent variance explained)",
+        'ylabel_txt' : ylabel_txt,
+        'leg_txt'    : leg_txt,
+    }
+
+    if run_style == 'pythonic' :
+        cmd = '''
+        1dplot.py                                                            \
+            -sepscl                                                          \
+            -boxplot_on                                                      \
+            -infiles        {infiles}                                        \
+            -xlabel         "vol index"                                      \
+            {ylabel_txt}                                                     \
+            {leg_txt}                                                        \
+            -title          "{ptitle}"                                       \
+            -prefix         "{opref}.jpg"
+        '''.format(**pldict)
+        com    = ab.shell_com(cmd, capture=do_cap)
+        stat   = com.run()
+
+    # Setup text info for plot and toptxt
+    otoptxt = 'Principal components (PCs) for selected variance lines'
+
+    # Make info above and below images
+    otopdict = {
+        'itemtype'    : '1D',
+        'itemid'      : qci,
+        'blockid'     : qcb,
+        'blockid_hov' : lah.qc_blocks[qcb][0],
+        'title'       : lah.qc_blocks[qcb][1],
+        'text'        : otoptxt,
+    }
+    with codecs.open(otopjson, 'w', encoding='utf-8') as fff:
+        json.dump( otopdict, fff, ensure_ascii=False, indent=4 )
+
+    return 0
+
+
+
+def parse_names_for_vlines(L):
+    """Supplementary function. For a list of vline*/*vec.1D files,
+formulate y-labels for plot of PCs. 
+
+Also, find the 1-to-1 corresponding vline*/*eig.1D files, and extract
+the fractional variance explained per line.
+
+Output: 
+    + a list of y-label str
+    + a list of variances explained (as a floating point percent)
+    + integer number of pcs estimated per vline
+    """
+
+    BAD_RETURN = ([], [], 0)
+
+    if len(L) == 0 :
+        return BAD_RETURN
+
+    do_cap = True
+
+    M = []     # list of y-label str
+    E = []     # list of % variance explained (via eigenvalues)
+
+    for a in L :
+        # get name of eig and verify existence
+        feig = a[:-6] + 'eig.1D'
+        if not(os.path.isfile(feig)) :
+            ab.WP("Could not find eig file: {}".format(feig))
+            return BAD_RETURN
+
+        # get list of fractional var explained
+        cmd  = '''1dcat {}"[2]" '''.format(feig)
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+        lll  = com.so
+        try:
+            all_eig = [100.0*float(x) for x in lll]
+        except:
+            ab.WP("Could not parse eig file: {}".format(feig))
+            return BAD_RETURN
+
+        # get num of PCs per file
+        cmd  = '''1d_tool.py -verb 0 -show_rows_cols -infile {}'''.format(a)
+        com  = ab.shell_com(cmd, capture=do_cap)
+        stat = com.run()
+        npc  = int(com.so[0].split()[-1])       # 2 nums are output, get last
+
+        b = a.split('/')[-1]                    # get file name
+        if b.startswith('pc.inner.') :
+            c = b.replace('pc.inner.', '')      # remove start of file
+            d = c.split('.')
+            rr = d[0]                           # run number
+            vv = d[1].replace('c', 'L')         # vline number
+        elif b.startswith('pc.inter.') :
+            c = b.replace('pc.inter.', '')      # remove start of file
+            d = c.split('.')
+            rr = 'all'                          # run number
+            vv = d[1].replace('c', 'L')         # vline number
+            
+        for nn in range(npc):
+            # need quotes, bc of whitestring char
+            mmm = '"' + rr + '\n' + vv + ':' + str(nn+1) + '"'
+            M.append(mmm)
+            E.append(all_eig[nn])
+
+    # Outputs: M is list of names, and npc is number of PCs (which is
+    # useful to know in main function)
+
+    return M, E, npc
+
 
 # -------------------------------------------------------------------
 
