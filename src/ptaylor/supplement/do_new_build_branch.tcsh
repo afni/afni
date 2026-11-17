@@ -80,7 +80,7 @@ cd ~/afni_build_${label}/src/linux_ubuntu_16_64_glw_local_shared
 curl -O https://afni.nimh.nih.gov/pub/dist/bin/misc/niivue_afni.umd.js
 # ... and NiiVue >= 1.0: standalone ES modules of the npm package, as niivue/
 # (keep version in sync with g_niivue_tgz in build_afni.py)
-set nv_tgz = niivue-1.0.0-rc.215.tgz
+set nv_tgz = niivue-1.0.0-rc.216.tgz
 curl -O https://registry.npmjs.org/@niivue/niivue/-/${nv_tgz}
 tar -xzf ${nv_tgz} package/dist/standalone
 \rm -rf niivue

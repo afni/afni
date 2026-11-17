@@ -468,11 +468,11 @@ g_niivue_file = "niivue_afni.umd.js"    # file name (QC dirs of older AFNI)
 g_niivue_html = "%s/pub/dist/bin/misc/%s" % (g_afni_site, g_niivue_file)
 # NiiVue >= 1.0: ES modules, from dist/standalone of the pinned npm package
 g_niivue_dir  = "niivue"                # directory name
-g_niivue_tgz  = "niivue-1.0.0-rc.215.tgz"
+g_niivue_tgz  = "niivue-1.0.0-rc.216.tgz"
 g_niivue_npm  = "https://registry.npmjs.org/@niivue/niivue/-/%s" % g_niivue_tgz
 # npm dist.integrity of g_niivue_tgz (base64 sha512)
-g_niivue_sha  = "RKpsVTBMoE/cBSL8wAhKX2w4QHKhUgKFaLMuFGo9LFCvKYqYPD6i" \
-                "hgAbdNYT8Izsn4gIwm92KJh4KXpETBxsfQ=="
+g_niivue_sha  = "j5UibzlyAo9iojvBWpEgY4t25+VhR1EcAg+8C5GkhRFxObDJAVUS" \
+                "89MWV/scPsBQBtxWGozkGrIyrwZvTr7rKA=="
 
 g_mesg_log   = []   # message history/log (if None, do not log)
 g_fast_log_m = None # immediate log file for message
