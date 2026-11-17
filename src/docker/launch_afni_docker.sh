@@ -14,7 +14,7 @@ show_cmd=0
 base_img="afni/afni_docker_universal"
 base_tag="latest"
 dock_img=""
-pull="missing"
+pull_var="missing"
 disp=""
 disp_macos="host.docker.internal"
 disp_linux="$DISPLAY" ; disp_linux_help='$DISPLAY' # help file shows literal
@@ -87,21 +87,20 @@ cat << EOF
       -tag TAG        : Specify which version of AFNI to run, corresponding
                         to any of the available Docker Hub tagged versions.  
                         The value of TAG can be the full AFNI version
-                        string or simple version number, like:
+                        string, simple version number, or keyword, like:
 
                            AFNI_26.0.01
                            26.0.01
-
-                        or TAG can be a keyword:
-
-                           latest   : pull new docker image to get latest 
-                                      version of AFNI that is distributed, 
-                                      (overwrites any previous AFNI docker
-                                      images)
+                           latest
 
                         If this option is not used, then the AFNI docker
-                        version present on the OS will be used (if none exists,
-                        the latest version will be pulled from Docker Hub)
+                        with the tag "latest" present locally will be used 
+                        (if none exists, the "latest" tag will be pulled 
+                        from Docker Hub)
+
+      -pull           : Always pull the docker image from the Docker Hub.
+                        This will pull the image from Docker Hub and may 
+                        overwrite any local images with the same tag.
 
       -display "DISP" : Use a different display environment variable for
                         testing purposes.
@@ -137,7 +136,7 @@ cat << EOF
 
       2. Launch the afni docker and update the local image:
 
-           bash ${prog} -run -tag latest
+           bash ${prog} -run -tag latest -pull
 
       3. Launch the afni docker and see what the run command is:
 
@@ -154,22 +153,19 @@ exit 0
 ## display all (well, first 1000) possible tags
 show_tags() {
 
-# build web address for AFNI universal dockerhub repo
-
+## build web address for AFNI universal dockerhub repo
 namespace=afni
 repo=afni_docker_universal
 waddr="https://hub.docker.com/v2/namespaces/${namespace}"
 waddr="${waddr}/repositories/${repo}"
 waddr="${waddr}/tags?page_size=1000"
 
-# get list of tags, filter and sort a bit
-
+## get list of tags, filter and sort a bit
 all_tag=( `wget -q -O - "${waddr}" \
           | grep -o '"name": *"[^"]*' | grep -o '[^"]*$' \
           | sort -r` )
 
-# build relevant lists
-
+## build relevant lists
 sub_latest=()
 sub_afni=()
 sub_dev=()
@@ -186,8 +182,7 @@ done
 
 sub_user=( "${sub_latest[@]}" "${sub_afni[@]}" )
 
-# make relevant subset
-
+## make relevant subset
 if [[ "${tag_type}" == "ALL" ]]; then
     tag_list=( "${sub_latest[@]}" "${sub_afni[@]}" "${sub_dev[@]}" )
 elif [[ "${tag_type}" == "USER" ]]; then
@@ -201,8 +196,7 @@ else
     exit -1
 fi
 
-# actually display tags
-
+## actually display tags
 echo "++ Found ${#tag_list[@]} tags:"
 
 for tag in "${tag_list[@]}"; do
@@ -210,19 +204,17 @@ for tag in "${tag_list[@]}"; do
 done
 
 exit 0
-}
+}   ## end show_tags
 
 #################################################
 ## get arguments or show help
 
-# no args -> show help and exit
-
+## no args -> show help and exit
 if [ "$#" = "0" ]; then
     show_help
 fi
 
-# proc args
-
+## proc args
 argv=("")
 for arg in "$@"; do
     argv+=("$arg")
@@ -234,6 +226,8 @@ while [ $narg -le $amax ]; do
         do_run=1
     elif [ "${argv[$narg]}" = "-show_cmd" ]; then
         show_cmd=1
+    elif [ "${argv[$narg]}" = "-pull" ]; then
+        pull_var="always"
     elif [ "${argv[$narg]}" = "-image" ]; then
         ((narg++))
         base_img="${argv[$narg]}"
@@ -268,8 +262,8 @@ fi
 #################################################
 ## check base_tag (and update if nec)
 
-# these checks are mostly to recognize 2 formats of AFNI version tags:
-# "AFNI_YY.M.mm" or "YY.M.mm"
+## these checks are mostly to recognize 2 formats of AFNI version tags:
+## "AFNI_YY.M.mm" or "YY.M.mm"
 
 if [[ "${base_tag}" == "latest" ]]; then
     :
@@ -286,12 +280,7 @@ fi
 
 #################################################
 ## build docker image name
-
 dock_img="${base_img}:${base_tag}"
-
-if [[ "${base_tag}" == "latest" ]]; then
-    pull="always"
-fi
 
 #################################################
 ## detect os type and set display variable
@@ -496,12 +485,12 @@ EOF
         done
     fi   ## end launch XQuartz if not running
 
-    # 4. Dynamically determine what port XQuartz is ACTUALLY using right now
-    # This reads the port from your user-owned processes, bypassing root restrictions.
+    ## Dynamically determine what port XQuartz is ACTUALLY using right now
+    ## This reads the port from your user-owned processes, bypassing root restrictions.
     PORT=$(lsof -i -P -s TCP:LISTEN | grep -i X11 | awk -F: '{print $2}' | awk '{print $1}' | head -n 1)
     
-    # If XQuartz jumped to 6001 or 6002 because of ghost lock files, 
-    # calculate the correct display number ($DISPLAY = port - 6000)
+    ## If XQuartz jumped to 6001 or 6002 because of ghost lock files, 
+    ## calculate the correct display number ($DISPLAY = port - 6000)
     DISPLAY_NUM=0
     if [ ! -z "$PORT" ]; then
         DISPLAY_NUM=$((PORT - 6000))
@@ -605,8 +594,7 @@ cat <<EOF
 
 EOF
 
-# display command if user asked 
-
+## display command if user asked 
 if [ ${show_cmd} = 1 ]; then
 
 cat <<EOF
@@ -621,7 +609,7 @@ cat <<EOF
         --env   GRPID="`id -g`"                  \\
         --env   GRPNAME="`id -gn`"               \\
         --env   USERNAME="`id -u -n`"            \\
-        --pull  "${pull}"                        \\
+        --pull  "${pull_var}"                        \\
         "${dock_img}"
    ------------------------------------------------
 
@@ -629,7 +617,7 @@ EOF
 
 fi
 
-# finally, launch the docker
+## finally, launch the docker
 
 # xhost +SI:localuser:$USER
 docker run -ti --rm                          \
@@ -641,7 +629,7 @@ docker run -ti --rm                          \
     --env   GRPID="`id -g`"                  \
     --env   GRPNAME="`id -gn`"               \
     --env   USERNAME="`id -u -n`"            \
-    --pull  "${pull}"                        \
+    --pull  "${pull_var}"                    \
     "${dock_img}"
 
 exit 0
