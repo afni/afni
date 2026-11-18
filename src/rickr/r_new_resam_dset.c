@@ -142,13 +142,13 @@ static int daxis_resam_preserve( double dold, double dnew, int nold,
             NS = floor((upsample_fac-e)/2), for some epsilon e
                = floor(dold/dnew /2 - e)
             nnew = floor((nold-1)*dold/dnew + e) + 1 + 2*NS
-         Also, set oshift = -2*NS*dnew, shifting away from middle.
+         Also, set oshift = -NS*dnew, shifting away from middle by NS points.
        */
       nsi = floor(0.5*dold/dnew - e);
       if( nsi < 0 ) nsi = 0;  /* be sure */
 
       *nnew = floor((nold-1)*dold/dnew + e) + 1 + 2 * nsi;
-      *oshift = -2.0*nsi*dnew;
+      *oshift = -nsi*dnew;
    } else {
       /* downsample: get biggest SLAB inside of old SLAB
                      from origin, move inside SLAB ~1/2 of uncovered length
@@ -372,7 +372,7 @@ THD_3dim_dataset * r_new_resam_dset_eng
 
     if ( sublist ) DSET_delete(dtmp);
 
-    if (killwarpinfo) { /* you want to do this if you'll be writing to disk */
+    if (killwarpinfo && dout) { /* do this if you'll be writing to disk */
       ZERO_IDCODE( dout->warp_parent_idcode );
       dout->warp_parent_name[0] = '\0';
       dout->warp = NULL;
