@@ -112,10 +112,10 @@ nv_dict : dict
         else:
             nv_dict['do_alpha'] = 'false'
 
-        # NiiVue >= 1.0 draws the outline wholly outside the suprathreshold
-        # voxels, so 0.5 vox reaches as far as the old (centered) width of 1
+        # NiiVue >= 1.0 draws the outline (width in voxels) wholly outside
+        # the suprathreshold voxels, rather than centered on their edge
         if pbar_dict['olay_boxed'] != 'No' :          # use box lines
-            nv_dict['do_boxed'] = 0.5
+            nv_dict['do_boxed'] = 1
         else:
             nv_dict['do_boxed'] = 0
         if 'olay_opacity' in pbar_dict :
@@ -514,6 +514,8 @@ otxt : str
         is3DCrosshairVisible: true,
         isColorbarVisible: false, // just use from HTML
         isOrientCubeVisible: false,
+        placeholderText: '',    // no "No image loaded" label before loading
+        clipPlaneOverlay: true, // clip planes cut the olay along with the ulay
         isSagittalNoseLeft: {sagNoseLeft},
         isRadiological: {isRadCon},
         orientationTextPosition: 'corner',
