@@ -118,9 +118,10 @@ static char g_history[] =
  "   - added CENT and CENT_ORIG -bound_type parameters\n"
  "   - added options -upsample, -downsample, -delta_scale\n"
  " 1.12 Jun 11, 2026 - added alloc check for signed int overflow\n"
+ " 1.13 Nov 18, 2026 - fixed orient shift in oversample\n"
  "----------------------------------------------------------------------\n";
 
-#define VERSION "Version 1.12 <June 11, 2026>"
+#define VERSION "Version 1.13 <November 18, 2026>"
 
 
 /*--- local stuff ------------------------------------------------------*/
@@ -439,7 +440,12 @@ int init_options ( options_t * opts, int argc, char * argv [] )
         if( opts->dx != 0.0 ) {
            fprintf(stderr,"** cannot use -dxyz with -dscale/up/downsample\n");
            return FAIL;
+        } else if ( opts->orient || opts->mset ) {
+           /* do not allow scaling with orientation change */
+           fprintf(stderr,"** cannot scale with orient change or master\n");
+           return FAIL;
         }
+
         opts->dx = opts->dscale * fabs(opts->dset->daxes->xxdel);
         opts->dy = opts->dscale * fabs(opts->dset->daxes->yydel);
         opts->dz = opts->dscale * fabs(opts->dset->daxes->zzdel);
