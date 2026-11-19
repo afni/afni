@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Nov, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add help for -regress_per_run_ortvec",
+   NULL
+ } ,
+
  { 10, Nov, 2026, RCR, "make_random_timing.py", MICRO, TYPE_GENERAL,
    "allow dist or dtype for distribution type",
    "Since apparently I changed which term was being used in the help."

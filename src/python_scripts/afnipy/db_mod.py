@@ -13970,6 +13970,11 @@ OPTIONS:  ~2~
 
             e.g. -ricor_regs slibase*.1D
 
+            e.g. -ricor_regs physio/sub-005_run-1_physio_regress_slice.1D \\
+                             physio/sub-005_run-2_physio_regress_slice.1D \\
+                             physio/sub-005_run-3_physio_regress_slice.1D \\
+
+
         This option is required with a 'ricor' processing block.
 
         The expected format of the regressor files for RETROICOR processing
@@ -16515,6 +16520,37 @@ OPTIONS:  ~2~
         which may be used for multiple 3dREMLfit options.
 
         Please see '3dREMLfit -help' for more information.
+
+    -regress_per_run_ortvec LABEL R1 R2 ... : ortvec files per run
+
+        e.g. -regress_per_run_ortvec                                 \\
+                          physio_vol                                 \\
+                          physio/sub-005_r1_physio_regress_volume.1D \\
+                          physio/sub-005_r2_physio_regress_volume.1D \\
+                          physio/sub-005_r3_physio_regress_volume.1D \\
+
+        This option is to pass per-run volumetric orthogonalization regressors
+        to afni_proc.py.  The number of time points per run should match the
+        input EPI time series before or after using -tcat_remove_first_trs
+        (and last).
+
+        There should be as many regressors as there are runs.  Each regressor
+        will be zero padded to span all runs for the final regression, so that
+        the model affects only the appropriate run.
+
+     ** The physio_calc.py program creates orthogonalization regressors one run
+        at a time.  For regressors created by physio_calc.py, the slicewise
+        (slibase) ones should be provided via -ricor_regs, while the volumewise
+        ones should be provided by -regress_per_run_ortvec.
+
+     ** There is a potential discrepancy between physio_calc.py slicewise
+        regressors and volume regressors in that the slicewise regressors
+        use -ricor_regs_nfirst (and nlast), while the volume regressors
+        use -tcat_remove_first_trs (and last).  Typically -ricor_regs_nfirst
+        and -tcat_remove_first_trs should match, along with the 'last' cases.
+
+        See also -ricor_regs, -tcat_remove_first_trs, -tcat_remove_last_trs,
+        Please see 'physio_calc.py -help' for more information.
 
     -regress_ppi_stim_files FILE FILE ... : specify PPI (and seed) files
 
