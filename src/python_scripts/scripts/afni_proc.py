@@ -837,9 +837,10 @@ g_history = """
        - add rest examples demo 2a, 2b, 2c
        - rename old (and less basic) rest examples demo 2a,2b to 2e,2d
     8.12 Nov  4, 2026: changed wildcard imports to aliases
+    8.13 Nov 19, 2026: add help for -regress_per_run_ortvec
 """
 
-g_version = "version 8.12, November 4, 2026"
+g_version = "version 8.13, November 19, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

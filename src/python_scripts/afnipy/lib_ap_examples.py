@@ -3490,7 +3490,7 @@ def egs_demo():
    examples.append( APExample('AP demo 2c',
      source='none yet',
      descrip='basic rest - motion, censoring, physio regression',
-     moddate='2026.10.09',
+     moddate='2026.11.19',
      keywords=['complete', 'rest'],
      header="""
               (recommended?  yes, as a simple resting state example)
@@ -3540,8 +3540,8 @@ def egs_demo():
                                       'physio/sub-005_r2_physio_slice.1D']],
         ['-ricor_regress_method',    ['per-run']],
         ['-regress_per_run_ortvec',  ['physio_vol',
-                                      'physio/sub-005_r1_physio_volume.1D',
-                                      'physio/sub-005_r2_physio_volume.1D']],
+                                      'physio/sub-005_r1_phys_reg_volume.1D',
+                                      'physio/sub-005_r2_phys_reg_volume.1D']],
         ['-align_unifize_epi',       ['local']],
         ['-align_opts_aea',          ['-cost', 'lpc+ZZ', '-large_move',
                                       '-check_flip']],

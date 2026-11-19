@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Nov, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add help for -regress_per_run_ortvec",
+   NULL
+ } ,
+
  { 18, Nov, 2026, RCR, "3dresample", MINOR, TYPE_BUG_FIX,
    "fix double origin shift in case of oversampling",
    NULL
