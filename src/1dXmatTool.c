@@ -88,18 +88,19 @@ static void usage(void)
 "        -tr_above_frac 0.5 -tr_window 8..15) || exit 1\n"
 "  3dTstat -mean -prefix block01.nii.gz \"cleaned.r01.nii.gz[$trs]\"\n"
 "\n"
-"  -export_manifest  Write PREFIX.trials.1D from an IM design plus explicit events.\n"
-"  -events FILE      Header/table: Run Volume Condition [Item]; complete unique\n"
+"  -export_manifest  Export a beta table. Default matrix route assumes LSS output;\n"
+"                    use -beta_layout glm for Deconvolve/REMLfit coefficients.\n"
+"  -events FILE      LSS header/table: Run Volume Condition [Item]; complete unique\n"
 "                    keys; Run one-based, Volume zero-based within each run.\n"
 "  -subject ID       Subject label for the manifest.\n"
-"  -beta FILE        Single-run beta bucket, or use -beta_pattern for many runs.\n"
+"  -beta FILE        LSS: single-run bucket. GLM: matching fitted coefficient bucket.\n"
 "  -beta_pattern P   One {run} placeholder, replaced by 01,02,... (quote it).\n"
 "  -manifest_format manifest|selected  Default manifest: whole InputFile plus\n"
 "                    Volume for 3dMVPA -trial_manifest. selected: InputFile[n]\n"
 "                    for direct 3dMVPA/3dRSA/3dSRM tables. Files need not yet exist.\n"
 "                    Conditions are supplied by you, never guessed from IM labels.\n"
 "\n"
-"Beta-sidecar input (Picard or an existing LSS trial manifest):\n"
+"Beta-sidecar input (explicit coefficient table, Picard or LSS manifest):\n"
 "  -beta_manifest FILE  Alternative to -infile; use with -export_manifest.\n"
 "  -subject ID -prefix PREFIX  Required. Uses actual beta Volume, not XColumn.\n"
 "  -manifest_run_base 0|1  Input Run convention; default 0 for Picard.\n"
@@ -129,7 +130,47 @@ static void usage(void)
 "  Runwise export does not establish independent runs or prevent selection leakage.\n"
 "  It exports unwhitened crossnobis inputs; ResidFile/whitening is not inferred.\n"
 "\n"
-"Example after 3dPicard -write_manifest (from Picard's working directory):\n"
+"GLM coefficient export (no input beta sidecar required):\n"
+"  -beta_layout glm   With -infile, -beta and -export_manifest, match exact\n"
+"                     design-column labels to -cbucket/-Rbeta sub-brick labels.\n"
+"                     The beta dataset must exist; -beta_pattern is not used.\n"
+"                     Default selection is all stimulus columns; column/label/\n"
+"                     stimulus/group selectors combine by union. Baseline and\n"
+"                     nuisance selections fail. No -drop_glts is needed.\n"
+"                     Supports manifest, selected, rsa and rsa_runwise formats.\n"
+"  -uncensored FILE   Required for censored GLM designs; must match -infile.\n"
+"  -events FILE       Optional Volume Condition [Run Trial Basis Item] table,\n"
+"                     keyed by actual beta index, covering selected betas only.\n"
+"                     Run is one-based. Annotations must agree with known\n"
+"                     conditions/runs; they can supply custom Trial/Item IDs.\n"
+"  Conditions come from StimLabels. Run comes from full regressor support.\n"
+"  Zero/fully censored or cross-run regressors fail, even with annotations.\n"
+"  For single-basis IM families (GAM, BLOCK/BLOCK4/BLOCK5, SPMG1), Trial\n"
+"  defaults to the original design column index and Basis to 0. Other IM\n"
+"  formulas require explicit Trial/Basis annotations. For multi-basis models,\n"
+"  select one coefficient per trial with -select_columns or -select_labels\n"
+"  and annotate Trial/Basis. Non-IM single-column conditions have Trial=-1.\n"
+"  Labels establish correspondence, not proof that the dataset was fitted\n"
+"  with this design: supply the matching design and coefficient dataset.\n"
+"\n"
+"Example route 1: coefficients from 3dDeconvolve or 3dREMLfit:\n"
+"  Save the design with 3dDeconvolve -x1D X.xmat.1D, and save coefficients\n"
+"  with either 3dDeconvolve -cbucket betas.nii.gz or\n"
+"  3dREMLfit -matrix X.xmat.1D -Rbeta betas.nii.gz in your fitting command.\n"
+"  Use trial-level regressors (e.g., -stim_times_IM) for trial-level analysis.\n"
+"  1dXmatTool -infile X.xmat.1D -beta betas.nii.gz \\\n"
+"    -beta_layout glm -select_stimuli face,house -export_manifest \\\n"
+"    -subject s01 -manifest_format manifest -prefix mvpa\n"
+"  3dMVPA -mode classify -trial_manifest mvpa.trials.1D \\\n"
+"    -target_column Condition -cv_column Run -mask mask.nii -prefix decoded\n"
+"  Add -uncensored X.nocensor.xmat.1D if the fitted design is censored.\n"
+"  For runwise RSA, use -manifest_format rsa_runwise and a different prefix.\n"
+"  This requires >=2 runs and one coefficient per trial. Run-specific\n"
+"  selectors may share a whole-session coefficient bucket. Pooled condition\n"
+"  betas cannot become run-specific or trial-specific estimates via export.\n"
+"\n"
+"Example route 2: after 3dPicard -write_manifest:\n"
+"  Run from Picard's working directory (its sidecar uses zero-based Run).\n"
 "  1dXmatTool -beta_manifest fitted.betas.tsv -export_manifest \\\n"
 "    -subject s01 -input_base . -manifest_format manifest -prefix mvpa\n"
 "  3dMVPA -mode classify -trial_manifest mvpa.trials.1D \\\n"
@@ -137,6 +178,7 @@ static void usage(void)
 "  1dXmatTool -beta_manifest fitted.betas.tsv -export_manifest \\\n"
 "    -subject s01 -input_base . -manifest_format rsa_runwise -prefix rsa\n"
 "  Add -events annotations.1D when a fixed-design sidecar lacks identities.\n"
+"\n"
 "Inputs/splitting:\n"
 "  -infile FILE       NIML-comment matrix from 3dDeconvolve.\n"
 "  -split_runs        Extract runs, preserving values and column order.\n"
@@ -290,7 +332,7 @@ typedef struct {
    const char *tr_window;
    const char *compare,*json,*for_tool,*columns,*labels,*stimuli,*groups;
    const char *events,*subject,*beta,*beta_pattern,*manifest_format;
-   const char *beta_manifest,*input_base;
+   const char *beta_manifest,*input_base,*beta_layout;
    int manifest_run_base,manifest_run_base_set;
    double rank_tol,atol,rtol;
 } XT_options;
@@ -1245,7 +1287,7 @@ static int xb_core(const char *name)
 static int xb_write_identities(FILE *f, const XB_table *b, const XT_beta_options *o, int selected, char *err)
 {
    int c,r;
-   fputs("# SourceBetaManifest ",f); THD_1D_print_token(f,b->table->source); fputc('\n',f);
+   fputs(o->manifest?"# SourceBetaManifest ":"# SourceGLM ",f); THD_1D_print_token(f,b->table->source); fputc('\n',f);
    fputs("# Run is one-based; SourceRun retains the input manifest index (-1 if absent).\n",f);
    fputs("# Columns: Sample Subj Run Item Condition Trial Basis Volume SourceRun",f);
    for(c=0;c<b->table->ncol;c++) if(!xb_core(b->table->cname[c])) {
@@ -1435,10 +1477,158 @@ static int xt_export_betas(const XT_beta_options *o)
    free(b.base); free(manifest); return !ok;
 }
 
+/* Only recognize formulas known to have one coefficient per IM event. Other
+ * formulas (including multi-function/custom bases) need explicit Trial/Basis
+ * annotations; column numbering alone cannot identify event boundaries. */
+static int xt_single_basis(const char *formula)
+{
+   const char *names[]={"GAM","BLOCK","BLOCK4","BLOCK5","SPMG1"};
+   int i;
+   if(!formula) return 0;
+   for(i=0;i<5;i++) {
+      size_t n=strlen(names[i]);
+      if(!strcmp(formula,names[i])) return 1;
+      if(!strncmp(formula,names[i],n) && formula[n]=='(') {
+         const char *end=strchr(formula+n,')');
+         if(end && !end[1]) return 1;
+      }
+   }
+   return 0;
+}
+
+/* Build a coefficient identity table from a matching GLM design and bucket.
+ * Exact, unique raw column labels are the contract of -cbucket/-Rbeta; never
+ * substitute design positions or accept statistic-bucket _Coef labels.
+ * Full sampled support establishes run ownership. Retained support must be
+ * nonzero, since a completely censored regressor has no estimable coefficient.
+ * All resources are local; xb_write publishes only after complete validation.
+ */
+static int xt_glm_manifest(const THD_xmat *a,const THD_xmat *u,
+                          const XT_options *o,const char *prefix,double tol)
+{
+   const char *header[]={"Volume","Run","Trial","Basis","Condition","Item","Xmat","XColumn","InputFile"};
+   const THD_xmat *support=u?u:a;
+   XT_beta_options bo={NULL,o->events,o->subject,prefix,
+      o->manifest_format?o->manifest_format:"manifest",NULL,NULL,1};
+   XB_table b={0}; THD_3dim_dataset *ds=NULL;
+   unsigned char *keep=NULL; char **tokens=NULL,*beta=NULL,*xmat=NULL;
+   char err[1024]=""; int ok=1,c,j,r,s,n=0,nt=0,volume,run,rr,trial,basis;
+   if(!xt_explicit_timeline(a)) {
+      fprintf(stderr,"** GLM export requires explicit RunStart, GoodList and NRowFull\n"); return 1;
+   }
+   if(a->nrow<a->nfull && !u) {
+      fprintf(stderr,"** GLM export of a censored design requires -uncensored\n"); return 1;
+   }
+   if(u && !THD_xmat_validate_reference(a,u,err,sizeof(err))) {
+      fprintf(stderr,"** GLM export: %s\n",err); return 1;
+   }
+   keep=calloc((size_t)a->ncol,1);
+   b.base=getcwd(NULL,0);
+   if(!keep || !b.base) ok=xb_error(err,"out of memory");
+   if(ok && o->events) {
+      b.events=THD_read_datatable_file((char *)o->events);
+      ok=xb_check_table(b.events,err);
+   }
+   if(ok && o->columns) ok=xt_mark_columns(a,o->columns,keep,err,sizeof(err));
+   if(ok && o->labels) ok=xt_mark_names(a,o->labels,0,keep);
+   if(ok && o->stimuli) ok=xt_mark_names(a,o->stimuli,1,keep);
+   if(ok && o->groups) ok=xt_mark_groups(a,o->groups,keep,err,sizeof(err));
+   if(ok && !(o->columns || o->labels || o->stimuli || o->groups))
+      for(c=0;c<a->ncol;c++) keep[c]=xt_stim(a,c)>=0;
+   for(c=0;ok && c<a->ncol;c++) if(keep[c]) {
+      if(xt_stim(a,c)<0) ok=xb_error(err,"GLM export selects only stimulus columns, not baseline/nuisance");
+      n++;
+   }
+   if(ok && (!n || n>(INT_MAX/9)-1)) ok=xb_error(err,"invalid number of selected coefficients");
+   if(ok) {
+      beta=xb_path(b.base,o->beta); xmat=xb_path(b.base,a->fname);
+      if(!beta || !xmat || strchr(beta,'[') || strchr(beta,']')) ok=xb_error(err,"-beta must name a whole coefficient dataset");
+   }
+   if(ok) {
+      ds=THD_open_dataset(beta);
+      if(!ds) ok=xb_error(err,"cannot open coefficient dataset %s",beta);
+   }
+   if(ok) {
+      tokens=calloc((size_t)(n+1)*9,sizeof(char *));
+      if(!tokens) ok=xb_error(err,"out of memory");
+      else for(j=0;j<9;j++) {
+         tokens[nt++]=strdup(header[j]);
+         if(!tokens[nt-1]) ok=xb_error(err,"out of memory");
+      }
+   }
+   for(c=0;ok && c<a->ncol;c++) if(keep[c]) {
+      double peak=0.0,retained=0.0;
+      s=xt_stim(a,c); volume=-1; run=-1;
+      for(j=0;j<a->ncol;j++) if(j!=c && !strcmp(a->collab[j],a->collab[c]))
+         ok=xb_error(err,"duplicate design column label '%s'",a->collab[c]);
+      for(j=0;ok && j<DSET_NVALS(ds);j++) if(!strcmp(DSET_BRICK_LABEL(ds,j),a->collab[c])) {
+         if(volume>=0) ok=xb_error(err,"duplicate beta label '%s'",a->collab[c]);
+         volume=j;
+      }
+      if(ok && volume<0) ok=xb_error(err,"missing coefficient label '%s'; use matching -cbucket/-Rbeta output",a->collab[c]);
+      if(ok && DSET_BRICK_STATCODE(ds,volume)>0) ok=xb_error(err,"selected volume is a statistic, not a coefficient");
+      for(r=0;ok && r<support->nrow;r++) {
+         double v=fabs(support->mat[(size_t)c*support->nrow+r]);
+         if(!isfinite(v)) ok=xb_error(err,"non-finite design values");
+         if(v>peak) peak=v;
+      }
+      for(r=0;ok && r<support->nrow;r++) if(fabs(support->mat[(size_t)c*support->nrow+r])>tol*peak) {
+         rr=THD_xmat_run_of(support,support->good[r]);
+         if(run>=0 && run!=rr) ok=xb_error(err,"column '%s' spans runs; cannot assign a run-specific estimate",a->collab[c]);
+         run=rr;
+      }
+      for(r=0;ok && r<a->nrow;r++) {
+         double v=fabs(a->mat[(size_t)c*a->nrow+r]);
+         if(v>retained) retained=v;
+      }
+      if(ok && (run<0 || retained<=tol*peak)) ok=xb_error(err,"column '%s' has no retained support",a->collab[c]);
+      trial=-1; basis=-1;
+      if(xt_is_im(a,s) && xt_single_basis(a->stim[s].formula)) { trial=c; basis=0; }
+      else if(!xt_is_im(a,s) && a->stim[s].bot==a->stim[s].top) basis=0;
+      else if(!o->events) ok=xb_error(err,"column '%s' needs -events with explicit Trial/Basis; select one basis coefficient per trial",a->collab[c]);
+      if(ok) {
+         tokens[nt++]=THD_zzprintf(NULL,"%d",volume);
+         tokens[nt++]=THD_zzprintf(NULL,"%d",run+1);
+         tokens[nt++]=THD_zzprintf(NULL,"%d",xb_cell(b.events,0,"Trial")?-1:trial);
+         tokens[nt++]=THD_zzprintf(NULL,"%d",basis);
+         tokens[nt++]=strdup(a->stim[s].label);
+         tokens[nt++]=strdup(xb_cell(b.events,0,"Item")?"-":a->collab[c]);
+         tokens[nt++]=strdup(xmat);
+         tokens[nt++]=THD_zzprintf(NULL,"%d",c);
+         tokens[nt++]=strdup(beta);
+         for(j=nt-9;j<nt;j++) if(!tokens[j]) ok=xb_error(err,"out of memory");
+      }
+   }
+   if(ok) {
+      b.table=THD_parse_datatable(tokens,nt,"GLM design and coefficient dataset");
+      b.nrow=b.table->nrow; b.row=calloc((size_t)b.nrow,sizeof(*b.row));
+      if(!b.row) ok=xb_error(err,"out of memory");
+      else ok=xb_check_table(b.table,err) && (!b.events || xb_check_table(b.events,err)) && xb_rows(&b,&bo,err);
+      for(r=0;ok && r<b.nrow;r++) {
+         int column=atoi(xb_cell(b.table,r,"XColumn"));
+         int needs_trial=xt_is_im(a,xt_stim(a,column)) || atoi(xb_cell(b.table,r,"Basis"))<0;
+         if(b.row[r].basis<0 || (needs_trial && b.row[r].trial<0))
+            ok=xb_error(err,"ambiguous basis/trial requires explicit Trial and Basis annotations");
+         for(j=0;ok && j<r;j++) if(b.row[r].trial>=0 && b.row[r].trial==b.row[j].trial)
+            ok=xb_error(err,"select one basis coefficient per trial");
+      }
+      if(ok) ok=xb_select(&b,NULL,err) && xb_write(&b,&bo,err);
+   }
+   if(!ok) fprintf(stderr,"** GLM export: %s\n",*err?err:"invalid selection");
+   for(j=0;j<nt;j++) free(tokens[j]);
+   free(tokens); free(keep); free(beta); free(xmat); free(b.base); free(b.row);
+   THD_free_datatable(b.table); THD_free_datatable(b.events);
+   if(ds) DSET_delete(ds);
+   return !ok;
+}
+
 /* Validate operation combinations before acquiring input or output resources. */
 static const char *xt_options_error(const XT_options *ops,const char *in,
    const char *unc,const char *prefix,const char *runlist,int split)
 {
+   if(ops->beta_layout && strcmp(ops->beta_layout,"glm")) return "-beta_layout must be glm";
+   if(ops->beta_layout && (!ops->manifest || ops->beta_manifest || !ops->beta || ops->beta_pattern || !ops->subject || !prefix))
+      return "-beta_layout glm requires -infile -beta -export_manifest -subject -prefix; no -beta_manifest/-beta_pattern";
    if(ops->show_trs && (!ops->tr_threshold_set || ops->groups || prefix ||
       ((ops->columns!=NULL)+(ops->labels!=NULL)+(ops->stimuli!=NULL)!=1)))
       return "-show_trs requires one threshold and one column/stimulus selection; no -prefix or -select_groups";
@@ -1464,7 +1654,8 @@ static const char *xt_options_error(const XT_options *ops,const char *in,
    if(ops->show_trs+split+ops->select+ops->manifest+(ops->compare!=NULL)+((ops->describe||ops->validate)!=0)!=1)
       return "choose one operation: split, describe/validate, select, compare, export_manifest, or show_trs";
    if(ops->for_tool && strcmp(ops->for_tool,"lss") && strcmp(ops->for_tool,"reml"))return "-for must be lss or reml";
-   if(ops->manifest_format && strcmp(ops->manifest_format,"selected") && strcmp(ops->manifest_format,"manifest"))return "-manifest_format must be manifest or selected";
+   if(!ops->beta_layout && ops->manifest_format && strcmp(ops->manifest_format,"selected") && strcmp(ops->manifest_format,"manifest"))return "-manifest_format must be manifest or selected";
+   if(ops->beta_layout && ops->manifest_format && strcmp(ops->manifest_format,"selected") && strcmp(ops->manifest_format,"manifest") && strcmp(ops->manifest_format,"rsa") && strcmp(ops->manifest_format,"rsa_runwise")) return "invalid GLM manifest format";
    if(ops->json && !(ops->describe||ops->validate))return "-json is available with describe/validate";
    if(runlist && !split && !ops->show_trs)return "-runs applies to -split_runs or -show_trs";
    if(prefix && !*prefix)return "-prefix cannot be empty";
@@ -1614,6 +1805,7 @@ int main(int argc,char **argv)
       else if(!strcmp(argv[i],"-select_labels")) ops.labels=argv[++i];
       else if(!strcmp(argv[i],"-select_stimuli")) ops.stimuli=argv[++i];
       else if(!strcmp(argv[i],"-select_groups")) ops.groups=argv[++i];
+      else if(!strcmp(argv[i],"-beta_layout")) ops.beta_layout=argv[++i];
       else if(!strcmp(argv[i],"-beta_manifest")) ops.beta_manifest=argv[++i];
       else if(!strcmp(argv[i],"-input_base")) ops.input_base=argv[++i];
       else if(!strcmp(argv[i],"-manifest_run_base")) {
@@ -1646,7 +1838,7 @@ int main(int argc,char **argv)
       }else{fprintf(stderr,"** unknown option: %s\n",argv[i]);return 1;}
    }
    /* In a TR query the selectors identify the ideal, not a second operation. */
-   ops.select=!ops.show_trs && (ops.columns || ops.labels || ops.stimuli || ops.groups);
+   ops.select=!ops.show_trs && !ops.beta_layout && (ops.columns || ops.labels || ops.stimuli || ops.groups);
    if(ops.force_inferred_metadata && !(ops.describe || ops.validate)){
       fprintf(stderr,"** -force_inferred_metadata requires -describe or -validate\n");return 1;
    }
@@ -1670,6 +1862,7 @@ int main(int argc,char **argv)
    else if(ops.describe||ops.validate)rc=xt_report(a,u,&ops,tol);
    else if(ops.compare)rc=xt_compare(a,&ops);
    else if(ops.select)rc=xt_select(a,&ops,prefix);
+   else if(ops.manifest && ops.beta_layout)rc=xt_glm_manifest(a,u,&ops,prefix,tol);
    else if(ops.manifest)rc=xt_manifest(a,u,&ops,prefix,tol);
    THD_xmat_free(a);THD_xmat_free(u);
    return rc;

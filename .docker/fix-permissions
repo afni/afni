@@ -13,6 +13,7 @@
 # Deployments that want to set a specific user id can preserve permissions
 # by adding the `--group-add users` line to `docker run`.
 
+# Batch permission changes to avoid two subprocesses per installed file.
 # uses find to avoid touching files that already have the right permissions,
 # which would cause massive image explosion
 
@@ -29,13 +30,13 @@ for d in "$@"; do
       -group $CONTAINER_GID \
       -a -perm -g+rwX  \
     \) \
-    -exec chgrp $CONTAINER_GID {} \; \
-    -exec chmod g+rwX {} \;
+    -exec chgrp "$CONTAINER_GID" {} + \
+    -exec chmod g+rwX {} +
   # setuid,setgid *on directories only*
   find "$d" \
     \( \
         -type d \
         -a ! -perm -6000  \
     \) \
-    -exec chmod +6000 {} \;
+    -exec chmod +6000 {} +
 done

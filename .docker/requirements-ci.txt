@@ -1,0 +1,22 @@
+# Python 3.12 on NeuroDebian noble. Update these deliberately with numerical CI.
+# These pin direct dependencies, not a complete transitive lockfile.
+attrs==25.1.0
+autopep8==2.3.2
+black==24.10.0
+cmake==3.31.10
+datalad==1.1.5
+distro==1.9.0
+docker==7.1.0
+filelock==3.17.0
+gcovr==8.3
+matplotlib==3.9.4
+nibabel==5.3.2
+numpy==1.26.4
+pandas==2.2.3
+pytest==8.3.5
+pytest-cov==6.0.0
+pytest-xdist==3.6.1
+scipy==1.13.1
+setuptools==75.8.0
+# AFNI tests require the environ argument from this fork.
+xvfbwrapper @ git+https://github.com/leej3/xvfbwrapper.git@f03c71459fa60f1a96844c8bcc0d41e28b48e269

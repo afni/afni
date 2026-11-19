@@ -1,605 +1,332 @@
 version: 2.1
 
-############################################################################
-#Define commands that can be reused in the jobs section
-############################################################################
-commands:
-  setup_dev_base_image:
-    description: "Get base image using cache and docker build"
-    parameters:
-      image_cache_version:
-        type: string
-    steps:
-      - restore_an_exact_cache:
-          version_file: "/tmp/src/afni/.docker/afni_dev_base.dockerfile"
-          version: "<< parameters.image_cache_version >>"
-      - load_cached_docker_image_from_disk:
-          image_name: afni_dev_base
-      - run:
-          command: |
-            if [[ "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
-            then
-              docker build -t afni/afni_dev_base \
-                -f .docker/afni_dev_base.dockerfile .
-            fi
-      - save_docker_image_to_disk:
-          image_name: afni_dev_base
-      - save_cache:
-          # store a cache for this dockerfile version
-          key: v<< parameters.image_cache_version >>-/tmp/src/afni/.docker/afni_dev_base.dockerfile-{{ checksum "/tmp/src/afni/.docker/afni_dev_base.dockerfile" }}
-          paths:
-            # path named using pattern for load_cached_docker_image_from_disk
-            - /tmp/cache/afni_dev_base_docker.tar.gz
+parameters:
+  # Off by default: fork PRs must not need registry credentials.
+  registry_transfer:
+    type: boolean
+    default: false
+  coverage:
+    type: boolean
+    default: false
 
-  build_afni_image:
-    description: "Build, save, and cache a docker image of AFNI"
-    parameters:
-      build_type:
-        type: string
-      image_cache_version:
-        type: string
+executors:
+  linux:
+    docker:
+      - image: cimg/python:3.12.8@sha256:24def8371540b4130174d39f1f76600377a0163b58add91249a045789488e80f
+    working_directory: /tmp/src/afni
+    resource_class: medium
+    environment:
+      AFNI_CI_PIPELINE_ID: << pipeline.id >>
+
+commands:
+  setup_host:
     steps:
-      - setup_dev_base_image:
-          image_cache_version: << parameters.image_cache_version >>
+      - checkout
       - run:
-          name: Build image
+          name: Install container control tools
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends pigz
+            python -m pip install docker==7.1.0 pytest==8.3.5
+      - setup_remote_docker
+
+  setup_base:
+    steps:
+      - run:
+          name: Fingerprint all base-image inputs
+          command: |
+            cat .docker/afni_dev_base.dockerfile .docker/requirements-ci.txt \
+                .docker/start.sh .docker/fix-permissions | sha256sum > /tmp/base-image-key
+      - restore_cache:
+          keys:
+            - base-v3-{{ checksum "/tmp/base-image-key" }}
+      - run:
+          name: Restore or build dependency image
           no_output_timeout: 30m
           command: |
-            # Coverage is off by default
-            if [[ "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
-            THISVERSION=$(cat src/AFNI_version_base.txt)
-            echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
-            docker build \
-              -f .docker/<< parameters.build_type >>.dockerfile \
-              --rm=false \
-              --tag afni/afni_<< parameters.build_type >>:latest \
-              --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-              --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
-              --build-arg AFNI_WITH_COVERAGE=$AFNI_WITH_COVERAGE \
-              --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
-
-  run_afni_tests:
-    description: "Use previously built image to execute tests"
-    parameters:
-      build_type:
-        type: string
-    steps:
-      - run:
-          name: Run tests
-          no_output_timeout: 60m
-          command: |
-            tests_dir=tests/afni_ci_test_data
-            vol_dir=/opt/afni/src/$tests_dir
-            TEST_ARGS="--extra-args='--runveryslow' $TEST_ARGS -v traceback --u container"
-            # Coverage is off by default
-            if [[ "" == "$AFNI_WITH_COVERAGE" ]];then AFNI_WITH_COVERAGE="0";fi
-            # Add coverage args as appropriate
-            if [[ "$AFNI_WITH_COVERAGE" != "0" ]];then
-              bash -c "echo Adding coverage because value is: $AFNI_WITH_COVERAGE"
-              # Command to get coverage vars (used later by run_afni_tests.py:
-              coverage_vars=$(bash -c 'bash <(curl -s https://codecov.io/env)')
-              echo CircleCI coverage variables: $coverage_vars
-              TEST_ARGS=" --coverage $TEST_ARGS --reuse-build"
+            if test -f /tmp/base-image/image.tar.gz; then
+              pigz -dc /tmp/base-image/image.tar.gz | docker load
+            else
+              docker build -t afni/afni_dev_base -f .docker/afni_dev_base.dockerfile .
+              mkdir -p /tmp/base-image
+              docker save afni/afni_dev_base | pigz -2 > /tmp/base-image/image.tar.gz
             fi
-            # some extra arguments for container management. Note that using
-            # remote docker on circleci does not allow mounting volumes
-            # directly into the container in the normal manner
-            TEST_ARGS="$TEST_ARGS \
-              --image-name=afni/afni_<< parameters.build_type >> \
-              --container-name=testing_afni
-              --source-mode=test-data-volume \
-              --no-rm \
-              --only-use-local"
-            echo ...$TEST_ARGS...
-            # stop if running locally and it happens to exist...
-            pre_existing=$(docker ps -aq --filter name=testing_afni)
-            if [[ ! "" == "$pre_existing" ]];then docker stop testing_afni;docker rm testing_afni;fi
-            # Run the tests. Temporarily disable errexit so a test failure
-            # doesn't abort the script before the docker cp below runs --
-            # otherwise the container (and its captured test output) is
-            # torn down with nothing ever copied back out.
-            set +e
-            /tmp/src/afni/tests/run_afni_tests.py $TEST_ARGS
-            test_exit_code=$?
-            set -e
-            # after application container finishes, copy artifacts directly from it
-            docker cp -a testing_afni:/opt/afni/src/tests/afni_ci_test_data/. /tmp/src/afni/tests/afni_ci_test_data
-            # pytest writes its per-test captured output to output_of_tests,
-            # a sibling of afni_ci_test_data, not underneath it -- copy that
-            # out too so a failure's actual stdout/stderr is recoverable.
-            docker cp -a testing_afni:/opt/afni/src/tests/output_of_tests /tmp/src/afni/tests/output_of_tests || true
-            exit $test_exit_code
+      - save_cache:
+          key: base-v3-{{ checksum "/tmp/base-image-key" }}
+          paths: [/tmp/base-image]
 
-  check_integrity_of_containers:
-    description: "Check some of the permissions/user/PATH basics of the containers"
-    parameters:
-      image_cache_version:
-        type: string
-    steps:
-      - checkout_afni
-      - setup_remote_docker:
-          # [PT: 2024-07-16] here and below, update docker ver and use
-          # format from this CircleCI help page:
-          # https://discuss.circleci.com/t/remote-docker-image-deprecations-and-eol-for-2024/50176
-          version: docker23
-      - setup_dev_base_image:
-          image_cache_version: << parameters.image_cache_version >>
-      - restore_afni_image_cache:
-          build_type: cmake_build
-          image_cache_version: << parameters.image_cache_version >>
-      - restore_afni_image_cache:
-          build_type: make_build
-          image_cache_version: << parameters.image_cache_version >>
-      - run: cd .docker; pytest
-
-  deploy_to_dockerhub:
-    description: "Push images to dockerhub"
+  restore_image:
     parameters:
       build_type:
         type: string
-      image_cache_version:
-        type: string
     steps:
-      - setup_remote_docker:
-          version: docker23
-      - restore_afni_image_cache:
+      - when:
+          condition: << pipeline.parameters.registry_transfer >>
+          steps:
+            - run:
+                name: Pull pipeline-specific image
+                command: bash .circleci/image-transfer.sh pull << parameters.build_type >>
+      - unless:
+          condition: << pipeline.parameters.registry_transfer >>
+          steps:
+            - restore_cache:
+                keys:
+                  - image-v3-<< pipeline.id >>-<< parameters.build_type >>
+            - run:
+                name: Load pipeline-specific image
+                command: pigz -dc /tmp/images/<< parameters.build_type >>.tar.gz | docker load
+
+  test_reports:
+    steps:
+      - store_test_results:
+          path: tests/test-results
+      - store_artifacts:
+          path: tests/output_of_tests
+          destination: test-output
+      - store_artifacts:
+          path: tests/test-results
+          destination: test-results
+
+jobs:
+  lint:
+    executor: linux
+    steps:
+      - checkout
+      - run:
+          name: Install pinned lint tools
+          command: |
+            python -m pip install codespell==2.4.1 PyYAML==6.0.2 black==24.10.0
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends cppcheck
+      - run:
+          name: Resolve comparison revision
+          command: bash .circleci/changed-files.sh
+      - run:
+          name: Fast checks and CI helper tests
+          command: |
+            python .circleci/lint.py /tmp/afni-changes.json
+            python -m unittest discover -s .circleci/tests -v
+      - store_artifacts:
+          path: /tmp/afni-lint
+      - persist_to_workspace:
+          root: /tmp
+          paths: [afni-changes.json]
+
+  build:
+    executor: linux
+    parameters:
+      build_type:
+        type: enum
+        enum: [cmake_build, make_build]
+    environment:
+      BUILD_JOBS: "2"
+    steps:
+      - setup_host
+      - attach_workspace:
+          at: /tmp
+      - setup_base
+      - restore_cache:
+          keys:
+            - ccache-v3-<< parameters.build_type >>-{{ checksum "/tmp/base-image-key" }}-{{ .Branch }}-
+            - ccache-v3-<< parameters.build_type >>-{{ checksum "/tmp/base-image-key" }}-
+      - run:
+          name: Build, check changed C sources, and smoke-test installation
+          no_output_timeout: 30m
+          command: bash .circleci/build-image.sh << parameters.build_type >>
+      - save_cache:
+          key: ccache-v3-<< parameters.build_type >>-{{ checksum "/tmp/base-image-key" }}-{{ .Branch }}-{{ .Revision }}-{{ epoch }}
+          paths: [.ci-cache/ccache]
+      - store_artifacts:
+          path: /tmp/build-reports
+      - when:
+          condition: << pipeline.parameters.registry_transfer >>
+          steps:
+            - run:
+                name: Push pipeline-specific test image
+                command: bash .circleci/image-transfer.sh push << parameters.build_type >>
+      - unless:
+          condition: << pipeline.parameters.registry_transfer >>
+          steps:
+            - run:
+                name: Save test image
+                no_output_timeout: 30m
+                command: |
+                  mkdir -p /tmp/images
+                  docker save afni/afni_<< parameters.build_type >> | pigz -2 > /tmp/images/<< parameters.build_type >>.tar.gz
+            - save_cache:
+                key: image-v3-<< pipeline.id >>-<< parameters.build_type >>
+                paths: [/tmp/images/<< parameters.build_type >>.tar.gz]
+
+  test:
+    executor: linux
+    parallelism: 2
+    parameters:
+      build_type:
+        type: enum
+        enum: [cmake_build, make_build]
+    steps:
+      - setup_host
+      - restore_image:
           build_type: << parameters.build_type >>
-          image_cache_version: << parameters.image_cache_version >>
       - run:
-          name: Deploy to Docker Hub
-          no_output_timeout: 40m
-          command: |
-            if [[ "$DOCKER_USER" == 'afni' ]]; then
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-              docker push afni/afni_<< parameters.build_type >>:latest
-              docker tag afni/afni_<< parameters.build_type >> afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
-              docker push afni/afni_<< parameters.build_type >>:$CIRCLE_TAG
-            fi
-      # Push dev_base image too though it is unlikely to change
-      - checkout_afni
-      - setup_dev_base_image:
-          image_cache_version: << parameters.image_cache_version >>
+          name: Identify pinned test-data revision
+          command: git ls-tree HEAD tests/afni_ci_test_data | awk '{print $3}' > /tmp/test-data-key
+      - restore_cache:
+          keys:
+            - test-data-v3-<< parameters.build_type >>-{{ checksum "/tmp/test-data-key" }}-{{ .Environment.CIRCLE_NODE_INDEX }}-
       - run:
+          name: Split tests by file timings
           command: |
-            if [[ "$DOCKER_USER" == 'afni' ]]; then
-              if [[ "$(docker images -q afni/afni_dev_base 2> /dev/null)" == "" ]];
-              then
-                echo Could not find the dev_base image used for release deployment.
-                exit 1
-              else
-                docker push afni/afni_dev_base:latest
-                docker tag afni/afni_dev_base afni/afni_dev_base:$CIRCLE_TAG
-                docker push afni/afni_dev_base:$CIRCLE_TAG
-              fi
-            fi
+            cd tests
+            circleci tests glob 'scripts/**/test_*.py' 'scripts/**/*_test.py' \
+              | grep -v '^scripts/test_python_style.py$' \
+              | circleci tests split --split-by=timings --timings-type=filename > /tmp/afni-test-files
+      - run:
+          name: Run full scientific test selection for this shard
+          no_output_timeout: 60m
+          command: python .circleci/run-tests.py << parameters.build_type >> /tmp/afni-test-files
+      - test_reports
+      - save_cache:
+          key: test-data-v3-<< parameters.build_type >>-{{ checksum "/tmp/test-data-key" }}-{{ .Environment.CIRCLE_NODE_INDEX }}-{{ .Revision }}-{{ epoch }}
+          paths: [tests/afni_ci_test_data]
 
-  write_test_data_cache_version_file:
-    description: "Determine commit id for the datalad tests directory."
-    parameters:
-      cache_name:
-        type: string
+  containers_check:
+    executor: linux
     steps:
-      - run:
-          name: Retrieve id and write to a file
-          command: |
-            export test_data_info=$(git submodule status|grep afni_ci_test_data)
-            echo ${test_data_info:1:40} > /tmp/<< parameters.cache_name >>_version.txt
-            cat /tmp/<< parameters.cache_name >>_version.txt
+      - setup_host
+      - setup_base
+      - restore_image:
+          build_type: cmake_build
+      - restore_image:
+          build_type: make_build
+      - run: python -m pytest .docker --junitxml=/tmp/container-results/results.xml
+      - store_test_results:
+          path: /tmp/container-results
 
-  setup_macos_for_afni:
-    description: "Install OSX dependencies and write out a dependencies file for cache versioning."
-    parameters:
-      osx_dep_cache_version:
-        type: string
-        default: "0"
+  macos_build:
+    macos:
+      xcode: "26.4.1"
+    resource_class: m4pro.medium
+    working_directory: /tmp/src/afni
     steps:
+      - checkout
       - run:
-          name: Write osx dependencies to a file
-          # [PT: 2024-10-30] we used to include 'python' in the
-          # command list here, but CCI started failing on macos-build with:
-          # 'Error: Formula installation already attempted: python@3.13'
-          # and removing explicit 'python' resolved that.
-          command: |
-            echo \
-              gcc cmake ninja \
-              jpeg gsl gts openmotif libpng expat \
-              freetype fontconfig netpbm git-annex | \
-              tr " " '\n' | sort > /tmp/macos_dependencies_version.txt
-
-          ### [PT: May 28, 2023] leave out explicit llvm installation
-          ### above, because it leads to conflict issues when trying to
-          ### install its 'six' dependency
-
-          #### [PT: May 30, 2023] explicitly install more modern Python
-          #### 3.11, instead of 3.8
-
-          ##### [PT: May 30, 2023] be *non*explicit about Python version
-          ##### now---let CircleCI figure what it wants (previous style:
-          ##### 'python@3.11')
-
-          # circleci caching works with files owned by user (distiller on osx
-          # machines on circleci). If caching for macos is desired, homebrew files
-          # should be stored in home or /usr/local chowned. One thread mentioned
-          # that loading caches on macos is slower too so for now will not try to
-          # get this working:
-          # - restore_an_exact_cache:
-          #     version: "<< parameters.osx_dep_cache_version >>"
-          #     version_file: "/tmp/macos_dependencies_version.txt"
-      - run:
-          name: Setup on macos
-          # [PT 2024-10-01] avoid: 'Too long with no output (exceeded
-          # 10m0s): context deadline exceeded' by doubling default timeout
+          name: Install macOS dependencies
           no_output_timeout: 20m
-          # [PJM 2026-07-24] force brew update to avoid stale cache
-          # this should hopefully avoid the cask_loader error
           command: |
+            # Retain the existing workaround for stale Homebrew/cask metadata.
             brew update-reset
             brew update
             brew install --cask xquartz
-            if [[ -d /usr/local/Cellar/python@2 ]]; then
-              brew unlink python@2
-            fi
-            # add hack for git upgrade to not raise an error
-            set +o pipefail
-            brew upgrade --force git || true
-            set -o pipefail
-            ### [PT: May 30, 2023] this might no longer be necessary,
-            ### so we are commenting it out. Above, we specify
-            ### installing Python 3.11, anyways
-            ## Python3.9 currently causes failure so 3.8 keg needs to be used:
-            #brew install python@3.8
-            #export PATH="/usr/local/opt/python@3.8/bin:$PATH"
-            #echo 'export PATH="/usr/local/opt/python@3.8/bin:$PATH"' >> /Users/distiller/.bash_profile
-            #export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"
-            #echo 'export LDFLAGS="-L/usr/local/opt/python@3.8/lib $LDFLAGS"' >> /Users/distiller/.bash_profile
-            #export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib/pkgconfig"
-            #echo 'export PKG_CONFIG_PATH="/usr/local/opt/python@3.8/lib"' >> /Users/distiller/.bash_profile
-            # Install dependency list
-            cat /tmp/macos_dependencies_version.txt | xargs brew install
-            # note other useful dependencies:
-            # ffmpeg
-          # - save_cache:
-          #     key: v<< parameters.osx_dep_cache_version >>-/tmp/macos_dependencies_version.txt-{{ checksum "/tmp/macos_dependencies_version.txt" }}
-          #     paths:
-          #       - /usr/local
-
-  restore_afni_image_cache:
-    description: "Restore cache from the build_afni_image command"
-    parameters:
-      build_type:
-        type: string
-      image_cache_version:
-        type: string
-    steps:
-      - restore_cache:
-          key: v<< parameters.image_cache_version >>-docker-<< parameters.build_type >>-{{ .Revision }}
-      - load_cached_docker_image_from_disk:
-          image_name: afni_<< parameters.build_type >>
-
-  save_docker_image_to_disk:
-    description: "After an image is successfully built, write it to disk for circleci caching."
-    parameters:
-      image_name:
-        type: string
-    steps:
-      - run:
-          name: Docker save
-          no_output_timeout: 40m
-          command: |
-            if [[ ! -f /tmp/cache/<< parameters.image_name >>_docker.tar.gz ]]; then
-              mkdir -p /tmp/cache
-              docker save afni/<< parameters.image_name >>:latest \
-                | pigz -2 -p 3 > /tmp/cache/<< parameters.image_name >>_docker.tar.gz
-            fi
-
-  restore_a_cache:
-    description: "Restore a cache based on a version file, with fallbacks used"
-    parameters:
-      version_file:
-        type: string
-      version:
-        type: string
-        default: "0"
-    steps:
+            brew install python@3.12 ninja ccache jpeg gsl gts openmotif libpng expat freetype fontconfig netpbm
+            { uname -m; xcrun clang --version; brew list --versions; } > /tmp/macos-toolchain-key
       - restore_cache:
           keys:
-            # search for a cache for the current version file's checksum
-            - v<< parameters.version >>-<< parameters.version_file >>-{{ checksum "<< parameters.version_file >>" }}
-            # Load any pre-existing cache
-            - v<< parameters.version >>-<< parameters.version_file >>-
-
-  restore_an_exact_cache:
-    description: "Restore a cache based on a version file, otherwise allow cache miss"
-    parameters:
-      version_file:
-        type: string
-      version:
-        type: string
-    steps:
-      - restore_cache:
-          keys:
-            # search for a cache for the current version file's checksum
-            - v<< parameters.version >>-<< parameters.version_file >>-{{ checksum "<< parameters.version_file >>" }}
-
-  load_cached_docker_image_from_disk:
-    description: "Restore cached image from disk to docker"
-    parameters:
-      image_name:
-        type: string
-    steps:
+            - macos-ccache-v3-{{ checksum "/tmp/macos-toolchain-key" }}-{{ .Branch }}-
+            - macos-ccache-v3-{{ checksum "/tmp/macos-toolchain-key" }}-
       - run:
-          name: Load Docker image layer cache
+          name: Configure and build on macOS
           no_output_timeout: 30m
           command: |
-            set +o pipefail
-            if [[ -f /tmp/cache/<< parameters.image_name >>_docker.tar.gz ]]; then
-              docker info
-              zcat /tmp/cache/<< parameters.image_name >>_docker.tar.gz | docker load
-              docker images
-            fi
-
-  checkout_afni:
-    description: "Get afni code"
-    steps:
-      - checkout
-      # useful for local debugging but fails on circleci
-      # - run: |
-      #     cd /tmp/src &&
-      #     git clone --shared   --verbose --depth 1 \
-      #       --local file:///tmp/_circleci_local_build_repo \
-      #       afni
-
-
-############################################################################
-#Define jobs for building, testing, and deploying
-############################################################################
-jobs:
-  build:
-    working_directory: /tmp/src/afni
-    parameters:
-      build_type:
-        type: string
-      image_cache_version:
-        type: string
-    docker:
-      - image: afni/afni_circleci_executor
-    steps:
-      - checkout_afni
-      - setup_remote_docker:
-          version: docker23
-      - build_afni_image:
-          build_type: << parameters.build_type >>
-          image_cache_version: << parameters.image_cache_version >>
-      - save_docker_image_to_disk:
-          image_name: afni_<< parameters.build_type >>
+            export CCACHE_DIR="$HOME/.cache/afni-ccache"
+            export CCACHE_COMPILERCHECK=content
+            ccache --max-size=1G
+            "$(brew --prefix python@3.12)/bin/python3.12" -m venv /tmp/afni-venv
+            source /tmp/afni-venv/bin/activate
+            python -m pip install setuptools==75.8.0 cmake==3.31.10
+            cmake -S . -B build -GNinja \
+              -DCMAKE_TOOLCHAIN_FILE=cmake/macos_toolchainfile.cmake \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+              -DSTANDARD_PYTHON_INSTALL=OFF \
+              -DUSE_SYSTEM_GLW=OFF -DUSE_SYSTEM_XMHTML=OFF -DUSE_SYSTEM_F2C=OFF \
+              -DCOMP_RSTATS=OFF -DUSE_SYSTEM_GIFTI=OFF
+            cmake --build build --parallel 4
+            ccache --show-stats
       - save_cache:
-          # store a run specific cache for later steps... caching is used
-          # instead of saving to the workspace because there are two builds
-          # and the make_build cache is quite large so it would slow down
-          # workspace loading for the cmake testing step
-          key: v<< parameters.image_cache_version >>-docker-<< parameters.build_type >>-{{ .Revision }}-{{ epoch }}
-          paths:
-            - /tmp/cache/afni_<< parameters.build_type >>_docker.tar.gz
-
-  containers_check:
-    working_directory: /tmp/src/afni
-    parameters:
-      image_cache_version:
-        type: string
-    docker:
-      - image: afni/afni_circleci_executor
-    steps:
-      - check_integrity_of_containers:
-          image_cache_version: << parameters.image_cache_version >>
-
-  test:
-    working_directory: /tmp/src/afni
-    parameters:
-      build_type:
-        type: string
-      image_cache_version:
-        type: string
-      test_data_cache_version:
-        type: string
-    docker:
-      - image: afni/afni_circleci_executor
-    steps:
-      - checkout_afni
-      - setup_remote_docker:
-          version: docker23
-      - write_test_data_cache_version_file:
-          cache_name: test_data
-      - restore_a_cache:
-          version_file: "/tmp/test_data_version.txt"
-          version: << parameters.test_data_cache_version >>
-      - run:
-          command: |
-            cp /tmp/test_data_version.txt /tmp/src/afni/tests/afni_ci_test_data
-      - restore_afni_image_cache:
-          build_type: << parameters.build_type >>
-          image_cache_version: << parameters.image_cache_version >>
-      - run_afni_tests:
-          build_type: << parameters.build_type >>
-      # Preserve each test's captured stdout/stderr as a downloadable
-      # artifact, even when the test step above fails, so a failure's
-      # actual output survives past the container being torn down.
-      - store_artifacts:
-          path: /tmp/src/afni/tests/output_of_tests
-          destination: test-output
-          when: always
-      # Save test data as cache for subsequent runs if ideal is not already saved
-      - save_cache:
-          key: v<< parameters.test_data_cache_version >>-/tmp/test_data_version.txt-{{ checksum "/tmp/test_data_version.txt" }}
-          paths: /tmp/src/afni/tests/afni_ci_test_data
+          key: macos-ccache-v3-{{ checksum "/tmp/macos-toolchain-key" }}-{{ .Branch }}-{{ .Revision }}-{{ epoch }}
+          paths: [~/.cache/afni-ccache]
 
   deploy:
-    working_directory: /tmp/src/afni
-    parameters:
-      build_type:
-        type: string
-      image_cache_version:
-        type: string
-    docker:
-      - image: afni/afni_circleci_executor
+    executor: linux
     steps:
-      - deploy_to_dockerhub:
-          build_type: << parameters.build_type >>
-          image_cache_version: << parameters.image_cache_version >>
-
-  macos_build:
-    working_directory: /tmp/src/afni
-    macos:
-      xcode: "26.1.0"   # [PT: 2025-11-13] updated from 15.1
-    steps: # a series of commands to run
-      - checkout_afni
-      - setup_macos_for_afni
+      - setup_host
+      - setup_base
+      - restore_image:
+          build_type: cmake_build
+      - restore_image:
+          build_type: make_build
       - run:
-          name: Build on macos
+          name: Publish verified release images
+          no_output_timeout: 40m
           command: |
-            mkdir build
-            cd build
-            python3 -m venv venv
-            source venv/bin/activate
-            pip install --upgrade pip
-            pip install setuptools
-            cmake .. \
-              -GNinja \
-              -DCMAKE_TOOLCHAIN_FILE=../cmake/macos_toolchainfile.cmake \
-              -DUSE_SYSTEM_GLW=OFF \
-              -DUSE_SYSTEM_XMHTML=OFF \
-              -DUSE_SYSTEM_F2C=OFF \
-              -DCOMP_RSTATS=OFF \
-              -DUSE_SYSTEM_GIFTI=OFF
-            ninja
+            test "$DOCKER_USER" = afni
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            for image in afni_dev_base afni_cmake_build afni_make_build; do
+              docker tag "afni/$image" "afni/$image:$CIRCLE_TAG"
+              docker push "afni/$image:$CIRCLE_TAG"
+              docker push "afni/$image:latest"
+            done
 
   coverage_check:
-    working_directory: /tmp/src/afni
-    parameters:
-      image_cache_version:
-        type: string
-      test_data_cache_version:
-        type: string
-    # Environment variable AFNI_WITH_COVERAGE triggers an alternative build in the dockerfile and
-    # a slightly different test command in run_afni_tests circleci command
-    environment:
-      AFNI_WITH_COVERAGE: true
-    docker:
-      - image: afni/afni_circleci_executor
+    executor: linux
     steps:
-      - run: id # quick check to see who is running this!
-      - checkout_afni
-      - setup_remote_docker:
-          version: docker23
-      - build_afni_image:
-          build_type: cmake_build
-          image_cache_version: << parameters.image_cache_version >>
-      - run_afni_tests:
-          build_type: cmake_build
+      - setup_host
+      - setup_base
+      - run:
+          name: Build instrumented image
+          no_output_timeout: 30m
+          command: |
+            docker build --build-arg AFNI_WITH_COVERAGE=1 --target builder \
+              -t afni/afni_cmake_build -f .docker/cmake_build.dockerfile .
+      - run:
+          name: Collect coverage without uploading to external services
+          no_output_timeout: 60m
+          command: python .circleci/run-tests.py cmake_build --coverage
+      - test_reports
 
-
-############################################################################
-#Define the workflow to organize the execution of the jobs on circleci
-############################################################################
 workflows:
-  version: 2.1
   afni_tests:
+    unless: << pipeline.parameters.coverage >>
     jobs:
-      - macos_build:
-          requires:
-            - test_cmake_build
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-
+      - lint:
+          filters: &all_refs
+            tags: {only: /.*/}
       - build:
           name: cmake_build
-          matrix:
-            parameters:
-              build_type: ["cmake_build"]
-              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
-              image_cache_version: ["1"]
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-
+          build_type: cmake_build
+          requires: [lint]
+          filters: *all_refs
       - build:
           name: make_build
-          requires:
-            - test_cmake_build
-          matrix:
-            parameters:
-              build_type: ["make_build"]
-              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
-              image_cache_version: ["1"]
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-
+          build_type: make_build
+          requires: [lint]
+          filters: *all_refs
       - test:
-          name: test_<< matrix.build_type >>
-          matrix:
-            parameters:
-              build_type: ["make_build", "cmake_build"]
-              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
-              image_cache_version: ["1"]
-              test_data_cache_version: ["0"]
-          requires:
-            - << matrix.build_type >>
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-
+          name: test_cmake_build
+          build_type: cmake_build
+          requires: [cmake_build]
+          filters: *all_refs
+      - test:
+          name: test_make_build
+          build_type: make_build
+          requires: [make_build]
+          filters: *all_refs
+      - macos_build:
+          requires: [cmake_build]
+          filters: *all_refs
       - containers_check:
-          name: check containers for issues with users and permissions and environments
-          matrix:
-            parameters:
-              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
-              image_cache_version: ["1"]
-          requires:
-            - make_build
-            - cmake_build
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              only: /.*/
-
+          requires: [cmake_build, make_build]
+          filters: *all_refs
       - deploy:
-          name: deploy_<< matrix.build_type >>
-          matrix:
-            parameters:
-              build_type: ["make_build", "cmake_build"]
-              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
-              image_cache_version: ["1"]
-          requires:
-            - test_<< matrix.build_type >>
-            - macos_build
-            - containers_check
+          requires: [test_cmake_build, test_make_build, macos_build, containers_check]
           filters:
-            tags:
-              only: /AFNI_\d\d.\d.\d\d/
-            branches:
-              ignore: /.*/
-
+            tags: {only: /AFNI_\d\d\.\d\.\d\d/}
+            branches: {ignore: /.*/}
+  # Trigger with pipeline parameter coverage=true. No upload credentials needed.
+  coverage:
+    when: << pipeline.parameters.coverage >>
+    jobs:
+      - lint:
+          name: coverage_lint
       - coverage_check:
-          requires:
-            - test_cmake_build
-            - test_make_build
-          matrix:
-            parameters:
-              # [PJM: 2026-05-12] bumped from 0 -> 1 to force rebuild with CMake 3.31.7
-              image_cache_version: ["1"]
-              test_data_cache_version: ["5"]
-          filters:
-            tags:
-              ignore: /.*/
-            branches:
-              ignore: /.*/
+          requires: [coverage_lint]

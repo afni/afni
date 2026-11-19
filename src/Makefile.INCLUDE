@@ -2339,7 +2339,7 @@ afni_src.tgz:
 	$(CP) -p  $(MINDOCS) $(MISC)                                 ./afni_src
 	$(CP) -pr coxplot moveup moveAFNI* eispack                   ./afni_src
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj       ./afni_src
-	$(CP) -pr roopchansinghv leej3                               ./afni_src
+	$(CP) -pr roopchansinghv leej3 pmolfese                      ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR)          ./afni_src
 	$(CP) -pr $(PY_ROOT) $(R_DIR) $(R_TCSH_DIR) $(SHINY_DIR)     ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2c mpeg_encodedir            ./afni_src

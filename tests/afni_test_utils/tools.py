@@ -346,6 +346,7 @@ async def __execute_cmd_args_asynchronous(
     timeout=None,
     name=None,
 ):
+    """Stream command output to logs, returning its status or raising on timeout."""
     stdout, stderr = get_output_file_handles(
         stdout_log,
         stderr_log,
@@ -359,10 +360,12 @@ async def __execute_cmd_args_asynchronous(
         stderr=PIPE,
         cwd=workdir,
     )
+    # Python 3.11+ requires explicit Tasks rather than bare coroutines here.
+    # ensure_future also supports the older Python versions used outside CI.
     done, pending = await asyncio.wait(
         (
-            watch(p.stdout, logger, stdout),
-            watch(p.stderr, logger, stderr, "E:"),
+            asyncio.ensure_future(watch(p.stdout, logger, stdout)),
+            asyncio.ensure_future(watch(p.stderr, logger, stderr, "E:")),
         ),
         timeout=timeout,
     )
