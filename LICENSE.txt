@@ -336,10 +336,6 @@ Location: src/jpeg-6b/ansi2knr.c
 Authors:  Richard M. Stallman
 License:  Ghostscript GPL [top of file]
 
-Location: src/jzosky/RetroTS.py
-Authors:  Joshua Zosky
-License:  GNU GPL 3.0 or later [top of file]
-
 Location: src/mpegtoppm_dir
 Authors:  Aaron Holtzman, Michel Lespinasse, et al.
 License:  GNU GPL 2.0 [src/mpegtoppm_dir/COPYING]
@@ -358,16 +354,6 @@ License:  GNU GPL 3.0 or later [src/svm/3dsvm.c]
 
 Location: src/SUMA/SUMA_{coarsen.c,gts.c,gts.h}
 Authors:  Jakub Otwinowski
-License:  GNU GPL 2.0 [top of file]
-
-Location: src/{plug_,3d}retroicor.c 
-Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
-          Toronto, Canada)
-License:  GNU GPL 2.0 [top of file]
-
-Location: src/retroicor.c 
-Authors:  Fred Tam (Sunnybrook & Women's College Health Sciences Centre, 
-          Toronto, Canada)
 License:  GNU GPL 2.0 [top of file]
 
 Location: src/balloon.c 

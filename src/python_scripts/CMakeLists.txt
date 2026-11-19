@@ -77,23 +77,12 @@ else()
 endif()
 
 # Mimic make-builds distribution of all afni python files
-# RetroTS python files
 install(PROGRAMS
    ../pkundu/meica.py
-   ../jzosky/RetroTS.py
          DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
          PERMISSIONS ${SCRIPT_PERMISSIONS}
          COMPONENT python
  )
-
-install(
-  DIRECTORY ../jzosky/lib_RetroTS
-  COMPONENT python
-  DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
-  PATTERN "__pycache__" EXCLUDE
-  PERMISSIONS ${SCRIPT_PERMISSIONS}
-  PATTERN "*.pyc" EXCLUDE
-)
 
 
 if(NOT STANDARD_PYTHON_INSTALL)
@@ -144,9 +133,7 @@ endif()
 set(BUILT_BINARIES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 set(T_SCRIPTS ${PROJECT_SOURCE_DIR}/src/scripts_install)
 set(R_SCRIPTS ${PROJECT_SOURCE_DIR}/src/R_scripts)
-set(J_SCRIPTS ${PROJECT_SOURCE_DIR}/src/jzosky)
-set(J_SCRIPTS "${J_SCRIPTS}:${J_SCRIPTS}/lib_RetroTS")
-set(TESTING_PATHS "${BUILT_BINARIES}:${T_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
+set(TESTING_PATHS "${BUILT_BINARIES}:${T_SCRIPTS}:${R_SCRIPTS}")
 set(PATH_FOR_TESTING "${TESTING_PATHS}:$ENV{PATH}")
 file(WRITE ${PROJECT_BINARY_DIR}/TESTING_PATHS.txt ${PATH_FOR_TESTING})
 

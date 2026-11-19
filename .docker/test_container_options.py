@@ -7,7 +7,6 @@ import pytest
 
 PROG_LIST_TO_CHECK = (
     "afni",
-    "RetroTS.py",
     "align_epi_anat.py",
     "3dinfo",
     )

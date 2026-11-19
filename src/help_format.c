@@ -267,7 +267,7 @@ static char *wlist_default =
    "3ddot 3ddup 3dedge3 3dfim 3dfim+ 3dfractionize "
    "3dhistog 3dinfo 3dmaskSVD 3dmaskave 3dmaskdump 3dmatcalc "
    "3dmatmult 3dmaxima 3dmerge 3dnewid 3dnoise 3dnvals "
-   "3dpc 3dproject 3drefit 3drename 3dresample 3dretroicor "
+   "3dpc 3dproject 3drefit 3drename 3dresample "
    "3drotate 3dsvm 3dttest 3dvolreg "
    "1dAstrip 1dBandpass 1dFlagMotion 1dGentimes 1dMarry "
    "1dRansplit 1dSEM 1dTsort 1dUpsample 1d_tool.py "

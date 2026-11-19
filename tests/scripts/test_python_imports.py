@@ -52,7 +52,6 @@ def test_script_imports(data, python_interpreter):
         "python_module_test.py",
         "quick.alpha.vals.py",
         "read_matlab_files.py",
-        "RetroTS.py",  # requires scipy
         "slow_surf_clustsim.py",
         "uber_align_test.py",
         "uber_proc.py",

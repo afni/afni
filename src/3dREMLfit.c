@@ -1772,8 +1772,8 @@ int main( int argc , char *argv[] )
                  "        https://discuss.afni.nimh.nih.gov");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering. If the regressors\n"
-                 "   were made via 'RetroTS', perhaps -slibase_sm is more\n"
-                 "   appropriate than -slibase.");
+                 "   were made via 'physio_calc.py', perhaps -slibase_sm is\n"
+                 "   more appropriate than -slibase.");
            }
          } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
@@ -1808,7 +1808,7 @@ int main( int argc , char *argv[] )
                  "        https://discuss.afni.nimh.nih.gov");
            } else { /* order is unknown */
              WARNING_message("Unknown regressor ordering. If the regressors\n"
-                 "   were made via 'RetroTS' you are probably okay.");
+                 "   were made via 'physio_calc.py' you are probably okay.");
            }
          } /* end label_order check */
          if( imar_slibase == NULL ) INIT_IMARR(imar_slibase) ;
