@@ -1,10 +1,12 @@
-/* How to read this file
-  Start with usage_3dInSync for the public contract, then main for parsing.
-  INSYNC_options_default (thd_insync.c) supplies defaults; INSYNC_run validates
-  combinations and dispatches analysis. Keep the option-name list, parser,
-  defaults, and help synchronized when adding an option. No statistics belong
-  in this file. thd_insync.h is the shared options/API contract.
-  The reader is assumed familiar with AFNI's online developer documentation.
+/*
+PJM Wants you to know && How to read this file:
+
+Start with usage_3dInSync for the public contract, then main for parsing.
+INSYNC_options_default (thd_insync.c) supplies defaults; INSYNC_run validates
+combinations and dispatches analysis. Keep the option-name list, parser,
+defaults, and help synchronized when adding an option. No statistics belong
+in this file. thd_insync.h is the shared options/API contract.
+The reader is assumed familiar with AFNI's online developer documentation.
 */
 /* Command-line interface; dataset processing lives in thd_insync.c. */
 #include "mrilib.h"

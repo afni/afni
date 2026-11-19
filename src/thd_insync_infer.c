@@ -1,24 +1,26 @@
-/* How to read this file
-  Lifecycle: INSYNC_infer_plan validates/budgets, begin allocates and opens the
-  spool, selection evaluates each spatial unit, finish corrects and writes maps.
-  Interpolation flags follow samples through subject draws; coverage gates count
-  observed samples. Temporal calls instead use the original-only reader for
-  BOTH identity and null draws, so TemporalISC tests the observed-only estimand.
-  pack_data maps original time into estimator buffers; estimate applies coverage,
-  component/block admission, and summaries. Read those before the resampling loops.
-  -nboot resamples subjects; -nperm relabels whole subjects; -ncondperm swaps
-  conditions within subjects. Pairs are dependent and are never shuffled alone.
-  temporal_prepare/draw/cell implement -temporal_null and -temporal_censor.
-  Draw descriptors are immutable and shared across space, conditions, groups,
-  and requested selections: max-statistic correction requires the SAME draw
-  at each family member. Worker scratch is private, keyed by thread number.
-  Empirical p counts identity and null exceedances. Ordinary complete-null paths
-  require valid draws; pairwise missingness and joint_shift count failed draws
-  as exceedances, preserving
-  conservative bounds rather than silently resampling until a draw succeeds.
-  FDR uses thd_mapinfer; maximum-null accumulation implements FWE. Disk spooling
-  bounds resident map storage. A new correction must define its full family
-  and invalid-draw policy, not just attach a different final p-value formula.
+/*
+PJM Wants you to know && How to read this file:
+
+Lifecycle: INSYNC_infer_plan validates/budgets, begin allocates and opens the
+spool, selection evaluates each spatial unit, finish corrects and writes maps.
+Interpolation flags follow samples through subject draws; coverage gates count
+observed samples. Temporal calls instead use the original-only reader for
+BOTH identity and null draws, so TemporalISC tests the observed-only estimand.
+pack_data maps original time into estimator buffers; estimate applies coverage,
+component/block admission, and summaries. Read those before the resampling loops.
+-nboot resamples subjects; -nperm relabels whole subjects; -ncondperm swaps
+conditions within subjects. Pairs are dependent and are never shuffled alone.
+temporal_prepare/draw/cell implement -temporal_null and -temporal_censor.
+Draw descriptors are immutable and shared across space, conditions, groups,
+and requested selections: max-statistic correction requires the SAME draw
+at each family member. Worker scratch is private, keyed by thread number.
+Empirical p counts identity and null exceedances. Ordinary complete-null paths
+require valid draws; pairwise missingness and joint_shift count failed draws
+as exceedances, preserving
+conservative bounds rather than silently resampling until a draw succeeds.
+FDR uses thd_mapinfer; maximum-null accumulation implements FWE. Disk spooling
+bounds resident map storage. A new correction must define its full family
+and invalid-draw policy, not just attach a different final p-value formula.
 */
 /* Synchronized selection inference; ordinary complete-null and conservative
    joint_shift validity policies are described in the reading guide above. */

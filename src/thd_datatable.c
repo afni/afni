@@ -1,10 +1,12 @@
-/* How to read this file (3dInSync callers)
-   AFNI-style subject tables and normalized subject/condition indexing;
-   used by -dataTable and -dataTableFile.
-   Read the public contracts in thd_datatable.h before the implementations.
-   These helpers are shared with other AFNI programs: keep ISC-specific policy
-   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
-   dimensions, and failure rules remain defined at each shared API below.
+/*
+PJM Wants you to know && How to read this file:
+
+Read and validate AFNI-style tables, access columns, select rows, and
+read labeled matrices. Program-specific interpretation stays with callers.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dXmatTool, 1dTrdm.
+Start with the contracts in thd_datatable.h, then the implementation below.
+Check ownership and row/column identity before transforming a table.
 */
 #include "mrilib.h"
 #include "thd_datatable.h"

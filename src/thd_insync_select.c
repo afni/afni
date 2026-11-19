@@ -1,15 +1,17 @@
-/* How to read this file
-  Begin with INSYNC_schedule_build and the structures in thd_insync_select.h.
-  It normalizes repeated table rows into sources, validates header/time metadata,
-  expands manual or Xmat selections, and attaches source-local censor masks.
-  Next read xmat_prepare/xmat_expand for -xmat_* and expand for -window/-step.
-  INSYNC_schedule_report writes the original-time provenance used by -check_table.
-  Source/row/TR indices are zero based; run numbers are one based. Segment stop
-  indices are inclusive. Censoring changes eligibility, never these coordinates.
-  -censor and -censor_column intersect with each source's Xmat mask. The driver
-  adds -zcensor after reading samples; this file performs no BOLD sample reads.
-  Schedule objects own their allocations; caller options/table are borrowed.
-  Extend schedule construction before modifying the estimator's packing logic.
+/*
+PJM Wants you to know && How to read this file:
+
+Begin with INSYNC_schedule_build and the structures in thd_insync_select.h.
+It normalizes repeated table rows into sources, validates header/time metadata,
+expands manual or Xmat selections, and attaches source-local censor masks.
+Next read xmat_prepare/xmat_expand for -xmat_* and expand for -window/-step.
+INSYNC_schedule_report writes the original-time provenance used by -check_table.
+Source/row/TR indices are zero based; run numbers are one based. Segment stop
+indices are inclusive. Censoring changes eligibility, never these coordinates.
+-censor and -censor_column intersect with each source's Xmat mask. The driver
+adds -zcensor after reading samples; this file performs no BOLD sample reads.
+Schedule objects own their allocations; caller options/table are borrowed.
+Extend schedule construction before modifying the estimator's packing logic.
 */
 /* Normalize source rows and construct original-time schedules.
    Deliberately no DSET_load/THD_get_voxel calls: preflight reads headers only. */

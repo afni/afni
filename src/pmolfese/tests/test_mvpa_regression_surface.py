@@ -34,7 +34,9 @@ with tempfile.TemporaryDirectory(prefix='mvpa-reg-surface-') as folder:
                     # voxel encoding uses sparse surface mask ROIs without a searchlight.
                     spatial=[] if score=='voxel' else ['-surf','mesh.gii','-searchlight','100']
                     run(base+['-dataTable','@surface.1D','-mask','mask.niml.dset']+spatial+['-prefix',prefix,'-nperm','5','-permute_within','Run','-seed','31','-save_predictions',prefix+'.pred'],workers=worker)
-                    rows=[list(map(float,line.split())) for line in command([convert,'-o_1Dp_stdout','-input',prefix,'-prepend_node_index_1D']).splitlines() if line.strip() and not line.startswith('#')]
+                    # Some ConvertDset versions emit empty -o_1Dp_stdout;
+                    # use the working stream and ignore its comment headers.
+                    rows=[list(map(float,line.split())) for line in command([convert,'-o_1D_stdout','-input',prefix,'-prepend_node_index_1D']).splitlines() if line.strip() and not line.startswith('#')]
                     assert [int(row[0]) for row in rows]==nodes
                     if worker==1:reference=rows
                     else:assert reference==rows

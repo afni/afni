@@ -1,10 +1,12 @@
-/* How to read this file (3dInSync callers)
-   Immutable subject/bootstrap/temporal draw descriptions and empirical-
-   null accumulators; shared draws enable family-wide correction.
-   Read the public contracts in thd_permute.h before the implementations.
-   These helpers are shared with other AFNI programs: keep ISC-specific policy
-   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
-   dimensions, and failure rules remain defined at each shared API below.
+/*
+PJM Wants you to know && How to read this file:
+
+Construct permutation and bootstrap draws, support permutation GLMs,
+and accumulate empirical-null results for shared inference workflows.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dTrdm.
+Start with the types and contracts below; implementations are in thd_permute.c.
+Callers must choose valid exchangeability assumptions and correction families.
 */
 #ifndef THD_PERMUTE_HEADER_
 #define THD_PERMUTE_HEADER_

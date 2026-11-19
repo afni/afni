@@ -2663,25 +2663,17 @@ void usage_3dRSA(int detail)
 "                     [sub-brick][voxel] vector contains no matched repetitions,\n"
 "                     so splitting it would confound condition and/or voxel\n"
 "                     identity with reliability.\n"
-"                   RSA: comparator-specific noise-ceiling estimates: each subject's\n"
-"                     condition RDM vs the normalized group template (inclusive,\n"
-"                     'nc_high') and vs the leave-one-subject-out mean of the\n"
-"                     others (leave-one-out, 'nc_low'). Templates use centered,\n"
-"                     unit-norm RDMs for Pearson, average ranks for rank metrics,\n"
-"                     and unit Frobenius-norm second moments for cov metrics.\n"
-"                     Correlations are Fisher-z averaged and back-transformed,\n"
-"                     matching model _r (including its correlation clipping).\n"
-"                     These are reference estimates, not guaranteed bounds on\n"
-"                     model _r; a model can exceed nc_high. Rank averaging for\n"
-"                     Kendall metrics is a heuristic.\n"
-"                     This applies to ordinary condition-pattern RDMs and to\n"
-"                     '-runwiseTable' crossnobis RDMs.  In the runwise case,\n"
-"                     independent runs define every subject RDM before the\n"
-"                     subject-level ceiling is calculated; residual whitening,\n"
-"                     if requested, is applied before crossnobis.  The fixed\n"
-"                     model has no fitted condition parameters, so no condition\n"
-"                     data enter a fit.  'nc_low' excludes the evaluated subject;\n"
-"                     'nc_high' includes it and is intentionally optimistic.\n"
+"                   RSA: 'nc_low' and 'nc_high' are reliability references for\n"
+"                     ordinary condition-pattern and runwise crossnobis RDMs,\n"
+"                     comparing each subject with a template excluding that\n"
+"                     subject (low) or including it (high).\n"
+"                     Templates pool subject RDMs after normalization or ranking\n"
+"                     appropriate to the comparison metric.\n"
+"                     Subject scores are Fisher-z averaged and back-transformed\n"
+"                     with the same clipping as model _r, rather than using\n"
+"                     rsatoolbox's arithmetic mean.\n"
+"                     These are not guaranteed bounds on model _r: a model can\n"
+"                     exceed nc_high, and rank pooling for Kendall is heuristic.\n"
 "                   ++ These also go into the output dataset as sub-bricks\n"
 "                      ('reliability', or 'nc_low'/'nc_high'), so under\n"
 "                      -searchlight you get a whole-brain reliability map to read\n"
@@ -8672,10 +8664,24 @@ int main( int argc , char *argv[] )
            THD_simmat_free(neural) ;
          }
 
-         /* Comparator-specific inclusive and leave-one-subject-out templates.
-            Preserve srdm/srdmcov for all subsequent model statistics.  Aggregate
-            on the same Fisher-z scale as model _r. These reference estimates
-            are not guaranteed maxima of the Fisher-aggregated objective. */
+         /* Reliability references: the original raw-RDM pooling gave subjects
+            weights determined by their distance scales, even when the comparator
+            discards those scales. Normalize in the comparison geometry (or rank
+            first) so the template reflects the quantity actually being compared.
+            The original arithmetic aggregation also differed from model _r;
+            Fisher aggregation with identical clipping puts both on the same scale.
+
+            This is not exact rsatoolbox 0.3.2 behavior: its noise_ceiling uses
+            arithmetic aggregation, and pool_rdm uses ordinary Euclidean norms
+            for covariance metrics. Here covariance templates use the comparison's
+            V^-1 norm via the equivalent second-moment Frobenius norm.
+            Normalized pooling does not maximize the Fisher-averaged objective;
+            Kendall rank pooling is heuristic, so neither output is a guaranteed
+            bound on model _r. See pmolfese/tests/rsa_audit/AUDIT_REPORT.md,
+            Finding 1, for the November 2026 correction and its validation.
+
+            Keep template copies separate: modifying srdm/srdmcov here would
+            change the model statistics and inference computed below. */
          if( do_nc ){
            size_t q, width=(srdmcov!=NULL)?(size_t)nitem*nitem:(size_t)ntri ;
            float *src=(srdmcov!=NULL)?srdmcov:srdm ;

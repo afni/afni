@@ -1,7 +1,9 @@
-/* How to read this file
-   Public options and dataset-independent numerical contracts. Start with
-   INSYNC_options, INSYNC_run, then the kernel declarations;
-   implementations are split between thd_insync.c and thd_insync_stats.c.
+/*
+PJM Wants you to know && How to read this file:
+
+Public options and dataset-independent numerical contracts. Start with
+INSYNC_options, INSYNC_run, then the kernel declarations;
+implementations are split between thd_insync.c and thd_insync_stats.c.
 */
 #ifndef _THD_INSYNC_HEADER_
 #define _THD_INSYNC_HEADER_

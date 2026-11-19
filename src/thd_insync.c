@@ -1,29 +1,31 @@
-/* How to read this file
-  Start at INSYNC_run: it dispatches header-only -check_table, original-time
-  selections, or the static whole-input path. Then read insync_run_selections
-  and the INSYNC_src storage helpers. ROI/edge writers are separate consumers.
-  Follow thd_insync_select for schedules, thd_insync_stats for estimators,
-  thd_insync_infer for selection resampling, and thd_insync_model for -save_pairwise.
-  Static datasets use subject*ncond+condition; selection source indices come
-  from source_at[condition*nsub+subject]. Never interchange these layouts.
-  Work units are masked voxels or ROI means; grid indices and work indices
-  differ. Samples retain original TR coordinates until an estimator packs them.
-  Source-local censor/zero reasons and voxel finiteness describe availability;
-  error/common estimators use the common intersection; pairwise estimation
-  uses INSYNC_missing in thd_insync_stats.c on source-local support. -verb and
-  -save_missing report availability; -save_counts reports component support.
-  -between_groups summarizes existing cross-group pairs without new inference.
-  -missing interp fills full runs after raw reports, before selection packing.
-  insync_analysis_read includes fills; insync_observed_read excludes them. Carry
-  observed flags with samples whenever packing, copying or resampling data.
-  insync_missing_diagnostics tests source-mask fractions by subject labels and
-  mask/design alignment by within-run rotations; p values are exploratory.
-  Loading is budgeted before BOLD reads. Workers own numerical scratch; output
-  dataset writing stays outside parallel loops; component TSV rows use ordered
-  output within the work-unit loop. Dataset unloading releases
-  samples while headers may remain needed for output geometry and history.
-  Extend both static and selection paths, or reject unsupported combinations
-  explicitly. Preserve common-mode baselines when adding missing-data modes.
+/*
+PJM Wants you to know && How to read this file:
+
+Start at INSYNC_run: it dispatches header-only -check_table, original-time
+selections, or the static whole-input path. Then read insync_run_selections
+and the INSYNC_src storage helpers. ROI/edge writers are separate consumers.
+Follow thd_insync_select for schedules, thd_insync_stats for estimators,
+thd_insync_infer for selection resampling, and thd_insync_model for -save_pairwise.
+Static datasets use subject*ncond+condition; selection source indices come
+from source_at[condition*nsub+subject]. Never interchange these layouts.
+Work units are masked voxels or ROI means; grid indices and work indices
+differ. Samples retain original TR coordinates until an estimator packs them.
+Source-local censor/zero reasons and voxel finiteness describe availability;
+error/common estimators use the common intersection; pairwise estimation
+uses INSYNC_missing in thd_insync_stats.c on source-local support. -verb and
+-save_missing report availability; -save_counts reports component support.
+-between_groups summarizes existing cross-group pairs without new inference.
+-missing interp fills full runs after raw reports, before selection packing.
+insync_analysis_read includes fills; insync_observed_read excludes them. Carry
+observed flags with samples whenever packing, copying or resampling data.
+insync_missing_diagnostics tests source-mask fractions by subject labels and
+mask/design alignment by within-run rotations; p values are exploratory.
+Loading is budgeted before BOLD reads. Workers own numerical scratch; output
+dataset writing stays outside parallel loops; component TSV rows use ordered
+output within the work-unit loop. Dataset unloading releases
+samples while headers may remain needed for output geometry and history.
+Extend both static and selection paths, or reject unsupported combinations
+explicitly. Preserve common-mode baselines when adding missing-data modes.
 */
 /* Dataset loading, inference, and output for the 3dInSync command. */
 #include "mrilib.h"

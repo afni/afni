@@ -1,7 +1,9 @@
-/* How to read this file
-   Model-bundle export lifecycle and borrowed options/schedule/table
-   references. Preflight, begin, job(s), finish; no statistical model is
-   fitted here.
+/*
+PJM Wants you to know && How to read this file:
+
+Model-bundle export lifecycle and borrowed options/schedule/table
+references. Preflight, begin, job(s), finish; no statistical model is
+fitted here.
 */
 #ifndef THD_INSYNC_MODEL_H
 #define THD_INSYNC_MODEL_H

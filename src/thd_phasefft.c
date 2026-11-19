@@ -1,10 +1,12 @@
-/* How to read this file (3dInSync callers)
-   Reentrant Fourier phase randomization; used by -temporal_null phase
-   with private worker buffers.
-   Read the public contracts in thd_phasefft.h before the implementations.
-   These helpers are shared with other AFNI programs: keep ISC-specific policy
-   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
-   dimensions, and failure rules remain defined at each shared API below.
+/*
+PJM Wants you to know && How to read this file:
+
+Provide a namespaced, reentrant float FFT for phase-randomization
+workflows, coexisting with the legacy FFT symbols in libmrix.
+
+Current program consumers: 3dRSA, 3dInSync.
+Start with the contracts in thd_phasefft.h, then the implementation below.
+The callers construct the null draws; this module supplies the transform.
 */
 /* fftn_OMP.c is explicitly designed to be included by a consumer.  Namespace
    its public entry points so linking 3dRSA with libmrix cannot collide with

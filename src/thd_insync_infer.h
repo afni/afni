@@ -1,7 +1,9 @@
-/* How to read this file
-   Selection inference lifecycle and borrowed grid/sample-reader contract.
-   Plan before allocating; begin once, evaluate selections, then finish.
-   See thd_insync_infer.c for family and failure policies.
+/*
+PJM Wants you to know && How to read this file:
+
+Selection inference lifecycle and borrowed grid/sample-reader contract.
+Plan before allocating; begin once, evaluate selections, then finish.
+See thd_insync_infer.c for family and failure policies.
 */
 #ifndef THD_INSYNC_INFER_H
 #define THD_INSYNC_INFER_H

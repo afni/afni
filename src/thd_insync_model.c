@@ -1,14 +1,16 @@
-/* How to read this file
-  Lifecycle: INSYNC_model_preflight validates -save_pairwise/-isc_* and output
-  paths; begin creates the bundle; job writes one selection/condition-pair job;
-  finish marks the manifest complete. This module exports, never fits a model.
-  Pair maps contain Fisher-z transformed final component correlations. Tables
-  represent subjects as crossed pair members; source metadata (Censor, Xmat,
-  selections) is not automatically a model covariate. qVars/GLTs are validated.
-  Shell quoting and R/AFNI table token validation solve different problems.
-  Check both when adding columns or paths. Preserve relative dataset selectors
-  and absolute job working directories so scripts work outside the launch cwd.
-  Separate 3dISC jobs do not provide joint inference across windows.
+/*
+PJM Wants you to know && How to read this file:
+
+Lifecycle: INSYNC_model_preflight validates -save_pairwise/-isc_* and output
+paths; begin creates the bundle; job writes one selection/condition-pair job;
+finish marks the manifest complete. This module exports, never fits a model.
+Pair maps contain Fisher-z transformed final component correlations. Tables
+represent subjects as crossed pair members; source metadata (Censor, Xmat,
+selections) is not automatically a model covariate. qVars/GLTs are validated.
+Shell quoting and R/AFNI table token validation solve different problems.
+Check both when adding columns or paths. Preserve relative dataset selectors
+and absolute job working directories so scripts work outside the launch cwd.
+Separate 3dISC jobs do not provide joint inference across windows.
 */
 /* Model bundles: absolute shell working directories, local dataset selectors,
    one crossed-subject model per selection and ordered condition pairing. */

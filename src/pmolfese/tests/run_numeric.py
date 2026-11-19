@@ -1800,11 +1800,19 @@ def run_checks(BIN, work, threads, verbose):
                           list(reversed(oreverse_lines[1:]))) + "\n")
     orrc, orout, orrows = condition_long_run(oreverse, "condition_reverse")
     check("traditional RSA accepts shuffled one-brick condition rows exactly",
-          olrc == orrc == 0 and olrows == orrows == ora and
-          "condition order for -model_mat: c0,c1,c2,c3,c4,c5" in olout,
+          olrc == orrc == 0 and olrows == orrows == ora,
           "rc=%d/%d long=%s reverse=%s wide=%s %s" %
           (olrc, orrc, olrows[:1], orrows[:1], ora[:1],
            (olout + orout).strip()[-180:]))
+    # Check the recorded mapping separately from numerical row-order invariance;
+    # console wording is not the condition-order contract.
+    for pre, rc0 in (("condition_long", olrc), ("condition_reverse", orrc)):
+        metadata = (open(os.path.join(osd, pre + ".rsa.1D")).read().splitlines()
+                    if rc0 == 0 else [])
+        orders = [line.split(":", 1)[1].split() for line in metadata
+                  if line.startswith("# condition order:")]
+        check("traditional RSA records declared condition order: " + pre,
+              orders == [["c%d" % c for c in range(OCOND)]], str(orders))
 
     odup = os.path.join(osd, "condition_duplicate.txt")
     omiss = os.path.join(osd, "condition_missing.txt")
@@ -3694,16 +3702,32 @@ def run_checks(BIN, work, threads, verbose):
         UDs.append(D); uzs.append(np.arctanh(spear(tri(D), mt)))
     urr_ref = np.tanh(np.mean(uzs))
 
-    def nili_ceiling(rdms):
-        """Nili lower/upper bounds over independently supplied subject RDMs."""
+    def ceiling_fisher_mean(values):
+        """Equal-subject Fisher mean with the public model-r clipping contract."""
+        values = np.asarray(values, dtype=float)
+        z = np.arctanh(np.clip(values, -0.999329, 0.999329))
+        z = np.where(values < -0.999329, -4.0,
+                     np.where(values > 0.999329, 4.0, z))
+        return np.tanh(z.mean())
+
+    def spearman_ceiling(rdms):
+        """Rank-template reliability references, not guaranteed model-r bounds.
+
+        The November 2 ceiling change pools ranks rather than raw distances
+        and uses the same Fisher aggregation as the reported group model fit.
+        Explicitly select the other subjects for LOO, independently of the C
+        implementation's inclusive-sum/subtraction path.
+        """
         st = np.stack([tri(D) for D in rdms])
-        gm = st.mean(0)
-        hi = np.mean([spear(st[s], gm) for s in range(len(st))])
-        lo = np.mean([spear(st[s], (len(st) * gm - st[s]) / (len(st) - 1))
-                      for s in range(len(st))])
+        ranks = np.stack([rankdata(row, method="average") for row in st])
+        gm = ranks.mean(0)
+        hi = ceiling_fisher_mean([spear(row, gm) for row in st])
+        lo = ceiling_fisher_mean([
+            spear(st[s], ranks[np.arange(len(st)) != s].mean(0))
+            for s in range(len(st))])
         return lo, hi
 
-    nc_ref = nili_ceiling(Ds)
+    nc_ref = spearman_ceiling(Ds)
 
     # A3 with runwise input: crossnobis produces each subject's inner condition
     # RDM, then correlation of their compact triangles produces the outer neural
@@ -3993,15 +4017,15 @@ def run_checks(BIN, work, threads, verbose):
         return rsa(a + (extra or []), env=env)
 
     # F16: every subject RDM is already an independent-run crossnobis estimate.
-    # The lower Nili bound excludes that subject from its group template; the
-    # upper bound includes it intentionally as the conventional optimistic
-    # ceiling.  No condition data are fitted because the model RDM is fixed.
+    # The LOO reference excludes that subject from its rank template; the
+    # inclusive reference includes it intentionally. Neither is a guaranteed
+    # bound on Fisher-averaged model fits. No model parameters are fitted.
     rc, ncout = runx("f16_nc", ["-noise_ceiling"])
     _, ncrows = (read_table(os.path.join(cnd, "f16_nc.rsa.1D"), "block")
                  if rc == 0 else ([], []))
     ncmeta = (open(os.path.join(cnd, "f16_nc.rsa.1D")).read()
               if rc == 0 else "")
-    check("F16 runwise crossnobis ceiling matches independent Nili LOO reference",
+    check("F16 runwise crossnobis ceiling matches independent rank-template Fisher reference",
           rc == 0 and len(ncrows) == 1 and
           np.allclose([ncrows[0]["nc_low"], ncrows[0]["nc_high"]], nc_ref,
                       atol=1e-5) and
@@ -4549,14 +4573,24 @@ def run_checks(BIN, work, threads, verbose):
                                                   -0.999329, 0.999329)) for D in Ds])
         za = np.asarray([np.arctanh(np.clip(f4cmp(tri(D), mt_alt, center),
                                                   -0.999329, 0.999329)) for D in Ds])
-        meanD = np.mean(Ds, axis=0); hi, lo = [], []
-        for sj, D in enumerate(Ds):
-            loo_D = (meanD * NSc - D) / (NSc - 1)
-            hi.append(f4cmp(tri(D), tri(meanD), center))
-            lo.append(f4cmp(tri(D), tri(loo_D), center))
+        # Normalize in the V^-1 metric before pooling. This directly solves
+        # the distance-covariance system, independent of production's centered
+        # kernel/Frobenius implementation. Center before normalization for corr.
+        vectors = np.stack([tri(D) for D in Ds])
+        if center:
+            vectors = vectors - vectors.mean(axis=1, keepdims=True)
+        norms = np.sqrt(np.einsum("ij,ji->i", vectors,
+                                  np.linalg.solve(V4, vectors.T)))
+        templates = vectors / norms[:, None]
+        hi, lo = [], []
+        for sj, vector in enumerate(vectors):
+            others = templates[np.arange(NSc) != sj].mean(axis=0)
+            hi.append(f4cmp(vector, templates.mean(axis=0), center))
+            lo.append(f4cmp(vector, others, center))
         bd = [np.tanh(np.mean(zt[ix])) for ix in bootstrap_indices(NSc, 101, 251)]
         return (np.tanh(zt.mean()), np.mean(zt - za),
-                np.mean(lo), np.mean(hi), percentile_linear(bd, (0.05, 0.95)))
+                ceiling_fisher_mean(lo), ceiling_fisher_mean(hi),
+                percentile_linear(bd, (0.05, 0.95)))
 
     f4out = {}
     for metric, center in (("corr_cov", True), ("cosine_cov", False)):
@@ -4925,7 +4959,7 @@ def run_checks(BIN, work, threads, verbose):
           f21w is not None and abs(f21w - f21w_ref) < 1e-4,
           "3dRSA=%s numpy=%.6f" % (f21w, f21w_ref))
 
-    wnc_ref = nili_ceiling([
+    wnc_ref = spearman_ceiling([
         xnobis(whiten(sj, "diag")) for sj in range(NSc)
     ])
     wncpre = os.path.join(cnd, "f16_nc_diag")

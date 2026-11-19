@@ -1,25 +1,27 @@
-/* How to read this file
-  Read INSYNC_summary, the pairwise/indexed and LOO routines, then INSYNC_kernel
-  and its eval/aggregate/export operations. Public contracts live in thd_insync.h.
-  Inputs are subject-major packed time series, matrices are row-major. The
-  legacy kernel consumes a common retained timeline. INSYNC_missing below it
-  implements overlap-specific estimation for pairwise/interp missingness.
-  INSYNC_interp_linear fills bounded full-run gaps; observed flags then keep
-  real coverage distinct from augmented correlation samples in eval/aggregate.
-  Missing and constant-series behavior differs from the legacy
-  thd_simmatrix helper, so do not substitute kernels without baseline tests.
-  Pearson r is centered cross-product / sqrt(centered sums of squares).
-  Spearman is Pearson on average ranks (ties receive their mean rank).
-  -summary fisher_mean computes tanh(mean(atanh(r))); median sorts finite r's.
-  -block_summary aggregates each dyad/LOO component before -summary aggregates
-  components across people. Averaging group maps instead changes the estimand.
-  INSYNC_missing_between summarizes the rectangular cross-group pair set for
-  -between_groups, without altering the existing components or inference.
-  Bootstrap indices refer to original subjects: dyadic self-pairs are omitted.
-  Legacy LOO resampling excludes a slot. The missing-policy kernel excludes
-  all copies of the held original subject; tests cover duplicate indices.
-  Reference: Chen et al. (2016), NeuroImage, doi:10.1016/j.neuroimage.2016.05.023;
-  Nastase et al. (2019), SCAN, doi:10.1093/scan/nsz037.
+/*
+PJM Wants you to know && How to read this file:
+
+Read INSYNC_summary, the pairwise/indexed and LOO routines, then INSYNC_kernel
+and its eval/aggregate/export operations. Public contracts live in thd_insync.h.
+Inputs are subject-major packed time series, matrices are row-major. The
+legacy kernel consumes a common retained timeline. INSYNC_missing below it
+implements overlap-specific estimation for pairwise/interp missingness.
+INSYNC_interp_linear fills bounded full-run gaps; observed flags then keep
+real coverage distinct from augmented correlation samples in eval/aggregate.
+Missing and constant-series behavior differs from the legacy
+thd_simmatrix helper, so do not substitute kernels without baseline tests.
+Pearson r is centered cross-product / sqrt(centered sums of squares).
+Spearman is Pearson on average ranks (ties receive their mean rank).
+-summary fisher_mean computes tanh(mean(atanh(r))); median sorts finite r's.
+-block_summary aggregates each dyad/LOO component before -summary aggregates
+components across people. Averaging group maps instead changes the estimand.
+INSYNC_missing_between summarizes the rectangular cross-group pair set for
+-between_groups, without altering the existing components or inference.
+Bootstrap indices refer to original subjects: dyadic self-pairs are omitted.
+Legacy LOO resampling excludes a slot. The missing-policy kernel excludes
+all copies of the held original subject; tests cover duplicate indices.
+Reference: Chen et al. (2016), NeuroImage, doi:10.1016/j.neuroimage.2016.05.023;
+Nastase et al. (2019), SCAN, doi:10.1093/scan/nsz037.
 */
 /* Dataset-agnostic ISC estimators; the dataset driver is in thd_insync.c. */
 #include <math.h>

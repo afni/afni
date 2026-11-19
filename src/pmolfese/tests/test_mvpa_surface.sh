@@ -5,6 +5,13 @@ mvpa=$1
 createico=$2
 convertdset=$3
 dinfo=$4
+
+# Use the comment-header 1D stream: some ConvertDset versions return empty
+# stdout for -o_1Dp_stdout. Strip only headers/blanks, preserving numeric rows
+# for the assertions below; pipefail preserves converter failures.
+surface_values() {
+  "$convertdset" -o_1D_stdout "$@" | awk '!/^[[:space:]]*#/ && NF'
+}
 work=$(mktemp -d "/tmp/thd_mvpa_surface.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 
@@ -61,7 +68,7 @@ grep -q '4 synchronized label relabelings (exact; 2 blocks from Run)' \
   "$work/masked.audit.txt"
 test "$("$dinfo" -nv "$work/masked.niml.dset")" = 9
 
-"$convertdset" -o_1Dp_stdout -input "$work/masked.niml.dset" \
+surface_values -input "$work/masked.niml.dset" \
   -prepend_node_index_1D > "$work/masked.1D"
 awk '
   NF {
@@ -97,7 +104,7 @@ OMP_NUM_THREADS=1 "$mvpa" -mode classify -dataTableFile "$work/samples.1D" \
   -save_fold_scores "$work/nomask.folds.1D" \
   -save_confusion "$work/nomask.confusion.1D" \
   -save_summary_scores "$work/nomask.summary.1D" -quiet
-"$convertdset" -o_1Dp_stdout -input "$work/nomask.niml.dset" \
+surface_values -input "$work/nomask.niml.dset" \
   -prepend_node_index_1D > "$work/nomask.1D"
 cmp "$work/masked.1D" "$work/nomask.1D"
 cmp "$work/masked.predictions.1D" "$work/nomask.predictions.1D"
@@ -134,7 +141,7 @@ for workers in 1 2; do
     -prefix "$work/ridge_class_$workers.niml.dset" \
     -save_predictions "$work/ridge_class_$workers.pred.1D" \
     -save_fold_scores "$work/ridge_class_$workers.fold.1D"
-  "$convertdset" -o_1Dp_stdout -input "$work/ridge_class_$workers.niml.dset" \
+  surface_values -input "$work/ridge_class_$workers.niml.dset" \
     -prepend_node_index_1D > "$work/ridge_class_$workers.1D"
 done
 cmp "$work/ridge_class_1.1D" "$work/ridge_class_2.1D"
@@ -160,7 +167,7 @@ for workers in 1 2; do
     -prefix "$work/svm_class_$workers.niml.dset" \
     -save_predictions "$work/svm_class_$workers.pred.1D" \
     -save_fold_scores "$work/svm_class_$workers.fold.1D"
-  "$convertdset" -o_1Dp_stdout -input "$work/svm_class_$workers.niml.dset" \
+  surface_values -input "$work/svm_class_$workers.niml.dset" \
     -prepend_node_index_1D > "$work/svm_class_$workers.1D"
 done
 cmp "$work/svm_class_1.1D" "$work/svm_class_2.1D"
@@ -186,7 +193,7 @@ for method in lda_diag lda_shrinkage; do
       -mask "$work/mask.niml.dset" -surf "$work/mesh.gii" -searchlight 100 \
       -nperm 99 -permute_within Run -seed 42 -prefix "$work/${method}_$workers.niml.dset" \
       -save_predictions "$work/${method}_$workers.pred.1D" -save_fold_scores "$work/${method}_$workers.fold.1D"
-    "$convertdset" -o_1Dp_stdout -input "$work/${method}_$workers.niml.dset" \
+    surface_values -input "$work/${method}_$workers.niml.dset" \
       -prepend_node_index_1D > "$work/${method}_$workers.1D"
   done
   cmp "$work/${method}_1.1D" "$work/${method}_2.1D"
@@ -231,9 +238,9 @@ cmp "$work/decode.pred.1D" "$work/decode_one.pred.1D"
 cmp "$work/decode.fold.1D" "$work/decode_one.fold.1D"
 # Every unit keeps mesh IDs, including sparse holes, and maps neural weights.
 for unit in 0 2 5 9; do
-  "$convertdset" -o_1Dp_stdout -input "$work/dcoef.unit_$unit.niml.dset" \
+  surface_values -input "$work/dcoef.unit_$unit.niml.dset" \
     -prepend_node_index_1D > "$work/dcoef.1D"
-  "$convertdset" -o_1Dp_stdout -input "$work/dcoef_one.unit_$unit.niml.dset" \
+  surface_values -input "$work/dcoef_one.unit_$unit.niml.dset" \
     -prepend_node_index_1D > "$work/dcoef_one.1D"
   cmp "$work/dcoef.1D" "$work/dcoef_one.1D"
   awk 'function abs(x){return x<0?-x:x}
@@ -245,7 +252,7 @@ awk -F '\t' '/^#/ || $1=="Unit"{next} {n++;seen[$2]=1}
   END{if(n!=16 || !seen["node_0"] || !seen["node_2"] || !seen["node_5"] || !seen["node_9"])exit 1}' "$work/dcoef.coefficients.1D"
 
 cmp "$work/decode.niml.dset.continuous.1D" "$work/decode_one.niml.dset.continuous.1D"
-"$convertdset" -o_1Dp_stdout -input "$work/decode.niml.dset" \
+surface_values -input "$work/decode.niml.dset" \
   -prepend_node_index_1D > "$work/decode.1D"
 awk 'BEGIN{id[1]=0;id[2]=2;id[3]=5;id[4]=9} NF{n++;if($1!=id[n] || $2<.9 || $8!=1)exit 1} END{if(n!=4)exit 1}' "$work/decode.1D"
 
@@ -253,11 +260,11 @@ awk 'BEGIN{id[1]=0;id[2]=2;id[3]=5;id[4]=9} NF{n++;if($1!=id[n] || $2<.9 || $8!=
   -design_columns Rating -cv_column Run -scale none -mask "$work/mask.niml.dset" \
   -score voxel -prefix "$work/encode.niml.dset" -save_predictions "$work/encode.pred.1D" \
   -save_coefficients "$work/ecoef"
-"$convertdset" -o_1Dp_stdout -input "$work/encode.niml.dset" \
+surface_values -input "$work/encode.niml.dset" \
   -prepend_node_index_1D > "$work/encode.1D"
 awk 'BEGIN{id[1]=0;id[2]=2;id[3]=5;id[4]=9} NF{n++;if($1!=id[n])exit 1; if(n<=2){if($2<.9 || $8!=1)exit 1}else if($2!=0 || $8!=0)exit 1} END{if(n!=4)exit 1}' "$work/encode.1D"
 awk -F '\t' 'NR>1 {seen[$2]=1} END{if(!seen["node_0"] || !seen["node_2"] || !seen["node_5"] || !seen["node_9"])exit 1}' "$work/encode.pred.1D"
-"$convertdset" -o_1Dp_stdout -input "$work/ecoef.niml.dset" \
+surface_values -input "$work/ecoef.niml.dset" \
   -prepend_node_index_1D > "$work/ecoef.1D"
 awk 'function abs(x){return x<0?-x:x}
   BEGIN{id[1]=0;id[2]=2;id[3]=5;id[4]=9}
@@ -294,7 +301,7 @@ cmp "$work/perm_1.niml.dset.inference.1D" "$work/perm_2.niml.dset.inference.1D"
 cmp "$work/perm_1.niml.dset.tuning.1D" "$work/tuned_1.niml.dset.tuning.1D"
 cmp "$work/perm_1.folds.1D" "$work/tuned_1.folds.1D"
 test "$("$dinfo" -nv "$work/perm_1.niml.dset")" = 17
-"$convertdset" -o_1Dp_stdout -input "$work/perm_1.niml.dset" \
+surface_values -input "$work/perm_1.niml.dset" \
   -prepend_node_index_1D > "$work/perm.1D"
 awk 'BEGIN{id[1]=0;id[2]=2;id[3]=5;id[4]=9} NF{n++;if($1!=id[n])exit 1} END{if(n!=4)exit 1}' "$work/perm.1D"
 awk -F '\t' '/^#/ || $1=="Unit"{next} {n++;if($6<.25 || $6>1 || $9<$6 || $12!=4)exit 1} END{if(n!=4)exit 1}' \
@@ -423,7 +430,7 @@ for mode in classify decode encode; do
       -prefix "$work/fixed_${mode}_${workers}.niml.dset" \
       -save_predictions "$work/fixed_${mode}_${workers}.pred.1D" \
       -save_fold_scores "$work/fixed_${mode}_${workers}.fold.1D"
-    "$convertdset" -o_1Dp_stdout -input "$work/fixed_${mode}_${workers}.niml.dset" \
+    surface_values -input "$work/fixed_${mode}_${workers}.niml.dset" \
       -prepend_node_index_1D > "$work/fixed_${mode}_${workers}.1D"
     awk 'BEGIN{id[1]=0;id[2]=2;id[3]=5;id[4]=9}
          NF{n++;if($1!=id[n] || $NF!=1)exit 1} END{if(n!=4)exit 1}' \
@@ -450,7 +457,7 @@ for mode in classify decode encode; do
       -mask "$work/mask.niml.dset" -surf "$work/mesh.gii" -searchlight 100 \
       -prefix "$work/dual_${mode}_${workers}.niml.dset" \
       -save_predictions "$work/dual_${mode}_${workers}.pred.1D"
-    "$convertdset" -o_1Dp_stdout -input "$work/dual_${mode}_${workers}.niml.dset" \
+    surface_values -input "$work/dual_${mode}_${workers}.niml.dset" \
       -prepend_node_index_1D > "$work/dual_${mode}_${workers}.1D"
     cmp "$work/fixed_${mode}_1.1D" "$work/dual_${mode}_${workers}.1D"
     cmp "$work/fixed_${mode}_1.niml.dset.tuning.1D" "$work/dual_${mode}_${workers}.niml.dset.tuning.1D"
@@ -485,7 +492,7 @@ for mode in classify decode encode; do
       -mask "$work/mask.niml.dset" -surf "$work/mesh.gii" -searchlight 100 \
       -prefix "$work/nuis_${mode}_${workers}.niml.dset" \
       -save_predictions "$work/nuis_${mode}_${workers}.pred.1D"
-    "$convertdset" -o_1Dp_stdout -input "$work/nuis_${mode}_${workers}.niml.dset" \
+    surface_values -input "$work/nuis_${mode}_${workers}.niml.dset" \
       -prepend_node_index_1D > "$work/nuis_${mode}_${workers}.1D"
     awk 'BEGIN{id[1]=0;id[2]=2;id[3]=5;id[4]=9}
          NF{n++;if($1!=id[n])exit 1} END{if(n!=4)exit 1}' "$work/nuis_${mode}_${workers}.1D"
@@ -595,7 +602,7 @@ for method in ridge svm centroid; do
       -nperm 99 -permute_within Run -prefix "$work/pca_${method}_$workers.niml.dset" \
       -save_predictions "$work/pca_${method}_$workers.pred.1D" \
       -save_pca_loadings "$work/pca_${method}_$workers.load.1D"
-    "$convertdset" -o_1Dp_stdout -input "$work/pca_${method}_$workers.niml.dset" \
+    surface_values -input "$work/pca_${method}_$workers.niml.dset" \
       -prepend_node_index_1D > "$work/pca_${method}_$workers.1D"
   done
   for suffix in pca.1D pca_tuning.1D; do
@@ -648,7 +655,7 @@ awk -F '\t' '
 for unit in 0 2 5 9; do
   for fold in 1 2 3; do
     for workers in 1 2; do
-      "$convertdset" -o_1Dp_stdout -input "$work/pattern_$workers.unit_$unit.fold_$fold.niml.dset" \
+      surface_values -input "$work/pattern_$workers.unit_$unit.fold_$fold.niml.dset" \
         -prepend_node_index_1D > "$work/pattern_map_$workers.1D"
     done
     cmp "$work/pattern_map_1.1D" "$work/pattern_map_2.1D"
@@ -710,7 +717,7 @@ for mode in classify decode encode; do
             "${target[@]}" "${partition[@]}" -method ridge -lambda 1 \
             -mask "$work/mask.niml.dset" -surf "$work/mesh.gii" -searchlight 100 \
             -prefix "$work/$mode.$kind.niml.dset" > "$work/$mode.$kind.log" 2>&1
-        "$convertdset" -o_1Dp_stdout -input "$work/$mode.$kind.niml.dset" \
+        surface_values -input "$work/$mode.$kind.niml.dset" \
             -prepend_node_index_1D > "$work/$mode.$kind.values.1D"
     done
     cmp "$work/$mode.transfer.values.1D" "$work/$mode.fixed.values.1D"
