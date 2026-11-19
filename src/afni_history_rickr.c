@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Nov, 2026, RCR, "3dresample", MINOR, TYPE_BUG_FIX,
+   "fix double origin shift in case of oversampling",
+   NULL
+ } ,
+
  { 10, Nov, 2026, RCR, "make_random_timing.py", MICRO, TYPE_GENERAL,
    "allow dist or dtype for distribution type",
    "Since apparently I changed which term was being used in the help."
