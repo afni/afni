@@ -147,7 +147,7 @@ def main():
                 (['-run_starts','0,'],'integer'),(['-edges'],'deferred')]:
             run(opts,error=message)
         run(['-window','8','-edges'],check=False,error='deferred')
-        run(['-run_starts','0,24','-block_weight','retained_n'],table='intervals.txt',check=False,error='M4a')
+        run(['-run_starts','0,24','-block_weight','retained_n'],table='intervals.txt',check=False,error='weight must be equal or valid')
         run(table='xmat_subjects.txt')
         run(table='censor_subjects.txt')
         run(table=table('duplicate.txt',original+[original[1]]),error='duplicate Subj')

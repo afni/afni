@@ -254,7 +254,7 @@ def main():
         assert (root/(nextprefix+'.sel000002.nii.gz')).read_text()=='existing'
         # Invalid options / deferred estimands / memory checks fail before outputs.
         for opts2,table2,error in [(['-block_summary','fisher_mean','-combine_blocks','pool'], 'pool.txt','cannot be combined'),
-            (['-xmat_blocks','by_stim','-xmat_threshold','.5','-block_weight','retained_n'],'xmat_subjects.txt','M4a'),
+            (['-xmat_blocks','by_stim','-xmat_threshold','.5','-block_weight','retained_n'],'xmat_subjects.txt','weight must be equal or valid'),
             (['-window','8','-edges'],'subjects.txt','deferred'),
             (['-window','8','-roi_only'],'subjects.txt','require -atlas'),
             (['-window','8','-segment_center','mean'],'subjects.txt','requires'),

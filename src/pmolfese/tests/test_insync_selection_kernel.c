@@ -1,6 +1,7 @@
 /* Repeated selection calls must clear invalid state and expose valid matrices. */
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #include "../../thd_insync.h"
 #define CHECK(x) do { if(!(x)){ fprintf(stderr,"FAIL line %d: %s\n",__LINE__,#x); return 1; } } while(0)
 int main(void)
@@ -59,5 +60,109 @@ int main(void)
    }
    INSYNC_kernel_free(w); INSYNC_kernel_free(NULL);
    CHECK(INSYNC_kernel_new(2,4)==NULL && INSYNC_kernel_new(3,2)==NULL);
-   puts("PASS: selection/block kernel state, validity, aggregation order and Fisher export"); return 0;
+   {
+      INSYNC_missing *m=INSYNC_missing_new(3,5);
+      INSYNC_options o={.method=INSYNC_METHOD_PAIRWISE,.corr_metric=INSYNC_CORR_PEARSON,
+         .summary=INSYNC_SUMMARY_MEDIAN,.block_summary=INSYNC_SUMMARY_MEDIAN,
+         .min_valid=3,.min_blocks=1,.loo_min_others=1};
+      float x[]={1,2,3,4,5, 1,NAN,3,4,5, 5,4,NAN,2,1};
+      float constant_other[]={1,2,3,4,5, 2,2,2,2,2, 5,4,NAN,2,1};
+      INSYNC_component blocks[24]; const INSYNC_component *v; int i;
+      CHECK(m && !INSYNC_missing_new(2,5) && !INSYNC_missing_new(3,2));
+      INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,member); v=INSYNC_missing_components(m);
+      CHECK(v[1].overlap==4 && v[2].overlap==4 && v[5].overlap==3);
+      CHECK(v[1].r==1 && v[2].r==-1 && v[5].r==-1);
+      CHECK(INSYNC_missing_subjects(m)[0]==5 && INSYNC_missing_subjects(m)[1]==4);
+      memcpy(blocks,v,12*sizeof(*v));
+      INSYNC_missing_eval(m,5,constant_other,NULL,5,&o,1,size,member);
+      memcpy(blocks+12,v,12*sizeof(*v));
+      INSYNC_missing_aggregate(m,2,blocks,&o,1,size,member);
+      CHECK(isnan(v[1].r) && v[1].eligible==1 && v[1].blocks==0 && v[1].used==0);
+      CHECK(v[2].r==-1 && v[2].used==8 && v[2].blocks==2);
+      INSYNC_missing_summary(m,o.method,o.summary,1,size,member,stat,n,complete);
+      CHECK(n[0]==1 && complete[0]==0 && stat[0]==-1);
+      o.block_drop_common=2; o.block_summary=INSYNC_SUMMARY_FISHER_MEAN;
+      INSYNC_missing_aggregate(m,2,blocks,&o,1,size,member);
+      CHECK(v[1].r==1 && v[1].used==4 && v[1].blocks==1 && v[2].blocks==2);
+      o.block_drop_common=1; o.block_summary=INSYNC_SUMMARY_MEDIAN;
+      INSYNC_missing_aggregate(m,2,blocks,&o,1,size,member);
+      CHECK(v[1].blocks==1 && v[2].blocks==1 && v[2].used==4);
+      o.min_valid_frac=.81;
+      INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,member);
+      CHECK(isnan(v[1].r) && v[1].overlap==4 && v[1].used==0);
+      o.min_valid_frac=0; o.method=INSYNC_METHOD_LOO;
+      INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,member);
+      CHECK(v[9].overlap==5 && v[9].min_others==1 && fabs(v[9].r+1/sqrt(8.))<1.e-6);
+      CHECK(v[10].overlap==4 && isnan(v[10].r));
+      o.loo_min_others=2;
+      INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,member);
+      CHECK(v[9].overlap==3 && v[9].min_others==2 && isnan(v[9].r));
+      INSYNC_missing_eval(m,0,x,NULL,0,&o,1,size,member);
+      CHECK(v[1].overlap==0 && isnan(v[1].r) && INSYNC_missing_subjects(m)[0]==0);
+      /* Repeated held-out copies must never enter their own LOO mean. */
+      {
+         int repeated[]={0,0,2},*repeat_members[]={repeated};
+         o.loo_min_others=1;
+         INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,repeat_members);
+         CHECK(v[9].r==-1 && v[9].min_others==1 && v[11].r==-1);
+         o.loo_min_others=2;
+         INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,repeat_members);
+         CHECK(isnan(v[9].r) && isnan(v[11].r));
+      }
+      /* Exact-half weighted median averages neighbors; unequal weights select
+         the heavier block. Fisher weighting has an independent closed form. */
+      o.method=INSYNC_METHOD_PAIRWISE; o.block_drop_common=2; o.block_weight=1;
+      o.block_summary=INSYNC_SUMMARY_MEDIAN;
+      for(i=0;i<24;i++) blocks[i]=(INSYNC_component){.r=NAN};
+      blocks[1]=blocks[3]=(INSYNC_component){.r=.2f,.used=3,.overlap=3};
+      blocks[13]=blocks[15]=(INSYNC_component){.r=.8f,.used=3,.overlap=3};
+      INSYNC_missing_aggregate(m,2,blocks,&o,1,size,member);
+      CHECK(fabs(v[1].r-.5)<1.e-6);
+      blocks[13].used=blocks[15].used=4;
+      INSYNC_missing_aggregate(m,2,blocks,&o,1,size,member);
+      CHECK(fabs(v[1].r-.8)<1.e-6 && v[1].used==7);
+      o.block_summary=INSYNC_SUMMARY_FISHER_MEAN;
+      INSYNC_missing_aggregate(m,2,blocks,&o,1,size,member);
+      CHECK(fabs(v[1].r-tanh((3*atanh(.2)+4*atanh(.8))/7))<1.e-6);
+      INSYNC_missing_free(m); INSYNC_missing_free(NULL);
+   }
+   {
+      float row[]={NAN,1,99,7,NAN,NAN,13,NAN, 9,NAN,5,NAN};
+      unsigned char keep[]={1,1,0,1,1,1,1,1, 1,1,1,1},fill[12];
+      int runs[]={0,8},bad[]={0,0};
+      CHECK(INSYNC_interp_linear(12,row,keep,2,bad,2,fill)==-1 && row[2]==99);
+      CHECK(INSYNC_interp_linear(12,row,keep,2,runs,2,fill)==4);
+      CHECK(isnan(row[0]) && row[2]==4 && row[4]==9 && row[5]==11);
+      CHECK(isnan(row[7]) && row[9]==7 && isnan(row[11]));
+      CHECK(fill[2] && fill[4] && fill[5] && fill[9] && !fill[0]);
+      row[4]=row[5]=NAN;
+      CHECK(INSYNC_interp_linear(12,row,keep,2,runs,1,fill)==1);
+      CHECK(isnan(row[4]) && isnan(row[5]));
+   }
+   {
+      INSYNC_missing *m=INSYNC_missing_new(3,5);
+      INSYNC_options o={.method=INSYNC_METHOD_LOO,.min_valid=4,.loo_min_others=1};
+      float x[]={1,2,3,4,5, 5,4,3,2,1, 2,1,4,5,6};
+      unsigned char observed[15]; const INSYNC_component *v;
+      memset(observed,1,sizeof(observed)); observed[6]=0; observed[12]=0;
+      INSYNC_missing_eval_observed(m,5,x,observed,NULL,5,&o,1,size,member);
+      v=INSYNC_missing_components(m);
+      CHECK(v[1].overlap==4 && v[1].samples==5 && v[1].used==4 && v[1].used_samples==5);
+      CHECK(v[9].overlap==3 && v[9].samples==5 && isnan(v[9].r) && v[9].used_samples==0);
+      CHECK(INSYNC_missing_subjects(m)[1]==4);
+      INSYNC_missing_free(m);
+   }
+   {
+      INSYNC_missing *m=INSYNC_missing_new(3,5);
+      INSYNC_options o={.method=INSYNC_METHOD_PAIRWISE,.min_valid=3};
+      int a[]={0},b[]={1,2}; float out[6];
+      float x[]={1,2,3,4,5, 5,4,3,2,1, NAN,NAN,NAN,2,1};
+      INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,member);
+      INSYNC_missing_between(m,1,a,2,b,INSYNC_SUMMARY_MEDIAN,out);
+      CHECK(out[0]==-1 && out[1]==1 && out[2]==1 && out[3]==0);
+      CHECK(out[4]==2 && out[5]==0);
+      CHECK(INSYNC_missing_components(m)[1].r==-1);
+      INSYNC_missing_free(m);
+   }
+   puts("PASS: selection/block kernel state, validity, aggregation order, Fisher export and pairwise-missing support"); return 0;
 }

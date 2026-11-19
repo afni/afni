@@ -2,6 +2,7 @@
 #define _THD_MVPA_HEADER_
 
 #include "thd_crossval.h"
+#include "thd_regression.h"
 #include "thd_permute.h"
 
 /*----------------------------------------------------------------------------
@@ -182,36 +183,6 @@ extern THD_mvpa_pair_result *THD_mvpa_compare_predictions(
    int classification,int nclass,char *err,int nerr);
 extern void THD_mvpa_pair_result_free(THD_mvpa_pair_result *result);
 
-#define THD_RIDGE_AUTO   0
-#define THD_RIDGE_PRIMAL 1
-#define THD_RIDGE_DUAL   2
-
-typedef struct THD_ridge_workspace THD_ridge_workspace ;
-
-/* Compact row-major matrices; positive lambda penalizes slopes only. Fit
-   learns predictor/response means from training rows. AUTO factors the smaller
-   of X'X and XX'. Factor capacity is min(max_sample,max_feature); a forced
-   form must fit that capacity. Repeated fits/predictions allocate no buffers. */
-extern THD_ridge_workspace *THD_ridge_alloc(int max_sample, int max_feature,
-                                           int max_output, char *err, int nerr);
-extern int THD_ridge_fit(THD_ridge_workspace *w, const float *x, const float *y,
-                         int n, int p, int q, double lambda, int form,
-                         char *err, int nerr);
-/* One positive penalty per response. Means are shared; responses with equal
-   penalties share a factorization. Up to q factors, no extra fit allocations.
-   Coefficient/prediction layout and intercept convention match THD_ridge_fit. */
-extern int THD_ridge_fit_response_lambda(THD_ridge_workspace *w,
-   const float *x,const float *y,int n,int p,int q,const double *lambda,int form,
-   char *err,int nerr);
-extern int THD_ridge_predict(const THD_ridge_workspace *w, const float *x,
-                             int n, float *prediction, char *err, int nerr);
-/* Export slopes [feature][response] and unpenalized intercept [response]
-   in the exact predictor space supplied to fit: y = intercept + X*coef.
-   Caller provides p*q and q doubles. No preprocessing inversion is implied. */
-extern int THD_ridge_coefficients(const THD_ridge_workspace *w,
-   double *coef, double *intercept, char *err, int nerr);
-extern void THD_ridge_free(THD_ridge_workspace *w);
-
 /* Descriptive all-sample ridge refit, independent of CV, spatial extraction,
    and output formats. x[n][p], y[n][q] are compact row-major matrices; groups
    has n entries when preprocessing is run_center. Class indicators, if wanted,
@@ -323,44 +294,6 @@ typedef struct {
    elastic net and SVR fit each response independently; PLS fits them jointly.
    All arrays below are owned except the configuration passed to the setter,
    which is copied. Configure once, LAST, after selection/PCA/objective. */
-#define THD_REG_ELASTIC_NET 1
-#define THD_REG_BANDED_RIDGE 2
-#define THD_REG_PLS 3
-#define THD_REG_SVR 4
-typedef struct {
-   int method,ncandidate,ngroup,nfeature,max_iterations;
-   double tolerance;
-   const double *parameter; /* [candidate][2], alpha/rho, components/0, C/epsilon */
-   const int *feature_group; /* banded only, [nfeature], IDs 0..ngroup-1 */
-   const double *group_penalty; /* banded only, [candidate][ngroup] */
-} THD_regression_config;
-typedef struct THD_regression THD_regression;
-typedef struct {
-   int iterations,components,nonzero;
-   double residual,objective;
-} THD_regression_diagnostic;
-/* EN: SSE/(2n)+alpha*rho*|b|_1+alpha*(1-rho)*||b||^2/2,
-   training-centered X/Y, unpenalized intercept, absolute max KKT tolerance.
-   Banded: SSE+sum_g lambda_g*||b_g||^2, unpenalized intercept; no group-size
-   normalization; exact primal/linear-kernel solve, positive group penalties.
-   PLS: centered, response-unscaled NIPALS regression deflation (PLS1/PLS2),
-   unit predictor weights; power-iteration change <= tolerance; clips to
-   min(n-1,p) and exhausted covariance. Response domain = one supplied fit.
-   SVR: .5*(||b||^2+intercept^2)+C*sum(max(0,abs(y-Xb-intercept)-epsilon)^2),
-   uncentered supplied X/Y, penalized intercept; signed dual coordinate descent,
-   absolute max dual KKT tolerance. epsilon is in original response units.
-   Failed fits invalidate predictions; all repeated fits reuse allocated scratch. */
-extern THD_regression *THD_regression_alloc(int n,int p,int q,
-   const THD_regression_config *config,char *err,int nerr);
-extern int THD_regression_fit(THD_regression *m,const float *x,const float *y,
-   int n,int p,int q,int candidate,char *err,int nerr);
-extern int THD_regression_predict(const THD_regression *m,const float *x,int n,
-   float *out,char *err,int nerr);
-extern int THD_regression_coefficients(const THD_regression *m,double *coef,
-   double *intercept,char *err,int nerr);
-extern const THD_regression_diagnostic *THD_regression_diagnostics(const THD_regression *m);
-extern void THD_regression_free(THD_regression *m);
-
 typedef struct {
    const THD_foldplan *plan;
    int max_feature, max_output, preprocess;

@@ -1,3 +1,11 @@
+/* How to read this file (3dInSync callers)
+   Similarity matrices and cached relative-lag correlations; used by
+   static pairwise ISC and timeshift inference.
+   Read the public contracts in thd_simmatrix.h before the implementations.
+   These helpers are shared with other AFNI programs: keep ISC-specific policy
+   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
+   dimensions, and failure rules remain defined at each shared API below.
+*/
 #ifndef _THD_SIMMATRIX_HEADER_
 #define _THD_SIMMATRIX_HEADER_
 

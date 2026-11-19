@@ -58,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix='mvpa_validate_') as folder:
         else:
             assert result.returncode != 0 and failure in text, text
             assert '# Validation PASS' not in text
-        return result.stdout
+        return text if failure is not None else result.stdout
 
     before = set(root.iterdir())
     report = run(common + ['-trial_manifest', manifest, '-validate_only',
@@ -152,6 +152,61 @@ with tempfile.TemporaryDirectory(prefix='mvpa_validate_') as folder:
     # Missing test classes are reported, not rejected when training coverage is valid.
     sparse_test = table('sparse_test.1D', [dict(r, Condition='A') if r['Run'] == '1' else r for r in rows])
     assert 'has no test observations of class B' in run(common + ['-trial_manifest', sparse_test, '-validate_only'])
+
+    # Coverage reports retain zero counts without requiring each subject/run
+    # to contain every class. All invalid folds are reported before any fitting.
+    sparse_report = run(common + ['-trial_manifest', sparse_test, '-validate_only'])
+    assert 'SubjectRun\ts1\t1\tB\t0\tMISSING' in sparse_report
+    assert '1\tNA\tB\t2\t0\tMISSING_TEST_ALLOWED' in sparse_report
+    assert '# OuterClassCoverage\tPASS' in sparse_report
+    run(common + ['-trial_manifest', sparse_test, '-prefix', 'sparse_fit'])
+    assert (root/'sparse_fit.roi.1D').exists()
+
+    all_bad = table('all_folds_bad.1D', [dict(r, Condition='ABC'[int(r['Run'])-1]) for r in rows])
+    before = set(root.iterdir())
+    for validate in (['-validate_only'], []):
+        report = run(common + ['-trial_manifest', all_bad, '-prefix', 'invalid_outer',
+                               '-save_predictions', 'invalid_outer.pred.1D', *validate], 'training set')
+        assert report.count('MISSING_TRAIN') == 3, report
+        assert '# OuterClassCoverage\tFAIL\t3 invalid' in report
+    assert set(root.iterdir()) == before
+
+    before = set(root.iterdir())
+    for validate in (['-validate_only'], []):
+        report = run(common + ['-trial_manifest', inner, '-method', 'ridge', '-lambda', 'auto',
+                               '-prefix', 'invalid_inner', '-save_tuning', 'invalid_inner.tuning.1D',
+                               *validate], 'inner folds of outer')
+        assert report.count('MISSING_TRAIN') == 4, report
+        assert '# InnerClassCoverage\tFAIL\t4 invalid' in report
+    assert set(root.iterdir()) == before
+    report = run(common + ['-trial_manifest', manifest, '-method', 'ridge', '-lambda', 'auto', '-validate_only'])
+    assert '# InnerClassCoverage\tPASS\t0 invalid' in report
+    # Outer 1 trains on global rows 2..5; inner1 holds out Run 2.
+    # The asymmetric fixture above additionally checks local-to-global mapping.
+    assert '1\tinner1\tA\t1\t1\tPASS' in report
+
+    # s1 lacks B entirely; s2/s3 still supply B to every pooled training fold.
+    # Identical Run labels across subjects must remain separate groups.
+    pooled = [dict(r, Subj=subject, Sample=subject+'_'+r['Sample'])
+              for subject in ('s1', 's2', 's3') for r in rows
+              if subject != 's1' or r['Condition'] == 'A']
+    nifti(root/'pooled.nii', [[i % 3, 10*(r['Condition'] == 'B'), 5, 5, 0, 0, 0, 0]
+                             for i, r in enumerate(pooled)])
+    pooled = [dict(r, Volume=str(i), InputFile=str(root/'pooled.nii')) for i, r in enumerate(pooled)]
+    pooled_table = table('pooled.1D', pooled)
+    pooled_args = ['-mode', 'classify', '-target_column', 'Condition', '-cv_column', 'Subj',
+                   '-mask', root/'mask.nii', '-trial_manifest', pooled_table]
+    report = run(pooled_args + ['-validate_only'])
+    assert 'Subject\ts1\tNA\tB\t0\tMISSING' in report
+    assert 'SubjectRun\ts1\t1\tB\t0\tMISSING' in report
+    assert 'SubjectRun\ts2\t1\tB\t1\tPRESENT' in report
+    assert '# OuterClassCoverage\tPASS' in report
+    run(pooled_args + ['-prefix', 'pooled_fit'])
+    assert (root/'pooled_fit.roi.1D').exists()
+    # Within-subject training cannot learn B for s1, and must fail explicitly.
+    report = run(pooled_args + ['-cv_column', 'Run', '-within_column', 'Subj',
+                                '-validate_only'], 'training set')
+    assert report.count('MISSING_TRAIN') == 3, report
 
     # NIfTI readers can repair raw NaNs. Overflow on applying the brick factor
     # tests the actual values passed to modeling, after loading/conversion.

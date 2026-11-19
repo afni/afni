@@ -229,7 +229,7 @@ def main():
         # Invalid options and deferred inference/weighting fail before outputs.
         for opts,error in [(['-min_blocks','0'],'integer'),(['-min_block_frac','1.1'],'[0,1]'),
             (['-min_block_frac','nan'],'[0,1]'),(['-block_summary','mean'],'median or fisher_mean'),
-            (['-block_missing','drop_pair'],'require_all or drop_common'),(['-block_weight','retained_n'],'M4a'),
+            (['-block_missing','drop_pair'],'require_all or drop_common'),(['-block_weight','retained_n'],'weight must be equal or valid'),
             (['-block_summary','median','-block_summary','median'],'twice'),
             (['-combine_blocks','pool','-min_blocks','2'],'cannot be combined'),
             (['-segment_center','mean'],'requires'),(['-edges'],'deferred'),

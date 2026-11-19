@@ -1,3 +1,11 @@
+/* How to read this file (3dInSync callers)
+   Similarity matrices and cached relative-lag correlations; used by
+   static pairwise ISC and timeshift inference.
+   Read the public contracts in thd_simmatrix.h before the implementations.
+   These helpers are shared with other AFNI programs: keep ISC-specific policy
+   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
+   dimensions, and failure rules remain defined at each shared API below.
+*/
 #include "mrilib.h"
 #include "thd_simmatrix.h"
 
@@ -164,21 +172,12 @@ THD_simmat * THD_simmat_from_features( int nit , int nfeat , float *F , int metr
    return sm ;
 }
 
-THD_simmat * THD_simmat_from_features_zcensor( int nit, int nfeat, float *F,
-                                                unsigned char *keep, int metric,
-                                                int *min_keep )
+/* Fill a censored matrix using scratch owned by the constructor. */
+static int simmat_fill_zcensor( THD_simmat *sm, int nit, int nfeat, float *F,
+                                unsigned char *keep, int metric, int *min_keep,
+                                float *sc1, float *sc2 )
 {
-   THD_simmat *sm ; float *sc1=NULL,*sc2=NULL ; int ii,jj,kk,nuse,minuse=nfeat ;
-
-   if( min_keep != NULL ) *min_keep=0 ;
-   if( nit<2 || nfeat<3 || F==NULL || keep==NULL ||
-       (metric!=SIM_PEARSON && metric!=SIM_SPEARMAN) ) return NULL ;
-   sm=THD_simmat_new(nit) ;
-   if( sm==NULL ) return NULL ;
-   sc1=(float *)malloc(sizeof(float)*nfeat) ;
-   sc2=(float *)malloc(sizeof(float)*nfeat) ;
-   if( sc1==NULL || sc2==NULL ) goto bad ;
-
+   int ii,jj,kk,nuse,minuse=nfeat ;
    sm->is_dist=0 ;
    for( ii=0 ; ii<nit ; ii++ ){
      sm->mat[ii*nit+ii]=1.0f ;
@@ -187,25 +186,43 @@ THD_simmat * THD_simmat_from_features_zcensor( int nit, int nfeat, float *F,
        unsigned char *ka=keep+(size_t)ii*nfeat, *kb=keep+(size_t)jj*nfeat ;
        float val ; nuse=0 ;
        for( kk=0 ; kk<nfeat ; kk++ ) if( ka[kk] && kb[kk] ){
-         if( !isfinite(a[kk]) || !isfinite(b[kk]) ) goto bad ;
+         if( !isfinite(a[kk]) || !isfinite(b[kk]) ) return 0 ;
          sc1[nuse]=a[kk] ; sc2[nuse]=b[kk] ; nuse++ ;
        }
-       if( nuse<3 ) goto bad ;
+       if( nuse<3 ) return 0 ;
        if( nuse<minuse ) minuse=nuse ;
        if( metric==SIM_SPEARMAN ){
          THD_rank_avg(nuse,sc1,sc1) ; THD_rank_avg(nuse,sc2,sc2) ;
        }
        val=(metric==SIM_PEARSON) ? simmat_pearson_corr(nuse,sc1,sc2)
                                 : THD_pearson_corr(nuse,sc1,sc2) ;
-       if( !isfinite(val) ) goto bad ;
+       if( !isfinite(val) ) return 0 ;
        sm->mat[ii*nit+jj]=sm->mat[jj*nit+ii]=val ;
      }
    }
    if( min_keep != NULL ) *min_keep=minuse ;
-   free(sc1); free(sc2); return sm ;
+   return 1 ;
+}
 
-bad:
-   free(sc1); free(sc2); THD_simmat_free(sm); return NULL ;
+THD_simmat * THD_simmat_from_features_zcensor( int nit, int nfeat, float *F,
+                                                unsigned char *keep, int metric,
+                                                int *min_keep )
+{
+   THD_simmat *sm ; float *sc1=NULL,*sc2=NULL ; int ok ;
+
+   if( min_keep != NULL ) *min_keep=0 ;
+   if( nit<2 || nfeat<3 || F==NULL || keep==NULL ||
+       (metric!=SIM_PEARSON && metric!=SIM_SPEARMAN) ) return NULL ;
+   sm=THD_simmat_new(nit) ;
+   if( sm==NULL ) return NULL ;
+   sc1=(float *)malloc(sizeof(float)*nfeat) ;
+   sc2=(float *)malloc(sizeof(float)*nfeat) ;
+
+   ok=sc1!=NULL && sc2!=NULL &&
+      simmat_fill_zcensor(sm,nit,nfeat,F,keep,metric,min_keep,sc1,sc2) ;
+   free(sc1); free(sc2);
+   if( !ok ){ THD_simmat_free(sm); return NULL; }
+   return sm ;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -2589,16 +2606,17 @@ int THD_tri_commonality3( int m, float *yin, float *ain, float *bin, float *cin,
    y=(float *)malloc(sizeof(float)*m); A=(float *)malloc(sizeof(float)*m);
    B=(float *)malloc(sizeof(float)*m); C=(float *)malloc(sizeof(float)*m);
    rk=(float *)malloc(sizeof(float)*m) ;
-   if(!y||!A||!B||!C||!rk){ bad=1; goto done_tri3; }
-   memcpy(y,yin,sizeof(float)*m); memcpy(A,ain,sizeof(float)*m);
-   memcpy(B,bin,sizeof(float)*m); memcpy(C,cin,sizeof(float)*m);
-   if(do_rank){ rdm_rank_inplace(m,y,rk); rdm_rank_inplace(m,A,rk);
-                rdm_rank_inplace(m,B,rk); rdm_rank_inplace(m,C,rk); }
-   rdm_zscore(m,A); rdm_zscore(m,B); rdm_zscore(m,C) ;
-   if(!rdm_zscore(m,y)) for(k=0;k<THD_NCOMMON3;k++) co[k]=0.0;
-   else rdm_commonality3_one(m,y,A,B,C,co) ;
-   for(k=0;k<THD_NCOMMON3;k++) out[k]=(float)co[k] ;
-done_tri3:
+   bad=(!y||!A||!B||!C||!rk);
+   if( !bad ){
+     memcpy(y,yin,sizeof(float)*m); memcpy(A,ain,sizeof(float)*m);
+     memcpy(B,bin,sizeof(float)*m); memcpy(C,cin,sizeof(float)*m);
+     if(do_rank){ rdm_rank_inplace(m,y,rk); rdm_rank_inplace(m,A,rk);
+                  rdm_rank_inplace(m,B,rk); rdm_rank_inplace(m,C,rk); }
+     rdm_zscore(m,A); rdm_zscore(m,B); rdm_zscore(m,C) ;
+     if(!rdm_zscore(m,y)) for(k=0;k<THD_NCOMMON3;k++) co[k]=0.0;
+     else rdm_commonality3_one(m,y,A,B,C,co) ;
+     for(k=0;k<THD_NCOMMON3;k++) out[k]=(float)co[k] ;
+   }
    free(y);free(A);free(B);free(C);free(rk); return bad ;
 }
 
@@ -2620,48 +2638,55 @@ int THD_commonality3( THD_simmat *neural, THD_simmat *Am, THD_simmat *Bm,
    B=(float *)malloc(sizeof(float)*m);C=(float *)malloc(sizeof(float)*m);
    rk=(float *)malloc(sizeof(float)*m);fit=(float *)malloc(sizeof(float)*m);
    res=(float *)malloc(sizeof(float)*m);
-   if(!y||!A||!B||!C||!rk||!fit||!res){bad=1;goto done_is3;}
-   THD_simmat_to_tri(Am,A);THD_simmat_to_tri(Bm,B);THD_simmat_to_tri(Cm,C);
-   if(do_rank){rdm_rank_inplace(m,A,rk);rdm_rank_inplace(m,B,rk);rdm_rank_inplace(m,C,rk);}
-   rdm_zscore(m,A);rdm_zscore(m,B);rdm_zscore(m,C);
-   THD_simmat_to_tri(neural,y);if(do_rank)rdm_rank_inplace(m,y,rk);
-   if(!rdm_zscore(m,y))for(k=0;k<THD_NCOMMON3;k++)obs[k]=0.0;
-   else rdm_commonality3_one(m,y,A,B,C,obs);
-   for(k=0;k<THD_NCOMMON3;k++){out[k]=(float)obs[k];nge[k]=0;}
-   if(!pset){if(pval)for(k=0;k<THD_NCOMMON3;k++){pval[k]=-1.0f;if(zscr)zscr[k]=0.0f;}goto done_is3;}
-   nul=permnull ; if(!nul){nul=(float *)calloc((size_t)THD_NCOMMON3*np,sizeof(float));own=1;}
-   if(!nul){bad=1;goto done_is3;}
-   for(which=0;which<3;which++){
-     float *x1=(which==0)?B:A,*x2=(which==2)?B:C; int partial=7+which;
-     rdm_reduced_fit2(m,y,x1,x2,fit,res);THD_tri_to_simmat(n,res,ws->ework);
+   bad=(!y||!A||!B||!C||!rk||!fit||!res);
+   if( !bad ){
+     THD_simmat_to_tri(Am,A);THD_simmat_to_tri(Bm,B);THD_simmat_to_tri(Cm,C);
+     if(do_rank){rdm_rank_inplace(m,A,rk);rdm_rank_inplace(m,B,rk);rdm_rank_inplace(m,C,rk);}
+     rdm_zscore(m,A);rdm_zscore(m,B);rdm_zscore(m,C);
+     THD_simmat_to_tri(neural,y);if(do_rank)rdm_rank_inplace(m,y,rk);
+     if(!rdm_zscore(m,y))for(k=0;k<THD_NCOMMON3;k++)obs[k]=0.0;
+     else rdm_commonality3_one(m,y,A,B,C,obs);
+     for(k=0;k<THD_NCOMMON3;k++){out[k]=(float)obs[k];nge[k]=0;}
+     if(!pset){
+       if(pval)for(k=0;k<THD_NCOMMON3;k++){pval[k]=-1.0f;if(zscr)zscr[k]=0.0f;}
+     } else {
+       nul=permnull ;
+       if(!nul){nul=(float *)calloc((size_t)THD_NCOMMON3*np,sizeof(float));own=1;}
+       if(!nul)bad=1;
+     }
+   }
+   if( !bad && pset ){
+     for(which=0;which<3;which++){
+       float *x1=(which==0)?B:A,*x2=(which==2)?B:C; int partial=7+which;
+       rdm_reduced_fit2(m,y,x1,x2,fit,res);THD_tri_to_simmat(n,res,ws->ework);
+       for(pk=0;pk<np;pk++){
+         double co[THD_NCOMMON3];int *perm=pset->perm+(size_t)pk*n;
+         THD_simmat_to_tri_perm(ws->ework,perm,ws->sc1);
+         for(ii=0;ii<m;ii++)ws->yfit[ii]=fit[ii]+ws->sc1[ii];
+         rdm_commonality3_one(m,ws->yfit,A,B,C,co);
+         nul[(size_t)which*np+pk]=(float)fabs(co[which]);
+         nul[(size_t)partial*np+pk]=(float)fabs(co[partial]);
+       }
+     }
      for(pk=0;pk<np;pk++){
        double co[THD_NCOMMON3];int *perm=pset->perm+(size_t)pk*n;
-       THD_simmat_to_tri_perm(ws->ework,perm,ws->sc1);
-       for(ii=0;ii<m;ii++)ws->yfit[ii]=fit[ii]+ws->sc1[ii];
-       rdm_commonality3_one(m,ws->yfit,A,B,C,co);
-       nul[(size_t)which*np+pk]=(float)fabs(co[which]);
-       nul[(size_t)partial*np+pk]=(float)fabs(co[partial]);
+       THD_simmat_to_tri_perm(neural,perm,ws->yperm);
+       if(do_rank)rdm_rank_inplace(m,ws->yperm,rk);
+       if(!rdm_zscore(m,ws->yperm))for(k=0;k<THD_NCOMMON3;k++)co[k]=0.0;
+       else rdm_commonality3_one(m,ws->yperm,A,B,C,co);
+       for(k=3;k<=6;k++)nul[(size_t)k*np+pk]=(float)fabs(co[k]);
+     }
+     for(k=0;k<THD_NCOMMON3;k++){
+       float ao=fabsf(out[k]),tol=64.0f*FLT_EPSILON*(1.0f+ao);nge[k]=0;
+       for(pk=0;pk<np;pk++){
+         float av=nul[(size_t)k*np+pk];if(fabsf(av-ao)<=tol)av=ao;
+         nul[(size_t)k*np+pk]=av;
+       }
+       nul[(size_t)k*np]=ao;
+       for(pk=0;pk<np;pk++)if(nul[(size_t)k*np+pk]>=ao)nge[k]++;
+       if(pval){pval[k]=(float)nge[k]/np;if(zscr)zscr[k]=THD_p_to_z(pval[k],out[k]);}
      }
    }
-   for(pk=0;pk<np;pk++){
-     double co[THD_NCOMMON3];int *perm=pset->perm+(size_t)pk*n;
-     THD_simmat_to_tri_perm(neural,perm,ws->yperm);
-     if(do_rank)rdm_rank_inplace(m,ws->yperm,rk);
-     if(!rdm_zscore(m,ws->yperm))for(k=0;k<THD_NCOMMON3;k++)co[k]=0.0;
-     else rdm_commonality3_one(m,ws->yperm,A,B,C,co);
-     for(k=3;k<=6;k++)nul[(size_t)k*np+pk]=(float)fabs(co[k]);
-   }
-   for(k=0;k<THD_NCOMMON3;k++){
-     float ao=fabsf(out[k]),tol=64.0f*FLT_EPSILON*(1.0f+ao);nge[k]=0;
-     for(pk=0;pk<np;pk++){
-       float av=nul[(size_t)k*np+pk];if(fabsf(av-ao)<=tol)av=ao;
-       nul[(size_t)k*np+pk]=av;
-     }
-     nul[(size_t)k*np]=ao;
-     for(pk=0;pk<np;pk++)if(nul[(size_t)k*np+pk]>=ao)nge[k]++;
-     if(pval){pval[k]=(float)nge[k]/np;if(zscr)zscr[k]=THD_p_to_z(pval[k],out[k]);}
-   }
-done_is3:
    if( own ) free(nul) ;
    free(y);free(A);free(B);free(C);free(rk);free(fit);free(res) ;
    return bad ;
@@ -2686,52 +2711,59 @@ int THD_classic_commonality3( int nsub,int ncond,float *srdm,THD_simmat *Am,
    C=(float *)malloc(sizeof(float)*m);y=(float *)malloc(sizeof(float)*m);
    rk=(float *)malloc(sizeof(float)*m);fit=(float *)malloc(sizeof(float)*m);
    res=(float *)malloc(sizeof(float)*m);
-   if(!A||!B||!C||!y||!rk||!fit||!res){bad=1;goto done_cl3;}
-   THD_simmat_to_tri(Am,A);THD_simmat_to_tri(Bm,B);THD_simmat_to_tri(Cm,C);
-   if(do_rank){rdm_rank_inplace(m,A,rk);rdm_rank_inplace(m,B,rk);rdm_rank_inplace(m,C,rk);}
-   rdm_zscore(m,A);rdm_zscore(m,B);rdm_zscore(m,C);
-   for(k=0;k<THD_NCOMMON3;k++)sum[k]=0.0;
-   if(cset){nul=permnull;if(!nul){nul=(float *)calloc((size_t)THD_NCOMMON3*np,sizeof(float));own=1;}
-     if(!nul){bad=1;goto done_cl3;}memset(nul,0,sizeof(float)*(size_t)THD_NCOMMON3*np);}
-   for(ss=0;ss<nsub;ss++){
-     double obs[THD_NCOMMON3];float *src=srdm+(size_t)ss*m;
-     memcpy(y,src,sizeof(float)*m);if(do_rank)rdm_rank_inplace(m,y,rk);
-     if(!rdm_zscore(m,y))for(k=0;k<THD_NCOMMON3;k++)obs[k]=0.0;
-     else rdm_commonality3_one(m,y,A,B,C,obs);
-     for(k=0;k<THD_NCOMMON3;k++){sum[k]+=obs[k];if(subout)subout[(size_t)k*nsub+ss]=(float)obs[k];}
-     if(!cset)continue;
-     for(which=0;which<3;which++){
-       float *x1=(which==0)?B:A,*x2=(which==2)?B:C;int partial=7+which;
-       rdm_reduced_fit2(m,y,x1,x2,fit,res);THD_tri_to_simmat(ncond,res,ws->ework);
+   bad=(!A||!B||!C||!y||!rk||!fit||!res);
+   if( !bad ){
+     THD_simmat_to_tri(Am,A);THD_simmat_to_tri(Bm,B);THD_simmat_to_tri(Cm,C);
+     if(do_rank){rdm_rank_inplace(m,A,rk);rdm_rank_inplace(m,B,rk);rdm_rank_inplace(m,C,rk);}
+     rdm_zscore(m,A);rdm_zscore(m,B);rdm_zscore(m,C);
+     for(k=0;k<THD_NCOMMON3;k++)sum[k]=0.0;
+     if(cset){
+       nul=permnull;
+       if(!nul){nul=(float *)calloc((size_t)THD_NCOMMON3*np,sizeof(float));own=1;}
+       if(!nul)bad=1;
+       else memset(nul,0,sizeof(float)*(size_t)THD_NCOMMON3*np);
+     }
+   }
+   if( !bad ){
+     for(ss=0;ss<nsub;ss++){
+       double obs[THD_NCOMMON3];float *src=srdm+(size_t)ss*m;
+       memcpy(y,src,sizeof(float)*m);if(do_rank)rdm_rank_inplace(m,y,rk);
+       if(!rdm_zscore(m,y))for(k=0;k<THD_NCOMMON3;k++)obs[k]=0.0;
+       else rdm_commonality3_one(m,y,A,B,C,obs);
+       for(k=0;k<THD_NCOMMON3;k++){sum[k]+=obs[k];if(subout)subout[(size_t)k*nsub+ss]=(float)obs[k];}
+       if(!cset)continue;
+       for(which=0;which<3;which++){
+         float *x1=(which==0)?B:A,*x2=(which==2)?B:C;int partial=7+which;
+         rdm_reduced_fit2(m,y,x1,x2,fit,res);THD_tri_to_simmat(ncond,res,ws->ework);
+         for(pk=0;pk<np;pk++){
+           double co[THD_NCOMMON3];int *perm=cset->perm+(size_t)pk*ncond;
+           THD_simmat_to_tri_perm(ws->ework,perm,ws->sc1);
+           for(ii=0;ii<m;ii++)ws->yperm[ii]=fit[ii]+ws->sc1[ii];
+           rdm_commonality3_one(m,ws->yperm,A,B,C,co);
+           nul[(size_t)which*np+pk]+=(float)co[which];
+           nul[(size_t)partial*np+pk]+=(float)co[partial];
+         }
+       }
+       THD_tri_to_simmat(ncond,y,ws->ework);
        for(pk=0;pk<np;pk++){
          double co[THD_NCOMMON3];int *perm=cset->perm+(size_t)pk*ncond;
-         THD_simmat_to_tri_perm(ws->ework,perm,ws->sc1);
-         for(ii=0;ii<m;ii++)ws->yperm[ii]=fit[ii]+ws->sc1[ii];
+         THD_simmat_to_tri_perm(ws->ework,perm,ws->yperm);
          rdm_commonality3_one(m,ws->yperm,A,B,C,co);
-         nul[(size_t)which*np+pk]+=(float)co[which];
-         nul[(size_t)partial*np+pk]+=(float)co[partial];
+         for(k=3;k<=6;k++)nul[(size_t)k*np+pk]+=(float)co[k];
        }
      }
-     THD_tri_to_simmat(ncond,y,ws->ework);
-     for(pk=0;pk<np;pk++){
-       double co[THD_NCOMMON3];int *perm=cset->perm+(size_t)pk*ncond;
-       THD_simmat_to_tri_perm(ws->ework,perm,ws->yperm);
-       rdm_commonality3_one(m,ws->yperm,A,B,C,co);
-       for(k=3;k<=6;k++)nul[(size_t)k*np+pk]+=(float)co[k];
+     for(k=0;k<THD_NCOMMON3;k++)out[k]=(float)(sum[k]/nsub);
+     if(cset)for(k=0;k<THD_NCOMMON3;k++){
+       float ao=fabsf(out[k]),tol=64.0f*FLT_EPSILON*(1.0f+ao);nge[k]=0;
+       for(pk=0;pk<np;pk++){float av=fabsf(nul[(size_t)k*np+pk]/nsub);
+         if( fabsf(av-ao)<=tol ) av=ao ;
+         nul[(size_t)k*np+pk]=av ;
+       }
+       nul[(size_t)k*np]=ao;for(pk=0;pk<np;pk++)if(nul[(size_t)k*np+pk]>=ao)nge[k]++;
+       if( pval ) pval[k]=(float)nge[k]/np ;
+       if( zscr && pval ) zscr[k]=THD_p_to_z(pval[k],out[k]) ;
      }
    }
-   for(k=0;k<THD_NCOMMON3;k++)out[k]=(float)(sum[k]/nsub);
-   if(cset)for(k=0;k<THD_NCOMMON3;k++){
-     float ao=fabsf(out[k]),tol=64.0f*FLT_EPSILON*(1.0f+ao);nge[k]=0;
-     for(pk=0;pk<np;pk++){float av=fabsf(nul[(size_t)k*np+pk]/nsub);
-       if( fabsf(av-ao)<=tol ) av=ao ;
-       nul[(size_t)k*np+pk]=av ;
-     }
-     nul[(size_t)k*np]=ao;for(pk=0;pk<np;pk++)if(nul[(size_t)k*np+pk]>=ao)nge[k]++;
-     if( pval ) pval[k]=(float)nge[k]/np ;
-     if( zscr && pval ) zscr[k]=THD_p_to_z(pval[k],out[k]) ;
-   }
-done_cl3:
    if( own ) free(nul) ;
    free(A);free(B);free(C);free(y);free(rk);free(fit);free(res) ;
    return bad ;

@@ -383,10 +383,10 @@ SurfClust: SUMA_SurfClust.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
          SUMA_SurfClust.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-SurfClustSim: SUMA_SurfClustSim.c SUMA_SurfClustSim_core.c SUMA_SurfClustSim_core.h
+SurfClustSim: SUMA_SurfClustSim.c SUMA_SurfACF.h
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${OMPFLAG} ${SUMA_MDEFS} ${WARNOPT} -o $@ ${AFNI_OBJS} ${AFNI_3dOBJS} \
-         SUMA_SurfClustSim.c SUMA_SurfClustSim_core.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+         SUMA_SurfClustSim.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 IsoSurface: SUMA_IsoSurface.c MarchingCubes.o mc_ziad.o libgts.a ${SUMAGTSLIB}
 	$(RM) $@
@@ -653,7 +653,7 @@ SurfExtrema: SUMA_SurfExtrema.c
 		${AFNI_3dOBJS}                                          \
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-SurfFWHM: SUMA_SurfFWHM.c
+SurfFWHM: SUMA_SurfFWHM.c SUMA_SurfACF.h
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${SUMA_MDEFS} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_SurfFWHM.c ${SUMA_INPATH} ${SUMA_LINK_PATH} ${SUMA_SHARED_LOPTS} 	\
 		${AFNI_3dOBJS}                                          \

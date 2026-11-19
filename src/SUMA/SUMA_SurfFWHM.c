@@ -274,7 +274,7 @@ static float_quad SUMA_SurfFWHM_ACF(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
    float_quad qout = { -1.0f, -1.0f, -1.0f, -1.0f };
    SUMA_GET_OFFSET_STRUCT *off=NULL;
    double *acf=NULL, *nacc=NULL;
-   int nbins=0, ib, k, n, ncol_used=0;
+   int nbins=0, ib, k, n, ncol_used=0, ok;
    float *fin=NULL;
    byte *bfull=NULL;
    FILE *fout=NULL;
@@ -306,30 +306,30 @@ static float_quad SUMA_SurfFWHM_ACF(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
    acf  = (double *)SUMA_calloc(nbins, sizeof(double));
    nacc = (double *)SUMA_calloc(nbins, sizeof(double));
    off  = SUMA_Initialize_getoffsets(SO->N_Node);
-   if (!acf || !nacc || !off) {
+   ok = (acf != NULL && nacc != NULL && off != NULL);
+   if (!ok) {
       SUMA_S_Err("Failed to allocate for ACF accumulation");
-      goto CLEANUP;
    }
 
-   if (debug)
+   if (ok && debug)
       SUMA_S_Notev("ACF: radius %g, bin width %g, %d bins, "
                    "mean edge length %g\n", radius, dr, nbins, SO->EL->AvgLe);
 
-   for (k=0; k < N_icols; ++k) {
+   for (k=0; ok && k < N_icols; ++k) {
       fin = SUMA_DsetCol2Float(dset, icols[k], 1);
-      if (!fin) { SUMA_S_Err("Failed to extract data column"); goto CLEANUP; }
+      if (!fin) { SUMA_S_Err("Failed to extract data column"); ok = 0; break; }
       bfull = NULL;
       if (!SUMA_MakeSparseColumnFullSorted(&fin, SDSET_VECFILLED(dset),
                                            0.0, &bfull, dset, SO->N_Node)) {
          SUMA_S_Err("Failed to get full column vector");
-         goto CLEANUP;
+         ok = 0; break;
       }
       /* combine the dataset's own coverage mask with the user's, if both */
       if (bfull && nmask) {
          for (n=0; n < SO->N_Node; ++n) bfull[n] = (bfull[n] && nmask[n]);
       } else if (!bfull && nmask) {
          bfull = (byte *)SUMA_malloc(sizeof(byte)*SO->N_Node);
-         if (!bfull) { SUMA_S_Err("Failed to allocate mask"); goto CLEANUP; }
+         if (!bfull) { SUMA_S_Err("Failed to allocate mask"); ok = 0; break; }
          memcpy(bfull, nmask, sizeof(byte)*SO->N_Node);
       }
 
@@ -342,17 +342,19 @@ static float_quad SUMA_SurfFWHM_ACF(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
       if (bfull) { SUMA_free(bfull); bfull = NULL; }
    }
 
-   if (ncol_used == 0) {
+   if (ok && ncol_used == 0) {
       SUMA_S_Err("No usable data columns for the ACF estimate");
-      goto CLEANUP;
+      ok = 0;
    }
 
-   SUMA_SurfACF_finalize(acf, nacc, nbins);
-   qout = SUMA_SurfACF_fit(acf, nbins, dr);
-   if (qout.a < 0.0f) { SUMA_S_Err("ACF model fit failed"); goto CLEANUP; }
+   if (ok) {
+      SUMA_SurfACF_finalize(acf, nacc, nbins);
+      qout = SUMA_SurfACF_fit(acf, nbins, dr);
+      if (qout.a < 0.0f) { SUMA_S_Err("ACF model fit failed"); ok = 0; }
+   }
 
    if (!fname) fname = "SurfFWHM.1D";
-   if (strcmp(fname, "-") != 0 && strcmp(fname, "NULL") != 0) {
+   if (ok && strcmp(fname, "-") != 0 && strcmp(fname, "NULL") != 0) {
       fout = fopen(fname, "w");
       if (!fout) {
          SUMA_S_Errv("Cannot write ACF curve to %s\n", fname);
@@ -380,7 +382,6 @@ static float_quad SUMA_SurfFWHM_ACF(SUMA_SurfaceObject *SO, SUMA_DSET *dset,
       }
    }
 
-CLEANUP:
    if (fin)   SUMA_free(fin);
    if (bfull) SUMA_free(bfull);
    if (acf)   SUMA_free(acf);

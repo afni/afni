@@ -1,3 +1,11 @@
+/* How to read this file
+  Start with usage_3dInSync for the public contract, then main for parsing.
+  INSYNC_options_default (thd_insync.c) supplies defaults; INSYNC_run validates
+  combinations and dispatches analysis. Keep the option-name list, parser,
+  defaults, and help synchronized when adding an option. No statistics belong
+  in this file. thd_insync.h is the shared options/API contract.
+  The reader is assumed familiar with AFNI's online developer documentation.
+*/
 /* Command-line interface; dataset processing lives in thd_insync.c. */
 #include "mrilib.h"
 #include "thd_insync.h"
@@ -21,11 +29,11 @@ static char *insync_options[] = {
    "-condition_column", "-condition_contrast", "-ncondperm",
    "-condition_exact", "-condition_tail", "-save_pairwise",
    "-isc_model", "-isc_qVars", "-isc_qVarCenters", "-isc_gltCode", "-isc_jobs",
-   "-correlation", "-censor", "-censor_column", "-zcensor", "-zcensor_warn", "-missing", "-atlas", "-roi_sel", "-roi_only", "-float16",
-   "-save_matrix", "-edges", "-edges_matrix", "-edges_rss", "-edges_events", "-edges_nnull",
-   "-memory_limit", "-memory_override", "-quiet", "-progress",
+   "-correlation", "-censor", "-censor_column", "-zcensor", "-zcensor_warn", "-missing", "-interp_maxgap", "-atlas", "-roi_sel", "-roi_only", "-float16",
+   "-between_groups", "-save_counts", "-loo_min_others", "-save_matrix", "-edges", "-edges_matrix", "-edges_rss", "-edges_events", "-edges_nnull",
+   "-memory_limit", "-memory_override", "-quiet", "-progress", "-verb", "-save_missing",
    "-check_table", "-whole_summary", "-window", "-step", "-run_starts", "-tr",
-   "-block_summary", "-block_missing", "-min_blocks", "-min_block_frac", "-block_weight",
+   "-block_summary", "-block_missing", "-min_blocks", "-min_block_frac", "-block_weight", "-summary_weight", "-missing_diagnostics",
    "-min_valid", "-min_valid_frac", "-combine_blocks", "-segment_center",
    "-xmat_stims", "-xmat_blocks", "-xmat_threshold", "-xmat_across_runs", "-xmat_runs",
    "-dataTable", "-dataTableFile", "-show_table", "-help", "-h", NULL
@@ -115,14 +123,16 @@ static void usage_3dInSync(void)
 "\n"
 "  -censor_column NAME  Optional per-source censor column [Censor]. Files are\n"
 "                       finite 0/1 vectors on the full input timeline. Intersect\n"
-"                       all subjects/conditions with global -censor/-zcensor.\n"
+"                       all subjects/conditions with global -censor/-zcensor\n"
+"                       under error/common; pairwise keeps masks source-local.\n"
 "                       Static ISC keeps its output layout and inference;\n"
 "                       temporal censoring uses explicit joint_shift mode. Save\n"
 "                       PREFIX.censor.tsv and PREFIX.common_censor.1D.\n"
 "\n"
 "  -zcensor             Omit a time point when any subject/condition input\n"
 "                       volume is all zero in the analysis mask. This creates\n"
-"                       one common retained timeline, like -censor.\n"
+"                       one common retained timeline under error/common; with\n"
+"                       pairwise, only that source loses the all-zero volume.\n"
 "\n"
 "  -zcensor_warn PCT    Warn for each subject/condition input with more than\n"
 "                       PCT percent all-zero volumes [20].\n"
@@ -132,6 +142,163 @@ static void usage_3dInSync(void)
 "                                subjects and conditions if any input is\n"
 "                                nonfinite there. Adds a ValidTR output map and\n"
 "                                cannot be combined with temporal nulls.\n"
+"                       interp   : bounded linear fills (see below).\n"
+"                       pairwise : source-local availability and per-pair/LOO\n"
+"                                  overlap; estimation and inference (see below).\n"
+"\n"
+"  Pairwise missing-data estimation (explicit opt-in):\n"
+"    -missing pairwise -isc_method pairwise|loo\n"
+"    -loo_min_others K   Minimum valid OTHER subjects per LOO reference TR [1].\n"
+"                       Requires pairwise or interp missingness and -isc_method loo; K\n"
+"                       must not exceed the group's number of other subjects.\n"
+"    -save_counts FILE  Optional component/subject coverage TSV; must not exist.\n"
+"\n"
+"  Censor vectors, -zcensor and nonfinite values apply to each source separately.\n"
+"  Each pair uses only their shared finite, retained TRs. Pearson means/scales\n"
+"  and Spearman ranks are calculated on that overlap, including average ranks\n"
+"  for ties. Both -min_valid [3] and -min_valid_frac [0] apply to each component;\n"
+"  the fraction denominator is the nominal selection length before any censoring.\n"
+"  Constants have undefined correlations and do not contribute to the summary.\n"
+"  LOO averages valid other subjects at each TR, then correlates that reference\n"
+"  with the held-out subject on their usable overlap. K gates reference size;\n"
+"  temporal count/fraction gates apply afterward. No cross-subject imputation.\n"
+"\n"
+"  This policy uses the selection output layout even without -window: one\n"
+"  .selNNNNNN bucket per requested run (one full-input run by default), with\n"
+"  .results.tsv and .bricks.tsv indexes. Tables need explicit Subj/InputFile.\n"
+"  The saved common censor is diagnostic only in this mode. -atlas adds ROI\n"
+"  means, -roi_only paints\n"
+"  ROI results onto parcels, and -save_matrix writes descriptive ROI pair r's.\n"
+"  Existing error/common paths and defaults keep their existing behavior.\n"
+"  Inputs need matching grids, TRs and original-time alignment. Shorter inputs\n"
+"  are padded with missing tails to the longest input; no internal deletion or\n"
+"  run realignment is inferred. Source censor vectors match their own input\n"
+"  lengths; a global censor and Xmat full timeline match the longest input.\n"
+"  -save_missing/-verb add NPadded, separate from nonfinite samples and censoring.\n"
+"  Subject resampling, condition contrasts, joint shifts and 3dISC exports are\n"
+"  supported. Edge modes and censored phase nulls remain excluded.\n"
+"\n"
+"  -between_groups      Add descriptive A-to-B pair summaries for each unordered\n"
+"                       pair of groups, separately for each condition/selection.\n"
+"                       Requires -missing pairwise or interp and >=2 groups.\n"
+"  CrossISC_CONDITION_A_B summarizes all A x B subject pairs with -summary and\n"
+"  -summary_weight, even if within-group estimates use -isc_method loo.\n"
+"  CrossN counts finite pairs; CrossValid marks a finite summary; CrossComplete\n"
+"  marks all planned cross pairs finite. CrossMinTR and CrossMinUsedTR report\n"
+"  the minimum real raw/used overlap across ALL planned pairs, including failures.\n"
+"  Missing summaries are stored as zero with CrossValid=0. Pair counts are not\n"
+"  independent sample sizes. Outputs follow group first-appearance order.\n"
+"  Block aggregation happens per dyad before the cross-group summary. Existing\n"
+"  -block_missing rules are retained: drop_common uses the block set required\n"
+"  by the within-group estimator (pairwise or LOO); drop_component gates each\n"
+"  dyad independently. -save_counts records the same component estimates.\n"
+"  CrossISC is neither ISC_A minus ISC_B nor a correlation of group means.\n"
+"  These additional outputs are descriptive: bootstrap/permutation/temporal\n"
+"  families and 3dISC exports keep their existing targets. No cross-group p\n"
+"  values are supplied. -atlas/-roi_only include cross summaries in ROI tables.\n"
+"\n"
+"  Bounded interpolation (explicit opt-in):\n"
+"    -missing interp -interp_maxgap K\n"
+"  K is a required positive integer in TRs. Each source/voxel or ROI mean is\n"
+"  filled linearly between its own clean endpoints, only for internal gaps of\n"
+"  at most K TRs. Censored spikes are discarded before filling. No other subject\n"
+"  supplies data. No run-edge extrapolation, bridging runs, or filling longer\n"
+"  gaps occurs; remaining missing samples use pairwise/LOO deletion.\n"
+"  Declare run boundaries with -run_starts or Xmat metadata. Filling uses the\n"
+"  full original run before window/block selection; endpoints can lie outside\n"
+"  a selected window. Shorter inputs retain missing tails. Float32 is required.\n"
+"  ROI averaging happens before interpolation; one nonfinite parcel voxel makes\n"
+"  that source's ROI sample missing. Use -save_counts to inspect actual support.\n"
+"\n"
+"  Interpolated values enter descriptive Pearson/Spearman correlations and LOO\n"
+"  reference means. This changes the estimand and can bias it; interpolation is\n"
+"  not a correction for informative missingness. No independent df is inferred.\n"
+"  ValidTR, OverlapTR, UsedTR, min_valid/min_valid_frac and coverage weights count\n"
+"  real samples only. A pair TR is real if BOTH values are observed. A LOO TR is\n"
+"  real only if the held value AND EVERY contributor actually used in its mean\n"
+"  are observed; loo_min_others counts distinct available contributors, including\n"
+"  fills. Correlation/ranks/segment centering use the augmented overlap.\n"
+"  FilledTR_CONDITION_SUBJECT maps count each subject's fills. -save_counts adds\n"
+"  SamplesTR (augmented overlap), UsedSamplesTR (admitted augmented overlap), and\n"
+"  FilledTR (SamplesTR minus real overlap). LOO FilledTR also counts reference\n"
+"  contamination by a fill. Used counts are zero for failed final correlations.\n"
+"  -verb/-save_missing and missingness diagnostics describe ORIGINAL exclusions.\n"
+"\n"
+"  Subject bootstrap, group permutations and condition swaps carry fill flags\n"
+"  and recompute real coverage gates on every draw. With timeshift/joint_shift,\n"
+"  BOTH identity and shifted draws exclude fills: TemporalISC and its p values\n"
+"  test the observed-only statistic and can differ from descriptive ISC. Fills\n"
+"  are excluded before shifting along with their original missing locations.\n"
+"  Phase inference with missingness remains unsupported (separate future work).\n"
+"  3dISC support adds pair SamplesTR/UsedSamplesTR and subject FilledTR bricks;\n"
+"  these are descriptive covariates, not automatic variance or df corrections.\n"
+"\n"
+"  -summary_weight equal|valid weights final components by UsedTR [equal].\n"
+"  -block_weight equal|valid weights admitted blocks by component UsedTR [equal].\n"
+"  Valid weights require -missing pairwise or interp. Fisher means average atanh(r) using\n"
+"  these weights (r clamped to +/-0.999999), then apply tanh. Weighted medians\n"
+"  choose the value crossing half the total weight; an exact half averages the\n"
+"  adjacent values. Weighting changes the estimand; it is NOT inverse variance.\n"
+"\n"
+"  -missing_diagnostics N writes .missing_subjects.tsv and .missing_tests.tsv;\n"
+"  N >= 20 includes identity. The first reports source-mask counts/fractions on\n"
+"  the full nominal timeline. Group tests permute whole-subject labels and use\n"
+"  between-group dispersion of missing fractions (an omnibus test for >2 groups).\n"
+"  With Xmat, tests correlate each source mask with each full design column,\n"
+"  centering within runs; nulls rotate whole run masks, retaining censor clusters.\n"
+"  A censored Xmat needs XmatFull. Constant columns/masks get Valid=0 and P=1.\n"
+"  P is exploratory, uncorrected across this diagnostic table. Group tests need\n"
+"  exchangeability; rotation tests need circular stationarity within runs. These\n"
+"  diagnostics do not repair informative missingness. They concern source masks\n"
+"  (including zero-volume loss and padding), not voxel-specific nonfiniteness;\n"
+"  use -save_counts for spatial availability. Report files must be new.\n"
+"\n"
+"  Missing-data inference recomputes support, LOO references, block eligibility\n"
+"  and weights for EVERY draw. Bootstrap repeats other-subject multiplicities\n"
+"  but excludes ALL copies of the held original subject from its LOO reference;\n"
+"  -loo_min_others counts distinct people. Pair bootstrap omits self-pairs.\n"
+"  BootN reports finite draws; a CI requires all requested draws finite (>=10)\n"
+"  and a valid observed estimate. No conditional-on-success CI is reported.\n"
+"  Failed permutation/shift draws count as exceedances and unresolved family\n"
+"  maxima. Observed-invalid cells retain p/q=1 and stay in the correction family.\n"
+"  Conditions need aligned nominal coordinates; their retained overlaps may differ.\n"
+"  Circular shifts require -temporal_null timeshift -temporal_censor joint_shift.\n"
+"  Signal and missingness move together on each original run before overlap is\n"
+"  selected; use float32. This tests alignment under circular stationarity and\n"
+"  does not solve task-related or motion-related informative missingness.\n"
+"  3dISC exports keep an all-modeled-pairs-valid mask; support bricks give each\n"
+"  lexical pair's OverlapTR/UsedTR, then subject ValidTR for both condition slots.\n"
+"  Spatial coverage maps are exported for explicit downstream covariate design;\n"
+"  no scalar covariate or degrees-of-freedom adjustment is inferred from them.\n"
+"\n"
+"  ValidTR_CONDITION_SUBJECT maps count each subject's own available samples.\n"
+"  MinPairTR_CONDITION_GROUP (or MinLOOTR) is the smallest RAW component overlap\n"
+"  in that group, including components that fail the gates. MinOverlapTR gives\n"
+"  the minimum across groups. N still counts finite correlations, not TRs.\n"
+"  -save_counts records subject rows, all unordered pair rows (including cross-\n"
+"  group pairs), and LOO rows when requested. Columns include raw OverlapTR,\n"
+"  UsedTR, BlocksEligible, BlocksUsed, MinOthers and Valid, plus Correlation.\n"
+"  MinOthers is the smallest reference size on the raw usable LOO overlap.\n"
+"  Failed correlations are nan with UsedTR=0. Subject rows have NA for quantities\n"
+"  that apply only to correlations. Counts are coverage, NOT independent df.\n"
+"  Rows have deterministic selection/unit/condition order across thread counts.\n"
+"\n"
+"  For block aggregates, require_all applies separately to each component.\n"
+"  -block_missing drop_component permits each component to use its own eligible\n"
+"  blocks; -min_blocks/-min_block_frac then gate each component. This spelling\n"
+"  requires -missing pairwise or interp. Explicit drop_common retains the old common-block\n"
+"  admission requirement. Aggregation is component-first; weights default to equal.\n"
+"  OverlapTR sums raw overlaps over all nominal blocks; UsedTR counts samples in\n"
+"  the final admitted blocks (zero if the final component fails). Subject counts\n"
+"  cover the full selection union. MinBlocksEligible/Used maps include failed\n"
+"  components; component-specific counts are in -save_counts. No common block\n"
+"  weight/support bucket is emitted for this policy.\n"
+"  -combine_blocks pool computes one correlation on pooled original samples;\n"
+"  with -segment_center mean, each pair's two signals are centered on their\n"
+"  shared samples within each segment before pooling (also for held-out/LOO\n"
+"  reference overlap). Spearman ranking then uses the pooled retained samples.\n"
+"  -float16 scaling excludes source-censored artifacts; ROI means use float32.\n"
+"  Coverage tables/maps do not establish validity of future missing-data nulls.\n"
 "\n"
 "  -atlas ATLAS         Also compute ISC from each atlas parcel's mean time\n"
 "                       series and write PREFIX.roi.1D. Positive integer atlas\n"
@@ -182,6 +349,30 @@ static void usage_3dInSync(void)
 "\n"
 "  -progress M          auto, bar, line, or off [auto].\n"
 "  -quiet               Suppress progress and informational diagnostics.\n"
+"  -verb                Print missing-subject counts to stderr (even with -quiet).\n"
+"  -save_missing FILE   Save the same counts as a TSV; FILE must not exist.\n"
+"                       Rows identify condition, group, original zero-based TR,\n"
+"                       unit kind (voxel or ROI), and unit ID (zero-based grid\n"
+"                       voxel index or atlas label). NMissing counts subjects\n"
+"                       excluded by their OWN censor, all-zero volume, or\n"
+"                       nonfinite sample, before intersection across sources.\n"
+"                       NCensor, NZero and NNonfinite can overlap; their sum\n"
+"                       need not equal NMissing. NValid + NMissing = NSubj.\n"
+"                       Censor includes global/source vectors and Xmat censoring.\n"
+"                       Zero-volume exclusions apply only with -zcensor.\n"
+"                       Reports cover all original TRs, including unselected\n"
+"                       times, and the main estimator's spatial units; selection\n"
+"                       analyses with -atlas also report their ROI means. An ROI\n"
+"                       mean is nonfinite if any included voxel is nonfinite.\n"
+"                       Constant finite signals count as present, even though\n"
+"                       their correlations can be undefined. Counts are coverage,\n"
+"                       not effective degrees of freedom or estimator errors.\n"
+"                       Nonfinite counts describe values delivered by AFNI readers;\n"
+"                       values repaired to zero during reading cannot be recovered\n"
+"                       by this report (notably some NIfTI reader paths).\n"
+"                       Full voxel x TR reports can be large; rows stream without\n"
+"                       a dense count array. Not available with -check_table.\n"
+
 "\n"
 "  -group_column NAME   Data-table group column [Group].  If NAME is absent,\n"
 "                       all subjects are analyzed together.\n"
@@ -586,7 +777,7 @@ static void usage_3dInSync(void)
 "                       at the voxel; require_all invalidates the aggregate.\n"
 "  -min_blocks N        Minimum admitted blocks per aggregate [1], integer >=1.\n"
 "  -min_block_frac F    Minimum admitted/nominal block fraction [0], in [0,1].\n"
-"  -block_weight equal  Equal weights only; coverage weighting is not implemented.\n"
+"  -block_weight equal|valid  Equal [default], or UsedTR with pairwise/interp.\n"
 "                       Block-summary options cannot be combined with pool.\n"
 "  -segment_center none|mean  With pool only: center each retained segment [none].\n"
 "\n"
@@ -623,7 +814,7 @@ static void usage_3dInSync(void)
 "  tests form one family; -roi_only counts each parcel once. Bootstrap CIs are pointwise.\n"
 "  Results: .selXXXXXX.infer.nii.gz, .inference.tsv, .inference_draws.tsv and\n"
 "  (with atlas) .inference_roi.tsv; see .results.tsv for the completion marker.\n"
-"  Observed admitted blocks stay fixed during resampling; incomplete components\n"
+"  For error/common policies, observed blocks stay fixed; incomplete components\n"
 "  or any invalid null invalidate that test cell. Paired conditions must have\n"
 "  identical coordinates and admitted blocks. BootN/BootValid report usable draws\n"
 "  (at least 10 for CI). Invalid inference cells have p/q=1 and InferValid=0.\n"
@@ -673,7 +864,7 @@ static void usage_3dInSync(void)
 "  Excluded source frames may contain nonfinite/artifact values; own-retained\n"
 "  samples must be finite throughout each participating run. Use float32 storage.\n"
 "  Censored phase inference, -zcensor, -missing common, alternative censor\n"
-"  cohorts, and coverage weights are not supported by this first release.\n"
+"  cohorts, and coverage weights are not supported in this mode.\n"
 "  Joint shifts assume a suitable runwise signal/mask null; they do not correct\n"
 "  arbitrary task- or motion-related informative missingness.\n"
 "\n"
@@ -784,7 +975,7 @@ static void usage_3dInSync(void)
 "  Cross-condition r is corr(Subj1/cond1,Subj2/cond2), not an average of orientations.\n"
 "  Cross-condition jobs require matching original block/sample coordinates.\n"
 "  Export is pairwise even for LOO descriptions. Block admission requires every\n"
-"  modeled edge finite; aggregation then uses the same admitted blocks for all\n"
+"  modeled edge finite for error/common; aggregation uses common blocks for those\n"
 "  edges. Job-specific support maps record actual retained counts and weights.\n"
 "  Fisher z is applied AFTER the final pair-r aggregate; exact endpoints are\n"
 "  clamped to +/-0.999999. Model masks require every modeled edge to be finite.\n"
@@ -808,7 +999,13 @@ static void usage_3dInSync(void)
 "\n"
 "  This program supports whole-input, per-run, per-block and sliding-window ISC,\n"
 "  block summaries, subject-based and temporal-surrogate inference, and edge modes.\n"
-"  Additional ISFC and ISPS analyses remain candidates for explicit later modes.\n"
+"  Cluster-mass/TFCE correction and ISFC are outside this missing-data upgrade;\n"
+"  Bootstrap p-values/BCa are also future work; current bootstrap gives CIs only.\n"
+"  Censored phase inference remains unavailable: bounded fills can change null\n"
+"  calibration, particularly across windows with unequal censoring. Removing\n"
+"  filled positions after phase mixing does not recover the original spectrum.\n"
+"  These remain candidates for separate implementations. ISPS, spatial ISC,\n"
+"  and IS-RSA also require explicit future modes.\n"
 "\n"
 "References:                                                 ~1~\n"
 "\n"
@@ -894,9 +1091,10 @@ int main( int argc, char **argv )
      }
      if(!strcasecmp(argv[nopt],"-block_missing")){
        if(opts.block_missing_given) ERROR_exit("3dInSync: -block_missing given twice");
-       if(++nopt>=argc) ERROR_exit("3dInSync: -block_missing needs require_all or drop_common");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -block_missing needs require_all or drop_common or drop_component");
        if(!strcmp(argv[nopt],"drop_common")) opts.block_drop_common=1;
-       else if(strcmp(argv[nopt],"require_all")) ERROR_exit("3dInSync: -block_missing must be require_all or drop_common");
+       else if(!strcmp(argv[nopt],"drop_component")) opts.block_drop_common=2;
+       else if(strcmp(argv[nopt],"require_all")) ERROR_exit("3dInSync: -block_missing must be require_all or drop_common or drop_component");
        opts.block_missing_given=1; nopt++; continue;
      }
      if(!strcasecmp(argv[nopt],"-min_blocks")){
@@ -912,10 +1110,19 @@ int main( int argc, char **argv )
        if(errno || end==argv[nopt] || *end || !isfinite(f) || f<0 || f>1) ERROR_exit("3dInSync: -min_block_frac must be in [0,1]");
        opts.min_block_frac=f; opts.min_block_frac_given=1; nopt++; continue;
      }
-     if(!strcasecmp(argv[nopt],"-block_weight")){
-       if(opts.block_weight_given) ERROR_exit("3dInSync: -block_weight given twice");
-       if(++nopt>=argc || strcmp(argv[nopt],"equal")) ERROR_exit("3dInSync: only -block_weight equal is implemented; coverage weighting is deferred to M4a");
-       opts.block_weight_given=1; nopt++; continue;
+     if(!strcasecmp(argv[nopt],"-missing_diagnostics")){
+       if(opts.diagnostic_draws) ERROR_exit("3dInSync: -missing_diagnostics given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -missing_diagnostics requires a draw count");
+       opts.diagnostic_draws=INSYNC_selection_int(argv[nopt++],20,"-missing_diagnostics"); continue;
+     }
+     if(!strcasecmp(argv[nopt],"-block_weight") || !strcasecmp(argv[nopt],"-summary_weight")){
+       int block=!strcasecmp(argv[nopt],"-block_weight");
+       int *given=block?&opts.block_weight_given:&opts.summary_weight_given;
+       int *weight=block?&opts.block_weight:&opts.summary_weight;
+       if(*given) ERROR_exit("3dInSync: weight option given twice");
+       if(++nopt>=argc || (strcmp(argv[nopt],"equal") && strcmp(argv[nopt],"valid")))
+         ERROR_exit("3dInSync: weight must be equal or valid");
+       *weight=!strcmp(argv[nopt],"valid"); *given=1; nopt++; continue;
      }
      if(!strcasecmp(argv[nopt],"-min_valid")){
        if(opts.min_valid_given) ERROR_exit("3dInSync: -min_valid given twice");
@@ -1052,11 +1259,20 @@ int main( int argc, char **argv )
        opts.zcensor_warn=(float)strtod(argv[nopt++],NULL) ; opts.zcensor_warn_given=1 ; continue ;
      }
      if( strcasecmp(argv[nopt],"-missing")==0 ){
-       if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need error or common after -missing") ;
+       if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need error, common, pairwise, or interp after -missing") ;
        if( strcasecmp(argv[nopt],"error")==0 ) opts.missing_policy=INSYNC_MISSING_ERROR ;
        else if( strcasecmp(argv[nopt],"common")==0 ) opts.missing_policy=INSYNC_MISSING_COMMON ;
-       else ERROR_exit(PROGRAM_NAME ": -missing must be error or common") ;
+       else if( strcasecmp(argv[nopt],"pairwise")==0 ) opts.missing_policy=INSYNC_MISSING_PAIRWISE ;
+       else if( strcasecmp(argv[nopt],"interp")==0 ) opts.missing_policy=INSYNC_MISSING_INTERP ;
+       else ERROR_exit(PROGRAM_NAME ": -missing must be error, common, pairwise, or interp") ;
        nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-interp_maxgap")==0 ){
+       char *end; long gap;
+       if(++nopt>=argc) ERROR_exit(PROGRAM_NAME ": need a positive integer after -interp_maxgap");
+       errno=0; gap=strtol(argv[nopt++],&end,10);
+       if(errno || *end || gap<1 || gap>INT_MAX) ERROR_exit(PROGRAM_NAME ": invalid -interp_maxgap");
+       opts.interp_maxgap=(int)gap; continue;
      }
      if( strcasecmp(argv[nopt],"-atlas")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a dataset after -atlas") ;
@@ -1101,6 +1317,26 @@ int main( int argc, char **argv )
      }
      if( strcasecmp(argv[nopt],"-memory_override")==0 ){
        opts.memory_override=1 ; nopt++ ; continue ;
+     }
+     if( !strcasecmp(argv[nopt],"-loo_min_others") ){
+       if(opts.loo_min_others_given) ERROR_exit("3dInSync: -loo_min_others given twice");
+       if(++nopt>=argc) ERROR_exit("3dInSync: -loo_min_others needs an integer");
+       opts.loo_min_others=INSYNC_selection_int(argv[nopt++],1,"-loo_min_others");
+       opts.loo_min_others_given=1; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-between_groups") ){ opts.between_groups=1; nopt++; continue; }
+     if( !strcasecmp(argv[nopt],"-save_counts") ){
+       if(opts.counts_name) ERROR_exit("3dInSync: -save_counts given twice");
+       if(++nopt>=argc || !*argv[nopt]) ERROR_exit("3dInSync: -save_counts needs a TSV filename");
+       opts.counts_name=argv[nopt++]; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-verb") ){
+       opts.verb=1; nopt++; continue;
+     }
+     if( !strcasecmp(argv[nopt],"-save_missing") ){
+       if(opts.missing_name) ERROR_exit("3dInSync: -save_missing given twice");
+       if(++nopt>=argc || !*argv[nopt]) ERROR_exit("3dInSync: -save_missing needs a TSV filename");
+       opts.missing_name=argv[nopt++]; continue;
      }
      if( strcasecmp(argv[nopt],"-quiet")==0 ){
        opts.quiet=1 ; nopt++ ; continue ;

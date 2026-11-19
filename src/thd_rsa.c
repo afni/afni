@@ -1016,78 +1016,91 @@ int THD_rsa_boot_isrsa_commonality3( THD_simmat *neural, THD_simmat *model_a,
    return ndraw ;
 }
 
+typedef struct {
+   THD_rsa_cond_resample *cb;
+   THD_resample_set *gr;
+   int *gof,*gsz,*gitem,*seen;
+} rsa_cond_resample_work;
+
+/* Construction borrows the owner's state; every allocation remains reachable
+   by the wrapper on failure, and only a complete result is handed to callers. */
+static int rsa_cond_resample_fill(int ncond, int ng, const int *gidx,
+                                 int nresample, long seed,
+                                 rsa_cond_resample_work *w, char *err, size_t errlen)
+{
+   int ii,gg,bb,total=0;
+   w->gsz=(int *)calloc(ng,sizeof(int)) ; w->gof=(int *)calloc(ng+1,sizeof(int)) ;
+   w->gitem=(int *)malloc(sizeof(int)*ncond) ;
+   if( w->gsz == NULL || w->gof == NULL || w->gitem == NULL ) return 0 ;
+   for( ii=0 ; ii < ncond ; ii++ ) w->gsz[gidx[ii]]++ ;
+   for( gg=0 ; gg < ng ; gg++ ){
+     if(!w->gsz[gg]){ thd_rsa_error(err,errlen,"empty condition group"); return 0; }
+     w->gof[gg+1]=w->gof[gg]+w->gsz[gg];
+   }
+   memset(w->gsz,0,sizeof(int)*ng) ;
+   for( ii=0 ; ii < ncond ; ii++ ){
+     gg=gidx[ii] ; w->gitem[w->gof[gg]+w->gsz[gg]++]=ii ;
+   }
+
+   w->gr=THD_resample_set_build(ng,nresample,seed) ; if( w->gr == NULL ) return 0 ;
+   w->cb=(THD_rsa_cond_resample *)calloc(1,sizeof(THD_rsa_cond_resample)) ;
+   if( w->cb == NULL ) return 0 ;
+   w->cb->nresample=nresample ; w->cb->ncond=ncond ; w->cb->ngroup=ng ;
+   w->cb->nitem=(int *)calloc(nresample,sizeof(int)) ;
+   w->cb->offset=(int *)calloc(nresample+1,sizeof(int)) ;
+   w->cb->valid=(unsigned char *)calloc(nresample,sizeof(unsigned char)) ;
+   if( w->cb->nitem == NULL || w->cb->offset == NULL || w->cb->valid == NULL ) return 0 ;
+   for( bb=0 ; bb < nresample ; bb++ ){
+     long long ni=0; int *sel=w->gr->index+(size_t)bb*ng ;
+     for( gg=0 ; gg < ng ; gg++ ) ni += w->gsz[sel[gg]] ;
+
+     if( (long long)w->cb->offset[bb]+ni > INT_MAX ){
+       thd_rsa_error(err,errlen,"condition-bootstrap index set is too large") ; return 0 ;
+     }
+     if( ni > w->cb->maxitem ) w->cb->maxitem=(int)ni ;
+     w->cb->nitem[bb]=(int)ni ; w->cb->offset[bb+1]=w->cb->offset[bb]+(int)ni ;
+   }
+   total=w->cb->offset[nresample] ;
+   w->cb->index=(int *)malloc(sizeof(int)*(size_t)total) ; w->seen=(int *)malloc(sizeof(int)*ncond) ;
+   if( w->cb->index == NULL || w->seen == NULL ) return 0 ;
+   for( bb=0 ; bb < nresample ; bb++ ){
+     int *sel=w->gr->index+(size_t)bb*ng, pos=w->cb->offset[bb], nu=0 ;
+     memset(w->seen,0,sizeof(int)*ncond) ;
+     for( ii=0 ; ii < ng ; ii++ ){
+       int sg=sel[ii], jj ;
+       for( jj=w->gof[sg] ; jj < w->gof[sg+1] ; jj++ ){
+         int cc=w->gitem[jj] ; w->cb->index[pos++]=cc ;
+         if( !w->seen[cc] ){ w->seen[cc]=1 ; nu++ ; }
+       }
+     }
+     if( nu >= 3 ){ w->cb->valid[bb]=1 ; w->cb->nvalid++ ; }
+   }
+   { long long mt=(long long)w->cb->maxitem*(w->cb->maxitem-1)/2 ;
+     if( mt > INT_MAX ){
+       thd_rsa_error(err,errlen,"condition bootstrap sample is too large (%d positions)",
+                     w->cb->maxitem) ; return 0 ;
+     }
+     w->cb->maxtri=(int)mt ; }
+   if( w->cb->nvalid < 10 ){
+     thd_rsa_error(err,errlen,"only %d condition-bootstrap draws retained 3 distinct\n"
+                   "       conditions; need at least 10 usable draws",w->cb->nvalid) ;
+     return 0 ;
+   }
+
+   return 1;
+}
+
 THD_rsa_cond_resample * THD_rsa_cond_resample_build(int ncond, int ng, const int *gidx, int nresample, long seed, char *err, size_t errlen)
 {
-   THD_rsa_cond_resample *cb=NULL; THD_resample_set *gr=NULL;
-   int *gof=NULL,*gsz=NULL,*gitem=NULL,*seen=NULL;
-   int ii,gg,bb,total=0;
+   rsa_cond_resample_work w={0}; int ii,ok;
    thd_rsa_error(err,errlen,"cannot allocate condition bootstrap");
    if(ncond<3 || ng<3 || ng>ncond || !gidx || nresample<10 || nresample==INT_MAX){ thd_rsa_error(err,errlen,"invalid condition resampling dimensions"); return NULL; }
    for(ii=0;ii<ncond;ii++) if(gidx[ii]<0 || gidx[ii]>=ng){ thd_rsa_error(err,errlen,"invalid condition group index"); return NULL; }
-   gsz=(int *)calloc(ng,sizeof(int)) ; gof=(int *)calloc(ng+1,sizeof(int)) ;
-   gitem=(int *)malloc(sizeof(int)*ncond) ;
-   if( gsz == NULL || gof == NULL || gitem == NULL ) goto bad ;
-   for( ii=0 ; ii < ncond ; ii++ ) gsz[gidx[ii]]++ ;
-   for( gg=0 ; gg < ng ; gg++ ){
-     if(!gsz[gg]){ thd_rsa_error(err,errlen,"empty condition group"); goto bad; }
-     gof[gg+1]=gof[gg]+gsz[gg];
-   }
-   memset(gsz,0,sizeof(int)*ng) ;
-   for( ii=0 ; ii < ncond ; ii++ ){
-     gg=gidx[ii] ; gitem[gof[gg]+gsz[gg]++]=ii ;
-   }
-
-   gr=THD_resample_set_build(ng,nresample,seed) ; if( gr == NULL ) goto bad ;
-   cb=(THD_rsa_cond_resample *)calloc(1,sizeof(THD_rsa_cond_resample)) ;
-   if( cb == NULL ) goto bad ;
-   cb->nresample=nresample ; cb->ncond=ncond ; cb->ngroup=ng ;
-   cb->nitem=(int *)calloc(nresample,sizeof(int)) ;
-   cb->offset=(int *)calloc(nresample+1,sizeof(int)) ;
-   cb->valid=(unsigned char *)calloc(nresample,sizeof(unsigned char)) ;
-   if( cb->nitem == NULL || cb->offset == NULL || cb->valid == NULL ) goto bad ;
-   for( bb=0 ; bb < nresample ; bb++ ){
-     long long ni=0; int *sel=gr->index+(size_t)bb*ng ;
-     for( gg=0 ; gg < ng ; gg++ ) ni += gsz[sel[gg]] ;
-
-     if( (long long)cb->offset[bb]+ni > INT_MAX ){
-       thd_rsa_error(err,errlen,"condition-bootstrap index set is too large") ; goto bad ;
-     }
-     if( ni > cb->maxitem ) cb->maxitem=(int)ni ;
-     cb->nitem[bb]=(int)ni ; cb->offset[bb+1]=cb->offset[bb]+(int)ni ;
-   }
-   total=cb->offset[nresample] ;
-   cb->index=(int *)malloc(sizeof(int)*(size_t)total) ; seen=(int *)malloc(sizeof(int)*ncond) ;
-   if( cb->index == NULL || seen == NULL ) goto bad ;
-   for( bb=0 ; bb < nresample ; bb++ ){
-     int *sel=gr->index+(size_t)bb*ng, pos=cb->offset[bb], nu=0 ;
-     memset(seen,0,sizeof(int)*ncond) ;
-     for( ii=0 ; ii < ng ; ii++ ){
-       int sg=sel[ii], jj ;
-       for( jj=gof[sg] ; jj < gof[sg+1] ; jj++ ){
-         int cc=gitem[jj] ; cb->index[pos++]=cc ;
-         if( !seen[cc] ){ seen[cc]=1 ; nu++ ; }
-       }
-     }
-     if( nu >= 3 ){ cb->valid[bb]=1 ; cb->nvalid++ ; }
-   }
-   { long long mt=(long long)cb->maxitem*(cb->maxitem-1)/2 ;
-     if( mt > INT_MAX ){
-       thd_rsa_error(err,errlen,"condition bootstrap sample is too large (%d positions)",
-                     cb->maxitem) ; goto bad ;
-     }
-     cb->maxtri=(int)mt ; }
-   if( cb->nvalid < 10 ){
-     thd_rsa_error(err,errlen,"only %d condition-bootstrap draws retained 3 distinct\n"
-                   "       conditions; need at least 10 usable draws",cb->nvalid) ;
-     goto bad ;
-   }
-
-   THD_resample_set_free(gr) ; free(gof) ; free(gsz) ; free(gitem) ; free(seen) ;
-   return cb ;
-bad:
-   if( gr != NULL ) THD_resample_set_free(gr) ;
-   THD_rsa_cond_resample_free(cb) ; free(gof) ; free(gsz) ; free(gitem) ; free(seen) ;
-   return NULL ;
+   ok=rsa_cond_resample_fill(ncond,ng,gidx,nresample,seed,&w,err,errlen);
+   THD_resample_set_free(w.gr);
+   free(w.gof); free(w.gsz); free(w.gitem); free(w.seen);
+   if(!ok){THD_rsa_cond_resample_free(w.cb);return NULL;}
+   return w.cb;
 }
 
 /*! One fixed or run-specific subject model against run-specific neural
@@ -1179,72 +1192,73 @@ int THD_rsa_runresolved_regress(
    float *pv=(float *)calloc(nmod,sizeof(float)) ;
    float *sn=(np>0)?(float *)calloc((size_t)nmod*np,sizeof(float)):NULL ;
 
-   if(!mv || !bb || !pr || !pv || (np>0 && !sn)){ err=1; goto done; }
+   err=(!mv || !bb || !pr || !pv || (np>0 && !sn));
+   if( !err ){
 
-   memset(mbeta,0,sizeof(float)*nmod); memset(mpr,0,sizeof(float)*nmod) ;
-   if( np>0 && mnull!=NULL ) memset(mnull,0,sizeof(float)*(size_t)nmod*np) ;
-   if( ncon>0 ){
-     memset(cbeta,0,sizeof(float)*(size_t)nmod*ncon) ;
-     memset(cpr,0,sizeof(float)*(size_t)nmod*ncon) ;
-     if( np>0 && cnull!=NULL )
-       memset(cnull,0,sizeof(float)*(size_t)nmod*ncon*np) ;
-   }
+     memset(mbeta,0,sizeof(float)*nmod); memset(mpr,0,sizeof(float)*nmod) ;
+     if( np>0 && mnull!=NULL ) memset(mnull,0,sizeof(float)*(size_t)nmod*np) ;
+     if( ncon>0 ){
+       memset(cbeta,0,sizeof(float)*(size_t)nmod*ncon) ;
+       memset(cpr,0,sizeof(float)*(size_t)nmod*ncon) ;
+       if( np>0 && cnull!=NULL )
+         memset(cnull,0,sizeof(float)*(size_t)nmod*ncon*np) ;
+     }
 
-   for( ru=0 ; ru<nrun ; ru++ ){
-     for( mm=0 ; mm<nmod ; mm++ )
-       mv[mm]=(mod[mm].run_mat!=NULL)?mod[mm].run_mat[ru]:mod[mm].mat ;
-     err=THD_rdm_regress_signed(neural[ru],nmod,mv,0,NULL,cmp,pset,ws,
-                                bb,pr,(np>0)?pv:NULL,sn) ;
-     if( err ) break ;
-     for( mm=0 ; mm<nmod ; mm++ ){
-       size_t ix=(size_t)mm*nrun+ru ;
-       rbeta[ix]=bb[mm]; rpr[ix]=pr[mm]; rpval[ix]=(np>0)?pv[mm]:-1.0f ;
-       rzscr[ix]=(np>0)?THD_perm_signed_z(rpval[ix],rbeta[ix],PERM_TAIL_TWO)
-                       :rbeta[ix] ;
-       mbeta[mm]+=bb[mm]/nrun ; mpr[mm]+=pr[mm]/nrun ;
-       for( cc=0 ; cc<ncon ; cc++ ){
-         size_t ci=(size_t)mm*ncon+cc ; float w=cweight[(size_t)cc*nrun+ru] ;
-         cbeta[ci]+=w*bb[mm]; cpr[ci]+=w*pr[mm] ;
-       }
-       for( pk=0 ; pk<np ; pk++ ){
-         float v=sn[(size_t)mm*np+pk] ;
-         if( rnull!=NULL ){
-           float av=fabsf(v),ao=fabsf(bb[mm]) ;
-           if( fabsf(av-ao)<=64.0f*FLT_EPSILON*(1.0f+ao) ) av=ao ;
-           rnull[((size_t)mm*nrun+ru)*np+pk]=av ;
+     for( ru=0 ; ru<nrun ; ru++ ){
+       for( mm=0 ; mm<nmod ; mm++ )
+         mv[mm]=(mod[mm].run_mat!=NULL)?mod[mm].run_mat[ru]:mod[mm].mat ;
+       err=THD_rdm_regress_signed(neural[ru],nmod,mv,0,NULL,cmp,pset,ws,
+                                  bb,pr,(np>0)?pv:NULL,sn) ;
+       if( err ) break ;
+       for( mm=0 ; mm<nmod ; mm++ ){
+         size_t ix=(size_t)mm*nrun+ru ;
+         rbeta[ix]=bb[mm]; rpr[ix]=pr[mm]; rpval[ix]=(np>0)?pv[mm]:-1.0f ;
+         rzscr[ix]=(np>0)?THD_perm_signed_z(rpval[ix],rbeta[ix],PERM_TAIL_TWO)
+                         :rbeta[ix] ;
+         mbeta[mm]+=bb[mm]/nrun ; mpr[mm]+=pr[mm]/nrun ;
+         for( cc=0 ; cc<ncon ; cc++ ){
+           size_t ci=(size_t)mm*ncon+cc ; float w=cweight[(size_t)cc*nrun+ru] ;
+           cbeta[ci]+=w*bb[mm]; cpr[ci]+=w*pr[mm] ;
          }
-         if( mnull!=NULL ) mnull[(size_t)mm*np+pk]+=v/nrun ;
-         if( cnull!=NULL ) for( cc=0 ; cc<ncon ; cc++ )
-           cnull[((size_t)mm*ncon+cc)*np+pk]
-             +=cweight[(size_t)cc*nrun+ru]*v ;
+         for( pk=0 ; pk<np ; pk++ ){
+           float v=sn[(size_t)mm*np+pk] ;
+           if( rnull!=NULL ){
+             float av=fabsf(v),ao=fabsf(bb[mm]) ;
+             if( fabsf(av-ao)<=64.0f*FLT_EPSILON*(1.0f+ao) ) av=ao ;
+             rnull[((size_t)mm*nrun+ru)*np+pk]=av ;
+           }
+           if( mnull!=NULL ) mnull[(size_t)mm*np+pk]+=v/nrun ;
+           if( cnull!=NULL ) for( cc=0 ; cc<ncon ; cc++ )
+             cnull[((size_t)mm*ncon+cc)*np+pk]
+               +=cweight[(size_t)cc*nrun+ru]*v ;
+         }
        }
      }
-   }
 
-   if( !err ) for( mm=0 ; mm<nmod ; mm++ ){
-     int nge=0 ; float ao=fabsf(mbeta[mm]),tol=64.0f*FLT_EPSILON*(1.0f+ao) ;
-     if( np>0 ) for( pk=0 ; pk<np ; pk++ ){
-       float v=mnull[(size_t)mm*np+pk] ;
-       float av=fabsf(v); if(fabsf(av-ao)<=tol)av=ao ;
-       if( av>=ao ) nge++ ; mnull[(size_t)mm*np+pk]=av ;
-     }
-     mpval[mm]=(np>0)?(float)nge/np:-1.0f ;
-     mzscr[mm]=(np>0)?THD_perm_signed_z(mpval[mm],mbeta[mm],PERM_TAIL_TWO)
-                     :mbeta[mm] ;
-     for( cc=0 ; cc<ncon ; cc++ ){
-       size_t ci=(size_t)mm*ncon+cc ; nge=0 ;
-       ao=fabsf(cbeta[ci]); tol=64.0f*FLT_EPSILON*(1.0f+ao) ;
+     if( !err ) for( mm=0 ; mm<nmod ; mm++ ){
+       int nge=0 ; float ao=fabsf(mbeta[mm]),tol=64.0f*FLT_EPSILON*(1.0f+ao) ;
        if( np>0 ) for( pk=0 ; pk<np ; pk++ ){
-         float v=cnull[ci*np+pk] ;
+         float v=mnull[(size_t)mm*np+pk] ;
          float av=fabsf(v); if(fabsf(av-ao)<=tol)av=ao ;
-         if( av>=ao ) nge++ ; cnull[ci*np+pk]=av ;
+         if( av>=ao ) nge++ ; mnull[(size_t)mm*np+pk]=av ;
        }
-       cpval[ci]=(np>0)?(float)nge/np:-1.0f ;
-       czscr[ci]=(np>0)?THD_perm_signed_z(cpval[ci],cbeta[ci],PERM_TAIL_TWO)
-                       :cbeta[ci] ;
+       mpval[mm]=(np>0)?(float)nge/np:-1.0f ;
+       mzscr[mm]=(np>0)?THD_perm_signed_z(mpval[mm],mbeta[mm],PERM_TAIL_TWO)
+                       :mbeta[mm] ;
+       for( cc=0 ; cc<ncon ; cc++ ){
+         size_t ci=(size_t)mm*ncon+cc ; nge=0 ;
+         ao=fabsf(cbeta[ci]); tol=64.0f*FLT_EPSILON*(1.0f+ao) ;
+         if( np>0 ) for( pk=0 ; pk<np ; pk++ ){
+           float v=cnull[ci*np+pk] ;
+           float av=fabsf(v); if(fabsf(av-ao)<=tol)av=ao ;
+           if( av>=ao ) nge++ ; cnull[ci*np+pk]=av ;
+         }
+         cpval[ci]=(np>0)?(float)nge/np:-1.0f ;
+         czscr[ci]=(np>0)?THD_perm_signed_z(cpval[ci],cbeta[ci],PERM_TAIL_TWO)
+                         :cbeta[ci] ;
+       }
      }
    }
-done:
    free(mv); free(bb); free(pr); free(pv); if(sn!=NULL)free(sn) ;
    return err ;
 }
@@ -1341,111 +1355,111 @@ void THD_rsa_temporal_infer( THD_simmat *neural, int nmod,
        cstat[cc]=czscr[cc]=0.0f ; cpval[cc]=1.0f ;
        if( cnullabs ) memset(cnullabs+(size_t)cc*ndraw,0,sizeof(float)*ndraw) ;
      }
-     goto TS_DONE ;
-   }
-
-   for( mm=0 ; mm<nmod ; mm++ ){
-     x[mm]=xflat+(size_t)mm*m ; THD_simmat_to_tri(model[mm],x[mm]) ;
-   }
-   for( oo=0 ; oo<nort ; oo++ ){
-     x[nmod+oo]=xflat+(size_t)(nmod+oo)*m ;
-     THD_simmat_to_tri(orts[oo],x[nmod+oo]) ;
-   }
-   for( mm=0 ; mm<nmod ; mm++ ) stat[mm]=effect[mm]=0.0f ;
-
-   /* The observed effect and partial-r reporting columns keep exactly the
-      established label-null regression definitions; only their test null is
-      replaced below. */
-   if( joint ){
-     THD_rdm_regress(neural,nmod,model,nort,orts,cmp,NULL,ws,
-                     stat,effect,NULL,NULL) ;
-     design[0]=THD_tri_design_new(m,ncol,x,cmp,ws) ;
-   } else if( nort > 0 ){
-     float *xf[1+nort] ;
-     for( oo=0 ; oo<nort ; oo++ ) xf[1+oo]=x[nmod+oo] ;
-     for( mm=0 ; mm<nmod ; mm++ ){
-       float bt[1],pt[1] ; xf[0]=x[mm] ;
-       THD_rdm_regress(neural,1,model+mm,nort,orts,cmp,NULL,ws,
-                       bt,pt,NULL,NULL) ;
-       stat[mm]=bt[0] ; effect[mm]=pt[0] ;
-       design[mm]=THD_tri_design_new(m,1+nort,xf,cmp,ws) ;
-     }
    } else {
-     THD_simmat_to_tri(neural,ytri) ;
+
      for( mm=0 ; mm<nmod ; mm++ ){
-       stat[mm]=THD_tri_corr(m,ytri,x[mm],cmp,ws->sc1,ws->sc2) ;
-       effect[mm]=stat[mm] ;
+       x[mm]=xflat+(size_t)mm*m ; THD_simmat_to_tri(model[mm],x[mm]) ;
      }
-   }
-
-   THD_simmat_to_tri(neural,ytri) ;
-   if( ncon > 0 ){
-     for( mm=0 ; mm<nmod ; mm++ )
-       rmod[mm]=THD_tri_corr(m,ytri,x[mm],cmp,ws->sc1,ws->sc2) ;
-     for( cc=0 ; cc<ncon ; cc++ )
-       cstat[cc]=rmod[con[cc].ia]-rmod[con[cc].ib] ;
-   }
-
-   tw->nullmat->is_dist=(neu_metric == SIM_EUCLID) ;
-   for( ss=0 ; ss<ndraw ; ss++ ){
-     THD_simmat *sn=neural ;
-     if( ss > 0 ){
-       if( tset != NULL ){
-         int *off=tset->offset+(size_t)ss*nsub ;
-         THD_simmat_from_lag_table(tw->nullmat,nt,tw->lagtab,off) ;
-       } else if( THD_rsa_phase_draw(phset,ss,tw->phspec,tw->phwork,tw->phseries,tw->nullmat,
-                                 neu_metric,tw->phsc1,tw->phsc2) ){
-         memset(tw->nullmat->mat,0,sizeof(float)*(size_t)nsub*nsub) ;
-       }
-       sn=tw->nullmat ;
+     for( oo=0 ; oo<nort ; oo++ ){
+       x[nmod+oo]=xflat+(size_t)(nmod+oo)*m ;
+       THD_simmat_to_tri(orts[oo],x[nmod+oo]) ;
      }
-     THD_simmat_to_tri(sn,ytri) ;
+     for( mm=0 ; mm<nmod ; mm++ ) stat[mm]=effect[mm]=0.0f ;
 
+     /* The observed effect and partial-r reporting columns keep exactly the
+        established label-null regression definitions; only their test null is
+        replaced below. */
      if( joint ){
-       if( design[0] != NULL ) THD_tri_design_apply(design[0],ytri,ws,btmp) ;
-       else memset(btmp,0,sizeof(float)*ncol) ;
-       for( mm=0 ; mm<nmod ; mm++ ){
-         float av=fabsf(btmp[mm]) ;
-         if( nullabs ) nullabs[(size_t)mm*ndraw+ss]=av ;
-         if( av >= fabsf(stat[mm]) ) nge[mm]++ ;
-       }
+       THD_rdm_regress(neural,nmod,model,nort,orts,cmp,NULL,ws,
+                       stat,effect,NULL,NULL) ;
+       design[0]=THD_tri_design_new(m,ncol,x,cmp,ws) ;
      } else if( nort > 0 ){
+       float *xf[1+nort] ;
+       for( oo=0 ; oo<nort ; oo++ ) xf[1+oo]=x[nmod+oo] ;
        for( mm=0 ; mm<nmod ; mm++ ){
-         float av ;
-         if( design[mm] != NULL ) THD_tri_design_apply(design[mm],ytri,ws,btmp) ;
-         else btmp[0]=0.0f ;
-         av=fabsf(btmp[0]) ;
-         if( nullabs ) nullabs[(size_t)mm*ndraw+ss]=av ;
-         if( av >= fabsf(stat[mm]) ) nge[mm]++ ;
+         float bt[1],pt[1] ; xf[0]=x[mm] ;
+         THD_rdm_regress(neural,1,model+mm,nort,orts,cmp,NULL,ws,
+                         bt,pt,NULL,NULL) ;
+         stat[mm]=bt[0] ; effect[mm]=pt[0] ;
+         design[mm]=THD_tri_design_new(m,1+nort,xf,cmp,ws) ;
+       }
+     } else {
+       THD_simmat_to_tri(neural,ytri) ;
+       for( mm=0 ; mm<nmod ; mm++ ){
+         stat[mm]=THD_tri_corr(m,ytri,x[mm],cmp,ws->sc1,ws->sc2) ;
+         effect[mm]=stat[mm] ;
        }
      }
 
-     if( (!joint && nort==0) || ncon>0 ){
+     THD_simmat_to_tri(neural,ytri) ;
+     if( ncon > 0 ){
        for( mm=0 ; mm<nmod ; mm++ )
          rmod[mm]=THD_tri_corr(m,ytri,x[mm],cmp,ws->sc1,ws->sc2) ;
+       for( cc=0 ; cc<ncon ; cc++ )
+         cstat[cc]=rmod[con[cc].ia]-rmod[con[cc].ib] ;
      }
-     if( !joint && nort==0 ) for( mm=0 ; mm<nmod ; mm++ ){
-       float av=fabsf(rmod[mm]) ;
-       if( nullabs ) nullabs[(size_t)mm*ndraw+ss]=av ;
-       if( av >= fabsf(stat[mm]) ) nge[mm]++ ;
+
+     tw->nullmat->is_dist=(neu_metric == SIM_EUCLID) ;
+     for( ss=0 ; ss<ndraw ; ss++ ){
+       THD_simmat *sn=neural ;
+       if( ss > 0 ){
+         if( tset != NULL ){
+           int *off=tset->offset+(size_t)ss*nsub ;
+           THD_simmat_from_lag_table(tw->nullmat,nt,tw->lagtab,off) ;
+         } else if( THD_rsa_phase_draw(phset,ss,tw->phspec,tw->phwork,tw->phseries,tw->nullmat,
+                                   neu_metric,tw->phsc1,tw->phsc2) ){
+           memset(tw->nullmat->mat,0,sizeof(float)*(size_t)nsub*nsub) ;
+         }
+         sn=tw->nullmat ;
+       }
+       THD_simmat_to_tri(sn,ytri) ;
+
+       if( joint ){
+         if( design[0] != NULL ) THD_tri_design_apply(design[0],ytri,ws,btmp) ;
+         else memset(btmp,0,sizeof(float)*ncol) ;
+         for( mm=0 ; mm<nmod ; mm++ ){
+           float av=fabsf(btmp[mm]) ;
+           if( nullabs ) nullabs[(size_t)mm*ndraw+ss]=av ;
+           if( av >= fabsf(stat[mm]) ) nge[mm]++ ;
+         }
+       } else if( nort > 0 ){
+         for( mm=0 ; mm<nmod ; mm++ ){
+           float av ;
+           if( design[mm] != NULL ) THD_tri_design_apply(design[mm],ytri,ws,btmp) ;
+           else btmp[0]=0.0f ;
+           av=fabsf(btmp[0]) ;
+           if( nullabs ) nullabs[(size_t)mm*ndraw+ss]=av ;
+           if( av >= fabsf(stat[mm]) ) nge[mm]++ ;
+         }
+       }
+
+       if( (!joint && nort==0) || ncon>0 ){
+         for( mm=0 ; mm<nmod ; mm++ )
+           rmod[mm]=THD_tri_corr(m,ytri,x[mm],cmp,ws->sc1,ws->sc2) ;
+       }
+       if( !joint && nort==0 ) for( mm=0 ; mm<nmod ; mm++ ){
+         float av=fabsf(rmod[mm]) ;
+         if( nullabs ) nullabs[(size_t)mm*ndraw+ss]=av ;
+         if( av >= fabsf(stat[mm]) ) nge[mm]++ ;
+       }
+       for( cc=0 ; cc<ncon ; cc++ ){
+         float dv=rmod[con[cc].ia]-rmod[con[cc].ib], av=fabsf(dv) ;
+         if( cnullabs ) cnullabs[(size_t)cc*ndraw+ss]=av ;
+         if( av >= fabsf(cstat[cc]) ) cnge[cc]++ ;
+       }
+     }
+
+     for( mm=0 ; mm<nmod ; mm++ ){
+       pval[mm]=(float)nge[mm]/(float)ndraw ;
+       zscr[mm]=THD_p_to_z(pval[mm],stat[mm]) ;
      }
      for( cc=0 ; cc<ncon ; cc++ ){
-       float dv=rmod[con[cc].ia]-rmod[con[cc].ib], av=fabsf(dv) ;
-       if( cnullabs ) cnullabs[(size_t)cc*ndraw+ss]=av ;
-       if( av >= fabsf(cstat[cc]) ) cnge[cc]++ ;
+       cpval[cc]=(float)cnge[cc]/(float)ndraw ;
+       czscr[cc]=THD_p_to_z(cpval[cc],cstat[cc]) ;
      }
+
    }
 
-   for( mm=0 ; mm<nmod ; mm++ ){
-     pval[mm]=(float)nge[mm]/(float)ndraw ;
-     zscr[mm]=THD_p_to_z(pval[mm],stat[mm]) ;
-   }
-   for( cc=0 ; cc<ncon ; cc++ ){
-     cpval[cc]=(float)cnge[cc]/(float)ndraw ;
-     czscr[cc]=THD_p_to_z(cpval[cc],cstat[cc]) ;
-   }
-
-TS_DONE:
    if( design != NULL ){
      int nd=joint ? 1 : nmod ;
      for( mm=0 ; mm<nd ; mm++ ) THD_tri_design_free(design[mm]) ;

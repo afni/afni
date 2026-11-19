@@ -1,6 +1,27 @@
-/* Synchronized selection inference. Draws and original-time support are shared;
-   complete-null cells contribute to a global max family only after every draw
-   has passed. A disk spool bounds map storage; BH's global arrays are budgeted. */
+/* How to read this file
+  Lifecycle: INSYNC_infer_plan validates/budgets, begin allocates and opens the
+  spool, selection evaluates each spatial unit, finish corrects and writes maps.
+  Interpolation flags follow samples through subject draws; coverage gates count
+  observed samples. Temporal calls instead use the original-only reader for
+  BOTH identity and null draws, so TemporalISC tests the observed-only estimand.
+  pack_data maps original time into estimator buffers; estimate applies coverage,
+  component/block admission, and summaries. Read those before the resampling loops.
+  -nboot resamples subjects; -nperm relabels whole subjects; -ncondperm swaps
+  conditions within subjects. Pairs are dependent and are never shuffled alone.
+  temporal_prepare/draw/cell implement -temporal_null and -temporal_censor.
+  Draw descriptors are immutable and shared across space, conditions, groups,
+  and requested selections: max-statistic correction requires the SAME draw
+  at each family member. Worker scratch is private, keyed by thread number.
+  Empirical p counts identity and null exceedances. Ordinary complete-null paths
+  require valid draws; pairwise missingness and joint_shift count failed draws
+  as exceedances, preserving
+  conservative bounds rather than silently resampling until a draw succeeds.
+  FDR uses thd_mapinfer; maximum-null accumulation implements FWE. Disk spooling
+  bounds resident map storage. A new correction must define its full family
+  and invalid-draw policy, not just attach a different final p-value formula.
+*/
+/* Synchronized selection inference; ordinary complete-null and conservative
+   joint_shift validity policies are described in the reading guide above. */
 #include "mrilib.h"
 #include "thd_insync_infer.h"
 #include "thd_permute.h"
@@ -18,6 +39,10 @@
 
 typedef struct {
    INSYNC_kernel *kernel;
+   INSYNC_missing *missing;
+   INSYNC_component *missing_blocks;
+   int *piece;
+   unsigned char *observed,*observed_pack; /* real-sample provenance, packed like data */
    float *data,*pack,*component,*scratch,*st,*draw,*nulls,*maxg,*maxneg,*maxc;
    int *length,*offset,*rows,*nv,*pc,*sample,**member,*count,*component_count,*component_offset;
    unsigned char *coverage,*keep,*keep2;
@@ -44,17 +69,22 @@ struct INSYNC_infer {
    float *temporal_q;
    unsigned char *temporal_keep;
 };
+/* Allocate zeroed inference storage with checked size multiplication;
+   allocation failure is fatal. */
 static void *allocate(size_t n,size_t width)
 {
    void *p;
    if(width && n>SIZE_MAX/width) IF_FAIL("allocation size overflow");
    p=calloc(n?n:1,width); if(!p) IF_FAIL("cannot allocate inference storage"); return p;
 }
+/* Construct a selection inference filename under the requested prefix;
+   reject truncation. */
 static void output_path(char *p,const INSYNC_infer *x,int id,const char *suffix)
 {
    int n=id?snprintf(p,THD_MAX_NAME,"%s.sel%06d.%s",x->o->prefix,id,suffix):snprintf(p,THD_MAX_NAME,"%s.%s",x->o->prefix,suffix);
    if(n>=THD_MAX_NAME) IF_FAIL("output path too long");
 }
+/* Validate an inference output destination before numerical work begins. */
 static void preflight_path(const char *p)
 {
    struct stat st;
@@ -64,10 +94,13 @@ static void preflight_path(const char *p)
       if(access(p,W_OK)) IF_FAIL("output is not writable: %s",p);
    }
 }
+/* Close an owned output stream and report buffered write or close errors. */
 static void close_checked(FILE *fp)
 { int bad=ferror(fp); if(fclose(fp)) bad=1; if(bad) IF_FAIL("failed writing inference table/spool"); }
+/* Find an exact condition/group label; return -1 when absent. */
 static int find_label(char **labels,int n,const char *s)
 { int i; for(i=0;i<n;i++) if(!strcmp(labels[i],s)) return i; return -1; }
+/* Append one output statistic label in the same order as its map slot. */
 static void add_label(INSYNC_infer *x,int *at,int condition,const char *stem,const char *who)
 {
    char text[256],safe[64]; int i,j;
@@ -78,6 +111,10 @@ static void add_label(INSYNC_infer *x,int *at,int condition,const char *stem,con
    x->labels[*at]=strdup(safe); if(!x->labels[*at]) IF_FAIL("cannot copy label");
    x->label_condition[(*at)++]=condition;
 }
+/* Validate inference options and families, construct immutable draw
+   descriptors, and budget buffers without loading BOLD. Return NULL when no
+   inference is requested; otherwise the plan borrows options, schedule, and
+   grid references until finish. */
 INSYNC_infer *INSYNC_infer_plan(const INSYNC_options *o,const INSYNC_schedule *s,const INSYNC_infer_grid *grid)
 {
    INSYNC_infer *x; int i,c,g,id,at=0,*group; PERM_scheme *scheme;
@@ -85,6 +122,7 @@ INSYNC_infer *INSYNC_infer_plan(const INSYNC_options *o,const INSYNC_schedule *s
    if(!(o->nboot || o->nperm || o->do_exact || o->have_contrast || o->ncondperm || o->condition_exact || o->temporal_mode)) return NULL;
    if((o->nperm || o->do_exact) && grid->ngroup!=2) IF_FAIL("group permutation requires exactly two groups");
    if((o->ncondperm || o->condition_exact) && !o->have_contrast) IF_FAIL("condition swaps require -condition_contrast");
+   if(2.*grid->nsub*s->ntime>INT_MAX) IF_FAIL("packed inference offsets exceed INT_MAX; reduce subjects or timeline");
    if((double)grid->nsub*(2.*grid->nsub-1)>INT_MAX) IF_FAIL("too many subjects for the paired inference kernel");
    x=allocate(1,sizeof(*x)); x->o=o; x->s=s; x->grid=*grid; x->maxblocks=1;
    if(o->have_contrast){
@@ -198,6 +236,8 @@ INSYNC_infer *INSYNC_infer_plan(const INSYNC_options *o,const INSYNC_schedule *s
       double ns=grid->nsub,nt=s->ntime,nb=x->maxblocks;
       double gp=x->group_set?x->group_set->nperm:0,cp=x->condition_set?x->condition_set->nperm:0;
       x->memory+=ns*(o->nboot*4.+(gp+cp)*5.)+4.*(gp*3+cp);
+      if(o->missing_policy==INSYNC_MISSING_INTERP) x->memory+=grid->nthread*4.*ns*nt;
+      if(INSYNC_MISSING_LOCAL(o->missing_policy)) x->memory+=grid->nthread*(4.*nt+2.*ns*(2.*ns+1)*(48.+nb*sizeof(INSYNC_component)));
       x->memory+=grid->nthread*(64.*ns*nt+64.*ns*ns+16.*nb*ns*ns+64.*nt+128.*grid->ngroup+64.*nb+4.*o->nboot+16.*gp+4.*cp*(x->neffect+1));
    }
    if(o->temporal_mode){
@@ -212,7 +252,11 @@ INSYNC_infer *INSYNC_infer_plan(const INSYNC_options *o,const INSYNC_schedule *s
    if(!o->quiet) INFO_message("3dInSync: synchronized inference: %d group and %d condition family cells; memory %.3f GiB, map spool %.3f GiB; %d bootstrap, %d group, %d swap draws",x->group_cells,x->condition_cells,x->memory/1073741824.,x->spool_bytes/1073741824.,o->nboot,x->group_set?x->group_set->nperm:0,x->condition_set?x->condition_set->nperm:0);
    return x;
 }
+/* Return the planned inference workspace in bytes (zero when inference is
+   disabled). */
 double INSYNC_infer_memory(const INSYNC_infer *x){ return x?x->memory:0; }
+/* Allocate a permutation-result accumulator, validity mask, and FDR buffer
+   for one synchronized family. */
 static void init_result(PERM_result **r,unsigned char **valid,float **q,int nc,int nd,int tail)
 {
    int i; if(!nc) return;
@@ -220,14 +264,18 @@ static void init_result(PERM_result **r,unsigned char **valid,float **q,int nc,i
    *valid=allocate(nc,1); *q=allocate(nc,sizeof(float));
    for(i=0;i<nd;i++) (*r)->max_null[i]=-FLT_MAX;
 }
+/* Allocate inference accumulators and per-thread scratch after preflight;
+   open manifests and spool files. Options/schedule remain borrowed. */
 void INSYNC_infer_begin(INSYNC_infer *x)
 {
    const INSYNC_infer_grid *h=&x->grid; char path[THD_MAX_NAME]; FILE *fp; int th,g,i,j;
    x->spool=tmpfile(); if(!x->spool) IF_FAIL("cannot create bounded result spool");
    output_path(path,x,0,"inference.tsv"); x->manifest=fopen(path,"w"); if(!x->manifest) IF_FAIL("cannot create inference manifest");
-   fprintf(x->manifest,"# Status: running; final completion follows GLOBAL correction\n# Group family: all selections x conditions x analyzed space units. Condition family: all matched selections x requested effects x analyzed space units.\n# With -atlas the joint family includes voxel AND parcel units; with -roi_only each parcel counts once, not once per painted voxel.\n# Block support is fixed from observed data. Subject inference requires complete components and every null finite. Bootstrap drops unusable draws; intervals need >=10 draws and are pointwise.\n# Condition tests require identical admitted blocks in both conditions; mismatched cells are invalid, not re-aggregated on a different intersection.\n# GroupTail: %d; ConditionTail: %d; group assignments %s; condition swaps %s\n",x->o->tail,x->o->condition_tail,x->group_set?(x->group_set->is_exact?"exact":"sampled"):"none",x->condition_set?(x->condition_set->is_exact?"exact":"sampled"):"none");
+   fprintf(x->manifest,"# Status: running; final completion follows GLOBAL correction\n# Group family: all selections x conditions x analyzed space units. Condition family: all matched selections x requested effects x analyzed space units.\n# With -atlas the joint family includes voxel AND parcel units; with -roi_only each parcel counts once, not once per painted voxel.\n# For error/common: block support is fixed from observed data. Subject inference requires complete components and every null finite. Bootstrap drops unusable draws; intervals need >=10 draws and are pointwise.\n# For error/common: condition tests require identical admitted blocks in both conditions; mismatched cells are invalid, not re-aggregated on a different intersection.\n# GroupTail: %d; ConditionTail: %d; group assignments %s; condition swaps %s\n",x->o->tail,x->o->condition_tail,x->group_set?(x->group_set->is_exact?"exact":"sampled"):"none",x->condition_set?(x->condition_set->is_exact?"exact":"sampled"):"none");
+   if(INSYNC_MISSING_LOCAL(x->o->missing_policy))
+      fprintf(x->manifest,"# Pairwise missingness: recompute component support, references, eligibility and weights on EVERY draw. All original-subject copies are excluded from their LOO reference; distinct valid people gate -loo_min_others. Bootstrap CIs require every draw finite plus observed validity. Permutation failures count as exceedances/unresolved maxima; observed-invalid cells remain in the family at p=1. Common-support statements above apply only to legacy policies.\n");
    if(x->o->temporal_mode) fprintf(x->manifest,"# Temporal family: all selections x conditions x groups x analyzed space units. Independent subject/run surrogates; synchronized across conditions and selections. Validity follows the declared temporal censor policy. TemporalTail: %d\n",x->o->temporal_tail);
-   if(x->o->temporal_mode) fprintf(x->manifest,"# Temporal censor policy: %s\n",x->o->temporal_censor?"joint_shift: move each source mask with its subject/run signal; recompute common support and block eligibility on EVERY draw. TNullN counts finite draws; failed nulls count as exceedances in p/FWE bounds (no skipped draws); observed invalid cells stay invalid. Support TSV reports mask coverage, not voxel signal validity.":"intact: participating runs uncensored; observed block support fixed");
+   if(x->o->temporal_mode) fprintf(x->manifest,"# Temporal censor policy: %s\n",x->o->temporal_censor?"joint_shift: move each source mask with its subject/run signal; recompute policy-specific support and block eligibility on EVERY draw. TNullN counts finite draws; failed nulls count as exceedances in p/FWE bounds (no skipped draws); observed invalid cells stay invalid. Support TSV reports mask coverage, not voxel signal validity.":"intact: participating runs uncensored; observed block support fixed");
    fprintf(x->manifest,"SelectionID\tFile\tBrick\tLabel\tCondition\n"); fflush(x->manifest);
    output_path(path,x,0,"inference_draws.tsv"); fp=fopen(path,"w"); if(!fp) IF_FAIL("cannot write draw provenance");
    fprintf(fp,"Kind\tDraw\tSlot\tSourceSubject\tSign\n");
@@ -264,7 +312,7 @@ void INSYNC_infer_begin(INSYNC_infer *x)
          }
       }
       output_path(path,x,0,"temporal_support.tsv"); fp=fopen(path,"w"); if(!fp) IF_FAIL("cannot write temporal support table");
-      fprintf(fp,"# Mask-only coverage for each draw/component; component signal validity can further reduce TNullN. Counts are common across subjects AND conditions. Block gates are recomputed per draw.\nSelectionID\tCondition\tDraw\tSegment\tRun\tStartTR\tStopTR\tNominalN\tRetainedN\tRetainedFrac\tCoveragePass\n");
+      fprintf(fp,"# Mask-only coverage for each draw/component; component signal validity can further reduce TNullN. Counts are common across subjects AND conditions. With -missing pairwise these common counts are provenance only, never an estimation mask. Block gates are recomputed per draw.\nSelectionID\tCondition\tDraw\tSegment\tRun\tStartTR\tStopTR\tNominalN\tRetainedN\tRetainedFrac\tCoveragePass\n");
       for(e=0;e<x->s->nsegment;e++){
          const INSYNC_segment *seg=x->s->segment+e; int c;
          for(c=0;c<h->ncond;c++) if(seg->source==h->source_at[c*h->nsub]) break;
@@ -294,7 +342,16 @@ void INSYNC_infer_begin(INSYNC_infer *x)
          w->tnulls=allocate((size_t)x->o->nnull*h->ngroup,sizeof(float)); w->maxt=allocate(x->o->nnull,sizeof(float));
          for(i=0;i<x->o->nnull;i++) w->maxt[i]=-FLT_MAX;
       }
+      if(INSYNC_MISSING_LOCAL(x->o->missing_policy)){
+         w->missing=INSYNC_missing_new((int)ns,x->s->ntime);
+         if(!w->missing) IF_FAIL("cannot allocate missing-data inference kernel");
+         w->missing_blocks=allocate(nb*ns*(ns+1),sizeof(INSYNC_component));
+         w->piece=allocate(x->s->ntime,sizeof(int));
+      }
       w->kernel=INSYNC_kernel_new((int)ns,x->s->ntime); if(!w->kernel) IF_FAIL("cannot allocate resampling kernel");
+      if(x->o->missing_policy==INSYNC_MISSING_INTERP){
+         w->observed=allocate(ns*x->s->ntime,1); w->observed_pack=allocate(ns*x->s->ntime,1);
+      }
       w->data=allocate(ns*x->s->ntime,sizeof(float)); w->pack=allocate(ns*x->s->ntime,sizeof(float));
       w->component=allocate(nb*ns*ns,sizeof(float)); w->scratch=allocate(nb+ns*ns,sizeof(float));
       w->st=allocate(ng,sizeof(float)); w->nv=allocate(ng,sizeof(int)); w->pc=allocate(ng,sizeof(int));
@@ -311,10 +368,12 @@ void INSYNC_infer_begin(INSYNC_infer *x)
    }
 }
 
-/* Pack block data once per analysis cell. Every source uses the same finite
-   original-time support. The second condition equals the first for group/CI. */
+/* Pack once per cell. Legacy policies use a common retained timeline; the
+   pairwise policy keeps nominal coordinates and masked NaNs for each source,
+   with segment IDs for overlap-specific centering. Condition two equals one
+   for group/CI tests. Temporal readers already carry shifted source masks. */
 static int pack_data(INSYNC_infer *x,infer_worker *w,int id,int c,int d,int unit,int aggregate,
-                    const void *src,INSYNC_sample_reader get,const unsigned char *common)
+                    const void *src,INSYNC_sample_reader get,INSYNC_sample_reader original,const unsigned char *common)
 {
    const INSYNC_infer_grid *h=&x->grid; int i,b=0,t,si,len,total=0,nr=0,ns=2*h->nsub,nt=x->s->ntime,nominal=0;
    for(i=0;i<x->s->nsegment;i++) if(x->s->segment[i].selection_id==id && x->s->segment[i].source==h->source_at[c*h->nsub]) w->rows[nr++]=i;
@@ -323,17 +382,22 @@ static int pack_data(INSYNC_infer *x,infer_worker *w,int id,int c,int d,int unit
       const INSYNC_segment *e=x->s->segment+w->rows[i]; int begin=aggregate?0:len;
       if(aggregate) len=0;
       nominal+=e->original_stop-e->original_start+1;
-      for(t=e->original_start;t<=e->original_stop;t++) if(common[t]){
+      for(t=e->original_start;t<=e->original_stop;t++) if(INSYNC_MISSING_LOCAL(x->o->missing_policy) || common[t]){
          int good=1;
          if(x->o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<x->s->nsource;si++) if(!isfinite(get(src,si,unit,t))){ good=0; break; }
-         if(!good) continue;
+         if(!good && !w->missing) continue;
          for(si=0;si<h->nsub;si++){
             w->pack[(size_t)si*nt+len]=get(src,h->source_at[c*h->nsub+si],unit,t);
             w->pack[(size_t)(h->nsub+si)*nt+len]=get(src,h->source_at[d*h->nsub+si],unit,t);
+            if(w->observed_pack){
+               w->observed_pack[(size_t)si*nt+len]=isfinite((original?original:get)(src,h->source_at[c*h->nsub+si],unit,t))!=0;
+               w->observed_pack[(size_t)(h->nsub+si)*nt+len]=isfinite((original?original:get)(src,h->source_at[d*h->nsub+si],unit,t))!=0;
+            }
          }
+         if(w->piece) w->piece[total+len]=i;
          len++;
       }
-      if(!aggregate && x->o->segment_center && len>begin) for(si=0;si<ns;si++){
+      if(!w->missing && !aggregate && x->o->segment_center && len>begin) for(si=0;si<ns;si++){
          double mean=0;
          for(t=begin;t<len;t++) mean+=w->pack[(size_t)si*nt+t];
          mean/=len-begin;
@@ -342,11 +406,16 @@ static int pack_data(INSYNC_infer *x,infer_worker *w,int id,int c,int d,int unit
       if(!aggregate && i<nr-1) continue;
       w->length[b]=len; w->offset[b]=total*ns;
       w->coverage[b]=len>=x->o->min_valid && (double)len/nominal>=x->o->min_valid_frac;
-      for(si=0;si<ns;si++) memcpy(w->data+(size_t)total*ns+(size_t)si*len,w->pack+(size_t)si*nt,len*sizeof(float));
+      for(si=0;si<ns;si++){
+         memcpy(w->data+(size_t)total*ns+(size_t)si*len,w->pack+(size_t)si*nt,len*sizeof(float));
+         if(w->observed) memcpy(w->observed+(size_t)total*ns+(size_t)si*len,w->observed_pack+(size_t)si*nt,len);
+      }
       total+=len; b++; if(aggregate) nominal=0;
    }
    return b;
 }
+/* Restore original group membership (and optional paired-condition copies)
+   before evaluating a new resampling family. */
 static void identity_members(INSYNC_infer *x,infer_worker *w,int paired)
 {
    const INSYNC_infer_grid *h=&x->grid; int g,i,pos=0,k;
@@ -355,12 +424,37 @@ static void identity_members(INSYNC_infer *x,infer_worker *w,int paired)
       for(i=0;i<h->gcount[g];i++) w->sample[pos++]=h->gmember[g][i]+k*h->nsub;
    }
 }
-/* fixed=NULL chooses observed complete blocks. Otherwise never change support
-   on a resample: one failed retained component invalidates that draw. */
+/* Recompute overlaps, LOO references, block admission and coverage weights
+   for every subject/group/condition/temporal draw. Group memberships contain
+   original source indices, including multiplicities in the subject bootstrap.
+   There is no observed common-support restriction in this policy. */
+static int estimate_missing(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng)
+{
+   int b,g,valid=1,ns=2*x->grid.nsub;
+   size_t nc=(size_t)ns*(ns+1);
+   for(b=0;b<nb;b++){
+      INSYNC_missing_eval_observed(w->missing,w->length[b],w->data+w->offset[b],
+         w->observed?w->observed+w->offset[b]:NULL,
+         w->piece+w->offset[b]/ns,w->length[b],x->o,ng,w->count,w->member);
+      if(aggregate) memcpy(w->missing_blocks+(size_t)b*nc,
+         INSYNC_missing_components(w->missing),nc*sizeof(INSYNC_component));
+   }
+   if(aggregate) INSYNC_missing_aggregate(w->missing,nb,w->missing_blocks,x->o,ng,w->count,w->member);
+   INSYNC_missing_summary(w->missing,x->o->method,x->o->summary,ng,w->count,w->member,w->st,w->nv,w->pc);
+   for(g=0;g<ng;g++) if(!isfinite(w->st[g])) valid=0;
+   return valid;
+}
+
+/* Legacy policies fix observed complete blocks. The missing policy dispatch
+   above recomputes component-specific support instead. */
 static int estimate(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng,
                     const unsigned char *fixed,unsigned char *chosen)
 {
    const INSYNC_options *o=x->o; int ns=2*x->grid.nsub,b,g,i,j,ncomp=0,nkeep=0,valid=1;
+   if(w->missing){
+      if(chosen) memset(chosen,0,nb); /* common block masks have no meaning here */
+      return estimate_missing(x,w,nb,aggregate,ng);
+   }
    for(g=0;g<ng && valid;g++){
       int n=0,unique=0;
       w->component_offset[g]=ncomp;
@@ -411,6 +505,8 @@ static int estimate(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng,
    }
    return valid;
 }
+/* Record the observed statistic and null exceedances/maxima for one cell;
+   invalid draws follow the family validity policy. */
 static void record_null(PERM_result *r,unsigned char *valid,int cell,const float *nulls,float *maxpos,float *maxneg,int tail)
 {
    int i,neg=(tail==INSYNC_TAIL_BI && nulls[0]<0); float observed=tail==PERM_TAIL_TWO?fabsf(nulls[0]):neg?-nulls[0]:nulls[0];
@@ -423,7 +519,31 @@ static void record_null(PERM_result *r,unsigned char *valid,int cell,const float
       else if(cmp>maxpos[i]) maxpos[i]=cmp;
    }
 }
+/* Keep the prespecified family even when the observed cell is invalid.
+   A failed null has unknown magnitude and contributes +infinity to the family
+   maximum and an exceedance to this cell. Never retry or omit a null draw. */
+static void record_missing_null(PERM_result *r,unsigned char *valid,int cell,
+   const float *nulls,float *maxpos,float *maxneg,int tail)
+{
+   int d,observed=isfinite(nulls[0]),negative=tail==INSYNC_TAIL_BI && nulls[0]<0;
+   float target=tail==PERM_TAIL_TWO?fabsf(nulls[0]):negative?-nulls[0]:nulls[0];
+   valid[cell]=observed;
+   if(observed) r->stat[cell]=nulls[0];
+   for(d=0;d<r->nperm;d++){
+      int finite=isfinite(nulls[d]);
+      float cmp=finite?(tail==PERM_TAIL_TWO?fabsf(nulls[d]):negative?-nulls[d]:nulls[d]):FLT_MAX;
+      if(observed && (!finite || cmp>=target)) r->cnt_unc[cell]++;
+      if(tail==INSYNC_TAIL_BI){
+         float pos=finite?nulls[d]:FLT_MAX,neg=finite?-nulls[d]:FLT_MAX;
+         if(pos>maxpos[d]) maxpos[d]=pos;
+         if(neg>maxneg[d]) maxneg[d]=neg;
+      }else if(cmp>maxpos[d]) maxpos[d]=cmp;
+   }
+}
+
 typedef struct { const INSYNC_infer *x; const float *data; } temporal_reader;
+/* Adapt the shifted subject-major buffer to the source-index sample-reader
+   API; original source-to-subject mapping remains authoritative. */
 static float temporal_get(const void *opaque,int source,int unit,int time)
 {
    const temporal_reader *r=opaque; (void)unit;
@@ -446,6 +566,8 @@ static void temporal_prepare(INSYNC_infer *x,infer_worker *w,int c,int unit,cons
       }
    }
 }
+/* -temporal_null: construct one runwise surrogate per subject from the
+   immutable draw descriptor, preserving run boundaries. */
 static void temporal_draw(INSYNC_infer *x,infer_worker *w,int draw)
 {
    int r,sub,t,f,nt=x->s->ntime;
@@ -472,6 +594,8 @@ static void temporal_draw(INSYNC_infer *x,infer_worker *w,int draw)
       }
    }
 }
+/* Evaluate every synchronized temporal draw for one selection/unit and
+   accumulate its group statistics, valid-draw counts, and maxima. */
 static void temporal_cell(INSYNC_infer *x,infer_worker *w,int id,int c,int unit,int aggregate,
                           const void *src,INSYNC_sample_reader get,const unsigned char *common,float *maps)
 {
@@ -479,7 +603,7 @@ static void temporal_cell(INSYNC_infer *x,infer_worker *w,int id,int c,int unit,
    temporal_prepare(x,w,c,unit,src,get); identity_members(x,w,0);
    for(d=0;d<x->o->nnull;d++){
       temporal_draw(x,w,d);
-      nb=pack_data(x,w,id,c,c,unit,aggregate,&reader,temporal_get,x->temporal_keep?x->temporal_keep+(size_t)d*x->s->ntime:common);
+      nb=pack_data(x,w,id,c,c,unit,aggregate,&reader,temporal_get,NULL,x->temporal_keep?x->temporal_keep+(size_t)d*x->s->ntime:common);
       estimate(x,w,nb,aggregate,x->grid.ngroup,(d && !x->o->temporal_censor)?w->keep:NULL,(d && !x->o->temporal_censor)?NULL:w->keep);
       for(g=0;g<x->grid.ngroup;g++) w->tnulls[(size_t)g*x->o->nnull+d]=w->st[g];
    }
@@ -507,7 +631,9 @@ static void temporal_cell(INSYNC_infer *x,infer_worker *w,int id,int c,int unit,
       record_null(x->temporal_result,x->temporal_valid,cell,w->tnulls+(size_t)g*x->o->nnull,w->maxt,NULL,x->o->temporal_tail);
    }
 }
-void INSYNC_infer_selection(INSYNC_infer *x,int id,int aggregate,const void *src,INSYNC_sample_reader get,const unsigned char *common,THD_3dim_dataset *reference)
+/* Evaluate subject bootstrap, group/condition permutations, and temporal
+   nulls for one selection; workers read shared sources and own scratch. */
+void INSYNC_infer_selection(INSYNC_infer *x,int id,int aggregate,const void *src,INSYNC_sample_reader get,INSYNC_sample_reader original,const unsigned char *common,THD_3dim_dataset *reference)
 {
    const INSYNC_infer_grid *h=&x->grid; int unit,i,th;
    float *maps=allocate((size_t)x->nout*h->nwork,sizeof(float));
@@ -523,8 +649,8 @@ void INSYNC_infer_selection(INSYNC_infer *x,int id,int aggregate,const void *src
       infer_worker *w=x->workers+thread;
       for(c=0;c<h->ncond;c++){
          if(!x->boot_set && !x->group_set) break;
-         nb=pack_data(x,w,id,c,c,unit,aggregate,src,get,common); identity_members(x,w,0);
-         if(!estimate(x,w,nb,aggregate,h->ngroup,NULL,w->keep)) continue;
+         nb=pack_data(x,w,id,c,c,unit,aggregate,src,get,original,common); identity_members(x,w,0);
+         if(!estimate(x,w,nb,aggregate,h->ngroup,NULL,w->keep) && !w->missing) continue;
          if(x->group_set){
             w->nulls[0]=w->st[0]-w->st[1];
             for(draw=1;draw<x->group_set->nperm;draw++){
@@ -535,7 +661,7 @@ void INSYNC_infer_selection(INSYNC_infer *x,int id,int aggregate,const void *src
                }
                estimate(x,w,nb,aggregate,h->ngroup,w->keep,NULL); w->nulls[draw]=w->st[0]-w->st[1];
             }
-            record_null(x->group_result,x->group_valid,((id-1)*h->ncond+c)*h->nwork+unit,w->nulls,w->maxg,w->maxneg,x->o->tail);
+            (w->missing?record_missing_null:record_null)(x->group_result,x->group_valid,((id-1)*h->ncond+c)*h->nwork+unit,w->nulls,w->maxg,w->maxneg,x->o->tail);
          }
          if(x->boot_set) for(g=0;g<h->ngroup;g++){
             int usable=0,slot=4*(c*h->ngroup+g);
@@ -546,30 +672,34 @@ void INSYNC_infer_selection(INSYNC_infer *x,int id,int aggregate,const void *src
                if(estimate(x,w,nb,aggregate,1,w->keep,NULL)) w->draw[usable++]=w->st[0];
             }
             maps[(size_t)(slot+2)*h->nwork+unit]=usable;
-            if(usable>=10){
+            if(w->missing){
+               w->count[0]=h->gcount[g];
+               for(k=0;k<h->gcount[g];k++) w->sample[k]=h->gmember[g][k];
+            }
+            if(usable>=10 && (!w->missing || (usable==x->boot_set->nresample && estimate_missing(x,w,nb,aggregate,1)))){
                maps[(size_t)slot*h->nwork+unit]=INSYNC_percentile(w->draw,usable,.5f*x->o->boot_alpha);
                maps[(size_t)(slot+1)*h->nwork+unit]=INSYNC_percentile(w->draw,usable,1-.5f*x->o->boot_alpha);
                maps[(size_t)(slot+3)*h->nwork+unit]=1;
             }
          }
       }
-      if(x->o->temporal_mode) for(c=0;c<h->ncond;c++) temporal_cell(x,w,id,c,unit,aggregate,src,get,common,maps);
+      if(x->o->temporal_mode) for(c=0;c<h->ncond;c++) temporal_cell(x,w,id,c,unit,aggregate,src,original?original:get,common,maps);
       if(x->o->have_contrast){
          int ng=2*h->ngroup,good=1,nul=x->condition_set?x->condition_set->nperm:0;
          /* First require identical observed admitted-block sets, not an
             implicit intersection that changes the contrast estimand. */
-         nb=pack_data(x,w,id,x->contrast0,x->contrast0,unit,aggregate,src,get,common); identity_members(x,w,0);
+         nb=pack_data(x,w,id,x->contrast0,x->contrast0,unit,aggregate,src,get,original,common); identity_members(x,w,0);
          if(!estimate(x,w,nb,aggregate,h->ngroup,NULL,w->keep)) good=0;
-         nb=pack_data(x,w,id,x->contrast1,x->contrast1,unit,aggregate,src,get,common); identity_members(x,w,0);
+         nb=pack_data(x,w,id,x->contrast1,x->contrast1,unit,aggregate,src,get,original,common); identity_members(x,w,0);
          if(!estimate(x,w,nb,aggregate,h->ngroup,NULL,w->keep2)) good=0;
          for(k=0;k<nb;k++) if(w->keep[k]!=w->keep2[k]) good=0;
-         if(!good) continue;
-         nb=pack_data(x,w,id,x->contrast0,x->contrast1,unit,aggregate,src,get,common); identity_members(x,w,1);
-         if(!estimate(x,w,nb,aggregate,ng,w->keep,NULL)) continue;
+         if(!good && !w->missing) continue;
+         nb=pack_data(x,w,id,x->contrast0,x->contrast1,unit,aggregate,src,get,original,common); identity_members(x,w,1);
+         if(!estimate(x,w,nb,aggregate,ng,w->keep,NULL) && !w->missing) continue;
          for(g=0;g<x->neffect;g++){
             int base=x->nbmap+x->ngmap+(nul?7:2)*g;
             float effect=g<h->ngroup?w->st[g]-w->st[h->ngroup+g]:(w->st[0]-w->st[h->ngroup])-(w->st[1]-w->st[h->ngroup+1]);
-            maps[(size_t)base*h->nwork+unit]=effect; maps[(size_t)(base+(nul?6:1))*h->nwork+unit]=1;
+            maps[(size_t)base*h->nwork+unit]=isfinite(effect)?effect:0; maps[(size_t)(base+(nul?6:1))*h->nwork+unit]=isfinite(effect)!=0;
             if(nul) w->nulls[(size_t)g*nul]=effect;
          }
          for(draw=1;draw<nul;draw++){
@@ -581,7 +711,7 @@ void INSYNC_infer_selection(INSYNC_infer *x,int id,int aggregate,const void *src
             estimate(x,w,nb,aggregate,ng,w->keep,NULL);
             for(g=0;g<x->neffect;g++) w->nulls[(size_t)g*nul+draw]=g<h->ngroup?w->st[g]-w->st[h->ngroup+g]:(w->st[0]-w->st[h->ngroup])-(w->st[1]-w->st[h->ngroup+1]);
          }
-         if(nul) for(g=0;g<x->neffect;g++) record_null(x->condition_result,x->condition_valid,((id-1)*x->neffect+g)*h->nwork+unit,w->nulls+(size_t)g*nul,w->maxc,NULL,x->o->condition_tail);
+         if(nul) for(g=0;g<x->neffect;g++) (w->missing?record_missing_null:record_null)(x->condition_result,x->condition_valid,((id-1)*x->neffect+g)*h->nwork+unit,w->nulls+(size_t)g*nul,w->maxc,NULL,x->o->condition_tail);
       }
    }
    for(th=0;th<h->nthread;th++){
@@ -597,12 +727,15 @@ void INSYNC_infer_selection(INSYNC_infer *x,int id,int aggregate,const void *src
    free(maps);
    if(!x->o->quiet) INFO_message("3dInSync: inference selection %d/%d accumulated; global corrections pending",id,x->s->nselection);
 }
+/* Order finite bootstrap estimates for empirical confidence limits. */
 static int float_cmp(const void *a,const void *b){ float x=*(const float *)a,y=*(const float *)b; return (x>y)-(x<y); }
+/* Finalize empirical probabilities and BH-FDR for the declared family,
+   respecting its validity mask and sidedness. */
 static void finish_family(PERM_result *r,unsigned char *valid,float *q,float *negative,int tail,const char *what,int full_family)
 {
    int i,n=0; if(!r) return;
    for(i=0;i<r->nelem;i++) if(valid[i]) n++;
-   if(!n) IF_FAIL("no %s cells in %s family",full_family?"observed-valid":"complete finite-null",what);
+   if(!n && !full_family) IF_FAIL("no %s cells in %s family",full_family?"observed-valid":"complete finite-null",what);
    if(tail!=INSYNC_TAIL_BI) THD_perm_result_finish(r,valid);
    else {
       qsort(r->max_null,r->nperm,sizeof(float),float_cmp); qsort(negative,r->nperm,sizeof(float),float_cmp);
@@ -615,6 +748,8 @@ static void finish_family(PERM_result *r,unsigned char *valid,float *q,float *ne
    }
    THD_bh_fdr_masked(r->nelem,r->p_unc,full_family?NULL:valid,q);
 }
+/* Finalize joint families, read spooled selection maps, write inference
+   buckets/index entries, and release inference resources. */
 void INSYNC_infer_finish(INSYNC_infer *x,FILE *brick_index)
 {
    const INSYNC_infer_grid *h=&x->grid; int id,b,w,i,g; FILE *roi=NULL;
@@ -626,9 +761,18 @@ void INSYNC_infer_finish(INSYNC_infer *x,FILE *brick_index)
       for(i=0;i<x->temporal_cells;i++) valid+=x->temporal_valid[i]!=0;
       INFO_message("3dInSync: joint_shift observed-valid cells %d/%d; %d invalid; failed null draws count as exceedances (inspect TNullN and temporal_support.tsv)",valid,x->temporal_cells,x->temporal_cells-valid);
    }
+   if(x->o->missing_policy==INSYNC_MISSING_INTERP) fprintf(x->manifest,"# Interp: subject resampling includes bounded fills with real-sample gates; TemporalISC and temporal p values exclude fills in identity and shifted draws (observed-only estimand).\n");
+   if(INSYNC_MISSING_LOCAL(x->o->missing_policy)){
+      PERM_result *result[2]={x->group_result,x->condition_result};
+      for(g=0;g<2;g++) if(result[g]){
+         int failed=0;
+         for(i=0;i<result[g]->nperm;i++) failed+=result[g]->max_null[i]==FLT_MAX;
+         fprintf(x->manifest,"# %s family: %d/%d unresolved maximum draws count as FWE exceedances; full prespecified BH family.\n",g?"condition":"group",failed,result[g]->nperm);
+      }
+   }
    finish_family(x->temporal_result,x->temporal_valid,x->temporal_q,NULL,x->o->temporal_tail,"temporal",x->o->temporal_censor);
-   finish_family(x->group_result,x->group_valid,x->group_q,x->maxneg,x->o->tail,"group",0);
-   finish_family(x->condition_result,x->condition_valid,x->condition_q,NULL,x->o->condition_tail,"condition",0);
+   finish_family(x->group_result,x->group_valid,x->group_q,x->maxneg,x->o->tail,"group",INSYNC_MISSING_LOCAL(x->o->missing_policy));
+   finish_family(x->condition_result,x->condition_valid,x->condition_q,NULL,x->o->condition_tail,"condition",INSYNC_MISSING_LOCAL(x->o->missing_policy));
    if(fflush(x->spool) || fseeko(x->spool,0,SEEK_SET)) IF_FAIL("cannot rewind inference spool");
    if(h->nroi){ output_path(path,x,0,"inference_roi.tsv"); roi=fopen(path,"w"); if(!roi) IF_FAIL("cannot write inference ROI table"); fprintf(roi,"SelectionID\tROI\tROI_Label\tNVoxel\tBrick\tLabel\tValue\n"); }
    for(id=1;id<=x->s->nselection;id++){
@@ -671,7 +815,7 @@ void INSYNC_infer_finish(INSYNC_infer *x,FILE *brick_index)
    close_checked(x->spool);
    fprintf(x->manifest,"# Status: complete\n"); close_checked(x->manifest); free(maps);
    for(i=0;i<h->nthread;i++){
-      infer_worker *w=x->workers+i; INSYNC_kernel_free(w->kernel); free(w->data); free(w->pack); free(w->component); free(w->scratch); free(w->st); free(w->draw); free(w->nulls); free(w->maxg); free(w->maxneg); free(w->maxc); free(w->length); free(w->offset); free(w->rows); free(w->nv); free(w->pc); free(w->sample); free(w->member); free(w->count); free(w->component_count); free(w->component_offset); free(w->coverage); free(w->keep); free(w->keep2); free(w->original); free(w->surrogate); free(w->tnulls); free(w->maxt); free(w->spectrum); free(w->fftwork);
+      infer_worker *w=x->workers+i; INSYNC_kernel_free(w->kernel); INSYNC_missing_free(w->missing); free(w->missing_blocks); free(w->piece); free(w->observed); free(w->observed_pack); free(w->data); free(w->pack); free(w->component); free(w->scratch); free(w->st); free(w->draw); free(w->nulls); free(w->maxg); free(w->maxneg); free(w->maxc); free(w->length); free(w->offset); free(w->rows); free(w->nv); free(w->pc); free(w->sample); free(w->member); free(w->count); free(w->component_count); free(w->component_offset); free(w->coverage); free(w->keep); free(w->keep2); free(w->original); free(w->surrogate); free(w->tnulls); free(w->maxt); free(w->spectrum); free(w->fftwork);
    }
    if(x->run_used) for(i=0;i<x->s->nrun;i++){ THD_timeshift_set_free(x->shift[i]); THD_phase_set_free(x->phase[i]); }
    free(x->shift); free(x->phase); free(x->run_used); free(x->run_seed); free(x->subject_at);

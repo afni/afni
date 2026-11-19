@@ -676,9 +676,62 @@ static void rsa_condfold_free( RSA_condfold *cf )
     comments are ignored.  Strict unseen-stimulus scoring needs at least three
     held conditions (three test dyads) and three remaining training conditions
     in every fold. */
+static int rsa_condfold_fill( RSA_condfold *cf, FILE *fp, char *fname, int ncond )
+{
+   char line[4096],tok[512],extra[2] ; int nr=0,ff ;
+   cf->ncond=ncond ; cf->fold=(int *)malloc(sizeof(int)*ncond) ;
+   if( cf->fold==NULL ) return 0 ;
+   while( fgets(line,sizeof(line),fp)!=NULL ){
+     char *p=line,*hash ;
+     while( isspace((unsigned char)*p) ) p++ ;
+     if( *p=='\0' || *p=='#' ) continue ;
+     hash=strchr(p,'#') ; if( hash!=NULL ) *hash='\0' ;
+     if( sscanf(p,"%511s %1s",tok,extra)!=1 ){
+       ERROR_message("3dRSA: -fit_condfold '%s' needs one label per line",fname) ;
+       return 0 ;
+     }
+     if( nr>=ncond ){
+       ERROR_message("3dRSA: -fit_condfold '%s' has more than %d condition labels",
+                     fname,ncond) ;
+       return 0 ;
+     }
+     for( ff=0 ; ff<cf->nfold ; ff++ ) if( strcmp(tok,cf->label[ff])==0 ) break ;
+     if( ff==cf->nfold ){
+       char **tmp=(char **)realloc(cf->label,sizeof(char *)*(cf->nfold+1)) ;
+       if( tmp==NULL ) return 0 ;
+       cf->label=tmp ; cf->label[cf->nfold]=strdup(tok) ;
+       if( cf->label[cf->nfold]==NULL ) return 0 ;
+       cf->nfold++ ;
+     }
+     cf->fold[nr++]=ff ;
+   }
+   if( nr!=ncond ){
+     ERROR_message("3dRSA: -fit_condfold '%s' has %d labels; need %d (one per condition)",
+                   fname,nr,ncond) ;
+     return 0 ;
+   }
+   if( cf->nfold<2 ){
+     ERROR_message("3dRSA: -fit_condfold '%s' defines only %d fold; need at least 2",
+                   fname,cf->nfold) ;
+     return 0 ;
+   }
+   cf->nmember=(int *)calloc(cf->nfold,sizeof(int)) ;
+   if( cf->nmember==NULL ) return 0 ;
+   for( nr=0 ; nr<ncond ; nr++ ) cf->nmember[cf->fold[nr]]++ ;
+   for( ff=0 ; ff<cf->nfold ; ff++ ){
+     if( cf->nmember[ff]<3 || ncond-cf->nmember[ff]<3 ){
+       ERROR_message("3dRSA: -fit_condfold '%s': fold '%s' holds %d and leaves %d conditions;\n"
+                     "       strict held-condition fitting needs at least 3 on each side",
+                     fname,cf->label[ff],cf->nmember[ff],ncond-cf->nmember[ff]) ;
+       return 0 ;
+     }
+   }
+   return 1 ;
+}
+
 static RSA_condfold * rsa_condfold_read( char *fname, int ncond )
 {
-   RSA_condfold *cf ; FILE *fp ; char line[4096],tok[512],extra[2] ; int nr=0,ff ;
+   RSA_condfold *cf ; FILE *fp ; int ok ;
    if( fname==NULL || ncond<1 ) return NULL ;
    fp=fopen(fname,"r") ;
    if( fp==NULL ){
@@ -687,58 +740,10 @@ static RSA_condfold * rsa_condfold_read( char *fname, int ncond )
    }
    cf=(RSA_condfold *)calloc(1,sizeof(RSA_condfold)) ;
    if( cf==NULL ){ fclose(fp) ; return NULL ; }
-   cf->ncond=ncond ; cf->fold=(int *)malloc(sizeof(int)*ncond) ;
-   if( cf->fold==NULL ){ fclose(fp) ; rsa_condfold_free(cf) ; return NULL ; }
-   while( fgets(line,sizeof(line),fp)!=NULL ){
-     char *p=line,*hash ;
-     while( isspace((unsigned char)*p) ) p++ ;
-     if( *p=='\0' || *p=='#' ) continue ;
-     hash=strchr(p,'#') ; if( hash!=NULL ) *hash='\0' ;
-     if( sscanf(p,"%511s %1s",tok,extra)!=1 ){
-       ERROR_message("3dRSA: -fit_condfold '%s' needs one label per line",fname) ;
-       goto bad ;
-     }
-     if( nr>=ncond ){
-       ERROR_message("3dRSA: -fit_condfold '%s' has more than %d condition labels",
-                     fname,ncond) ;
-       goto bad ;
-     }
-     for( ff=0 ; ff<cf->nfold ; ff++ ) if( strcmp(tok,cf->label[ff])==0 ) break ;
-     if( ff==cf->nfold ){
-       char **tmp=(char **)realloc(cf->label,sizeof(char *)*(cf->nfold+1)) ;
-       if( tmp==NULL ) goto bad ;
-       cf->label=tmp ; cf->label[cf->nfold]=strdup(tok) ;
-       if( cf->label[cf->nfold]==NULL ) goto bad ;
-       cf->nfold++ ;
-     }
-     cf->fold[nr++]=ff ;
-   }
-   fclose(fp) ; fp=NULL ;
-   if( nr!=ncond ){
-     ERROR_message("3dRSA: -fit_condfold '%s' has %d labels; need %d (one per condition)",
-                   fname,nr,ncond) ;
-     goto bad ;
-   }
-   if( cf->nfold<2 ){
-     ERROR_message("3dRSA: -fit_condfold '%s' defines only %d fold; need at least 2",
-                   fname,cf->nfold) ;
-     goto bad ;
-   }
-   cf->nmember=(int *)calloc(cf->nfold,sizeof(int)) ;
-   if( cf->nmember==NULL ) goto bad ;
-   for( nr=0 ; nr<ncond ; nr++ ) cf->nmember[cf->fold[nr]]++ ;
-   for( ff=0 ; ff<cf->nfold ; ff++ ){
-     if( cf->nmember[ff]<3 || ncond-cf->nmember[ff]<3 ){
-       ERROR_message("3dRSA: -fit_condfold '%s': fold '%s' holds %d and leaves %d conditions;\n"
-                     "       strict held-condition fitting needs at least 3 on each side",
-                     fname,cf->label[ff],cf->nmember[ff],ncond-cf->nmember[ff]) ;
-       goto bad ;
-     }
-   }
+   ok=rsa_condfold_fill(cf,fp,fname,ncond) ;
+   fclose(fp) ;
+   if( !ok ){ rsa_condfold_free(cf) ; return NULL ; }
    return cf ;
-bad:
-   if( fp!=NULL ) fclose(fp) ;
-   rsa_condfold_free(cf) ; return NULL ;
 }
 
 /*! Per-thread scratch for crossnobis noise normalization (4c).  mode NN_NONE
@@ -3778,26 +3783,22 @@ static THD_simmat * rsa_second_order_rdm(
    int center_conditions , float *pat , float **rpat, float *runraw,
    RSA_whiten *wh, THD_rsa_rdm_workspace *rws )
 {
-   THD_simmat *sr,*out=NULL ; int jj,own_ws=0 ;
+   THD_simmat *sr,*out=NULL ; int jj,own_ws=0,ok ;
 
    if( rws==NULL ){
      rws=THD_rsa_rdm_workspace_new(nsub,ncond) ; own_ws=1 ;
    }
-   if( rws==NULL || !THD_rsa_rdm_workspace_reset(rws,nsub,ncond,NULL,0) )
-     goto done ;
+   ok=rws!=NULL && THD_rsa_rdm_workspace_reset(rws,nsub,ncond,NULL,0) ;
 
-   for( jj=0 ; jj < nsub ; jj++ ){
+   for( jj=0 ; ok && jj < nsub ; jj++ ){
      sr=rsa_subject_rdm(jj,rl,kk,ncond,nvx,cond_metric,dset,runset,condition_index,
                         center_conditions,pat,rpat,runraw,wh) ;
-     if( sr == NULL ) goto done ;
-     if( !THD_rsa_rdm_workspace_store(rws,jj,sr,1,NULL,0) ){
-       THD_simmat_free(sr) ; goto done ;
-     }
+     if( sr == NULL ){ ok=0 ; break ; }
+     ok=THD_rsa_rdm_workspace_store(rws,jj,sr,1,NULL,0) ;
      THD_simmat_free(sr) ;
    }
-   out=THD_rsa_second_order_rdm(rws,outer_metric,NULL,0) ;
+   if( ok ) out=THD_rsa_second_order_rdm(rws,outer_metric,NULL,0) ;
 
-done:
    if( own_ws ) THD_rsa_rdm_workspace_free(rws) ;
    return out ;
 }
@@ -3878,25 +3879,24 @@ static THD_simmat * rsa_build_seed_model(
        out=THD_simmat_from_features(nsub,nf,F,neu_metric) ;
      }
    } else {
+     int ok=1 ;
      float *all=(float *)malloc(sizeof(float)*(size_t)nsub*ntri) ;
      pat=(float *)malloc(sizeof(float)*(size_t)nvals*svx) ;
      for( jj=0 ; jj<nsub ; jj++ ){
        sm=rsa_subject_rdm(jj,seedrl,0,nvals,svx,neu_metric,dset,runset,condition_index,
                           center_conditions,pat,rpat,runraw,&wh) ;
-       if( sm==NULL ){ free(all) ; all=NULL ; goto done ; }
+       if( sm==NULL ){ ok=0 ; break ; }
        if( !THD_rsa_simmat_to_triangle(sm,all+(size_t)jj*ntri,0,NULL,0) ){
-         THD_simmat_free(sm) ; free(all) ; all=NULL ; goto done ;
+         THD_simmat_free(sm) ; ok=0 ; break ;
        }
        THD_simmat_free(sm) ;
      }
-     out=THD_rsa_mean_subject_rdms(nsub,nvals,all,
+     if( ok ) out=THD_rsa_mean_subject_rdms(nsub,nvals,all,
                                    runset!=NULL || neu_metric==SIM_EUCLID,
                                    NULL,0) ;
-     if( out==NULL ){ free(all) ; all=NULL ; goto done ; }
-     if( classic_tri != NULL ) *classic_tri=all ; else free(all) ;
+     if( out!=NULL && classic_tri!=NULL ) *classic_tri=all ; else free(all) ;
    }
 
-done:
    free(F) ; free(keep) ; free(pat) ; free(runraw) ;
    if( rpat!=NULL ){ for( rr=0 ; rr<maxrun ; rr++ ) free(rpat[rr]) ; free(rpat) ; }
    free(wh.residbuf) ; free(wh.Rmat) ; free(wh.Whalf) ; free(wh.wdiag) ; free(wh.wtmp) ;
@@ -3924,56 +3924,67 @@ static float rsa_mc_emp_pvalue( float *sorted_abs, int n, float obsabs )
 /*! Build synchronized condition samples.  group_file, when present, contains
     exactly one whitespace-free descriptor label per nonblank/noncomment line.
     A group is sampled as a unit and expanded in original condition order. */
+/* The caller owns the stream, label strings, and condition index map. */
+static int rsa_cond_group_read(FILE *fp, char *group_file, int ncond,
+                               char **lab, int *gidx)
+{
+   char line[4096],tok[512],extra[2];int nr=0,ng=0,ii,gg;
+   while( fgets(line,sizeof(line),fp) != NULL ){
+     char *p=line, *hash ;
+     while( isspace((unsigned char)*p) ) p++ ;
+     if( *p == '\0' || *p == '#' ) continue ;
+     hash=strchr(p,'#') ; if( hash != NULL ) *hash='\0' ;
+     if( sscanf(p,"%511s %1s",tok,extra) != 1 ){
+       ERROR_message("3dRSA: -cond_group '%s' needs one label per line",group_file) ;
+       return 0 ;
+     }
+     if( nr >= ncond ){
+       ERROR_message("3dRSA: -cond_group '%s' has more than %d condition labels",
+                     group_file,ncond) ; return 0 ;
+     }
+     lab[nr] = strdup(tok) ; if( lab[nr] == NULL ){ return 0 ; } nr++ ;
+   }
+   if( nr != ncond ){
+     ERROR_message("3dRSA: -cond_group '%s' has %d labels; need %d (one per condition)",
+                   group_file,nr,ncond) ; return 0 ;
+   }
+   for( ii=0 ; ii < ncond ; ii++ ){
+     for( gg=0 ; gg < ii ; gg++ ) if( strcmp(lab[ii],lab[gg]) == 0 ) break ;
+     if( gg < ii ) gidx[ii]=gidx[gg] ; else gidx[ii]=ng++ ;
+   }
+   if( ng < 3 ){
+     ERROR_message("3dRSA: -cond_group '%s' defines only %d groups; need at least 3",
+                   group_file,ng) ; return 0 ;
+   }
+   return ng;
+}
+
 static RSA_cond_resample * rsa_cond_resample_build( int ncond, int nresample,
                                                      long seed, char *group_file )
 {
    RSA_cond_resample *cb=NULL ; char err[256]="cannot allocate condition bootstrap";
    int *gidx=NULL ;
-   char **lab=NULL ; int ng=0, ii, gg ;
+   char **lab=NULL ; int ng=0, ii ;
 
    gidx = (int *)malloc(sizeof(int)*ncond) ;
    if( gidx == NULL ) return NULL ;
    if( group_file == NULL ){
      ng=ncond ; for( ii=0 ; ii < ncond ; ii++ ) gidx[ii]=ii ;
    } else {
-     FILE *fp=fopen(group_file,"r") ; char line[4096], tok[512], extra[2] ; int nr=0 ;
+     FILE *fp=fopen(group_file,"r") ;
      if( fp == NULL ){
-       ERROR_message("3dRSA: cannot open -cond_group file '%s'",group_file) ; goto bad ;
-     }
-     lab = (char **)calloc(ncond,sizeof(char *)) ;
-     while( fgets(line,sizeof(line),fp) != NULL ){
-       char *p=line, *hash ;
-       while( isspace((unsigned char)*p) ) p++ ;
-       if( *p == '\0' || *p == '#' ) continue ;
-       hash=strchr(p,'#') ; if( hash != NULL ) *hash='\0' ;
-       if( sscanf(p,"%511s %1s",tok,extra) != 1 ){
-         ERROR_message("3dRSA: -cond_group '%s' needs one label per line",group_file) ;
-         fclose(fp) ; goto bad ;
-       }
-       if( nr >= ncond ){
-         ERROR_message("3dRSA: -cond_group '%s' has more than %d condition labels",
-                       group_file,ncond) ; fclose(fp) ; goto bad ;
-       }
-       lab[nr] = strdup(tok) ; if( lab[nr] == NULL ){ fclose(fp) ; goto bad ; } nr++ ;
-     }
-     fclose(fp) ;
-     if( nr != ncond ){
-       ERROR_message("3dRSA: -cond_group '%s' has %d labels; need %d (one per condition)",
-                     group_file,nr,ncond) ; goto bad ;
-     }
-     for( ii=0 ; ii < ncond ; ii++ ){
-       for( gg=0 ; gg < ii ; gg++ ) if( strcmp(lab[ii],lab[gg]) == 0 ) break ;
-       if( gg < ii ) gidx[ii]=gidx[gg] ; else gidx[ii]=ng++ ;
-     }
-     if( ng < 3 ){
-       ERROR_message("3dRSA: -cond_group '%s' defines only %d groups; need at least 3",
-                     group_file,ng) ; goto bad ;
+       ERROR_message("3dRSA: cannot open -cond_group file '%s'",group_file) ;
+     } else {
+       lab = (char **)calloc(ncond,sizeof(char *)) ;
+       if( lab!=NULL ) ng=rsa_cond_group_read(fp,group_file,ncond,lab,gidx) ;
+       fclose(fp) ;
      }
    }
 
-   cb=THD_rsa_cond_resample_build(ncond,ng,gidx,nresample,seed,err,sizeof(err));
-   if(!cb) ERROR_message("3dRSA: %s",err);
-bad:
+   if( ng>0 ){
+     cb=THD_rsa_cond_resample_build(ncond,ng,gidx,nresample,seed,err,sizeof(err));
+     if(!cb) ERROR_message("3dRSA: %s",err);
+   }
    free(gidx);
    if(lab){ for(ii=0;ii<ncond;ii++) free(lab[ii]); free(lab); }
    return cb;
@@ -6010,119 +6021,122 @@ int main( int argc , char *argv[] )
 
    /* Runwise input keeps its datasets in the THD_runset (opened and validated
       already); the per-subject dset[] array is only for the -dataTable path. */
-   if( runset != NULL ){ nvals = runset->ncond ; goto have_datasets ; }
-   if( input_rdm ){ nvals=1;goto have_datasets; }
+   if( runset != NULL ){
+     nvals = runset->ncond ;
+   } else if( input_rdm ){
+     nvals=1;
+   } else {
+     dset = (THD_3dim_dataset **)calloc(series_runs?series_runs->nrow:
+                                        condition_index?condition_index->ncell:nsub,
+                                        sizeof(THD_3dim_dataset *)) ;
 
-   dset = (THD_3dim_dataset **)calloc(series_runs?series_runs->nrow:
-                                      condition_index?condition_index->ncell:nsub,
-                                      sizeof(THD_3dim_dataset *)) ;
-
-   if( condition_index!=NULL ) nvals=ncondition_level ;
-   for( jj=0 ; jj < (series_runs?series_runs->nrow:
-                     condition_index?condition_index->ncell:nsub) ; jj++ ){
-     int source_row=condition_index?condition_index->row_of[jj]:jj ;
-     char *fn=series_runs?series_runs->fname[jj]:
-              condition_index?longtab->fname[source_row]:tab->fname[jj] ;
-     int sj=series_runs?series_runs->row_sub[jj]:
-            condition_index?(jj/ncondition_level):jj ;
-     int uj=series_runs?series_runs->row_run[jj]:0 ;
-     dset[jj] = THD_open_dataset( fn ) ;
-     if( dset[jj] == NULL ){
-       if( tab->from_argv )
-         ERROR_exit("3dRSA: can't open InputFile '%s' (row %d, Subj %s).\n"
-                    "       The table came from the command line, where\n"
-                    "       'InputFile' must be the LAST column.",
-                    fn , jj+1 , tab->subj[sj]) ;
-       ERROR_exit("3dRSA: can't open InputFile '%s' (row %d, Subj %s%s%s%s%s)",
-                  fn,source_row+1,tab->subj[sj],series_runs?", ":
-                  condition_index?", condition ":"",
-                  series_runs?run_column:"",series_runs?" ":"",
-                  series_runs?series_runs->run_label[uj]:
-                  condition_index?condition_index->level[1][jj%ncondition_level]:"") ;
-     }
-     if(all_1d_features && !DSET_IS_1D(dset[jj]))
-       ERROR_exit("3dRSA: mask-free numeric input requires every InputFile to be .1D; '%s' is not",fn);
-     if( DSET_NVOX(dset[jj]) != nvox ){
-       if(all_1d_features)
-         ERROR_exit("3dRSA: '%s' has %d features but the first InputFile has %d",
+     if( condition_index!=NULL ) nvals=ncondition_level ;
+     for( jj=0 ; jj < (series_runs?series_runs->nrow:
+                       condition_index?condition_index->ncell:nsub) ; jj++ ){
+       int source_row=condition_index?condition_index->row_of[jj]:jj ;
+       char *fn=series_runs?series_runs->fname[jj]:
+                condition_index?longtab->fname[source_row]:tab->fname[jj] ;
+       int sj=series_runs?series_runs->row_sub[jj]:
+              condition_index?(jj/ncondition_level):jj ;
+       int uj=series_runs?series_runs->row_run[jj]:0 ;
+       dset[jj] = THD_open_dataset( fn ) ;
+       if( dset[jj] == NULL ){
+         if( tab->from_argv )
+           ERROR_exit("3dRSA: can't open InputFile '%s' (row %d, Subj %s).\n"
+                      "       The table came from the command line, where\n"
+                      "       'InputFile' must be the LAST column.",
+                      fn , jj+1 , tab->subj[sj]) ;
+         ERROR_exit("3dRSA: can't open InputFile '%s' (row %d, Subj %s%s%s%s%s)",
+                    fn,source_row+1,tab->subj[sj],series_runs?", ":
+                    condition_index?", condition ":"",
+                    series_runs?run_column:"",series_runs?" ":"",
+                    series_runs?series_runs->run_label[uj]:
+                    condition_index?condition_index->level[1][jj%ncondition_level]:"") ;
+       }
+       if(all_1d_features && !DSET_IS_1D(dset[jj]))
+         ERROR_exit("3dRSA: mask-free numeric input requires every InputFile to be .1D; '%s' is not",fn);
+       if( DSET_NVOX(dset[jj]) != nvox ){
+         if(all_1d_features)
+           ERROR_exit("3dRSA: '%s' has %d features but the first InputFile has %d",
+                      fn,DSET_NVOX(dset[jj]),nvox);
+         ERROR_exit("3dRSA: '%s' has %d voxels but the -mask has %d",
                     fn,DSET_NVOX(dset[jj]),nvox);
-       ERROR_exit("3dRSA: '%s' has %d voxels but the -mask has %d",
-                  fn,DSET_NVOX(dset[jj]),nvox);
-     }
-     if( DBLK_IS_NI_SURF_DSET(mset->dblk) || DBLK_IS_GIFTI(mset->dblk) ||
-         DBLK_IS_NI_SURF_DSET(dset[jj]->dblk) || DBLK_IS_GIFTI(dset[jj]->dblk) ){
-       if( !THD_surface_domain_match(mset,dset[jj],domain_err,sizeof(domain_err)) )
-         ERROR_exit("3dRSA: InputFile '%s': %s",fn,domain_err) ;
-     } else if( !all_1d_features && !EQUIV_GRIDS(mset,dset[jj]) )
-       WARNING_message("3dRSA: grid mismatch between -mask and '%s'",fn) ;
+       }
+       if( DBLK_IS_NI_SURF_DSET(mset->dblk) || DBLK_IS_GIFTI(mset->dblk) ||
+           DBLK_IS_NI_SURF_DSET(dset[jj]->dblk) || DBLK_IS_GIFTI(dset[jj]->dblk) ){
+         if( !THD_surface_domain_match(mset,dset[jj],domain_err,sizeof(domain_err)) )
+           ERROR_exit("3dRSA: InputFile '%s': %s",fn,domain_err) ;
+       } else if( !all_1d_features && !EQUIV_GRIDS(mset,dset[jj]) )
+         WARNING_message("3dRSA: grid mismatch between -mask and '%s'",fn) ;
 
-     if( series_runs!=NULL ){
-       int nv=DSET_NVALS(dset[jj]) ;
-       if( series_runs->run_nval[uj]==0 ) series_runs->run_nval[uj]=nv ;
-       else if( series_runs->run_nval[uj]!=nv )
-         ERROR_exit("3dRSA: run length mismatch for %s %s: Subj %s has %d TRs; expected %d",
-                    run_column,series_runs->run_label[uj],tab->subj[sj],nv,
-                    series_runs->run_nval[uj]) ;
-     } else if( condition_index!=NULL ){
-       if( DSET_NVALS(dset[jj])!=1 )
-         ERROR_exit("3dRSA: condition-table InputFile '%s' (row %d, Subj %s, %s %s)\n"
-                    "       resolves to %d bricks; each row must resolve to exactly one",
-                    fn,source_row+1,tab->subj[sj],condition_column,
-                    condition_index->level[1][jj%ncondition_level],DSET_NVALS(dset[jj])) ;
-     } else if( jj == 0 ) nvals = DSET_NVALS(dset[jj]) ;
-     else if( DSET_NVALS(dset[jj]) != nvals )
-       ERROR_exit("3dRSA: '%s' has %d sub-bricks but '%s' has %d.\n"
-                  "       All inputs must have the same number.",
-                  tab->fname[jj] , DSET_NVALS(dset[jj]) , tab->fname[0] , nvals) ;
-   }
-   if( series_runs!=NULL ){
-     nvals=0 ;
-     for( jj=0 ; jj<series_runs->nrun ; jj++ ){
-       if( run_resolved && series_runs->run_nval[jj]<3 )
-         ERROR_exit("3dRSA: run-resolved IS-RSA needs at least 3 TRs per run; %s has %d",
-                    series_runs->run_label[jj],series_runs->run_nval[jj]) ;
-       series_runs->offset[jj]=nvals ; nvals+=series_runs->run_nval[jj] ;
+       if( series_runs!=NULL ){
+         int nv=DSET_NVALS(dset[jj]) ;
+         if( series_runs->run_nval[uj]==0 ) series_runs->run_nval[uj]=nv ;
+         else if( series_runs->run_nval[uj]!=nv )
+           ERROR_exit("3dRSA: run length mismatch for %s %s: Subj %s has %d TRs; expected %d",
+                      run_column,series_runs->run_label[uj],tab->subj[sj],nv,
+                      series_runs->run_nval[uj]) ;
+       } else if( condition_index!=NULL ){
+         if( DSET_NVALS(dset[jj])!=1 )
+           ERROR_exit("3dRSA: condition-table InputFile '%s' (row %d, Subj %s, %s %s)\n"
+                      "       resolves to %d bricks; each row must resolve to exactly one",
+                      fn,source_row+1,tab->subj[sj],condition_column,
+                      condition_index->level[1][jj%ncondition_level],DSET_NVALS(dset[jj])) ;
+       } else if( jj == 0 ) nvals = DSET_NVALS(dset[jj]) ;
+       else if( DSET_NVALS(dset[jj]) != nvals )
+         ERROR_exit("3dRSA: '%s' has %d sub-bricks but '%s' has %d.\n"
+                    "       All inputs must have the same number.",
+                    tab->fname[jj] , DSET_NVALS(dset[jj]) , tab->fname[0] , nvals) ;
      }
-     series_runs->total_nvals=nvals ;
-     if( !quiet ){
-       const char *rn=run_normalize==RUN_NORM_ZSCORE?"zscore":
-                      run_normalize==RUN_NORM_DEMEAN?"demean":"no" ;
-       if( run_resolved )
-         INFO_message("3dRSA: %d subjects x %d runs (%d input rows), %d total TRs;\n"
-                      "       per-run %s normalization, equal-run %s",
-                      nsub,series_runs->nrun,series_runs->nrow,nvals,rn,
-                      run_analysis==RUN_ANALYSIS_SEPARATE?"separate effects + mean":"mean effect") ;
-       else
-         INFO_message("3dRSA: %d subjects x %d runs (%d input rows), %d concatenated TRs;\n"
-                      "       per-run %s normalization, run-length weighted",
-                      nsub,series_runs->nrun,series_runs->nrow,nvals,rn) ;
-       if( nrunconspec>0 ){
-         int cc ;
-         for( cc=0 ; cc<nrunconspec ; cc++ )
-           INFO_message("3dRSA: fixed-run contrast '%s' = mean(%s:%s) - mean(%s:%s)",
-                        runcon[cc].name,runfactor[runcon[cc].ifactor].column,
-                        runfactor[runcon[cc].ifactor].level[runcon[cc].ipos],
-                        runfactor[runcon[cc].ifactor].column,
-                        runfactor[runcon[cc].ifactor].level[runcon[cc].ineg]) ;
+     if( series_runs!=NULL ){
+       nvals=0 ;
+       for( jj=0 ; jj<series_runs->nrun ; jj++ ){
+         if( run_resolved && series_runs->run_nval[jj]<3 )
+           ERROR_exit("3dRSA: run-resolved IS-RSA needs at least 3 TRs per run; %s has %d",
+                      series_runs->run_label[jj],series_runs->run_nval[jj]) ;
+         series_runs->offset[jj]=nvals ; nvals+=series_runs->run_nval[jj] ;
+       }
+       series_runs->total_nvals=nvals ;
+       if( !quiet ){
+         const char *rn=run_normalize==RUN_NORM_ZSCORE?"zscore":
+                        run_normalize==RUN_NORM_DEMEAN?"demean":"no" ;
+         if( run_resolved )
+           INFO_message("3dRSA: %d subjects x %d runs (%d input rows), %d total TRs;\n"
+                        "       per-run %s normalization, equal-run %s",
+                        nsub,series_runs->nrun,series_runs->nrow,nvals,rn,
+                        run_analysis==RUN_ANALYSIS_SEPARATE?"separate effects + mean":"mean effect") ;
+         else
+           INFO_message("3dRSA: %d subjects x %d runs (%d input rows), %d concatenated TRs;\n"
+                        "       per-run %s normalization, run-length weighted",
+                        nsub,series_runs->nrun,series_runs->nrow,nvals,rn) ;
+         if( nrunconspec>0 ){
+           int cc ;
+           for( cc=0 ; cc<nrunconspec ; cc++ )
+             INFO_message("3dRSA: fixed-run contrast '%s' = mean(%s:%s) - mean(%s:%s)",
+                          runcon[cc].name,runfactor[runcon[cc].ifactor].column,
+                          runfactor[runcon[cc].ifactor].level[runcon[cc].ipos],
+                          runfactor[runcon[cc].ifactor].column,
+                          runfactor[runcon[cc].ifactor].level[runcon[cc].ineg]) ;
+         }
        }
      }
+
+     if( mode == MODE_CONT && nvals < 3 )
+       ERROR_exit("3dRSA: IS-RSA mean features need a time series, but the inputs\n"
+                  "       have only %d sub-brick%s",nvals,(nvals==1)?"":"s") ;
+     if( mode == MODE_RDM && nvals < 3 )
+       ERROR_exit("3dRSA: second-order IS-RSA needs at least 3 conditions to form\n"
+                  "       an RDM triangle, but the inputs have %d",nvals) ;
+     if( mode == MODE_RDM && runset == NULL ){
+       for( kk=0 ; kk < nroi ; kk++ )
+         if( rl->vox[kk].nar < 2 )
+           ERROR_exit("3dRSA: second-order IS-RSA condition-pattern RDMs need at\n"
+                      "       least 2 voxels per ROI/neighborhood; location %d has %d.",
+                      rl->val[kk],rl->vox[kk].nar) ;
+     }
+
    }
 
-   if( mode == MODE_CONT && nvals < 3 )
-     ERROR_exit("3dRSA: IS-RSA mean features need a time series, but the inputs\n"
-                "       have only %d sub-brick%s",nvals,(nvals==1)?"":"s") ;
-   if( mode == MODE_RDM && nvals < 3 )
-     ERROR_exit("3dRSA: second-order IS-RSA needs at least 3 conditions to form\n"
-                "       an RDM triangle, but the inputs have %d",nvals) ;
-   if( mode == MODE_RDM && runset == NULL ){
-     for( kk=0 ; kk < nroi ; kk++ )
-       if( rl->vox[kk].nar < 2 )
-         ERROR_exit("3dRSA: second-order IS-RSA condition-pattern RDMs need at\n"
-                    "       least 2 voxels per ROI/neighborhood; location %d has %d.",
-                    rl->val[kk],rl->vox[kk].nar) ;
-   }
-
- have_datasets:
    if((condition_order_arg || condition_level) && ncondition_level!=nvals)
      ERROR_exit("3dRSA: -condition_order has %d labels but fMRI inputs have %d condition sub-bricks",ncondition_level,nvals);
    nitem = (rdm_over == RDM_SUBJ) ? nsub : nvals ;
@@ -7187,3138 +7201,3138 @@ int main( int argc , char *argv[] )
        runset?runset->subj:tab->subj,nitem,mod,nmod,neu_metric,cmp_metric,center_conditions,
        noise_norm,nperm,seed,prefix,do_dset,quiet,progress_mode,argc,argv) ;
      rsa_subject_design_free(subject_design) ;
-     goto rsa_cleanup ;
-   }
+   } else {
 
-   /*-- show how correlated the models are; collinearity is the whole reason
-        -model_joint exists, so it should not be a hidden quantity --*/
+     /*-- show how correlated the models are; collinearity is the whole reason
+          -model_joint exists, so it should not be a hidden quantity --*/
 
-   if( nmod>1 && run_resolved ){
-     int ru ; THD_rdm_ws *w0=THD_rdm_ws_new(nitem,nmod) ;
-     THD_simmat **rmv=(THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
-     float *cm=(float *)malloc(sizeof(float)*nmod*nmod) ;
-     for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-       for( mm=0 ; mm<nmod ; mm++ )
-         rmv[mm]=(mod[mm].run_mat!=NULL)?mod[mm].run_mat[ru]:mod[mm].mat ;
-       THD_rdm_model_corr(nmod,rmv,cmp_metric,w0,cm) ;
-       if( !quiet ) INFO_message("3dRSA: correlations among models in run %s --",series_runs->run_label[ru]) ;
-       for( ii=0 ; ii<nmod ; ii++ ){
-         char line[512],bit[64] ; line[0]='\0' ;
-         for( jj=0 ; jj<nmod ; jj++ ){
-           snprintf(bit,sizeof(bit)," %7.3f",cm[ii*nmod+jj]) ;
-           strncat(line,bit,sizeof(line)-strlen(line)-1) ;
+     if( nmod>1 && run_resolved ){
+       int ru ; THD_rdm_ws *w0=THD_rdm_ws_new(nitem,nmod) ;
+       THD_simmat **rmv=(THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
+       float *cm=(float *)malloc(sizeof(float)*nmod*nmod) ;
+       for( ru=0 ; ru<series_runs->nrun ; ru++ ){
+         for( mm=0 ; mm<nmod ; mm++ )
+           rmv[mm]=(mod[mm].run_mat!=NULL)?mod[mm].run_mat[ru]:mod[mm].mat ;
+         THD_rdm_model_corr(nmod,rmv,cmp_metric,w0,cm) ;
+         if( !quiet ) INFO_message("3dRSA: correlations among models in run %s --",series_runs->run_label[ru]) ;
+         for( ii=0 ; ii<nmod ; ii++ ){
+           char line[512],bit[64] ; line[0]='\0' ;
+           for( jj=0 ; jj<nmod ; jj++ ){
+             snprintf(bit,sizeof(bit)," %7.3f",cm[ii*nmod+jj]) ;
+             strncat(line,bit,sizeof(line)-strlen(line)-1) ;
+           }
+           if( !quiet ) INFO_message("         %-24.24s%s",mod[ii].name,line) ;
          }
-         if( !quiet ) INFO_message("         %-24.24s%s",mod[ii].name,line) ;
+         for( ii=0 ; ii<nmod ; ii++ ) for( jj=ii+1 ; jj<nmod ; jj++ ){
+           if( joint && fabsf(cm[ii*nmod+jj])>0.99999f )
+             ERROR_exit("3dRSA: run %s has indistinguishable joint model columns '%s' and '%s' (r=%.6f)",
+                        series_runs->run_label[ru],mod[ii].name,mod[jj].name,cm[ii*nmod+jj]) ;
+           if( !quiet && fabsf(cm[ii*nmod+jj])>0.7f )
+             WARNING_message("3dRSA: in run %s, '%s' and '%s' correlate at %.3f",
+                             series_runs->run_label[ru],mod[ii].name,mod[jj].name,
+                             cm[ii*nmod+jj]) ;
+         }
        }
-       for( ii=0 ; ii<nmod ; ii++ ) for( jj=ii+1 ; jj<nmod ; jj++ ){
-         if( joint && fabsf(cm[ii*nmod+jj])>0.99999f )
-           ERROR_exit("3dRSA: run %s has indistinguishable joint model columns '%s' and '%s' (r=%.6f)",
-                      series_runs->run_label[ru],mod[ii].name,mod[jj].name,cm[ii*nmod+jj]) ;
-         if( !quiet && fabsf(cm[ii*nmod+jj])>0.7f )
-           WARNING_message("3dRSA: in run %s, '%s' and '%s' correlate at %.3f",
-                           series_runs->run_label[ru],mod[ii].name,mod[jj].name,
-                           cm[ii*nmod+jj]) ;
-       }
+       free(cm); free(rmv); THD_rdm_ws_free(w0) ;
      }
-     free(cm); free(rmv); THD_rdm_ws_free(w0) ;
-   }
 
-   if( !quiet && nmod > 1 && !series_active && !run_resolved &&
-       !((nrdmspec || (condition_index && nmodspec)) && rdm_over==RDM_BRICK) ){
-     int all_fixed=1 ;
-     for( mm=0 ; mm < nmod ; mm++ ) if( mod[mm].mat == NULL ) all_fixed = 0 ;
-     if( has_masked_model ){
-       INFO_message("3dRSA: model intercorrelations are not summarized because a\n"
-                    "       dot-masked model has a different, explicitly selected dyad set") ;
-     } else if( all_fixed ){
-       THD_rdm_ws *w0 = THD_rdm_ws_new( nitem , nmod ) ;
-       THD_simmat **mv = (THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
-       float *cm = (float *)malloc(sizeof(float)*nmod*nmod) ;
-       for( mm=0 ; mm < nmod ; mm++ ) mv[mm] = mod[mm].mat ;
-       THD_rdm_model_corr( nmod , mv , cmp_metric , w0 , cm ) ;
+     if( !quiet && nmod > 1 && !series_active && !run_resolved &&
+         !((nrdmspec || (condition_index && nmodspec)) && rdm_over==RDM_BRICK) ){
+       int all_fixed=1 ;
+       for( mm=0 ; mm < nmod ; mm++ ) if( mod[mm].mat == NULL ) all_fixed = 0 ;
+       if( has_masked_model ){
+         INFO_message("3dRSA: model intercorrelations are not summarized because a\n"
+                      "       dot-masked model has a different, explicitly selected dyad set") ;
+       } else if( all_fixed ){
+         THD_rdm_ws *w0 = THD_rdm_ws_new( nitem , nmod ) ;
+         THD_simmat **mv = (THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
+         float *cm = (float *)malloc(sizeof(float)*nmod*nmod) ;
+         for( mm=0 ; mm < nmod ; mm++ ) mv[mm] = mod[mm].mat ;
+         THD_rdm_model_corr( nmod , mv , cmp_metric , w0 , cm ) ;
 
-       INFO_message("3dRSA: correlations among the models --") ;
-       for( ii=0 ; ii < nmod ; ii++ ){
-         char line[512] , bit[64] ; line[0] = '\0' ;
-         for( jj=0 ; jj < nmod ; jj++ ){
-           sprintf(bit," %7.3f",cm[ii*nmod+jj]) ; strcat(line,bit) ;
+         INFO_message("3dRSA: correlations among the models --") ;
+         for( ii=0 ; ii < nmod ; ii++ ){
+           char line[512] , bit[64] ; line[0] = '\0' ;
+           for( jj=0 ; jj < nmod ; jj++ ){
+             sprintf(bit," %7.3f",cm[ii*nmod+jj]) ; strcat(line,bit) ;
+           }
+           INFO_message("         %-24.24s%s",mod[ii].name,line) ;
          }
-         INFO_message("         %-24.24s%s",mod[ii].name,line) ;
-       }
-       for( ii=0 ; ii < nmod ; ii++ )
-         for( jj=ii+1 ; jj < nmod ; jj++ )
-           if( fabsf(cm[ii*nmod+jj]) > 0.7f )
-             WARNING_message("3dRSA: '%s' and '%s' correlate at %.3f -- they will\n"
-                             "       split their shared effect unpredictably",
-                             mod[ii].name,mod[jj].name,cm[ii*nmod+jj]) ;
-       free(cm) ; free(mv) ; THD_rdm_ws_free(w0) ;
-     } else {
-       /* With a -model_dset, the model matrices differ per ROI, so there is no
-          single intercorrelation.  Rather than hide the diagnostic -- and this
-          is exactly the case where collinearity matters most, a behavior
-          competing with a whole modality -- estimate it over a sample of ROIs
-          and report the average and the strongest pair. */
-       int nsamp = (nroi < 15) ? nroi : 15 , step = nroi/nsamp , ns ;
-       int mf=0 , mp=0 ;
-       THD_rdm_ws *w0 = THD_rdm_ws_new( nitem , nmod ) ;
-       THD_simmat **mv = (THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
-       float *cm = (float *)malloc(sizeof(float)*nmod*nmod) ;
-       float *acc = (float *)calloc(nmod*nmod,sizeof(float)) ;
-       float *Fs ; float mx=0.0f ; int mxi=0 , mxj=1 ;
+         for( ii=0 ; ii < nmod ; ii++ )
+           for( jj=ii+1 ; jj < nmod ; jj++ )
+             if( fabsf(cm[ii*nmod+jj]) > 0.7f )
+               WARNING_message("3dRSA: '%s' and '%s' correlate at %.3f -- they will\n"
+                               "       split their shared effect unpredictably",
+                               mod[ii].name,mod[jj].name,cm[ii*nmod+jj]) ;
+         free(cm) ; free(mv) ; THD_rdm_ws_free(w0) ;
+       } else {
+         /* With a -model_dset, the model matrices differ per ROI, so there is no
+            single intercorrelation.  Rather than hide the diagnostic -- and this
+            is exactly the case where collinearity matters most, a behavior
+            competing with a whole modality -- estimate it over a sample of ROIs
+            and report the average and the strongest pair. */
+         int nsamp = (nroi < 15) ? nroi : 15 , step = nroi/nsamp , ns ;
+         int mf=0 , mp=0 ;
+         THD_rdm_ws *w0 = THD_rdm_ws_new( nitem , nmod ) ;
+         THD_simmat **mv = (THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
+         float *cm = (float *)malloc(sizeof(float)*nmod*nmod) ;
+         float *acc = (float *)calloc(nmod*nmod,sizeof(float)) ;
+         float *Fs ; float mx=0.0f ; int mxi=0 , mxj=1 ;
 
-       for( mm=0 ; mm < nmod ; mm++ ){
-         if( mod[mm].kind != MODK_DSET ) continue ;
-         { int nf = (mode==MODE_CONT) ? mod[mm].mvals
-                  : (mode==MODE_RDM) ? THD_NTRI(mod[mm].mvals)
-                                     : THD_roilist_maxvox(rl)*mod[mm].mvals ;
-           if( nf > mf ) mf = nf ; }
-         if( mode==MODE_RDM ){
-           int np=THD_roilist_maxvox(rl)*mod[mm].mvals ;
-           if( np > mp ) mp=np ;
-         }
-       }
-       Fs = (float *)malloc(sizeof(float)*(size_t)nitem*(mf>1?mf:1)) ;
-       { float *Fspat = (mode==MODE_RDM) ?
-                        (float *)malloc(sizeof(float)*(size_t)(mp>1?mp:1)) : NULL ;
-
-       for( ns=0 ; ns < nsamp ; ns++ ){
-         int kk2 = ns*step ;
          for( mm=0 ; mm < nmod ; mm++ ){
-           if( mod[mm].kind != MODK_DSET ){ mv[mm] = mod[mm].mat ; continue ; }
-           if( mode == MODE_CONT ){
-             int mvv = mod[mm].mvals ;
-             if( streaming )
-               for( jj=0 ; jj < nsub ; jj++ )
-                 THD_roi_mean_ts( mod[mm].dset[jj] , rl->vox+kk2 , polort ,
-                                  Fs + (size_t)jj*mvv ) ;
-             else
-               memcpy( Fs , mod[mm].cmean[kk2] , sizeof(float)*(size_t)nsub*mvv ) ;
-             mv[mm] = THD_simmat_from_features( nitem , mvv , Fs , neu_metric ) ;
-           } else if( mode == MODE_RDM ){
-             mv[mm] = rsa_second_order_rdm(rl,kk2,nsub,mod[mm].mvals,
-                                            rl->vox[kk2].nar,cond_metric,neu_metric,
-                                            mod[mm].dset,NULL,NULL,center_conditions,
-                                            Fspat,NULL,NULL,NULL,NULL) ;
-           } else {
-             int mvv = mod[mm].mvals , nf2 = rl->vox[kk2].nar*mvv ;
-             for( jj=0 ; jj < nsub ; jj++ )
-               THD_roi_pattern( mod[mm].dset[jj] , rl->vox+kk2 , Fs+(size_t)jj*nf2 ) ;
-             mv[mm] = THD_simmat_from_features( nitem , nf2 , Fs , neu_metric ) ;
+           if( mod[mm].kind != MODK_DSET ) continue ;
+           { int nf = (mode==MODE_CONT) ? mod[mm].mvals
+                    : (mode==MODE_RDM) ? THD_NTRI(mod[mm].mvals)
+                                       : THD_roilist_maxvox(rl)*mod[mm].mvals ;
+             if( nf > mf ) mf = nf ; }
+           if( mode==MODE_RDM ){
+             int np=THD_roilist_maxvox(rl)*mod[mm].mvals ;
+             if( np > mp ) mp=np ;
            }
          }
-         THD_rdm_model_corr( nmod , mv , cmp_metric , w0 , cm ) ;
-         for( ii=0 ; ii < nmod*nmod ; ii++ ) acc[ii] += cm[ii] ;
-         for( mm=0 ; mm < nmod ; mm++ )
-           if( mod[mm].kind == MODK_DSET ) THD_simmat_free(mv[mm]) ;
-       }
-       for( ii=0 ; ii < nmod*nmod ; ii++ ) acc[ii] /= (float)nsamp ;
+         Fs = (float *)malloc(sizeof(float)*(size_t)nitem*(mf>1?mf:1)) ;
+         { float *Fspat = (mode==MODE_RDM) ?
+                          (float *)malloc(sizeof(float)*(size_t)(mp>1?mp:1)) : NULL ;
 
-       INFO_message("3dRSA: mean model correlations over %d ROIs (vary per ROI) --",nsamp) ;
-       for( ii=0 ; ii < nmod ; ii++ ){
-         char line[512] , bit[64] ; line[0]='\0' ;
-         for( jj=0 ; jj < nmod ; jj++ ){
-           sprintf(bit," %7.3f",acc[ii*nmod+jj]) ; strcat(line,bit) ;
-           if( jj>ii && fabsf(acc[ii*nmod+jj])>mx ){ mx=fabsf(acc[ii*nmod+jj]); mxi=ii; mxj=jj; }
+         for( ns=0 ; ns < nsamp ; ns++ ){
+           int kk2 = ns*step ;
+           for( mm=0 ; mm < nmod ; mm++ ){
+             if( mod[mm].kind != MODK_DSET ){ mv[mm] = mod[mm].mat ; continue ; }
+             if( mode == MODE_CONT ){
+               int mvv = mod[mm].mvals ;
+               if( streaming )
+                 for( jj=0 ; jj < nsub ; jj++ )
+                   THD_roi_mean_ts( mod[mm].dset[jj] , rl->vox+kk2 , polort ,
+                                    Fs + (size_t)jj*mvv ) ;
+               else
+                 memcpy( Fs , mod[mm].cmean[kk2] , sizeof(float)*(size_t)nsub*mvv ) ;
+               mv[mm] = THD_simmat_from_features( nitem , mvv , Fs , neu_metric ) ;
+             } else if( mode == MODE_RDM ){
+               mv[mm] = rsa_second_order_rdm(rl,kk2,nsub,mod[mm].mvals,
+                                              rl->vox[kk2].nar,cond_metric,neu_metric,
+                                              mod[mm].dset,NULL,NULL,center_conditions,
+                                              Fspat,NULL,NULL,NULL,NULL) ;
+             } else {
+               int mvv = mod[mm].mvals , nf2 = rl->vox[kk2].nar*mvv ;
+               for( jj=0 ; jj < nsub ; jj++ )
+                 THD_roi_pattern( mod[mm].dset[jj] , rl->vox+kk2 , Fs+(size_t)jj*nf2 ) ;
+               mv[mm] = THD_simmat_from_features( nitem , nf2 , Fs , neu_metric ) ;
+             }
+           }
+           THD_rdm_model_corr( nmod , mv , cmp_metric , w0 , cm ) ;
+           for( ii=0 ; ii < nmod*nmod ; ii++ ) acc[ii] += cm[ii] ;
+           for( mm=0 ; mm < nmod ; mm++ )
+             if( mod[mm].kind == MODK_DSET ) THD_simmat_free(mv[mm]) ;
          }
-         INFO_message("         %-24.24s%s",mod[ii].name,line) ;
-       }
-       if( mx > 0.7f )
-         WARNING_message("3dRSA: '%s' and '%s' correlate at %.3f on average -- they\n"
-                         "       will split their shared effect unpredictably",
-                         mod[mxi].name,mod[mxj].name,acc[mxi*nmod+mxj]) ;
-       free(Fspat) ; }
-       free(Fs) ; free(acc) ; free(cm) ; free(mv) ; THD_rdm_ws_free(w0) ;
-     }
-   }
+         for( ii=0 ; ii < nmod*nmod ; ii++ ) acc[ii] /= (float)nsamp ;
 
-   /*================== the analysis ==================*/
-
-   rr = (float **)malloc(sizeof(float *)*nmod) ;
-   ee = (float **)malloc(sizeof(float *)*nmod) ;
-   pp = (float **)malloc(sizeof(float *)*nmod) ;
-   qq = (float **)malloc(sizeof(float *)*nmod) ;
-   zz = (float **)malloc(sizeof(float *)*nmod) ;
-   if( nboot > 0 ){
-     blo = (float **)malloc(sizeof(float *)*nmod) ;
-     bhi = (float **)malloc(sizeof(float *)*nmod) ;
-   }
-   if( ncboot > 0 && !dualboot ){
-     cblo = (float **)malloc(sizeof(float *)*nmod) ;
-     cbhi = (float **)malloc(sizeof(float *)*nmod) ;
-   }
-   if( do_nc ){
-     ncA = (float *)calloc(nroi,sizeof(float)) ;
-     ncB = (float *)calloc(nroi,sizeof(float)) ;
-   }
-   if( do_loo ){
-     lr = (float **)malloc(sizeof(float *)*nmod) ;
-     lp = (float **)malloc(sizeof(float *)*nmod) ;
-     lq = (float **)malloc(sizeof(float *)*nmod) ;
-     lz = (float **)malloc(sizeof(float *)*nmod) ;
-     if( nboot>0 ){
-       lblo=(float **)malloc(sizeof(float *)*nmod) ;
-       lbhi=(float **)malloc(sizeof(float *)*nmod) ;
-     }
-     for( mm=0 ; mm < nmod ; mm++ ){
-       lr[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       lp[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       lq[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       lz[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       if( nboot>0 ){
-         lblo[mm]=(float *)calloc(nroi,sizeof(float)) ;
-         lbhi[mm]=(float *)calloc(nroi,sizeof(float)) ;
+         INFO_message("3dRSA: mean model correlations over %d ROIs (vary per ROI) --",nsamp) ;
+         for( ii=0 ; ii < nmod ; ii++ ){
+           char line[512] , bit[64] ; line[0]='\0' ;
+           for( jj=0 ; jj < nmod ; jj++ ){
+             sprintf(bit," %7.3f",acc[ii*nmod+jj]) ; strcat(line,bit) ;
+             if( jj>ii && fabsf(acc[ii*nmod+jj])>mx ){ mx=fabsf(acc[ii*nmod+jj]); mxi=ii; mxj=jj; }
+           }
+           INFO_message("         %-24.24s%s",mod[ii].name,line) ;
+         }
+         if( mx > 0.7f )
+           WARNING_message("3dRSA: '%s' and '%s' correlate at %.3f on average -- they\n"
+                           "       will split their shared effect unpredictably",
+                           mod[mxi].name,mod[mxj].name,acc[mxi*nmod+mxj]) ;
+         free(Fspat) ; }
+         free(Fs) ; free(acc) ; free(cm) ; free(mv) ; THD_rdm_ws_free(w0) ;
        }
      }
-     if( nloo == 0 )
-       WARNING_message("3dRSA: -loo has no data-table -model target to predict\n"
-                       "       (model_mat and model_dset are skipped)") ;
-   }
-   for( mm=0 ; mm < nmod ; mm++ ){
-     rr[mm] = (float *)calloc(nroi,sizeof(float)) ;
-     ee[mm] = (float *)calloc(nroi,sizeof(float)) ;
-     pp[mm] = (float *)calloc(nroi,sizeof(float)) ;
-     qq[mm] = (float *)calloc(nroi,sizeof(float)) ;
-     zz[mm] = (float *)calloc(nroi,sizeof(float)) ;
+
+     /*================== the analysis ==================*/
+
+     rr = (float **)malloc(sizeof(float *)*nmod) ;
+     ee = (float **)malloc(sizeof(float *)*nmod) ;
+     pp = (float **)malloc(sizeof(float *)*nmod) ;
+     qq = (float **)malloc(sizeof(float *)*nmod) ;
+     zz = (float **)malloc(sizeof(float *)*nmod) ;
      if( nboot > 0 ){
-       blo[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       bhi[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       blo = (float **)malloc(sizeof(float *)*nmod) ;
+       bhi = (float **)malloc(sizeof(float *)*nmod) ;
      }
      if( ncboot > 0 && !dualboot ){
-       cblo[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       cbhi[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       cblo = (float **)malloc(sizeof(float *)*nmod) ;
+       cbhi = (float **)malloc(sizeof(float *)*nmod) ;
      }
-   }
-   if( run_resolved ){
-     int nrout=nmod*series_runs->nrun ;
-     run_rr=(float **)malloc(sizeof(float *)*nrout) ;
-     run_ee=(float **)malloc(sizeof(float *)*nrout) ;
-     run_pp=(float **)malloc(sizeof(float *)*nrout) ;
-     run_qq=(float **)malloc(sizeof(float *)*nrout) ;
-     run_zz=(float **)malloc(sizeof(float *)*nrout) ;
-     for( ii=0 ; ii<nrout ; ii++ ){
-       run_rr[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       run_ee[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       run_pp[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       run_qq[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       run_zz[ii]=(float *)calloc(nroi,sizeof(float)) ;
+     if( do_nc ){
+       ncA = (float *)calloc(nroi,sizeof(float)) ;
+       ncB = (float *)calloc(nroi,sizeof(float)) ;
      }
-     if( nrunconspec>0 ){
-       int nrc=nmod*nrunconspec ;
-       rcon_rr=(float **)malloc(sizeof(float *)*nrc) ;
-       rcon_ee=(float **)malloc(sizeof(float *)*nrc) ;
-       rcon_pp=(float **)malloc(sizeof(float *)*nrc) ;
-       rcon_qq=(float **)malloc(sizeof(float *)*nrc) ;
-       rcon_zz=(float **)malloc(sizeof(float *)*nrc) ;
-       for( ii=0 ; ii<nrc ; ii++ ){
-         rcon_rr[ii]=(float *)calloc(nroi,sizeof(float)) ;
-         rcon_ee[ii]=(float *)calloc(nroi,sizeof(float)) ;
-         rcon_pp[ii]=(float *)calloc(nroi,sizeof(float)) ;
-         rcon_qq[ii]=(float *)calloc(nroi,sizeof(float)) ;
-         rcon_zz[ii]=(float *)calloc(nroi,sizeof(float)) ;
+     if( do_loo ){
+       lr = (float **)malloc(sizeof(float *)*nmod) ;
+       lp = (float **)malloc(sizeof(float *)*nmod) ;
+       lq = (float **)malloc(sizeof(float *)*nmod) ;
+       lz = (float **)malloc(sizeof(float *)*nmod) ;
+       if( nboot>0 ){
+         lblo=(float **)malloc(sizeof(float *)*nmod) ;
+         lbhi=(float **)malloc(sizeof(float *)*nmod) ;
        }
-     }
-   }
-   if( ncon > 0 ){
-     int cc ;
-     crd = (float **)malloc(sizeof(float *)*ncon) ;
-     cd = (float **)malloc(sizeof(float *)*ncon) ;
-     ce = (float **)malloc(sizeof(float *)*ncon) ;
-     cp = (float **)malloc(sizeof(float *)*ncon) ;
-     cq = (float **)malloc(sizeof(float *)*ncon) ;
-     cz = (float **)malloc(sizeof(float *)*ncon) ;
-     if( nboot > 0 ){
-       dblo = (float **)malloc(sizeof(float *)*ncon) ;
-       dbhi = (float **)malloc(sizeof(float *)*ncon) ;
-     }
-     for( cc=0 ; cc < ncon ; cc++ ){
-       crd[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       cd[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       ce[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       cp[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       cq[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       cz[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       if( nboot > 0 ){
-         dblo[cc] = (float *)calloc(nroi,sizeof(float)) ;
-         dbhi[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       }
-     }
-   }
-   if( ncomq > 0 ){
-     int qq2 ;
-     cav = (float **)malloc(sizeof(float *)*ncomq) ;
-     cap = (float **)malloc(sizeof(float *)*ncomq) ;
-     caq = (float **)malloc(sizeof(float *)*ncomq) ;
-     caz = (float **)malloc(sizeof(float *)*ncomq) ;
-     if( nboot > 0 ){
-       calo = (float **)malloc(sizeof(float *)*ncomq) ;
-       cahi = (float **)malloc(sizeof(float *)*ncomq) ;
-     }
-     for( qq2=0 ; qq2 < ncomq ; qq2++ ){
-       cav[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-       cap[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-       caq[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-       caz[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-       if( nboot > 0 ){
-         calo[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-         cahi[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-       }
-     }
-   }
-   if( nfit>0 ){
-     fr=(float **)malloc(sizeof(float *)*nfit) ;
-     fpv=(float **)malloc(sizeof(float *)*nfit) ;
-     fqv=(float **)malloc(sizeof(float *)*nfit) ;
-     fzv=(float **)malloc(sizeof(float *)*nfit) ;
-     for( ii=0 ; ii<nfit ; ii++ ){
-       fr[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       fpv[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       fqv[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       fzv[ii]=(float *)calloc(nroi,sizeof(float)) ;
-     }
-     fwgt=(float **)malloc(sizeof(float *)*nfitw) ;
-     for( ii=0 ; ii<nfitw ; ii++ ) fwgt[ii]=(float *)calloc(nroi,sizeof(float)) ;
-   }
-   if( nfitcon>0 ){
-     fcd=(float **)malloc(sizeof(float *)*nfitcon) ;
-     fcp=(float **)malloc(sizeof(float *)*nfitcon) ;
-     fcq=(float **)malloc(sizeof(float *)*nfitcon) ;
-     fcz=(float **)malloc(sizeof(float *)*nfitcon) ;
-     for( ii=0 ; ii<nfitcon ; ii++ ){
-       fcd[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       fcp[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       fcq[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       fcz[ii]=(float *)calloc(nroi,sizeof(float)) ;
-     }
-   }
-
-   regout = joint || (nort > 0) ;   /* output reports b/partial-r, not plain r */
-
-   if( !quiet && progress_mode!=RSA_PROGRESS_OFF )
-     INFO_message("3dRSA [3/5] Preparing synchronized null and bootstrap work...") ;
-
-   /* Normalize -block once for both the label null and the stratified subject
-      bootstrap.  The labels are strata: resampling remains at subject level
-      inside each label and preserves the original label counts. */
-   if( block_col != NULL ){
-     int bcol=THD_datatable_column(tab,block_col),jj2,kk2 ;
-     if( bcol<0 ) ERROR_exit("3dRSA: -block column '%s' is not in the data table",block_col) ;
-     block_lab=(int *)malloc(sizeof(int)*nsub) ;
-     if( block_lab==NULL ) ERROR_exit("3dRSA: cannot allocate -block labels") ;
-     for( jj2=0 ; jj2<nsub ; jj2++ ){
-       char *cj=DT_CELL(tab,jj2,bcol) ; block_lab[jj2]=-1 ;
-       for( kk2=0 ; kk2<jj2 ; kk2++ )
-         if( strcmp(DT_CELL(tab,kk2,bcol),cj)==0 ){
-           block_lab[jj2]=block_lab[kk2] ; break ;
-         }
-       if( block_lab[jj2]<0 ) block_lab[jj2]=nblock++ ;
-     }
-     if( !quiet )
-       INFO_message("3dRSA: exchangeability/bootstrap strata from '%s' (%d blocks)",
-                    block_col,nblock) ;
-   }
-   if( nperm>0 && contrast_hypothesis==CONTRAST_SUPERIORITY &&
-       ncon>0 && rdm_over==RDM_SUBJ ){
-     contrast_rset=THD_rsa_isrsa_resample_set(nsub,nperm,seed,block_lab) ;
-     if( contrast_rset==NULL )
-       ERROR_exit("3dRSA: cannot build %d valid paired subject-bootstrap null draws",nperm) ;
-     if( !quiet )
-       INFO_message("3dRSA: %d centered paired subject-bootstrap draws for IS-RSA superiority",
-                    nperm) ;
-   }
-   if( nperm>0 && contrast_hypothesis==CONTRAST_SUPERIORITY && nfitcon>0 ){
-     fit_contrast_rset=(block_lab!=NULL)
-       ? THD_resample_set_build_stratified(nsub,nperm,seed,block_lab)
-       : THD_resample_set_build(nsub,nperm,seed) ;
-     if( fit_contrast_rset==NULL )
-       ERROR_exit("3dRSA: cannot build %d paired outer-subject fitted-model bootstrap draws",nperm) ;
-     if( !quiet )
-       INFO_message("3dRSA: %d centered paired outer-subject bootstrap draws for fitted-model superiority",
-                    nperm) ;
-   }
-
-   /* Build ONE null descriptor, shared read-only by every ROI/voxel.  The
-      temporal nulls get circular offsets or a stateless phase family;
-      otherwise IS-RSA permutes subject labels and classic RSA sign-flips
-      per-subject correlations. */
-   if( nperm > 0 ){
-     if( null_mode == NULL_TIMESHIFT ){
-       tset=THD_timeshift_set_build(nsub,nvals,nperm,min_shift,seed) ;
-       if( tset == NULL ) ERROR_exit("3dRSA: cannot build the circular time-shift set") ;
-       tsneed=(unsigned char *)calloc((size_t)ntri*nvals,sizeof(unsigned char)) ;
-       if( tsneed == NULL ) ERROR_exit("3dRSA: cannot allocate the relative-lag index") ;
-       { int ss2,ii2,jj2,pair2,lag2 ;
-         for( ss2=0 ; ss2<tset->nshift ; ss2++ ){
-           int *off=tset->offset+(size_t)ss2*nsub ; pair2=0 ;
-           for( ii2=0 ; ii2<nsub ; ii2++ ) for( jj2=ii2+1 ; jj2<nsub ; jj2++,pair2++ ){
-             lag2=(off[jj2]-off[ii2])%nvals ; if( lag2<0 ) lag2+=nvals ;
-             tsneed[(size_t)pair2*nvals+lag2]=1 ;
-           }
+       for( mm=0 ; mm < nmod ; mm++ ){
+         lr[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         lp[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         lq[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         lz[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         if( nboot>0 ){
+           lblo[mm]=(float *)calloc(nroi,sizeof(float)) ;
+           lbhi[mm]=(float *)calloc(nroi,sizeof(float)) ;
          }
        }
-       if( !quiet )
-         INFO_message("3dRSA: circular-shift null: %d sets, minimum %d TR%s",
-                      nperm,min_shift,(min_shift==1)?"":"s") ;
-     } else if( null_mode == NULL_PHASE ){
-       phset=THD_phase_set_build(nsub,nvals,nperm,seed) ;
-       if( phset == NULL ) ERROR_exit("3dRSA: cannot build the phase-randomization set") ;
-       if( !quiet )
-         INFO_message("3dRSA: phase-randomization null: %d sets, %d randomized Fourier bins",
-                      nperm,phset->nfreq) ;
-     } else if( !(rdm_over==RDM_BRICK &&
-                  classic_null==CLASSIC_NULL_CONDITIONS) ){
-       PERM_scheme *psch = THD_perm_scheme_new( nsub ) ;
-       if( psch == NULL ) ERROR_exit("3dRSA: cannot build a permutation scheme") ;
-       psch->exchange = (rdm_over == RDM_SUBJ) ? PERM_EE : PERM_ISE ;
-       psch->exact    = 0 ;          /* respect -nperm; auto-exact only if it is free */
-       psch->nperm    = nperm ;
-       psch->seed     = seed ;
-
-       if( block_lab != NULL ) THD_perm_scheme_set_blocks(psch,block_lab) ;
-
-       pset = THD_perm_set_build( psch ) ;
-       THD_perm_scheme_free( psch ) ;
-       if( pset == NULL ) ERROR_exit("3dRSA: cannot build the permutation set") ;
-       if( pset->nperm != nperm && !quiet )
-         INFO_message("3dRSA: using %d relabelings (from -nperm %d)",pset->nperm,nperm) ;
+       if( nloo == 0 )
+         WARNING_message("3dRSA: -loo has no data-table -model target to predict\n"
+                         "       (model_mat and model_dset are skipped)") ;
      }
-
-     /* One max-statistic null per model, pooled over ROIs/voxels for FWE.  Slot
-        mxflat[mm*npfwe + pk] holds the largest |statistic| any element reached
-        under relabeling pk; sorted after the sweep it turns each element's
-        observed statistic into an FWE-corrected p (Nichols-Holmes 2002).  This
-        is the correct multiple-comparisons correction for the searchlight. */
-     do_fwe = 1 ;
-     /* F15/F7 and S1: commonality, fitted models, and the optional classic
-        fixed-effects primary null use one immutable condition-label set shared
-        across every subject and location.  Its size can differ from the
-        subject sign-flip set, so establish it before sizing the primary FWE. */
-     if( (classic_null==CLASSIC_NULL_CONDITIONS || ncomq>0 || nfit>0) &&
-         rdm_over == RDM_BRICK ){
-       PERM_scheme *csch=THD_perm_scheme_new(nitem) ;
-       if( csch == NULL ) ERROR_exit("3dRSA: cannot build the condition-label scheme") ;
-       csch->exchange=PERM_EE ; csch->exact=0 ; csch->nperm=nperm ; csch->seed=seed ;
-       cpset=THD_perm_set_build(csch) ; THD_perm_scheme_free(csch) ;
-       if( cpset == NULL ) ERROR_exit("3dRSA: cannot build condition relabelings") ;
-       if( !quiet )
-         INFO_message("3dRSA: classic %s uses %d synchronized condition relabelings",
-                      (classic_null==CLASSIC_NULL_CONDITIONS)?
-                        ((ncomq>0 || nfit>0)?"primary/follow-on inference":"primary inference"):
-                      (ncomq>0 && nfit>0)?"commonality/fitted models":
-                      (ncomq>0)?"commonality":"fitted models",cpset->nperm) ;
-     }
-     npfwe = (tset != NULL) ? tset->nshift
-            : (phset != NULL) ? phset->nphase
-            : (classic_null==CLASSIC_NULL_CONDITIONS) ? cpset->nperm
-                                                       : pset->nperm ;
-     ncaperm=(cpset!=NULL && rdm_over==RDM_BRICK)?cpset->nperm:npfwe ;
-     mxflat = (float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
-     for( ii=0 ; ii < nmod*npfwe ; ii++ ) mxflat[ii] = -FLT_MAX ;
-     pf = (float **)malloc(sizeof(float *)*nmod) ;
-     zf = (float **)malloc(sizeof(float *)*nmod) ;
      for( mm=0 ; mm < nmod ; mm++ ){
-       pf[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       zf[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       rr[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       ee[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       pp[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       qq[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       zz[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       if( nboot > 0 ){
+         blo[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         bhi[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       }
+       if( ncboot > 0 && !dualboot ){
+         cblo[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         cbhi[mm] = (float *)calloc(nroi,sizeof(float)) ;
+       }
      }
      if( run_resolved ){
        int nrout=nmod*series_runs->nrun ;
-       run_mxflat=(float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
-       run_pf=(float **)malloc(sizeof(float *)*nrout) ;
-       run_zf=(float **)malloc(sizeof(float *)*nrout) ;
-       for( ii=0 ; ii<nmod*npfwe ; ii++ ) run_mxflat[ii]=-FLT_MAX ;
+       run_rr=(float **)malloc(sizeof(float *)*nrout) ;
+       run_ee=(float **)malloc(sizeof(float *)*nrout) ;
+       run_pp=(float **)malloc(sizeof(float *)*nrout) ;
+       run_qq=(float **)malloc(sizeof(float *)*nrout) ;
+       run_zz=(float **)malloc(sizeof(float *)*nrout) ;
        for( ii=0 ; ii<nrout ; ii++ ){
-         run_pf[ii]=(float *)calloc(nroi,sizeof(float)) ;
-         run_zf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         run_rr[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         run_ee[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         run_pp[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         run_qq[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         run_zz[ii]=(float *)calloc(nroi,sizeof(float)) ;
        }
        if( nrunconspec>0 ){
          int nrc=nmod*nrunconspec ;
-         rcon_pf=(float **)malloc(sizeof(float *)*nrc) ;
-         rcon_zf=(float **)malloc(sizeof(float *)*nrc) ;
+         rcon_rr=(float **)malloc(sizeof(float *)*nrc) ;
+         rcon_ee=(float **)malloc(sizeof(float *)*nrc) ;
+         rcon_pp=(float **)malloc(sizeof(float *)*nrc) ;
+         rcon_qq=(float **)malloc(sizeof(float *)*nrc) ;
+         rcon_zz=(float **)malloc(sizeof(float *)*nrc) ;
          for( ii=0 ; ii<nrc ; ii++ ){
-           rcon_pf[ii]=(float *)calloc(nroi,sizeof(float)) ;
-           rcon_zf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           rcon_rr[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           rcon_ee[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           rcon_pp[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           rcon_qq[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           rcon_zz[ii]=(float *)calloc(nroi,sizeof(float)) ;
          }
        }
      }
-
-     /* LOO prediction is a different statistic (cross-validated accuracy), so it
-        gets its OWN max-null family; only scalar-column models are predicted. */
-     do_loofwe = ( do_loo && nloo > 0 ) ;
-     if( do_loofwe ){
-       lmxflat = (float *)malloc(sizeof(float)*(size_t)nloofam*npfwe) ;
-       for( ii=0 ; ii < nloofam*npfwe ; ii++ ) lmxflat[ii] = -FLT_MAX ;
-       lpf = (float **)malloc(sizeof(float *)*nmod) ;
-       lzf = (float **)malloc(sizeof(float *)*nmod) ;
-       for( mm=0 ; mm < nmod ; mm++ ){
-         lpf[mm] = (float *)calloc(nroi,sizeof(float)) ;
-         lzf[mm] = (float *)calloc(nroi,sizeof(float)) ;
-       }
-     }
-
-     /* each model contrast is its own statistic (a difference), so its own
-        max-null family, driven by the same shared relabelings */
-     do_confwe = ( ncon > 0 ) ;
-     if( do_confwe ){
-       int cc ;
-       cmxflat = (float *)malloc(sizeof(float)*(size_t)ncon*npfwe) ;
-       for( ii=0 ; ii < ncon*npfwe ; ii++ ) cmxflat[ii] = -FLT_MAX ;
-       cpf = (float **)malloc(sizeof(float *)*ncon) ;
-       czf = (float **)malloc(sizeof(float *)*ncon) ;
-       for( cc=0 ; cc < ncon ; cc++ ){
-         cpf[cc] = (float *)calloc(nroi,sizeof(float)) ;
-         czf[cc] = (float *)calloc(nroi,sizeof(float)) ;
-       }
-     }
-
-     /* each commonality QUANTITY (three raw plus two partial-R2 per request) is
-        its own statistic, so its own max-null family */
-     do_cafwe = ( ncomq > 0 ) ;
-     if( do_cafwe ){
-       int qq2 ;
-       camx = (float *)malloc(sizeof(float)*(size_t)ncomq*ncaperm) ;
-       for( ii=0 ; ii < ncomq*ncaperm ; ii++ ) camx[ii] = -FLT_MAX ;
-       capf = (float **)malloc(sizeof(float *)*ncomq) ;
-       cazf = (float **)malloc(sizeof(float *)*ncomq) ;
-       for( qq2=0 ; qq2 < ncomq ; qq2++ ){
-         capf[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-         cazf[qq2] = (float *)calloc(nroi,sizeof(float)) ;
-       }
-     }
-     do_fitfwe=(nfit>0) ;
-     if( do_fitfwe ){
-       nfitperm=(rdm_over==RDM_BRICK)?cpset->nperm:pset->nperm ;
-       fmx=(float *)malloc(sizeof(float)*(size_t)nfit*nfitperm) ;
-       fpf=(float **)malloc(sizeof(float *)*nfit) ;
-       fzf=(float **)malloc(sizeof(float *)*nfit) ;
-       for( ii=0 ; ii<nfit*nfitperm ; ii++ ) fmx[ii]=-FLT_MAX ;
-       for( ii=0 ; ii<nfit ; ii++ ){
-         fpf[ii]=(float *)calloc(nroi,sizeof(float)) ;
-         fzf[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       }
-     }
-     do_fitconfwe=(nfitcon>0) ;
-     if( do_fitconfwe ){
-       fcmx=(float *)malloc(sizeof(float)*(size_t)nfitcon*nfitperm) ;
-       fcpf=(float **)malloc(sizeof(float *)*nfitcon) ;
-       fczf=(float **)malloc(sizeof(float *)*nfitcon) ;
-       for( ii=0 ; ii<nfitcon*nfitperm ; ii++ ) fcmx[ii]=-FLT_MAX ;
-       for( ii=0 ; ii<nfitcon ; ii++ ){
-         fcpf[ii]=(float *)calloc(nroi,sizeof(float)) ;
-         fczf[ii]=(float *)calloc(nroi,sizeof(float)) ;
-       }
-     }
-   }
-
-   /* F9/F23: in a label-null searchlight, fixed model matrices and the shared
-      relabeling set never change.  Materialize their centered/ranked permuted
-      triangles once, then let every sphere and OpenMP worker read that cache.
-      Per-location -model_dset matrices and other comparison/null paths retain
-      their ordinary implementation. */
-   if( streaming && !run_resolved && rdm_over==RDM_SUBJ && pset != NULL &&
-       (cmp_metric==CMP_PEARSON || cmp_metric==CMP_SPEARMAN ||
-        cmp_metric==CMP_RHOA) &&
-       ((!joint && nort==0) || ncon>0) ){
-     THD_simmat **cmat ; int nf=0 ; size_t cb ;
-     mcache_ix=(int *)malloc(sizeof(int)*nmod) ;
-     cmat=(THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
-     for( mm=0 ; mm < nmod ; mm++ ){
-       mcache_ix[mm]=-1 ;
-       if( mod[mm].kind != MODK_DSET ){
-         mcache_ix[mm]=nf ; cmat[nf++]=mod[mm].mat ;
-       }
-     }
-     if( nf > 0 ) mcache=THD_mantel_cache_build(nf,cmat,cmp_metric,pset) ;
-     free(cmat) ;
-     if( mcache == NULL ){
-       free(mcache_ix) ; mcache_ix=NULL ;
-       if( nf > 0 && !quiet )
-         WARNING_message("3dRSA: could not allocate the fixed-model Mantel cache;\n"
-                         "       continuing with the exact uncached path") ;
-     } else if( !quiet ){
-       cb=THD_mantel_cache_bytes(mcache) ;
-       INFO_message("3dRSA: cached %d fixed model%s x %d relabelings (%.3f GiB)\n"
-                    "       for Pearson/Spearman/rho-a searchlight Mantel tests",
-                    nf,(nf==1)?"":"s",pset->nperm,
-                    (double)cb/1073741824.0) ;
-     }
-   }
-
-   /* Bootstrap uncertainty is materialized independently of the permutation
-      null.  The same immutable subject draws are shared across all map elements
-      for thread-count reproducibility and spatially comparable intervals. */
-   if( nboot > 0 ){
-     rset = (block_lab != NULL)
-              ? THD_resample_set_build_stratified(nsub,nboot,seed,block_lab)
-              : THD_resample_set_build(nsub,nboot,seed) ;
-     if( rset == NULL ) ERROR_exit("3dRSA: cannot build %d subject-bootstrap samples",nboot) ;
-     if( !quiet && !dualboot )
-       INFO_message("3dRSA: %d %ssubject-bootstrap samples, %.3g%% percentile CI",
-                    nboot,(block_lab!=NULL)?"within-stratum ":"",boot_ci) ;
-   }
-   if( ncboot > 0 ){
-     crset = rsa_cond_resample_build(nitem,ncboot,seed,cond_group_file) ;
-     if( crset == NULL ) ERROR_exit("3dRSA: cannot build condition-bootstrap samples") ;
-     if( !quiet ){
-       if( dualboot )
-         INFO_message("3dRSA: %d synchronized subject x condition draws over %d "
-                      "condition group%s; %.3g%% corrected-variance t CI (df=%d)%s",
-                      ncboot,crset->ngroup,(crset->ngroup==1)?"":"s",boot_ci,
-                      ((nsub<crset->ngroup)?nsub:crset->ngroup)-1,
-                      (crset->nvalid<ncboot)?"; invalid condition draws omitted":"") ;
-       else
-         INFO_message("3dRSA: %d condition-bootstrap samples over %d group%s, "
-                      "%.3g%% percentile CI%s",
-                      ncboot,crset->ngroup,(crset->ngroup==1)?"":"s",boot_ci,
-                      (crset->nvalid<ncboot)?" (draws with <3 distinct conditions omitted)":"") ;
-     }
-   }
-
-   if( !quiet ){
-     if( run_resolved ){
-       int nrp=(pset!=NULL)?pset->nperm:nperm ;
-       INFO_message("3dRSA: %d run-specific %d x %d matrices, %d model%s, %d permutation%s;\n"
-                    "       %s with synchronized whole-subject trajectories across run x space",
-                    series_runs->nrun,nitem,nitem,nmod,(nmod==1)?"":"s",
-                    nrp,(nrp==1)?"":"s",
-                    run_analysis==RUN_ANALYSIS_SEPARATE?"separate effects + equal-run mean":"equal-run mean") ;
-       if( joint )
-         INFO_message("3dRSA: run-resolved joint model uses standardized coefficients\n"
-                      "       (and partial r) conditional on every other model per run;\n"
-                      "       model-specific Freedman-Lane nulls are synchronized across runs/space") ;
-     } else if( series_active )
-       INFO_message("3dRSA: %d x %d matrices, %d time points, %d permutation%s;\n"
-                    "       %s primary effects with joint time x space FDR/FWE",
-                    nitem,nitem,nseries,nperm,(nperm==1)?"":"s",
-                    subject_series_mode==SUBSERIES_PAIRED?"paired subject-specific":
-                    subject_series_mode==SUBSERIES_LOO?"leave-one-subject-out template":"fixed-model") ;
-     else
-       INFO_message("3dRSA: %d x %d matrices, %d model%s, %d permutation%s, %s",
-                    nitem,nitem,nmod,(nmod==1)?"":"s",nperm,(nperm==1)?"":"s",
-                    joint ? "joint regression"
-                          : (nort>0) ? "separate + nuisances removed"
-                                     : "models tested separately") ;
-   }
-
-   if( nperm <= 0 && rdm_over == RDM_SUBJ ){
-     if( nrunconspec>0 )
-       WARNING_message("3dRSA: -nperm 0 with run contrasts does NO inference -- the dyads\n"
-                       "       are not independent. p/q are -1; MEAN/run _FZ maps are\n"
-                       "       uncalibrated Fisher transforms and contrast _U maps are raw,\n"
-                       "       uncalibrated effect differences. Use -nperm > 0 for reporting.") ;
-     else WARNING_message("3dRSA: -nperm 0 with IS-RSA does NO inference -- the dyads\n"
-                     "       are not independent, so there is no valid parametric\n"
-                     "       p/z.  p/q columns are -1 and the z sub-brick is an\n"
-                     "       uncalibrated Fisher-z effect map ('_FZ', not FIZT).\n"
-                     "       Use -nperm > 0 for any reportable statistic.") ;
-   }
-
-   if( ncon > 0 && !quiet ){
-     int cc ;
-     for( cc=0 ; cc < ncon ; cc++ )
-      INFO_message("3dRSA: contrast '%s' = %s - %s%s",
-                    con[cc].name , mod[con[cc].ia].name , mod[con[cc].ib].name ,
-                    (rdm_over==RDM_SUBJ && contrast_hypothesis==CONTRAST_SUPERIORITY && nperm>0)
-                                          ? " (centered paired subject-bootstrap superiority)"
-                       : (rdm_over==RDM_SUBJ && contrast_hypothesis==CONTRAST_SUPERIORITY)
-                                          ? " (superiority point estimate; no inference)"
-                       : (rdm_over==RDM_SUBJ) ? " (shared-relabeling alignment)"
-                       : (classic_null==CLASSIC_NULL_CONDITIONS)
-                           ? " (paired fixed-subject condition relabeling)"
-                       : group_test ? " (paired signed-rank)" : " (paired sign-flip)") ;
-   }
-
-   rsa_progress_init(&progress,progress_mode,quiet,4,"Inference",nroi,
-                     streaming ? "searchlights" : "ROIs") ;
-
- AFNI_OMP_START ;
-#pragma omp parallel
- {
-   THD_rdm_ws *ws , *cws=NULL ;
-   THD_rsa_rdm_workspace *rws=NULL ;
-   THD_simmat *neural=NULL , *tsneural=NULL , **mv ;
-   THD_simmat **rneural=NULL ;
-   float *F , *tsmain=NULL , *tslag=NULL , *tsprep=NULL , *tsnorm=NULL ;
-   unsigned char *Z=NULL ;                 /* local [subject][TR] zero mask */
-   float *rF=NULL,*rtri=NULL,*rstat=NULL,*rprstat=NULL,*rpval=NULL,*rzscr=NULL,*rnull=NULL,*mnull=NULL,*jmz=NULL ;
-   float *rcstat=NULL,*rcpr=NULL,*rcpval=NULL,*rczscr=NULL,*rcnull=NULL,*rcsum=NULL ;
-   int *rnge=NULL,*rcnge=NULL ;
-   THD_rsa_complex *phspec=NULL , *phwork=NULL ;
-   float *phseries=NULL , *phsc1=NULL , *phsc2=NULL ;
-   float *rsub=NULL , *beta , *prtl , *pv ;
-   float *tsz=NULL , *tscd=NULL , *tscp=NULL , *tscz=NULL ;
-   float *bdraw=NULL,*hdraw=NULL ; int *bseen=NULL ; /* subject-bootstrap scratch */
-   float *br_y=NULL , *br_xflat=NULL , **brx=NULL , *brcoef=NULL , *brbeta=NULL ;
-   float *bca_y=NULL , *bca_a=NULL , *bca_b=NULL , *bca_c=NULL , *bcadraw=NULL ;
-   float *cb_y=NULL , *cb_xflat=NULL , **cbx=NULL , *cbsum=NULL ;
-   float *cbdraw=NULL , *cbbeta=NULL ;           /* condition-bootstrap scratch */
-   float *dualval=NULL , *dualwork=NULL ;         /* F6 subject x condition scratch */
-   float *Fh=NULL , *triA=NULL , *triB=NULL,*covA=NULL,*covB=NULL ; /* noise ceiling */
-   float *ipat=NULL ;                    /* inner condition-pattern RDM scratch */
-   float *srdm=NULL , *mtriflat=NULL , **mtri=NULL ; /* cached classic-RSA triangles */
-   float *srdmcov=NULL,*mcovflat=NULL,**mcov=NULL ;   /* F4 second-moment forms */
-   float *my_mx=NULL , *pnull=NULL ;    /* per-thread FWE max-null + scratch */
-   float *run_my_mx=NULL ;              /* per-thread max over run x space */
-   float *l_mx=NULL ;                   /* per-thread LOO max-null */
-   float *lbpred=NULL,*lbx=NULL,*lby=NULL ; float **lbtarg=NULL ;
-   float *c_mx=NULL , *cpnull=NULL , *dsub=NULL ;  /* per-thread contrast scratch */
-   float *ca_mx=NULL , *capnull=NULL , *casub=NULL ; /* commonality null/subject scratch */
-   RSA_fitws **fitws=NULL ; float *f_mx=NULL,*fnull=NULL,*fc_mx=NULL,*fcnull=NULL ;
-   float *fitfoldz=NULL ; unsigned char *fitvalid=NULL ; int nfitfold=0 ;
-   float **rpat=NULL,*runraw=NULL ; int maxrun_l=0 ; /* crossnobis mapped/run patterns */
-   RSA_whiten wh ;                                 /* per-thread noise-whitening scratch */
-   int nfeat_max , npat_max=0 , maxcond_l=nvals , maxvox_l , kk_ , mm_ , jj_ , nvx ;
-
-   { int wncol=joint ? nmod+nort : ((nort>0) ? 1+nort : 1) ;
-     if( ncomq>0 && wncol<3 ) wncol=3 ;
-     ws=THD_rdm_ws_new(nitem,wncol) ; }
-   mv   = (THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
-   beta = (float *)malloc(sizeof(float)*nmod) ;
-   prtl = (float *)malloc(sizeof(float)*nmod) ;
-   pv   = (float *)malloc(sizeof(float)*nmod) ;
-   if( tset != NULL || phset != NULL ){
-     tsz=(float *)malloc(sizeof(float)*nmod) ;
      if( ncon > 0 ){
-       tscd=(float *)malloc(sizeof(float)*ncon) ;
-       tscp=(float *)malloc(sizeof(float)*ncon) ;
-       tscz=(float *)malloc(sizeof(float)*ncon) ;
-     }
-   }
-   if( nboot > 0 ){
-     bdraw = (float *)malloc(sizeof(float)*nboot) ;
-     if( rdm_over == RDM_SUBJ ) bseen = (int *)malloc(sizeof(int)*nsub) ;
-     if( do_loo ){
-       lbpred=(float *)malloc(sizeof(float)*(size_t)maxloocol*nsub) ;
-       lbx=(float *)malloc(sizeof(float)*nsub) ;
-       lby=(float *)malloc(sizeof(float)*nsub) ;
-       lbtarg=(float **)malloc(sizeof(float *)*maxloocol) ;
-     }
-     if( rdm_over == RDM_SUBJ && (joint || nort > 0) ){
-       int bc, bncol=nmod+nort ;
-       br_y=(float *)malloc(sizeof(float)*ntri) ;
-       br_xflat=(float *)malloc(sizeof(float)*(size_t)bncol*ntri) ;
-       brx=(float **)malloc(sizeof(float *)*bncol) ;
-       brcoef=(float *)malloc(sizeof(float)*(size_t)nmod*nboot) ;
-       brbeta=(float *)malloc(sizeof(float)*bncol) ;
-       for( bc=0 ; bc < bncol ; bc++ ) brx[bc]=br_xflat+(size_t)bc*ntri ;
+       int cc ;
+       crd = (float **)malloc(sizeof(float *)*ncon) ;
+       cd = (float **)malloc(sizeof(float *)*ncon) ;
+       ce = (float **)malloc(sizeof(float *)*ncon) ;
+       cp = (float **)malloc(sizeof(float *)*ncon) ;
+       cq = (float **)malloc(sizeof(float *)*ncon) ;
+       cz = (float **)malloc(sizeof(float *)*ncon) ;
+       if( nboot > 0 ){
+         dblo = (float **)malloc(sizeof(float *)*ncon) ;
+         dbhi = (float **)malloc(sizeof(float *)*ncon) ;
+       }
+       for( cc=0 ; cc < ncon ; cc++ ){
+         crd[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         cd[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         ce[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         cp[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         cq[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         cz[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         if( nboot > 0 ){
+           dblo[cc] = (float *)calloc(nroi,sizeof(float)) ;
+           dbhi[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         }
+       }
      }
      if( ncomq > 0 ){
-       bca_y=(float *)malloc(sizeof(float)*ntri) ;
-       bca_a=(float *)malloc(sizeof(float)*ntri) ;
-       bca_b=(float *)malloc(sizeof(float)*ntri) ;
-       bca_c=(float *)malloc(sizeof(float)*ntri) ;
-       bcadraw=(float *)malloc(sizeof(float)*(size_t)RSA_MAXCOMMON*nboot) ;
+       int qq2 ;
+       cav = (float **)malloc(sizeof(float *)*ncomq) ;
+       cap = (float **)malloc(sizeof(float *)*ncomq) ;
+       caq = (float **)malloc(sizeof(float *)*ncomq) ;
+       caz = (float **)malloc(sizeof(float *)*ncomq) ;
+       if( nboot > 0 ){
+         calo = (float **)malloc(sizeof(float *)*ncomq) ;
+         cahi = (float **)malloc(sizeof(float *)*ncomq) ;
+       }
+       for( qq2=0 ; qq2 < ncomq ; qq2++ ){
+         cav[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+         cap[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+         caq[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+         caz[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+         if( nboot > 0 ){
+           calo[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+           cahi[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+         }
+       }
      }
-   }
-   if( contrast_rset!=NULL || fit_contrast_rset!=NULL ){
-     int nh=(contrast_rset!=NULL)?contrast_rset->nresample:0 ;
-     if( fit_contrast_rset!=NULL && fit_contrast_rset->nresample>nh )
-       nh=fit_contrast_rset->nresample ;
-     hdraw=(float *)malloc(sizeof(float)*(size_t)nh) ;
-   }
-   if( contrast_rset!=NULL ){
-     if( bseen==NULL ) bseen=(int *)malloc(sizeof(int)*nsub) ;
-   }
-   if( ncboot > 0 ){
-     cws=THD_rdm_ws_new(crset->maxitem,nmod) ;
-     cb_y=(float *)malloc(sizeof(float)*crset->maxtri) ;
-     cb_xflat=(float *)malloc(sizeof(float)*(size_t)nmod*crset->maxtri) ;
-     cbx=(float **)malloc(sizeof(float *)*nmod) ;
-     if( !dualboot ) cbsum=(float *)malloc(sizeof(float)*(size_t)nmod*ncboot) ;
-     cbdraw=(float *)malloc(sizeof(float)*ncboot) ; cbbeta=(float *)malloc(sizeof(float)*nmod) ;
-     if( dualboot ){
-       size_t ndv=(size_t)(joint?nmod:1)*nsub*ncboot ;
-       dualval=(float *)malloc(sizeof(float)*ndv) ;
-       dualwork=(float *)malloc(sizeof(float)*(size_t)(nboot+2*ncboot)) ;
-     }
-     for( mm_=0 ; mm_ < nmod ; mm_++ ) cbx[mm_]=cb_xflat+(size_t)mm_*crset->maxtri ;
-   }
-   if( ncon > 0 ) dsub = (float *)malloc(sizeof(float)*nsub) ;
-   if( do_fwe ){
-     int fi ;
-     my_mx = (float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
-     pnull = (float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
-     for( fi=0 ; fi < nmod*npfwe ; fi++ ) my_mx[fi] = -FLT_MAX ;
-     if( do_loofwe ){
-       l_mx = (float *)malloc(sizeof(float)*(size_t)nloofam*npfwe) ;
-       for( fi=0 ; fi < nloofam*npfwe ; fi++ ) l_mx[fi] = -FLT_MAX ;
-     }
-     if( do_confwe ){
-       int fj ;
-       c_mx   = (float *)malloc(sizeof(float)*(size_t)ncon*npfwe) ;
-       cpnull = (float *)malloc(sizeof(float)*(size_t)ncon*npfwe) ;
-       for( fj=0 ; fj < ncon*npfwe ; fj++ ) c_mx[fj] = -FLT_MAX ;
-     }
-     if( do_cafwe ){
-       int fj ;
-       ca_mx   = (float *)malloc(sizeof(float)*(size_t)ncomq*ncaperm) ;
-       capnull = (float *)malloc(sizeof(float)*(size_t)RSA_MAXCOMMON*ncaperm) ;
-       for( fj=0 ; fj < ncomq*ncaperm ; fj++ ) ca_mx[fj] = -FLT_MAX ;
-     }
-     if( do_fitfwe ){
-       int fj ;
-       f_mx=(float *)malloc(sizeof(float)*(size_t)nfit*nfitperm) ;
-       fnull=(float *)malloc(sizeof(float)*(size_t)nfit*nfitperm) ;
-       for( fj=0 ; fj<nfit*nfitperm ; fj++ ) f_mx[fj]=-FLT_MAX ;
-     }
-     if( do_fitconfwe ){
-       int fj ;
-       fc_mx=(float *)malloc(sizeof(float)*(size_t)nfitcon*nfitperm) ;
-       fcnull=(float *)malloc(sizeof(float)*(size_t)nfitcon*nfitperm) ;
-       for( fj=0 ; fj<nfitcon*nfitperm ; fj++ ) fc_mx[fj]=-FLT_MAX ;
-     }
-   }
-   if( nfit>0 ){
-     int fi ;
-     fitws=(RSA_fitws **)malloc(sizeof(RSA_fitws *)*nfit) ;
-     for( fi=0 ; fi<nfit ; fi++ ){
-       fitws[fi]=THD_rsa_fitws_new(rdm_over,nsub,nitem,fit[fi].ncomp) ;
-       if(!fitws[fi]) ERROR_exit("3dRSA: cannot allocate fitted-model workspace") ;
+     if( nfit>0 ){
+       fr=(float **)malloc(sizeof(float *)*nfit) ;
+       fpv=(float **)malloc(sizeof(float *)*nfit) ;
+       fqv=(float **)malloc(sizeof(float *)*nfit) ;
+       fzv=(float **)malloc(sizeof(float *)*nfit) ;
+       for( ii=0 ; ii<nfit ; ii++ ){
+         fr[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         fpv[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         fqv[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         fzv[ii]=(float *)calloc(nroi,sizeof(float)) ;
+       }
+       fwgt=(float **)malloc(sizeof(float *)*nfitw) ;
+       for( ii=0 ; ii<nfitw ; ii++ ) fwgt[ii]=(float *)calloc(nroi,sizeof(float)) ;
      }
      if( nfitcon>0 ){
-       nfitfold=nsub*((fit_condfold!=NULL)?fit_condfold->nfold:1) ;
-       fitfoldz=(float *)malloc(sizeof(float)*(size_t)nfit*nfitfold) ;
-       fitvalid=(unsigned char *)malloc((size_t)nfit*nfitfold) ;
-     }
-   }
-
-   maxvox_l=THD_roilist_maxvox(rl) ;
-   nfeat_max = 0 ;
-   for( kk_=0 ; kk_ < nroi ; kk_++ ){
-     int nf = (mode == MODE_CONT) ? nvals
-            : (mode == MODE_RDM) ? THD_NTRI(nvals)
-            : ( (rdm_over == RDM_SUBJ) ? rl->vox[kk_].nar*nvals : rl->vox[kk_].nar ) ;
-     if( nf > nfeat_max ) nfeat_max = nf ;
-   }
-   if( mode == MODE_RDM ) npat_max=maxvox_l*nvals ;
-   for( mm_=0 ; mm_ < nmod ; mm_++ ){
-     if( mod[mm_].kind != MODK_DSET ) continue ;
-     /* use the saved mvals: in continuous mode these datasets have already
-        been reduced to ROI means and unloaded, so dset[0] is NULL by now */
-     { int nf = (mode == MODE_CONT) ? mod[mm_].mvals
-              : (mode == MODE_RDM) ? THD_NTRI(mod[mm_].mvals)
-                                   : maxvox_l * mod[mm_].mvals ;
-       if( nf > nfeat_max ) nfeat_max = nf ; }
-     if( mode == MODE_RDM ){
-       if( maxvox_l*mod[mm_].mvals > npat_max ) npat_max=maxvox_l*mod[mm_].mvals ;
-       if( mod[mm_].mvals > maxcond_l ) maxcond_l=mod[mm_].mvals ;
-     }
-   }
-
-   F = (float *)malloc(sizeof(float)*(size_t)nitem*nfeat_max) ;
-   if( mode == MODE_RDM && rdm_over == RDM_SUBJ ){
-     rws=THD_rsa_rdm_workspace_new(nsub,maxcond_l) ;
-     if( rws==NULL ) ERROR_exit("3dRSA: cannot allocate the RDM construction workspace") ;
-   }
-   if( zcensor ) Z=(unsigned char *)malloc((size_t)nitem*nfeat_max) ;
-   if( run_resolved ){
-     int ru,maxrv=0,nre=joint?nmod*series_runs->nrun:series_runs->nrun ;
-     for( ru=0 ; ru<series_runs->nrun ; ru++ )
-       if( series_runs->run_nval[ru]>maxrv ) maxrv=series_runs->run_nval[ru] ;
-     rneural=(THD_simmat **)calloc(series_runs->nrun,sizeof(THD_simmat *)) ;
-     rF=(float *)malloc(sizeof(float)*(size_t)nsub*maxrv) ;
-     rtri=(float *)malloc(sizeof(float)*(size_t)series_runs->nrun*ntri) ;
-     rstat=(float *)malloc(sizeof(float)*nre) ;
-     rprstat=(float *)malloc(sizeof(float)*nre) ;
-     rpval=(float *)malloc(sizeof(float)*nre) ;
-     rzscr=(float *)malloc(sizeof(float)*nre) ;
-     if( joint ) jmz=(float *)malloc(sizeof(float)*nmod) ;
-     rnge=(int *)malloc(sizeof(int)*series_runs->nrun) ;
-     if( nrunconspec>0 ){
-       int nce=joint?nmod*nrunconspec:nrunconspec ;
-       rcstat=(float *)malloc(sizeof(float)*nce) ;
-       rcpr=(float *)malloc(sizeof(float)*nce) ;
-       rcpval=(float *)malloc(sizeof(float)*nce) ;
-       rczscr=(float *)malloc(sizeof(float)*nce) ;
-       rcsum=(float *)malloc(sizeof(float)*nrunconspec) ;
-       rcnge=(int *)malloc(sizeof(int)*nrunconspec) ;
-     }
-     if( pset!=NULL ){
-       mnull=(float *)malloc(sizeof(float)*(size_t)(joint?nmod:1)*npfwe) ;
-       if( nrunconspec>0 )
-         rcnull=(float *)malloc(sizeof(float)*(size_t)(joint?nmod:1)*nrunconspec*npfwe) ;
-     }
-     if( do_fwe ){
-       rnull=(float *)malloc(sizeof(float)*(size_t)(joint?nmod:1)*series_runs->nrun*npfwe) ;
-       run_my_mx=(float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
-       for( ru=0 ; ru<nmod*npfwe ; ru++ ) run_my_mx[ru]=-FLT_MAX ;
-     }
-   }
-   if( mode == MODE_RDM ) ipat=(float *)malloc(sizeof(float)*(size_t)npat_max) ;
-   if( tset != NULL || phset != NULL ){
-     tsmain =(float *)malloc(sizeof(float)*(size_t)nsub*nvals) ;
-     tsneural=THD_simmat_new(nsub) ;
-     if( tset != NULL ){
-       tsprep =(float *)malloc(sizeof(float)*(size_t)nsub*nvals) ;
-       tsnorm =(float *)malloc(sizeof(float)*nsub) ;
-       tslag  =(float *)malloc(sizeof(float)*(size_t)ntri*nvals) ;
-     } else {
-       phspec=(THD_rsa_complex *)malloc(sizeof(THD_rsa_complex)*(size_t)nsub*nvals) ;
-       phwork=(THD_rsa_complex *)malloc(sizeof(THD_rsa_complex)*nvals) ;
-       phseries=(float *)malloc(sizeof(float)*(size_t)nsub*nvals) ;
-       phsc1=(float *)malloc(sizeof(float)*nvals) ;
-       phsc2=(float *)malloc(sizeof(float)*nvals) ;
-     }
-   }
-   if( rdm_over == RDM_BRICK ){
-     rsub = (float *)malloc(sizeof(float)*nsub) ;
-     srdm = (float *)malloc(sizeof(float)*(size_t)nsub*ntri) ;
-     if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV ){
-       size_t nn=(size_t)nitem*nitem ;
-       srdmcov=(float *)malloc(sizeof(float)*(size_t)nsub*nn) ;
-       mcovflat=(float *)malloc(sizeof(float)*(size_t)nmod*nn) ;
-       mcov=(float **)malloc(sizeof(float *)*nmod) ;
-       for( mm_=0 ; mm_<nmod ; mm_++ ){
-         mcov[mm_]=mcovflat+(size_t)mm_*nn ;
-         THD_simmat_to_tri(mod[mm_].mat,ws->yperm) ;
-         THD_rdm_cov_transform(nitem,ws->yperm,cmp_metric==CMP_CORR_COV,mcov[mm_]) ;
+       fcd=(float **)malloc(sizeof(float *)*nfitcon) ;
+       fcp=(float **)malloc(sizeof(float *)*nfitcon) ;
+       fcq=(float **)malloc(sizeof(float *)*nfitcon) ;
+       fcz=(float **)malloc(sizeof(float *)*nfitcon) ;
+       for( ii=0 ; ii<nfitcon ; ii++ ){
+         fcd[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         fcp[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         fcq[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         fcz[ii]=(float *)calloc(nroi,sizeof(float)) ;
        }
      }
-     if( ncomq > 0 && nboot > 0 )
-       casub=(float *)malloc(sizeof(float)*(size_t)RSA_MAXCOMMON*nsub) ;
-     if( joint ){
-       mtriflat = (float *)malloc(sizeof(float)*(size_t)nmod*ntri) ;
-       mtri = (float **)malloc(sizeof(float *)*nmod) ;
-       for( mm_=0 ; mm_ < nmod ; mm_++ ){
-         mtri[mm_] = mtriflat + (size_t)mm_*ntri ;
-         THD_simmat_to_tri( mod[mm_].mat , mtri[mm_] ) ;
+
+     regout = joint || (nort > 0) ;   /* output reports b/partial-r, not plain r */
+
+     if( !quiet && progress_mode!=RSA_PROGRESS_OFF )
+       INFO_message("3dRSA [3/5] Preparing synchronized null and bootstrap work...") ;
+
+     /* Normalize -block once for both the label null and the stratified subject
+        bootstrap.  The labels are strata: resampling remains at subject level
+        inside each label and preserves the original label counts. */
+     if( block_col != NULL ){
+       int bcol=THD_datatable_column(tab,block_col),jj2,kk2 ;
+       if( bcol<0 ) ERROR_exit("3dRSA: -block column '%s' is not in the data table",block_col) ;
+       block_lab=(int *)malloc(sizeof(int)*nsub) ;
+       if( block_lab==NULL ) ERROR_exit("3dRSA: cannot allocate -block labels") ;
+       for( jj2=0 ; jj2<nsub ; jj2++ ){
+         char *cj=DT_CELL(tab,jj2,bcol) ; block_lab[jj2]=-1 ;
+         for( kk2=0 ; kk2<jj2 ; kk2++ )
+           if( strcmp(DT_CELL(tab,kk2,bcol),cj)==0 ){
+             block_lab[jj2]=block_lab[kk2] ; break ;
+           }
+         if( block_lab[jj2]<0 ) block_lab[jj2]=nblock++ ;
        }
+       if( !quiet )
+         INFO_message("3dRSA: exchangeability/bootstrap strata from '%s' (%d blocks)",
+                      block_col,nblock) ;
      }
-   }
-
-   /* crossnobis: one condition-pattern buffer per run of the busiest subject */
-   wh.mode = NN_NONE ;
-   wh.residbuf = wh.Rmat = wh.Whalf = wh.wdiag = wh.wtmp = NULL ;
-   if( runset != NULL ){
-     int s , rr_ ;
-     for( s=0 ; s < runset->nsub ; s++ ) if( runset->nrun[s] > maxrun_l ) maxrun_l = runset->nrun[s] ;
-     rpat = (float **)malloc(sizeof(float *)*maxrun_l) ;
-     for( rr_=0 ; rr_ < maxrun_l ; rr_++ )
-       rpat[rr_] = (float *)malloc(sizeof(float)*(size_t)nvals*maxvox_l) ;
-     if( runset->has_condmap )
-       runraw=(float *)malloc(sizeof(float)*(size_t)runset->maxbrick*maxvox_l) ;
-
-     if( noise_norm != NN_NONE ){
-       int maxnt=0 , maxntot=0 ;
-       for( s=0 ; s < runset->nsub ; s++ ){
-         int rr2 , ntsum=0 ;
-         for( rr2=0 ; rr2 < runset->nrun[s] ; rr2++ ){
-           int nt = DSET_NVALS(runset->resid[ runset->row_of[s][rr2] ]) ;
-           if( nt > maxnt ) maxnt = nt ;
-           ntsum += nt ;
-         }
-         if( ntsum > maxntot ) maxntot = ntsum ;
-       }
-       wh.mode     = noise_norm ;
-       wh.residbuf = (float *)malloc(sizeof(float)*(size_t)maxnt  *maxvox_l) ;
-       wh.Rmat     = (float *)malloc(sizeof(float)*(size_t)maxntot*maxvox_l) ;
-       wh.wdiag    = (float *)malloc(sizeof(float)*maxvox_l) ;
-       wh.wtmp     = (float *)malloc(sizeof(float)*maxvox_l) ;
-       if( noise_norm == NN_SHRINK )
-         wh.Whalf  = (float *)malloc(sizeof(float)*(size_t)maxvox_l*maxvox_l) ;
+     if( nperm>0 && contrast_hypothesis==CONTRAST_SUPERIORITY &&
+         ncon>0 && rdm_over==RDM_SUBJ ){
+       contrast_rset=THD_rsa_isrsa_resample_set(nsub,nperm,seed,block_lab) ;
+       if( contrast_rset==NULL )
+         ERROR_exit("3dRSA: cannot build %d valid paired subject-bootstrap null draws",nperm) ;
+       if( !quiet )
+         INFO_message("3dRSA: %d centered paired subject-bootstrap draws for IS-RSA superiority",
+                      nperm) ;
      }
-   }
-
-   if( do_nc ){
-     triA = (float *)malloc(sizeof(float)*ws->m) ;
-     triB = (float *)malloc(sizeof(float)*ws->m) ;
-     if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV ){
-       covA=(float *)malloc(sizeof(float)*(size_t)nitem*nitem) ;
-       covB=(float *)malloc(sizeof(float)*(size_t)nitem*nitem) ;
+     if( nperm>0 && contrast_hypothesis==CONTRAST_SUPERIORITY && nfitcon>0 ){
+       fit_contrast_rset=(block_lab!=NULL)
+         ? THD_resample_set_build_stratified(nsub,nperm,seed,block_lab)
+         : THD_resample_set_build(nsub,nperm,seed) ;
+       if( fit_contrast_rset==NULL )
+         ERROR_exit("3dRSA: cannot build %d paired outer-subject fitted-model bootstrap draws",nperm) ;
+       if( !quiet )
+         INFO_message("3dRSA: %d centered paired outer-subject bootstrap draws for fitted-model superiority",
+                      nperm) ;
      }
-     if( rdm_over == RDM_SUBJ )
-       Fh = (float *)malloc(sizeof(float)*(size_t)nitem*nfeat_max) ;
-   }
 
-#pragma omp for schedule(dynamic,1)
-   for( kk_=0 ; kk_ < nroi ; kk_++ ){
-
-     nvx = rl->vox[kk_].nar ;
-
-     /* the relabeling set (pset) is shared read-only across all ROIs -- no
-        per-ROI RNG, which is what makes results thread-count independent and
-        lets one common null serve every element */
-
-     /*----------------------------------------------------------------*/
-     if( rdm_over == RDM_SUBJ ){
-       int nfeat ;
-
-       if( mode == MODE_CONT ){
-         int minkeep=0 ;
-         nfeat = nvals ;
-         if( streaming ){             /* reduce this sphere's mean on the fly */
-           if( series_runs!=NULL ){
-             int rw_ ;
-             for( rw_=0 ; rw_<series_runs->nrow ; rw_++ ){
-               int sj_=series_runs->row_sub[rw_],uj_=series_runs->row_run[rw_] ;
-               int nv_=series_runs->run_nval[uj_],off_=series_runs->offset[uj_] ;
-               THD_roi_mean_ts(dset[rw_],rl->vox+kk_,polort,
-                               F+(size_t)sj_*nvals+off_) ;
-               rsa_run_normalize(F+(size_t)sj_*nvals+off_,nv_,run_normalize) ;
+     /* Build ONE null descriptor, shared read-only by every ROI/voxel.  The
+        temporal nulls get circular offsets or a stateless phase family;
+        otherwise IS-RSA permutes subject labels and classic RSA sign-flips
+        per-subject correlations. */
+     if( nperm > 0 ){
+       if( null_mode == NULL_TIMESHIFT ){
+         tset=THD_timeshift_set_build(nsub,nvals,nperm,min_shift,seed) ;
+         if( tset == NULL ) ERROR_exit("3dRSA: cannot build the circular time-shift set") ;
+         tsneed=(unsigned char *)calloc((size_t)ntri*nvals,sizeof(unsigned char)) ;
+         if( tsneed == NULL ) ERROR_exit("3dRSA: cannot allocate the relative-lag index") ;
+         { int ss2,ii2,jj2,pair2,lag2 ;
+           for( ss2=0 ; ss2<tset->nshift ; ss2++ ){
+             int *off=tset->offset+(size_t)ss2*nsub ; pair2=0 ;
+             for( ii2=0 ; ii2<nsub ; ii2++ ) for( jj2=ii2+1 ; jj2<nsub ; jj2++,pair2++ ){
+               lag2=(off[jj2]-off[ii2])%nvals ; if( lag2<0 ) lag2+=nvals ;
+               tsneed[(size_t)pair2*nvals+lag2]=1 ;
              }
-           } else for( jj_=0 ; jj_ < nsub ; jj_++ ){
-             if( zcensor ) THD_roi_mean_ts_zmask(dset[jj_],rl->vox+kk_,polort,
-                                F+(size_t)jj_*nvals,Z+(size_t)jj_*nvals) ;
-             else THD_roi_mean_ts(dset[jj_],rl->vox+kk_,polort,
-                                  F+(size_t)jj_*nvals) ;
            }
          }
-         else{
-           memcpy( F , cmean[kk_] , sizeof(float)*(size_t)nsub*nvals ) ;
-           if( zcensor ) memcpy(Z,zkeep[kk_],(size_t)nsub*nvals) ;
-         }
-         if( !run_resolved )
-           neural = zcensor ? THD_simmat_from_features_zcensor(nitem,nfeat,F,Z,
-                                                                neu_metric,&minkeep)
-                            : THD_simmat_from_features(nitem,nfeat,F,neu_metric) ;
-         if( zcensor ){
-           zcmin[kk_]=minkeep ;
-           if( neural==NULL ) ERROR_exit("3dRSA: -zcensor retained fewer than 3 jointly\n"
-                                         "       valid TRs for a subject pair in ROI/searchlight %d",
-                                         rl->val[kk_]) ;
-         }
-       } else if( mode == MODE_RDM ){
-         nfeat = THD_NTRI(nvals) ;
-         neural = rsa_second_order_rdm(rl,kk_,nsub,nvals,nvx,
-                                        cond_metric,neu_metric,dset,runset,condition_index,
-                                        center_conditions,ipat,rpat,runraw,&wh,rws) ;
-       } else {
-         nfeat = nvx * nvals ;
-         for( jj_=0 ; jj_ < nsub ; jj_++ )
-           THD_roi_pattern( dset[jj_] , rl->vox+kk_ , F + (size_t)jj_*nfeat ) ;
-         neural = THD_simmat_from_features( nitem , nfeat , F , neu_metric ) ;
-       }
-       if( tset != NULL || phset != NULL )
-         memcpy(tsmain,F,sizeof(float)*(size_t)nsub*nvals) ;
+         if( !quiet )
+           INFO_message("3dRSA: circular-shift null: %d sets, minimum %d TR%s",
+                        nperm,min_shift,(min_shift==1)?"":"s") ;
+       } else if( null_mode == NULL_PHASE ){
+         phset=THD_phase_set_build(nsub,nvals,nperm,seed) ;
+         if( phset == NULL ) ERROR_exit("3dRSA: cannot build the phase-randomization set") ;
+         if( !quiet )
+           INFO_message("3dRSA: phase-randomization null: %d sets, %d randomized Fourier bins",
+                        nperm,phset->nfreq) ;
+       } else if( !(rdm_over==RDM_BRICK &&
+                    classic_null==CLASSIC_NULL_CONDITIONS) ){
+         PERM_scheme *psch = THD_perm_scheme_new( nsub ) ;
+         if( psch == NULL ) ERROR_exit("3dRSA: cannot build a permutation scheme") ;
+         psch->exchange = (rdm_over == RDM_SUBJ) ? PERM_EE : PERM_ISE ;
+         psch->exact    = 0 ;          /* respect -nperm; auto-exact only if it is free */
+         psch->nperm    = nperm ;
+         psch->seed     = seed ;
 
-       /* reliability: split the feature vector into two halves, build the
-          matrix from each, correlate the triangles.  For -mode IS-RSA that
-          splits the time course; it tells whether the region's subject geometry
-          is stable, so a failing model can be read as wrong rather than noise.
-          '-nc_split half' (default) takes the first vs second half -- temporally
-          independent, so not inflated by autocorrelation, but the halves differ
-          in stimulus content.  '-nc_split interleave' takes even vs odd samples
-          -- content matched, but adjacent-sample correlation inflates it. */
-       if( do_nc ){
-         int nhA = (nc_split==NC_INTERLEAVE) ? (nfeat+1)/2 : nfeat/2 ;
-         int nhB = (nc_split==NC_INTERLEAVE) ? nfeat/2     : nfeat-nfeat/2 ;
-         if( nhA >= 2 && nhB >= 2 ){
-           THD_simmat *sA , *sB ; int t ;
-           for( jj_=0 ; jj_ < nsub ; jj_++ ){
-             float *src = F+(size_t)jj_*nfeat , *dst = Fh+(size_t)jj_*nhA ;
-             for( t=0 ; t < nhA ; t++ )
-               dst[t] = src[ (nc_split==NC_INTERLEAVE) ? 2*t : t ] ;
-           }
-           sA = THD_simmat_from_features( nitem , nhA , Fh , neu_metric ) ;
-           THD_simmat_to_tri( sA , triA ) ;
-           for( jj_=0 ; jj_ < nsub ; jj_++ ){
-             float *src = F+(size_t)jj_*nfeat , *dst = Fh+(size_t)jj_*nhB ;
-             for( t=0 ; t < nhB ; t++ )
-               dst[t] = src[ (nc_split==NC_INTERLEAVE) ? 2*t+1 : nfeat/2 + t ] ;
-           }
-           sB = THD_simmat_from_features( nitem , nhB , Fh , neu_metric ) ;
-           THD_simmat_to_tri( sB , triB ) ;
-           ncA[kk_] = THD_tri_corr( ws->m , triA , triB , cmp_metric ,
-                                    ws->sc1 , ws->sc2 ) ;
-           THD_simmat_free(sA) ; THD_simmat_free(sB) ;
-         } else {
-           ncA[kk_] = -2.0f ;              /* too few features to split */
-         }
+         if( block_lab != NULL ) THD_perm_scheme_set_blocks(psch,block_lab) ;
+
+         pset = THD_perm_set_build( psch ) ;
+         THD_perm_scheme_free( psch ) ;
+         if( pset == NULL ) ERROR_exit("3dRSA: cannot build the permutation set") ;
+         if( pset->nperm != nperm && !quiet )
+           INFO_message("3dRSA: using %d relabelings (from -nperm %d)",pset->nperm,nperm) ;
        }
 
-       /* Leave-one-subject-out prediction, once per distinct target/estimand.
-          Exact duplicates retain separately labeled outputs below, copied from
-          their canonical owner. */
-       if( do_loo ){
-         for( mm_=0 ; mm_ < nmod ; mm_++ ){
-           if( rsa_model_has_loo(mod+mm_) ){
-             int own=loo_owner[mm_] , fam=loo_fam[mm_] ;
-             if( own == mm_ ){
-               /* pnull is scratch here (the primary-stat calls below reuse it,
-                  but only after this LOO null has been folded into l_mx) */
-               float *pn = do_loofwe ? pnull + (size_t)fam*npfwe : NULL ;
-               THD_permstat ps ;
-               if( mod[mm_].ncol > 1 ){
-                 int lc ; float *bcol[mod[mm_].ncol] ;
-                 for( lc=0 ; lc<mod[mm_].ncol ; lc++ )
-                   bcol[lc]=tab->val[mod[mm_].icols[lc]] ;
-                 ps=THD_isrsa_loo_profile_pred(neural,mod[mm_].ncol,bcol,cmp_metric,
-                                                pset,ws,pn,
-                                                (nboot>0)?lbpred:NULL) ;
-                 if( nboot>0 ) for( lc=0 ; lc<mod[mm_].ncol ; lc++ ) lbtarg[lc]=bcol[lc] ;
-               } else if( mod[mm_].rule == RUL_ANNAK ){
-                 float *bt=tab->val[mod[mm_].icols[0]] ;
-                 if( nboot>0 ) lbtarg[0]=bt ;
-                 ps=THD_isrsa_loo_annak_pred(neural,bt,cmp_metric,pset,ws,pn,
-                                              (nboot>0)?lbpred:NULL) ;
-               } else {
-                 float *bt=tab->val[mod[mm_].icols[0]] ;
-                 if( nboot>0 ) lbtarg[0]=bt ;
-                 ps=THD_isrsa_loo_pred(neural,bt,cmp_metric,pset,ws,pn,
-                                        (nboot>0)?lbpred:NULL) ;
-               }
-               if( nboot>0 )
-                 THD_rsa_boot_loo_predictions(nsub,mod[mm_].ncol,lbpred,lbtarg,
-                                           cmp_metric,rset,ws,
-                                           1.0f-boot_ci/100.0f,bdraw,bseen,
-                                           lbx,lby,lblo[mm_]+kk_,lbhi[mm_]+kk_) ;
-               if( do_loofwe )
-                 THD_max_accum( npfwe , l_mx + (size_t)fam*npfwe , pn ) ;
-               lr[mm_][kk_] = ps.stat ;
-               lp[mm_][kk_] = ps.pval ;
-               lz[mm_][kk_] = ps.zscr ;
-             } else {
-               lr[mm_][kk_] = lr[own][kk_] ;
-               lp[mm_][kk_] = lp[own][kk_] ;
-               lz[mm_][kk_] = lz[own][kk_] ;
-               if( nboot>0 ){
-                 lblo[mm_][kk_]=lblo[own][kk_] ;
-                 lbhi[mm_][kk_]=lbhi[own][kk_] ;
-               }
-             }
-           } else {
-             lr[mm_][kk_] = lz[mm_][kk_] = 0.0f ; lp[mm_][kk_] = -1.0f ;
-           }
-         }
+       /* One max-statistic null per model, pooled over ROIs/voxels for FWE.  Slot
+          mxflat[mm*npfwe + pk] holds the largest |statistic| any element reached
+          under relabeling pk; sorted after the sweep it turns each element's
+          observed statistic into an FWE-corrected p (Nichols-Holmes 2002).  This
+          is the correct multiple-comparisons correction for the searchlight. */
+       do_fwe = 1 ;
+       /* F15/F7 and S1: commonality, fitted models, and the optional classic
+          fixed-effects primary null use one immutable condition-label set shared
+          across every subject and location.  Its size can differ from the
+          subject sign-flip set, so establish it before sizing the primary FWE. */
+       if( (classic_null==CLASSIC_NULL_CONDITIONS || ncomq>0 || nfit>0) &&
+           rdm_over == RDM_BRICK ){
+         PERM_scheme *csch=THD_perm_scheme_new(nitem) ;
+         if( csch == NULL ) ERROR_exit("3dRSA: cannot build the condition-label scheme") ;
+         csch->exchange=PERM_EE ; csch->exact=0 ; csch->nperm=nperm ; csch->seed=seed ;
+         cpset=THD_perm_set_build(csch) ; THD_perm_scheme_free(csch) ;
+         if( cpset == NULL ) ERROR_exit("3dRSA: cannot build condition relabelings") ;
+         if( !quiet )
+           INFO_message("3dRSA: classic %s uses %d synchronized condition relabelings",
+                        (classic_null==CLASSIC_NULL_CONDITIONS)?
+                          ((ncomq>0 || nfit>0)?"primary/follow-on inference":"primary inference"):
+                        (ncomq>0 && nfit>0)?"commonality/fitted models":
+                        (ncomq>0)?"commonality":"fitted models",cpset->nperm) ;
        }
-
-       if( save_rdm != NULL ){
-         char fn[THD_MAX_NAME] ;
-         sprintf(fn,"%s_roi%04d.1D",save_rdm,rl->val[kk_]) ;
-         THD_simmat_write_1D( fn , neural ) ;
+       npfwe = (tset != NULL) ? tset->nshift
+              : (phset != NULL) ? phset->nphase
+              : (classic_null==CLASSIC_NULL_CONDITIONS) ? cpset->nperm
+                                                         : pset->nperm ;
+       ncaperm=(cpset!=NULL && rdm_over==RDM_BRICK)?cpset->nperm:npfwe ;
+       mxflat = (float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
+       for( ii=0 ; ii < nmod*npfwe ; ii++ ) mxflat[ii] = -FLT_MAX ;
+       pf = (float **)malloc(sizeof(float *)*nmod) ;
+       zf = (float **)malloc(sizeof(float *)*nmod) ;
+       for( mm=0 ; mm < nmod ; mm++ ){
+         pf[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         zf[mm] = (float *)calloc(nroi,sizeof(float)) ;
        }
-
-       /* Assemble this ROI's models.  Fixed ones are shared across ROIs; a
-          -model_dset model is rebuilt HERE, from the second modality's data
-          in this same ROI -- that per-ROI rebuild is the whole point of it.
-          F is free to reuse now, since 'neural' owns its own copy. */
-       for( mm_=0 ; mm_ < nmod ; mm_++ ){
-         if( mod[mm_].kind != MODK_DSET ){
-           mv[mm_] = mod[mm_].mat ;
-         } else if( mode == MODE_CONT ){
-           int mv2 = mod[mm_].mvals ;
-           if( streaming )              /* reduce this sphere's model mean on the fly */
-             for( jj_=0 ; jj_ < nsub ; jj_++ )
-               THD_roi_mean_ts( mod[mm_].dset[jj_] , rl->vox+kk_ , polort ,
-                                F + (size_t)jj_*mv2 ) ;
-           else
-             memcpy( F , mod[mm_].cmean[kk_] , sizeof(float)*(size_t)nsub*mv2 ) ;
-           mv[mm_] = THD_simmat_from_features( nitem , mv2 , F , neu_metric ) ;
-         } else if( mode == MODE_RDM ){
-           mv[mm_] = rsa_second_order_rdm(rl,kk_,nsub,mod[mm_].mvals,nvx,
-                                           cond_metric,neu_metric,mod[mm_].dset,NULL,NULL,
-                                           center_conditions,ipat,NULL,NULL,NULL,rws) ;
-         } else {
-           int mv2 = mod[mm_].mvals , nf2 = nvx*mv2 ;
-           for( jj_=0 ; jj_ < nsub ; jj_++ )
-             THD_roi_pattern( mod[mm_].dset[jj_] , rl->vox+kk_ ,
-                              F + (size_t)jj_*nf2 ) ;
-           mv[mm_] = THD_simmat_from_features( nitem , nf2 , F , neu_metric ) ;
-         }
-       }
-
        if( run_resolved ){
-         int ru,pk ;
-         for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-           int nv=series_runs->run_nval[ru],off=series_runs->offset[ru] ;
-           for( jj_=0 ; jj_<nsub ; jj_++ )
-             memcpy(rF+(size_t)jj_*nv,F+(size_t)jj_*nvals+off,sizeof(float)*nv) ;
-           rneural[ru]=THD_simmat_from_features(nitem,nv,rF,neu_metric) ;
+         int nrout=nmod*series_runs->nrun ;
+         run_mxflat=(float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
+         run_pf=(float **)malloc(sizeof(float *)*nrout) ;
+         run_zf=(float **)malloc(sizeof(float *)*nrout) ;
+         for( ii=0 ; ii<nmod*npfwe ; ii++ ) run_mxflat[ii]=-FLT_MAX ;
+         for( ii=0 ; ii<nrout ; ii++ ){
+           run_pf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           run_zf[ii]=(float *)calloc(nroi,sizeof(float)) ;
          }
-         if( joint ){
-           if( rsa_runresolved_regress(rneural,series_runs->nrun,mod,nmod,cmp_metric,
-                   pset,ws,nrunconspec,rcon_weight,
-                   rstat,rprstat,rpval,rzscr,beta,prtl,pv,jmz,
-                   rcstat,rcpr,rcpval,rczscr,rnull,mnull,rcnull) )
-             ERROR_exit("3dRSA: singular run-resolved joint design at ROI %d",rl->val[kk_]) ;
-           for( mm_=0 ; mm_<nmod ; mm_++ ){
-             rr[mm_][kk_]=beta[mm_]; ee[mm_][kk_]=prtl[mm_] ;
-             pp[mm_][kk_]=pv[mm_]; zz[mm_][kk_]=jmz[mm_] ;
+         if( nrunconspec>0 ){
+           int nrc=nmod*nrunconspec ;
+           rcon_pf=(float **)malloc(sizeof(float *)*nrc) ;
+           rcon_zf=(float **)malloc(sizeof(float *)*nrc) ;
+           for( ii=0 ; ii<nrc ; ii++ ){
+             rcon_pf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+             rcon_zf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           }
+         }
+       }
+
+       /* LOO prediction is a different statistic (cross-validated accuracy), so it
+          gets its OWN max-null family; only scalar-column models are predicted. */
+       do_loofwe = ( do_loo && nloo > 0 ) ;
+       if( do_loofwe ){
+         lmxflat = (float *)malloc(sizeof(float)*(size_t)nloofam*npfwe) ;
+         for( ii=0 ; ii < nloofam*npfwe ; ii++ ) lmxflat[ii] = -FLT_MAX ;
+         lpf = (float **)malloc(sizeof(float *)*nmod) ;
+         lzf = (float **)malloc(sizeof(float *)*nmod) ;
+         for( mm=0 ; mm < nmod ; mm++ ){
+           lpf[mm] = (float *)calloc(nroi,sizeof(float)) ;
+           lzf[mm] = (float *)calloc(nroi,sizeof(float)) ;
+         }
+       }
+
+       /* each model contrast is its own statistic (a difference), so its own
+          max-null family, driven by the same shared relabelings */
+       do_confwe = ( ncon > 0 ) ;
+       if( do_confwe ){
+         int cc ;
+         cmxflat = (float *)malloc(sizeof(float)*(size_t)ncon*npfwe) ;
+         for( ii=0 ; ii < ncon*npfwe ; ii++ ) cmxflat[ii] = -FLT_MAX ;
+         cpf = (float **)malloc(sizeof(float *)*ncon) ;
+         czf = (float **)malloc(sizeof(float *)*ncon) ;
+         for( cc=0 ; cc < ncon ; cc++ ){
+           cpf[cc] = (float *)calloc(nroi,sizeof(float)) ;
+           czf[cc] = (float *)calloc(nroi,sizeof(float)) ;
+         }
+       }
+
+       /* each commonality QUANTITY (three raw plus two partial-R2 per request) is
+          its own statistic, so its own max-null family */
+       do_cafwe = ( ncomq > 0 ) ;
+       if( do_cafwe ){
+         int qq2 ;
+         camx = (float *)malloc(sizeof(float)*(size_t)ncomq*ncaperm) ;
+         for( ii=0 ; ii < ncomq*ncaperm ; ii++ ) camx[ii] = -FLT_MAX ;
+         capf = (float **)malloc(sizeof(float *)*ncomq) ;
+         cazf = (float **)malloc(sizeof(float *)*ncomq) ;
+         for( qq2=0 ; qq2 < ncomq ; qq2++ ){
+           capf[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+           cazf[qq2] = (float *)calloc(nroi,sizeof(float)) ;
+         }
+       }
+       do_fitfwe=(nfit>0) ;
+       if( do_fitfwe ){
+         nfitperm=(rdm_over==RDM_BRICK)?cpset->nperm:pset->nperm ;
+         fmx=(float *)malloc(sizeof(float)*(size_t)nfit*nfitperm) ;
+         fpf=(float **)malloc(sizeof(float *)*nfit) ;
+         fzf=(float **)malloc(sizeof(float *)*nfit) ;
+         for( ii=0 ; ii<nfit*nfitperm ; ii++ ) fmx[ii]=-FLT_MAX ;
+         for( ii=0 ; ii<nfit ; ii++ ){
+           fpf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           fzf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         }
+       }
+       do_fitconfwe=(nfitcon>0) ;
+       if( do_fitconfwe ){
+         fcmx=(float *)malloc(sizeof(float)*(size_t)nfitcon*nfitperm) ;
+         fcpf=(float **)malloc(sizeof(float *)*nfitcon) ;
+         fczf=(float **)malloc(sizeof(float *)*nfitcon) ;
+         for( ii=0 ; ii<nfitcon*nfitperm ; ii++ ) fcmx[ii]=-FLT_MAX ;
+         for( ii=0 ; ii<nfitcon ; ii++ ){
+           fcpf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+           fczf[ii]=(float *)calloc(nroi,sizeof(float)) ;
+         }
+       }
+     }
+
+     /* F9/F23: in a label-null searchlight, fixed model matrices and the shared
+        relabeling set never change.  Materialize their centered/ranked permuted
+        triangles once, then let every sphere and OpenMP worker read that cache.
+        Per-location -model_dset matrices and other comparison/null paths retain
+        their ordinary implementation. */
+     if( streaming && !run_resolved && rdm_over==RDM_SUBJ && pset != NULL &&
+         (cmp_metric==CMP_PEARSON || cmp_metric==CMP_SPEARMAN ||
+          cmp_metric==CMP_RHOA) &&
+         ((!joint && nort==0) || ncon>0) ){
+       THD_simmat **cmat ; int nf=0 ; size_t cb ;
+       mcache_ix=(int *)malloc(sizeof(int)*nmod) ;
+       cmat=(THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
+       for( mm=0 ; mm < nmod ; mm++ ){
+         mcache_ix[mm]=-1 ;
+         if( mod[mm].kind != MODK_DSET ){
+           mcache_ix[mm]=nf ; cmat[nf++]=mod[mm].mat ;
+         }
+       }
+       if( nf > 0 ) mcache=THD_mantel_cache_build(nf,cmat,cmp_metric,pset) ;
+       free(cmat) ;
+       if( mcache == NULL ){
+         free(mcache_ix) ; mcache_ix=NULL ;
+         if( nf > 0 && !quiet )
+           WARNING_message("3dRSA: could not allocate the fixed-model Mantel cache;\n"
+                           "       continuing with the exact uncached path") ;
+       } else if( !quiet ){
+         cb=THD_mantel_cache_bytes(mcache) ;
+         INFO_message("3dRSA: cached %d fixed model%s x %d relabelings (%.3f GiB)\n"
+                      "       for Pearson/Spearman/rho-a searchlight Mantel tests",
+                      nf,(nf==1)?"":"s",pset->nperm,
+                      (double)cb/1073741824.0) ;
+       }
+     }
+
+     /* Bootstrap uncertainty is materialized independently of the permutation
+        null.  The same immutable subject draws are shared across all map elements
+        for thread-count reproducibility and spatially comparable intervals. */
+     if( nboot > 0 ){
+       rset = (block_lab != NULL)
+                ? THD_resample_set_build_stratified(nsub,nboot,seed,block_lab)
+                : THD_resample_set_build(nsub,nboot,seed) ;
+       if( rset == NULL ) ERROR_exit("3dRSA: cannot build %d subject-bootstrap samples",nboot) ;
+       if( !quiet && !dualboot )
+         INFO_message("3dRSA: %d %ssubject-bootstrap samples, %.3g%% percentile CI",
+                      nboot,(block_lab!=NULL)?"within-stratum ":"",boot_ci) ;
+     }
+     if( ncboot > 0 ){
+       crset = rsa_cond_resample_build(nitem,ncboot,seed,cond_group_file) ;
+       if( crset == NULL ) ERROR_exit("3dRSA: cannot build condition-bootstrap samples") ;
+       if( !quiet ){
+         if( dualboot )
+           INFO_message("3dRSA: %d synchronized subject x condition draws over %d "
+                        "condition group%s; %.3g%% corrected-variance t CI (df=%d)%s",
+                        ncboot,crset->ngroup,(crset->ngroup==1)?"":"s",boot_ci,
+                        ((nsub<crset->ngroup)?nsub:crset->ngroup)-1,
+                        (crset->nvalid<ncboot)?"; invalid condition draws omitted":"") ;
+         else
+           INFO_message("3dRSA: %d condition-bootstrap samples over %d group%s, "
+                        "%.3g%% percentile CI%s",
+                        ncboot,crset->ngroup,(crset->ngroup==1)?"":"s",boot_ci,
+                        (crset->nvalid<ncboot)?" (draws with <3 distinct conditions omitted)":"") ;
+       }
+     }
+
+     if( !quiet ){
+       if( run_resolved ){
+         int nrp=(pset!=NULL)?pset->nperm:nperm ;
+         INFO_message("3dRSA: %d run-specific %d x %d matrices, %d model%s, %d permutation%s;\n"
+                      "       %s with synchronized whole-subject trajectories across run x space",
+                      series_runs->nrun,nitem,nitem,nmod,(nmod==1)?"":"s",
+                      nrp,(nrp==1)?"":"s",
+                      run_analysis==RUN_ANALYSIS_SEPARATE?"separate effects + equal-run mean":"equal-run mean") ;
+         if( joint )
+           INFO_message("3dRSA: run-resolved joint model uses standardized coefficients\n"
+                        "       (and partial r) conditional on every other model per run;\n"
+                        "       model-specific Freedman-Lane nulls are synchronized across runs/space") ;
+       } else if( series_active )
+         INFO_message("3dRSA: %d x %d matrices, %d time points, %d permutation%s;\n"
+                      "       %s primary effects with joint time x space FDR/FWE",
+                      nitem,nitem,nseries,nperm,(nperm==1)?"":"s",
+                      subject_series_mode==SUBSERIES_PAIRED?"paired subject-specific":
+                      subject_series_mode==SUBSERIES_LOO?"leave-one-subject-out template":"fixed-model") ;
+       else
+         INFO_message("3dRSA: %d x %d matrices, %d model%s, %d permutation%s, %s",
+                      nitem,nitem,nmod,(nmod==1)?"":"s",nperm,(nperm==1)?"":"s",
+                      joint ? "joint regression"
+                            : (nort>0) ? "separate + nuisances removed"
+                                       : "models tested separately") ;
+     }
+
+     if( nperm <= 0 && rdm_over == RDM_SUBJ ){
+       if( nrunconspec>0 )
+         WARNING_message("3dRSA: -nperm 0 with run contrasts does NO inference -- the dyads\n"
+                         "       are not independent. p/q are -1; MEAN/run _FZ maps are\n"
+                         "       uncalibrated Fisher transforms and contrast _U maps are raw,\n"
+                         "       uncalibrated effect differences. Use -nperm > 0 for reporting.") ;
+       else WARNING_message("3dRSA: -nperm 0 with IS-RSA does NO inference -- the dyads\n"
+                       "       are not independent, so there is no valid parametric\n"
+                       "       p/z.  p/q columns are -1 and the z sub-brick is an\n"
+                       "       uncalibrated Fisher-z effect map ('_FZ', not FIZT).\n"
+                       "       Use -nperm > 0 for any reportable statistic.") ;
+     }
+
+     if( ncon > 0 && !quiet ){
+       int cc ;
+       for( cc=0 ; cc < ncon ; cc++ )
+        INFO_message("3dRSA: contrast '%s' = %s - %s%s",
+                      con[cc].name , mod[con[cc].ia].name , mod[con[cc].ib].name ,
+                      (rdm_over==RDM_SUBJ && contrast_hypothesis==CONTRAST_SUPERIORITY && nperm>0)
+                                            ? " (centered paired subject-bootstrap superiority)"
+                         : (rdm_over==RDM_SUBJ && contrast_hypothesis==CONTRAST_SUPERIORITY)
+                                            ? " (superiority point estimate; no inference)"
+                         : (rdm_over==RDM_SUBJ) ? " (shared-relabeling alignment)"
+                         : (classic_null==CLASSIC_NULL_CONDITIONS)
+                             ? " (paired fixed-subject condition relabeling)"
+                         : group_test ? " (paired signed-rank)" : " (paired sign-flip)") ;
+     }
+
+     rsa_progress_init(&progress,progress_mode,quiet,4,"Inference",nroi,
+                       streaming ? "searchlights" : "ROIs") ;
+
+   AFNI_OMP_START ;
+  #pragma omp parallel
+   {
+     THD_rdm_ws *ws , *cws=NULL ;
+     THD_rsa_rdm_workspace *rws=NULL ;
+     THD_simmat *neural=NULL , *tsneural=NULL , **mv ;
+     THD_simmat **rneural=NULL ;
+     float *F , *tsmain=NULL , *tslag=NULL , *tsprep=NULL , *tsnorm=NULL ;
+     unsigned char *Z=NULL ;                 /* local [subject][TR] zero mask */
+     float *rF=NULL,*rtri=NULL,*rstat=NULL,*rprstat=NULL,*rpval=NULL,*rzscr=NULL,*rnull=NULL,*mnull=NULL,*jmz=NULL ;
+     float *rcstat=NULL,*rcpr=NULL,*rcpval=NULL,*rczscr=NULL,*rcnull=NULL,*rcsum=NULL ;
+     int *rnge=NULL,*rcnge=NULL ;
+     THD_rsa_complex *phspec=NULL , *phwork=NULL ;
+     float *phseries=NULL , *phsc1=NULL , *phsc2=NULL ;
+     float *rsub=NULL , *beta , *prtl , *pv ;
+     float *tsz=NULL , *tscd=NULL , *tscp=NULL , *tscz=NULL ;
+     float *bdraw=NULL,*hdraw=NULL ; int *bseen=NULL ; /* subject-bootstrap scratch */
+     float *br_y=NULL , *br_xflat=NULL , **brx=NULL , *brcoef=NULL , *brbeta=NULL ;
+     float *bca_y=NULL , *bca_a=NULL , *bca_b=NULL , *bca_c=NULL , *bcadraw=NULL ;
+     float *cb_y=NULL , *cb_xflat=NULL , **cbx=NULL , *cbsum=NULL ;
+     float *cbdraw=NULL , *cbbeta=NULL ;           /* condition-bootstrap scratch */
+     float *dualval=NULL , *dualwork=NULL ;         /* F6 subject x condition scratch */
+     float *Fh=NULL , *triA=NULL , *triB=NULL,*covA=NULL,*covB=NULL ; /* noise ceiling */
+     float *ipat=NULL ;                    /* inner condition-pattern RDM scratch */
+     float *srdm=NULL , *mtriflat=NULL , **mtri=NULL ; /* cached classic-RSA triangles */
+     float *srdmcov=NULL,*mcovflat=NULL,**mcov=NULL ;   /* F4 second-moment forms */
+     float *my_mx=NULL , *pnull=NULL ;    /* per-thread FWE max-null + scratch */
+     float *run_my_mx=NULL ;              /* per-thread max over run x space */
+     float *l_mx=NULL ;                   /* per-thread LOO max-null */
+     float *lbpred=NULL,*lbx=NULL,*lby=NULL ; float **lbtarg=NULL ;
+     float *c_mx=NULL , *cpnull=NULL , *dsub=NULL ;  /* per-thread contrast scratch */
+     float *ca_mx=NULL , *capnull=NULL , *casub=NULL ; /* commonality null/subject scratch */
+     RSA_fitws **fitws=NULL ; float *f_mx=NULL,*fnull=NULL,*fc_mx=NULL,*fcnull=NULL ;
+     float *fitfoldz=NULL ; unsigned char *fitvalid=NULL ; int nfitfold=0 ;
+     float **rpat=NULL,*runraw=NULL ; int maxrun_l=0 ; /* crossnobis mapped/run patterns */
+     RSA_whiten wh ;                                 /* per-thread noise-whitening scratch */
+     int nfeat_max , npat_max=0 , maxcond_l=nvals , maxvox_l , kk_ , mm_ , jj_ , nvx ;
+
+     { int wncol=joint ? nmod+nort : ((nort>0) ? 1+nort : 1) ;
+       if( ncomq>0 && wncol<3 ) wncol=3 ;
+       ws=THD_rdm_ws_new(nitem,wncol) ; }
+     mv   = (THD_simmat **)malloc(sizeof(THD_simmat *)*nmod) ;
+     beta = (float *)malloc(sizeof(float)*nmod) ;
+     prtl = (float *)malloc(sizeof(float)*nmod) ;
+     pv   = (float *)malloc(sizeof(float)*nmod) ;
+     if( tset != NULL || phset != NULL ){
+       tsz=(float *)malloc(sizeof(float)*nmod) ;
+       if( ncon > 0 ){
+         tscd=(float *)malloc(sizeof(float)*ncon) ;
+         tscp=(float *)malloc(sizeof(float)*ncon) ;
+         tscz=(float *)malloc(sizeof(float)*ncon) ;
+       }
+     }
+     if( nboot > 0 ){
+       bdraw = (float *)malloc(sizeof(float)*nboot) ;
+       if( rdm_over == RDM_SUBJ ) bseen = (int *)malloc(sizeof(int)*nsub) ;
+       if( do_loo ){
+         lbpred=(float *)malloc(sizeof(float)*(size_t)maxloocol*nsub) ;
+         lbx=(float *)malloc(sizeof(float)*nsub) ;
+         lby=(float *)malloc(sizeof(float)*nsub) ;
+         lbtarg=(float **)malloc(sizeof(float *)*maxloocol) ;
+       }
+       if( rdm_over == RDM_SUBJ && (joint || nort > 0) ){
+         int bc, bncol=nmod+nort ;
+         br_y=(float *)malloc(sizeof(float)*ntri) ;
+         br_xflat=(float *)malloc(sizeof(float)*(size_t)bncol*ntri) ;
+         brx=(float **)malloc(sizeof(float *)*bncol) ;
+         brcoef=(float *)malloc(sizeof(float)*(size_t)nmod*nboot) ;
+         brbeta=(float *)malloc(sizeof(float)*bncol) ;
+         for( bc=0 ; bc < bncol ; bc++ ) brx[bc]=br_xflat+(size_t)bc*ntri ;
+       }
+       if( ncomq > 0 ){
+         bca_y=(float *)malloc(sizeof(float)*ntri) ;
+         bca_a=(float *)malloc(sizeof(float)*ntri) ;
+         bca_b=(float *)malloc(sizeof(float)*ntri) ;
+         bca_c=(float *)malloc(sizeof(float)*ntri) ;
+         bcadraw=(float *)malloc(sizeof(float)*(size_t)RSA_MAXCOMMON*nboot) ;
+       }
+     }
+     if( contrast_rset!=NULL || fit_contrast_rset!=NULL ){
+       int nh=(contrast_rset!=NULL)?contrast_rset->nresample:0 ;
+       if( fit_contrast_rset!=NULL && fit_contrast_rset->nresample>nh )
+         nh=fit_contrast_rset->nresample ;
+       hdraw=(float *)malloc(sizeof(float)*(size_t)nh) ;
+     }
+     if( contrast_rset!=NULL ){
+       if( bseen==NULL ) bseen=(int *)malloc(sizeof(int)*nsub) ;
+     }
+     if( ncboot > 0 ){
+       cws=THD_rdm_ws_new(crset->maxitem,nmod) ;
+       cb_y=(float *)malloc(sizeof(float)*crset->maxtri) ;
+       cb_xflat=(float *)malloc(sizeof(float)*(size_t)nmod*crset->maxtri) ;
+       cbx=(float **)malloc(sizeof(float *)*nmod) ;
+       if( !dualboot ) cbsum=(float *)malloc(sizeof(float)*(size_t)nmod*ncboot) ;
+       cbdraw=(float *)malloc(sizeof(float)*ncboot) ; cbbeta=(float *)malloc(sizeof(float)*nmod) ;
+       if( dualboot ){
+         size_t ndv=(size_t)(joint?nmod:1)*nsub*ncboot ;
+         dualval=(float *)malloc(sizeof(float)*ndv) ;
+         dualwork=(float *)malloc(sizeof(float)*(size_t)(nboot+2*ncboot)) ;
+       }
+       for( mm_=0 ; mm_ < nmod ; mm_++ ) cbx[mm_]=cb_xflat+(size_t)mm_*crset->maxtri ;
+     }
+     if( ncon > 0 ) dsub = (float *)malloc(sizeof(float)*nsub) ;
+     if( do_fwe ){
+       int fi ;
+       my_mx = (float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
+       pnull = (float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
+       for( fi=0 ; fi < nmod*npfwe ; fi++ ) my_mx[fi] = -FLT_MAX ;
+       if( do_loofwe ){
+         l_mx = (float *)malloc(sizeof(float)*(size_t)nloofam*npfwe) ;
+         for( fi=0 ; fi < nloofam*npfwe ; fi++ ) l_mx[fi] = -FLT_MAX ;
+       }
+       if( do_confwe ){
+         int fj ;
+         c_mx   = (float *)malloc(sizeof(float)*(size_t)ncon*npfwe) ;
+         cpnull = (float *)malloc(sizeof(float)*(size_t)ncon*npfwe) ;
+         for( fj=0 ; fj < ncon*npfwe ; fj++ ) c_mx[fj] = -FLT_MAX ;
+       }
+       if( do_cafwe ){
+         int fj ;
+         ca_mx   = (float *)malloc(sizeof(float)*(size_t)ncomq*ncaperm) ;
+         capnull = (float *)malloc(sizeof(float)*(size_t)RSA_MAXCOMMON*ncaperm) ;
+         for( fj=0 ; fj < ncomq*ncaperm ; fj++ ) ca_mx[fj] = -FLT_MAX ;
+       }
+       if( do_fitfwe ){
+         int fj ;
+         f_mx=(float *)malloc(sizeof(float)*(size_t)nfit*nfitperm) ;
+         fnull=(float *)malloc(sizeof(float)*(size_t)nfit*nfitperm) ;
+         for( fj=0 ; fj<nfit*nfitperm ; fj++ ) f_mx[fj]=-FLT_MAX ;
+       }
+       if( do_fitconfwe ){
+         int fj ;
+         fc_mx=(float *)malloc(sizeof(float)*(size_t)nfitcon*nfitperm) ;
+         fcnull=(float *)malloc(sizeof(float)*(size_t)nfitcon*nfitperm) ;
+         for( fj=0 ; fj<nfitcon*nfitperm ; fj++ ) fc_mx[fj]=-FLT_MAX ;
+       }
+     }
+     if( nfit>0 ){
+       int fi ;
+       fitws=(RSA_fitws **)malloc(sizeof(RSA_fitws *)*nfit) ;
+       for( fi=0 ; fi<nfit ; fi++ ){
+         fitws[fi]=THD_rsa_fitws_new(rdm_over,nsub,nitem,fit[fi].ncomp) ;
+         if(!fitws[fi]) ERROR_exit("3dRSA: cannot allocate fitted-model workspace") ;
+       }
+       if( nfitcon>0 ){
+         nfitfold=nsub*((fit_condfold!=NULL)?fit_condfold->nfold:1) ;
+         fitfoldz=(float *)malloc(sizeof(float)*(size_t)nfit*nfitfold) ;
+         fitvalid=(unsigned char *)malloc((size_t)nfit*nfitfold) ;
+       }
+     }
+
+     maxvox_l=THD_roilist_maxvox(rl) ;
+     nfeat_max = 0 ;
+     for( kk_=0 ; kk_ < nroi ; kk_++ ){
+       int nf = (mode == MODE_CONT) ? nvals
+              : (mode == MODE_RDM) ? THD_NTRI(nvals)
+              : ( (rdm_over == RDM_SUBJ) ? rl->vox[kk_].nar*nvals : rl->vox[kk_].nar ) ;
+       if( nf > nfeat_max ) nfeat_max = nf ;
+     }
+     if( mode == MODE_RDM ) npat_max=maxvox_l*nvals ;
+     for( mm_=0 ; mm_ < nmod ; mm_++ ){
+       if( mod[mm_].kind != MODK_DSET ) continue ;
+       /* use the saved mvals: in continuous mode these datasets have already
+          been reduced to ROI means and unloaded, so dset[0] is NULL by now */
+       { int nf = (mode == MODE_CONT) ? mod[mm_].mvals
+                : (mode == MODE_RDM) ? THD_NTRI(mod[mm_].mvals)
+                                     : maxvox_l * mod[mm_].mvals ;
+         if( nf > nfeat_max ) nfeat_max = nf ; }
+       if( mode == MODE_RDM ){
+         if( maxvox_l*mod[mm_].mvals > npat_max ) npat_max=maxvox_l*mod[mm_].mvals ;
+         if( mod[mm_].mvals > maxcond_l ) maxcond_l=mod[mm_].mvals ;
+       }
+     }
+
+     F = (float *)malloc(sizeof(float)*(size_t)nitem*nfeat_max) ;
+     if( mode == MODE_RDM && rdm_over == RDM_SUBJ ){
+       rws=THD_rsa_rdm_workspace_new(nsub,maxcond_l) ;
+       if( rws==NULL ) ERROR_exit("3dRSA: cannot allocate the RDM construction workspace") ;
+     }
+     if( zcensor ) Z=(unsigned char *)malloc((size_t)nitem*nfeat_max) ;
+     if( run_resolved ){
+       int ru,maxrv=0,nre=joint?nmod*series_runs->nrun:series_runs->nrun ;
+       for( ru=0 ; ru<series_runs->nrun ; ru++ )
+         if( series_runs->run_nval[ru]>maxrv ) maxrv=series_runs->run_nval[ru] ;
+       rneural=(THD_simmat **)calloc(series_runs->nrun,sizeof(THD_simmat *)) ;
+       rF=(float *)malloc(sizeof(float)*(size_t)nsub*maxrv) ;
+       rtri=(float *)malloc(sizeof(float)*(size_t)series_runs->nrun*ntri) ;
+       rstat=(float *)malloc(sizeof(float)*nre) ;
+       rprstat=(float *)malloc(sizeof(float)*nre) ;
+       rpval=(float *)malloc(sizeof(float)*nre) ;
+       rzscr=(float *)malloc(sizeof(float)*nre) ;
+       if( joint ) jmz=(float *)malloc(sizeof(float)*nmod) ;
+       rnge=(int *)malloc(sizeof(int)*series_runs->nrun) ;
+       if( nrunconspec>0 ){
+         int nce=joint?nmod*nrunconspec:nrunconspec ;
+         rcstat=(float *)malloc(sizeof(float)*nce) ;
+         rcpr=(float *)malloc(sizeof(float)*nce) ;
+         rcpval=(float *)malloc(sizeof(float)*nce) ;
+         rczscr=(float *)malloc(sizeof(float)*nce) ;
+         rcsum=(float *)malloc(sizeof(float)*nrunconspec) ;
+         rcnge=(int *)malloc(sizeof(int)*nrunconspec) ;
+       }
+       if( pset!=NULL ){
+         mnull=(float *)malloc(sizeof(float)*(size_t)(joint?nmod:1)*npfwe) ;
+         if( nrunconspec>0 )
+           rcnull=(float *)malloc(sizeof(float)*(size_t)(joint?nmod:1)*nrunconspec*npfwe) ;
+       }
+       if( do_fwe ){
+         rnull=(float *)malloc(sizeof(float)*(size_t)(joint?nmod:1)*series_runs->nrun*npfwe) ;
+         run_my_mx=(float *)malloc(sizeof(float)*(size_t)nmod*npfwe) ;
+         for( ru=0 ; ru<nmod*npfwe ; ru++ ) run_my_mx[ru]=-FLT_MAX ;
+       }
+     }
+     if( mode == MODE_RDM ) ipat=(float *)malloc(sizeof(float)*(size_t)npat_max) ;
+     if( tset != NULL || phset != NULL ){
+       tsmain =(float *)malloc(sizeof(float)*(size_t)nsub*nvals) ;
+       tsneural=THD_simmat_new(nsub) ;
+       if( tset != NULL ){
+         tsprep =(float *)malloc(sizeof(float)*(size_t)nsub*nvals) ;
+         tsnorm =(float *)malloc(sizeof(float)*nsub) ;
+         tslag  =(float *)malloc(sizeof(float)*(size_t)ntri*nvals) ;
+       } else {
+         phspec=(THD_rsa_complex *)malloc(sizeof(THD_rsa_complex)*(size_t)nsub*nvals) ;
+         phwork=(THD_rsa_complex *)malloc(sizeof(THD_rsa_complex)*nvals) ;
+         phseries=(float *)malloc(sizeof(float)*(size_t)nsub*nvals) ;
+         phsc1=(float *)malloc(sizeof(float)*nvals) ;
+         phsc2=(float *)malloc(sizeof(float)*nvals) ;
+       }
+     }
+     if( rdm_over == RDM_BRICK ){
+       rsub = (float *)malloc(sizeof(float)*nsub) ;
+       srdm = (float *)malloc(sizeof(float)*(size_t)nsub*ntri) ;
+       if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV ){
+         size_t nn=(size_t)nitem*nitem ;
+         srdmcov=(float *)malloc(sizeof(float)*(size_t)nsub*nn) ;
+         mcovflat=(float *)malloc(sizeof(float)*(size_t)nmod*nn) ;
+         mcov=(float **)malloc(sizeof(float *)*nmod) ;
+         for( mm_=0 ; mm_<nmod ; mm_++ ){
+           mcov[mm_]=mcovflat+(size_t)mm_*nn ;
+           THD_simmat_to_tri(mod[mm_].mat,ws->yperm) ;
+           THD_rdm_cov_transform(nitem,ws->yperm,cmp_metric==CMP_CORR_COV,mcov[mm_]) ;
+         }
+       }
+       if( ncomq > 0 && nboot > 0 )
+         casub=(float *)malloc(sizeof(float)*(size_t)RSA_MAXCOMMON*nsub) ;
+       if( joint ){
+         mtriflat = (float *)malloc(sizeof(float)*(size_t)nmod*ntri) ;
+         mtri = (float **)malloc(sizeof(float *)*nmod) ;
+         for( mm_=0 ; mm_ < nmod ; mm_++ ){
+           mtri[mm_] = mtriflat + (size_t)mm_*ntri ;
+           THD_simmat_to_tri( mod[mm_].mat , mtri[mm_] ) ;
+         }
+       }
+     }
+
+     /* crossnobis: one condition-pattern buffer per run of the busiest subject */
+     wh.mode = NN_NONE ;
+     wh.residbuf = wh.Rmat = wh.Whalf = wh.wdiag = wh.wtmp = NULL ;
+     if( runset != NULL ){
+       int s , rr_ ;
+       for( s=0 ; s < runset->nsub ; s++ ) if( runset->nrun[s] > maxrun_l ) maxrun_l = runset->nrun[s] ;
+       rpat = (float **)malloc(sizeof(float *)*maxrun_l) ;
+       for( rr_=0 ; rr_ < maxrun_l ; rr_++ )
+         rpat[rr_] = (float *)malloc(sizeof(float)*(size_t)nvals*maxvox_l) ;
+       if( runset->has_condmap )
+         runraw=(float *)malloc(sizeof(float)*(size_t)runset->maxbrick*maxvox_l) ;
+
+       if( noise_norm != NN_NONE ){
+         int maxnt=0 , maxntot=0 ;
+         for( s=0 ; s < runset->nsub ; s++ ){
+           int rr2 , ntsum=0 ;
+           for( rr2=0 ; rr2 < runset->nrun[s] ; rr2++ ){
+             int nt = DSET_NVALS(runset->resid[ runset->row_of[s][rr2] ]) ;
+             if( nt > maxnt ) maxnt = nt ;
+             ntsum += nt ;
+           }
+           if( ntsum > maxntot ) maxntot = ntsum ;
+         }
+         wh.mode     = noise_norm ;
+         wh.residbuf = (float *)malloc(sizeof(float)*(size_t)maxnt  *maxvox_l) ;
+         wh.Rmat     = (float *)malloc(sizeof(float)*(size_t)maxntot*maxvox_l) ;
+         wh.wdiag    = (float *)malloc(sizeof(float)*maxvox_l) ;
+         wh.wtmp     = (float *)malloc(sizeof(float)*maxvox_l) ;
+         if( noise_norm == NN_SHRINK )
+           wh.Whalf  = (float *)malloc(sizeof(float)*(size_t)maxvox_l*maxvox_l) ;
+       }
+     }
+
+     if( do_nc ){
+       triA = (float *)malloc(sizeof(float)*ws->m) ;
+       triB = (float *)malloc(sizeof(float)*ws->m) ;
+       if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV ){
+         covA=(float *)malloc(sizeof(float)*(size_t)nitem*nitem) ;
+         covB=(float *)malloc(sizeof(float)*(size_t)nitem*nitem) ;
+       }
+       if( rdm_over == RDM_SUBJ )
+         Fh = (float *)malloc(sizeof(float)*(size_t)nitem*nfeat_max) ;
+     }
+
+  #pragma omp for schedule(dynamic,1)
+     for( kk_=0 ; kk_ < nroi ; kk_++ ){
+
+       nvx = rl->vox[kk_].nar ;
+
+       /* the relabeling set (pset) is shared read-only across all ROIs -- no
+          per-ROI RNG, which is what makes results thread-count independent and
+          lets one common null serve every element */
+
+       /*----------------------------------------------------------------*/
+       if( rdm_over == RDM_SUBJ ){
+         int nfeat ;
+
+         if( mode == MODE_CONT ){
+           int minkeep=0 ;
+           nfeat = nvals ;
+           if( streaming ){             /* reduce this sphere's mean on the fly */
+             if( series_runs!=NULL ){
+               int rw_ ;
+               for( rw_=0 ; rw_<series_runs->nrow ; rw_++ ){
+                 int sj_=series_runs->row_sub[rw_],uj_=series_runs->row_run[rw_] ;
+                 int nv_=series_runs->run_nval[uj_],off_=series_runs->offset[uj_] ;
+                 THD_roi_mean_ts(dset[rw_],rl->vox+kk_,polort,
+                                 F+(size_t)sj_*nvals+off_) ;
+                 rsa_run_normalize(F+(size_t)sj_*nvals+off_,nv_,run_normalize) ;
+               }
+             } else for( jj_=0 ; jj_ < nsub ; jj_++ ){
+               if( zcensor ) THD_roi_mean_ts_zmask(dset[jj_],rl->vox+kk_,polort,
+                                  F+(size_t)jj_*nvals,Z+(size_t)jj_*nvals) ;
+               else THD_roi_mean_ts(dset[jj_],rl->vox+kk_,polort,
+                                    F+(size_t)jj_*nvals) ;
+             }
+           }
+           else{
+             memcpy( F , cmean[kk_] , sizeof(float)*(size_t)nsub*nvals ) ;
+             if( zcensor ) memcpy(Z,zkeep[kk_],(size_t)nsub*nvals) ;
+           }
+           if( !run_resolved )
+             neural = zcensor ? THD_simmat_from_features_zcensor(nitem,nfeat,F,Z,
+                                                                  neu_metric,&minkeep)
+                              : THD_simmat_from_features(nitem,nfeat,F,neu_metric) ;
+           if( zcensor ){
+             zcmin[kk_]=minkeep ;
+             if( neural==NULL ) ERROR_exit("3dRSA: -zcensor retained fewer than 3 jointly\n"
+                                           "       valid TRs for a subject pair in ROI/searchlight %d",
+                                           rl->val[kk_]) ;
+           }
+         } else if( mode == MODE_RDM ){
+           nfeat = THD_NTRI(nvals) ;
+           neural = rsa_second_order_rdm(rl,kk_,nsub,nvals,nvx,
+                                          cond_metric,neu_metric,dset,runset,condition_index,
+                                          center_conditions,ipat,rpat,runraw,&wh,rws) ;
+         } else {
+           nfeat = nvx * nvals ;
+           for( jj_=0 ; jj_ < nsub ; jj_++ )
+             THD_roi_pattern( dset[jj_] , rl->vox+kk_ , F + (size_t)jj_*nfeat ) ;
+           neural = THD_simmat_from_features( nitem , nfeat , F , neu_metric ) ;
+         }
+         if( tset != NULL || phset != NULL )
+           memcpy(tsmain,F,sizeof(float)*(size_t)nsub*nvals) ;
+
+         /* reliability: split the feature vector into two halves, build the
+            matrix from each, correlate the triangles.  For -mode IS-RSA that
+            splits the time course; it tells whether the region's subject geometry
+            is stable, so a failing model can be read as wrong rather than noise.
+            '-nc_split half' (default) takes the first vs second half -- temporally
+            independent, so not inflated by autocorrelation, but the halves differ
+            in stimulus content.  '-nc_split interleave' takes even vs odd samples
+            -- content matched, but adjacent-sample correlation inflates it. */
+         if( do_nc ){
+           int nhA = (nc_split==NC_INTERLEAVE) ? (nfeat+1)/2 : nfeat/2 ;
+           int nhB = (nc_split==NC_INTERLEAVE) ? nfeat/2     : nfeat-nfeat/2 ;
+           if( nhA >= 2 && nhB >= 2 ){
+             THD_simmat *sA , *sB ; int t ;
+             for( jj_=0 ; jj_ < nsub ; jj_++ ){
+               float *src = F+(size_t)jj_*nfeat , *dst = Fh+(size_t)jj_*nhA ;
+               for( t=0 ; t < nhA ; t++ )
+                 dst[t] = src[ (nc_split==NC_INTERLEAVE) ? 2*t : t ] ;
+             }
+             sA = THD_simmat_from_features( nitem , nhA , Fh , neu_metric ) ;
+             THD_simmat_to_tri( sA , triA ) ;
+             for( jj_=0 ; jj_ < nsub ; jj_++ ){
+               float *src = F+(size_t)jj_*nfeat , *dst = Fh+(size_t)jj_*nhB ;
+               for( t=0 ; t < nhB ; t++ )
+                 dst[t] = src[ (nc_split==NC_INTERLEAVE) ? 2*t+1 : nfeat/2 + t ] ;
+             }
+             sB = THD_simmat_from_features( nitem , nhB , Fh , neu_metric ) ;
+             THD_simmat_to_tri( sB , triB ) ;
+             ncA[kk_] = THD_tri_corr( ws->m , triA , triB , cmp_metric ,
+                                      ws->sc1 , ws->sc2 ) ;
+             THD_simmat_free(sA) ; THD_simmat_free(sB) ;
+           } else {
+             ncA[kk_] = -2.0f ;              /* too few features to split */
+           }
+         }
+
+         /* Leave-one-subject-out prediction, once per distinct target/estimand.
+            Exact duplicates retain separately labeled outputs below, copied from
+            their canonical owner. */
+         if( do_loo ){
+           for( mm_=0 ; mm_ < nmod ; mm_++ ){
+             if( rsa_model_has_loo(mod+mm_) ){
+               int own=loo_owner[mm_] , fam=loo_fam[mm_] ;
+               if( own == mm_ ){
+                 /* pnull is scratch here (the primary-stat calls below reuse it,
+                    but only after this LOO null has been folded into l_mx) */
+                 float *pn = do_loofwe ? pnull + (size_t)fam*npfwe : NULL ;
+                 THD_permstat ps ;
+                 if( mod[mm_].ncol > 1 ){
+                   int lc ; float *bcol[mod[mm_].ncol] ;
+                   for( lc=0 ; lc<mod[mm_].ncol ; lc++ )
+                     bcol[lc]=tab->val[mod[mm_].icols[lc]] ;
+                   ps=THD_isrsa_loo_profile_pred(neural,mod[mm_].ncol,bcol,cmp_metric,
+                                                  pset,ws,pn,
+                                                  (nboot>0)?lbpred:NULL) ;
+                   if( nboot>0 ) for( lc=0 ; lc<mod[mm_].ncol ; lc++ ) lbtarg[lc]=bcol[lc] ;
+                 } else if( mod[mm_].rule == RUL_ANNAK ){
+                   float *bt=tab->val[mod[mm_].icols[0]] ;
+                   if( nboot>0 ) lbtarg[0]=bt ;
+                   ps=THD_isrsa_loo_annak_pred(neural,bt,cmp_metric,pset,ws,pn,
+                                                (nboot>0)?lbpred:NULL) ;
+                 } else {
+                   float *bt=tab->val[mod[mm_].icols[0]] ;
+                   if( nboot>0 ) lbtarg[0]=bt ;
+                   ps=THD_isrsa_loo_pred(neural,bt,cmp_metric,pset,ws,pn,
+                                          (nboot>0)?lbpred:NULL) ;
+                 }
+                 if( nboot>0 )
+                   THD_rsa_boot_loo_predictions(nsub,mod[mm_].ncol,lbpred,lbtarg,
+                                             cmp_metric,rset,ws,
+                                             1.0f-boot_ci/100.0f,bdraw,bseen,
+                                             lbx,lby,lblo[mm_]+kk_,lbhi[mm_]+kk_) ;
+                 if( do_loofwe )
+                   THD_max_accum( npfwe , l_mx + (size_t)fam*npfwe , pn ) ;
+                 lr[mm_][kk_] = ps.stat ;
+                 lp[mm_][kk_] = ps.pval ;
+                 lz[mm_][kk_] = ps.zscr ;
+               } else {
+                 lr[mm_][kk_] = lr[own][kk_] ;
+                 lp[mm_][kk_] = lp[own][kk_] ;
+                 lz[mm_][kk_] = lz[own][kk_] ;
+                 if( nboot>0 ){
+                   lblo[mm_][kk_]=lblo[own][kk_] ;
+                   lbhi[mm_][kk_]=lbhi[own][kk_] ;
+                 }
+               }
+             } else {
+               lr[mm_][kk_] = lz[mm_][kk_] = 0.0f ; lp[mm_][kk_] = -1.0f ;
+             }
+           }
+         }
+
+         if( save_rdm != NULL ){
+           char fn[THD_MAX_NAME] ;
+           sprintf(fn,"%s_roi%04d.1D",save_rdm,rl->val[kk_]) ;
+           THD_simmat_write_1D( fn , neural ) ;
+         }
+
+         /* Assemble this ROI's models.  Fixed ones are shared across ROIs; a
+            -model_dset model is rebuilt HERE, from the second modality's data
+            in this same ROI -- that per-ROI rebuild is the whole point of it.
+            F is free to reuse now, since 'neural' owns its own copy. */
+         for( mm_=0 ; mm_ < nmod ; mm_++ ){
+           if( mod[mm_].kind != MODK_DSET ){
+             mv[mm_] = mod[mm_].mat ;
+           } else if( mode == MODE_CONT ){
+             int mv2 = mod[mm_].mvals ;
+             if( streaming )              /* reduce this sphere's model mean on the fly */
+               for( jj_=0 ; jj_ < nsub ; jj_++ )
+                 THD_roi_mean_ts( mod[mm_].dset[jj_] , rl->vox+kk_ , polort ,
+                                  F + (size_t)jj_*mv2 ) ;
+             else
+               memcpy( F , mod[mm_].cmean[kk_] , sizeof(float)*(size_t)nsub*mv2 ) ;
+             mv[mm_] = THD_simmat_from_features( nitem , mv2 , F , neu_metric ) ;
+           } else if( mode == MODE_RDM ){
+             mv[mm_] = rsa_second_order_rdm(rl,kk_,nsub,mod[mm_].mvals,nvx,
+                                             cond_metric,neu_metric,mod[mm_].dset,NULL,NULL,
+                                             center_conditions,ipat,NULL,NULL,NULL,rws) ;
+           } else {
+             int mv2 = mod[mm_].mvals , nf2 = nvx*mv2 ;
+             for( jj_=0 ; jj_ < nsub ; jj_++ )
+               THD_roi_pattern( mod[mm_].dset[jj_] , rl->vox+kk_ ,
+                                F + (size_t)jj_*nf2 ) ;
+             mv[mm_] = THD_simmat_from_features( nitem , nf2 , F , neu_metric ) ;
+           }
+         }
+
+         if( run_resolved ){
+           int ru,pk ;
+           for( ru=0 ; ru<series_runs->nrun ; ru++ ){
+             int nv=series_runs->run_nval[ru],off=series_runs->offset[ru] ;
+             for( jj_=0 ; jj_<nsub ; jj_++ )
+               memcpy(rF+(size_t)jj_*nv,F+(size_t)jj_*nvals+off,sizeof(float)*nv) ;
+             rneural[ru]=THD_simmat_from_features(nitem,nv,rF,neu_metric) ;
+           }
+           if( joint ){
+             if( rsa_runresolved_regress(rneural,series_runs->nrun,mod,nmod,cmp_metric,
+                     pset,ws,nrunconspec,rcon_weight,
+                     rstat,rprstat,rpval,rzscr,beta,prtl,pv,jmz,
+                     rcstat,rcpr,rcpval,rczscr,rnull,mnull,rcnull) )
+               ERROR_exit("3dRSA: singular run-resolved joint design at ROI %d",rl->val[kk_]) ;
+             for( mm_=0 ; mm_<nmod ; mm_++ ){
+               rr[mm_][kk_]=beta[mm_]; ee[mm_][kk_]=prtl[mm_] ;
+               pp[mm_][kk_]=pv[mm_]; zz[mm_][kk_]=jmz[mm_] ;
+               for( ru=0 ; ru<series_runs->nrun ; ru++ ){
+                 int sx=mm_*series_runs->nrun+ru,ix=sx ;
+                 run_rr[ix][kk_]=rstat[sx]; run_ee[ix][kk_]=rprstat[sx] ;
+                 run_pp[ix][kk_]=rpval[sx]; run_zz[ix][kk_]=rzscr[sx] ;
+               }
+               for( ru=0 ; ru<nrunconspec ; ru++ ){
+                 int sx=mm_*nrunconspec+ru,ix=sx ;
+                 rcon_rr[ix][kk_]=rcstat[sx]; rcon_ee[ix][kk_]=rcpr[sx] ;
+                 rcon_pp[ix][kk_]=rcpval[sx]; rcon_zz[ix][kk_]=rczscr[sx] ;
+               }
+               if( do_fwe ){
+                 THD_max_accum(npfwe,my_mx+(size_t)mm_*npfwe,
+                               mnull+(size_t)mm_*npfwe) ;
+                 for( pk=0 ; pk<npfwe ; pk++ ){
+                   float mx=0.0f ;
+                   if( run_analysis==RUN_ANALYSIS_SEPARATE )
+                     for( ru=0 ; ru<series_runs->nrun ; ru++ ){
+                       float v=rnull[((size_t)mm_*series_runs->nrun+ru)*npfwe+pk] ;
+                       if(v>mx)mx=v ;
+                     }
+                   for( ru=0 ; ru<nrunconspec ; ru++ ){
+                     float v=rcnull[((size_t)mm_*nrunconspec+ru)*npfwe+pk] ;
+                     if(v>mx)mx=v ;
+                   }
+                   if(mx>run_my_mx[(size_t)mm_*npfwe+pk])
+                     run_my_mx[(size_t)mm_*npfwe+pk]=mx ;
+                 }
+               }
+             }
+           } else for( mm_=0 ; mm_<nmod ; mm_++ ){
+             float ms,mp,mz ;
+             THD_rsa_runresolved_mantel(rneural,series_runs->nrun,mv[mm_],mod[mm_].run_mat,cmp_metric,
+                                    pset,ws,rtri,rstat,rpval,rzscr,&ms,&mp,&mz,
+                                    do_fwe?rnull:NULL,do_fwe?mnull:NULL,rnge,
+                                    nrunconspec,rcon_weight,rcstat,rcpval,rczscr,
+                                    do_fwe?rcnull:NULL,rcnge,rcsum) ;
+             rr[mm_][kk_]=ee[mm_][kk_]=ms ; pp[mm_][kk_]=mp ; zz[mm_][kk_]=mz ;
              for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-               int sx=mm_*series_runs->nrun+ru,ix=sx ;
-               run_rr[ix][kk_]=rstat[sx]; run_ee[ix][kk_]=rprstat[sx] ;
-               run_pp[ix][kk_]=rpval[sx]; run_zz[ix][kk_]=rzscr[sx] ;
+               int ix=mm_*series_runs->nrun+ru ;
+               run_rr[ix][kk_]=run_ee[ix][kk_]=rstat[ru] ; run_pp[ix][kk_]=rpval[ru] ;
+               run_zz[ix][kk_]=rzscr[ru] ;
              }
              for( ru=0 ; ru<nrunconspec ; ru++ ){
-               int sx=mm_*nrunconspec+ru,ix=sx ;
-               rcon_rr[ix][kk_]=rcstat[sx]; rcon_ee[ix][kk_]=rcpr[sx] ;
-               rcon_pp[ix][kk_]=rcpval[sx]; rcon_zz[ix][kk_]=rczscr[sx] ;
+               int ix=mm_*nrunconspec+ru ;
+               rcon_rr[ix][kk_]=rcon_ee[ix][kk_]=rcstat[ru]; rcon_pp[ix][kk_]=rcpval[ru] ;
+               rcon_zz[ix][kk_]=rczscr[ru] ;
              }
              if( do_fwe ){
-               THD_max_accum(npfwe,my_mx+(size_t)mm_*npfwe,
-                             mnull+(size_t)mm_*npfwe) ;
+               THD_max_accum(npfwe,my_mx+(size_t)mm_*npfwe,mnull) ;
                for( pk=0 ; pk<npfwe ; pk++ ){
                  float mx=0.0f ;
                  if( run_analysis==RUN_ANALYSIS_SEPARATE )
-                   for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-                     float v=rnull[((size_t)mm_*series_runs->nrun+ru)*npfwe+pk] ;
-                     if(v>mx)mx=v ;
-                   }
-                 for( ru=0 ; ru<nrunconspec ; ru++ ){
-                   float v=rcnull[((size_t)mm_*nrunconspec+ru)*npfwe+pk] ;
-                   if(v>mx)mx=v ;
-                 }
-                 if(mx>run_my_mx[(size_t)mm_*npfwe+pk])
+                   for( ru=0 ; ru<series_runs->nrun ; ru++ )
+                     if( rnull[(size_t)ru*npfwe+pk]>mx ) mx=rnull[(size_t)ru*npfwe+pk] ;
+                 for( ru=0 ; ru<nrunconspec ; ru++ )
+                   if( rcnull[(size_t)ru*npfwe+pk]>mx ) mx=rcnull[(size_t)ru*npfwe+pk] ;
+                 if( mx>run_my_mx[(size_t)mm_*npfwe+pk] )
                    run_my_mx[(size_t)mm_*npfwe+pk]=mx ;
                }
              }
            }
-         } else for( mm_=0 ; mm_<nmod ; mm_++ ){
-           float ms,mp,mz ;
-           THD_rsa_runresolved_mantel(rneural,series_runs->nrun,mv[mm_],mod[mm_].run_mat,cmp_metric,
-                                  pset,ws,rtri,rstat,rpval,rzscr,&ms,&mp,&mz,
-                                  do_fwe?rnull:NULL,do_fwe?mnull:NULL,rnge,
-                                  nrunconspec,rcon_weight,rcstat,rcpval,rczscr,
-                                  do_fwe?rcnull:NULL,rcnge,rcsum) ;
-           rr[mm_][kk_]=ee[mm_][kk_]=ms ; pp[mm_][kk_]=mp ; zz[mm_][kk_]=mz ;
            for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-             int ix=mm_*series_runs->nrun+ru ;
-             run_rr[ix][kk_]=run_ee[ix][kk_]=rstat[ru] ; run_pp[ix][kk_]=rpval[ru] ;
-             run_zz[ix][kk_]=rzscr[ru] ;
+             THD_simmat_free(rneural[ru]); rneural[ru]=NULL ;
            }
-           for( ru=0 ; ru<nrunconspec ; ru++ ){
-             int ix=mm_*nrunconspec+ru ;
-             rcon_rr[ix][kk_]=rcon_ee[ix][kk_]=rcstat[ru]; rcon_pp[ix][kk_]=rcpval[ru] ;
-             rcon_zz[ix][kk_]=rczscr[ru] ;
+         } else if( tset != NULL || phset != NULL ){ /* one temporal family for all effects */
+           THD_rsa_contrast pairs[ncon>0?ncon:1]; int ci;
+           THD_rsa_temporal_workspace temporal={tsneed,tslag,tsprep,tsnorm,
+              phspec,phwork,phseries,phsc1,phsc2,tsneural};
+           for(ci=0;ci<ncon;ci++){ pairs[ci].ia=con[ci].ia; pairs[ci].ib=con[ci].ib; }
+           THD_rsa_temporal_infer(neural,nmod,mv,nort,ort,joint,ncon,pairs,
+                              tsmain,neu_metric,cmp_metric,tset,phset,ws,&temporal,
+                              beta,prtl,pv,tsz,pnull,tscd,tscp,tscz,cpnull) ;
+           if( do_fwe ) THD_max_accum(nmod*npfwe,my_mx,pnull) ;
+           for( mm_=0 ; mm_ < nmod ; mm_++ ){
+             rr[mm_][kk_]=beta[mm_] ; ee[mm_][kk_]=prtl[mm_] ;
+             pp[mm_][kk_]=pv[mm_] ; zz[mm_][kk_]=tsz[mm_] ;
            }
-           if( do_fwe ){
-             THD_max_accum(npfwe,my_mx+(size_t)mm_*npfwe,mnull) ;
-             for( pk=0 ; pk<npfwe ; pk++ ){
-               float mx=0.0f ;
-               if( run_analysis==RUN_ANALYSIS_SEPARATE )
-                 for( ru=0 ; ru<series_runs->nrun ; ru++ )
-                   if( rnull[(size_t)ru*npfwe+pk]>mx ) mx=rnull[(size_t)ru*npfwe+pk] ;
-               for( ru=0 ; ru<nrunconspec ; ru++ )
-                 if( rcnull[(size_t)ru*npfwe+pk]>mx ) mx=rcnull[(size_t)ru*npfwe+pk] ;
-               if( mx>run_my_mx[(size_t)mm_*npfwe+pk] )
-                 run_my_mx[(size_t)mm_*npfwe+pk]=mx ;
-             }
-           }
-         }
-         for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-           THD_simmat_free(rneural[ru]); rneural[ru]=NULL ;
-         }
-       } else if( tset != NULL || phset != NULL ){ /* one temporal family for all effects */
-         THD_rsa_contrast pairs[ncon>0?ncon:1]; int ci;
-         THD_rsa_temporal_workspace temporal={tsneed,tslag,tsprep,tsnorm,
-            phspec,phwork,phseries,phsc1,phsc2,tsneural};
-         for(ci=0;ci<ncon;ci++){ pairs[ci].ia=con[ci].ia; pairs[ci].ib=con[ci].ib; }
-         THD_rsa_temporal_infer(neural,nmod,mv,nort,ort,joint,ncon,pairs,
-                            tsmain,neu_metric,cmp_metric,tset,phset,ws,&temporal,
-                            beta,prtl,pv,tsz,pnull,tscd,tscp,tscz,cpnull) ;
-         if( do_fwe ) THD_max_accum(nmod*npfwe,my_mx,pnull) ;
-         for( mm_=0 ; mm_ < nmod ; mm_++ ){
-           rr[mm_][kk_]=beta[mm_] ; ee[mm_][kk_]=prtl[mm_] ;
-           pp[mm_][kk_]=pv[mm_] ; zz[mm_][kk_]=tsz[mm_] ;
-         }
-         if( nboot > 0 ){
-           if( joint || nort > 0 )
-             THD_rsa_boot_isrsa_regress(neural,nmod,mv,nort,ort,cmp_metric,joint,
-                                     rset,ws,1.0f-boot_ci/100.0f,
-                                     br_y,brx,brcoef,brbeta,bseen,blo,bhi,kk_) ;
-           else for( mm_=0 ; mm_ < nmod ; mm_++ )
-             THD_rsa_boot_isrsa(neural,mv[mm_],cmp_metric,rset,ws,
-                            1.0f-boot_ci/100.0f,bdraw,bseen,
-                            blo[mm_]+kk_,bhi[mm_]+kk_) ;
-         }
-         for( mm_=0 ; mm_ < ncon ; mm_++ ){
-           if( contrast_rset!=NULL ){
-             float *pn=do_confwe ? cpnull+(size_t)mm_*npfwe : NULL ;
-             THD_permstat hs=THD_rsa_isrsa_superiority_test(
-                 neural,mv[con[mm_].ia],mv[con[mm_].ib],cmp_metric,
-                 contrast_rset,ws,hdraw,bseen,pn) ;
-             cd[mm_][kk_]=ce[mm_][kk_]=hs.stat ;
-             cp[mm_][kk_]=hs.pval ; cz[mm_][kk_]=hs.zscr ;
-           } else {
-             cd[mm_][kk_]=ce[mm_][kk_]=tscd[mm_] ;
-             cp[mm_][kk_]=tscp[mm_] ; cz[mm_][kk_]=tscz[mm_] ;
-           }
-           if( nboot > 0 )
-             THD_rsa_boot_isrsa_contrast(neural,mv[con[mm_].ia],mv[con[mm_].ib],
-                                      cmp_metric,rset,ws,
-                                      1.0f-boot_ci/100.0f,bdraw,bseen,
-                                      dblo[mm_]+kk_,dbhi[mm_]+kk_) ;
-         }
-         if( do_confwe ) THD_max_accum(ncon*npfwe,c_mx,cpnull) ;
-       } else if( joint ){              /* all models in one regression */
-         THD_rdm_regress( neural , nmod , mv , nort , ort , cmp_metric , pset ,
-                          ws , beta , prtl , (nperm > 0) ? pv : NULL ,
-                          do_fwe ? pnull : NULL ) ;
-         if( do_fwe ) THD_max_accum( nmod*npfwe , my_mx , pnull ) ;
-         for( mm_=0 ; mm_ < nmod ; mm_++ ){
-           rr[mm_][kk_] = beta[mm_] ;
-           ee[mm_][kk_] = prtl[mm_] ;
-           pp[mm_][kk_] = (nperm > 0) ? pv[mm_] : -1.0f ;
-           zz[mm_][kk_] = (nperm > 0) ? THD_p_to_z(pv[mm_],beta[mm_])
-                                      : MYatanh(beta[mm_]) ;
-         }
-         if( nboot > 0 )
-           THD_rsa_boot_isrsa_regress( neural,nmod,mv,nort,ort,cmp_metric,1,
-                                    rset,ws,1.0f-boot_ci/100.0f,
-                                    br_y,brx,brcoef,brbeta,bseen,
-                                    blo,bhi,kk_ ) ;
-       } else if( nort > 0 ){           /* each model separately, nuisances out */
-         for( mm_=0 ; mm_ < nmod ; mm_++ ){
-           float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
-           THD_rdm_regress( neural , 1 , mv+mm_ , nort , ort , cmp_metric , pset ,
-                            ws , beta , prtl , (nperm > 0) ? pv : NULL , pn ) ;
-           if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ;
-           rr[mm_][kk_] = beta[0] ;
-           ee[mm_][kk_] = prtl[0] ;
-           pp[mm_][kk_] = (nperm > 0) ? pv[0] : -1.0f ;
-           zz[mm_][kk_] = (nperm > 0) ? THD_p_to_z(pv[0],beta[0])
-                                      : MYatanh(beta[0]) ;
-         }
-         if( nboot > 0 )
-           THD_rsa_boot_isrsa_regress( neural,nmod,mv,nort,ort,cmp_metric,0,
-                                    rset,ws,1.0f-boot_ci/100.0f,
-                                    br_y,brx,brcoef,brbeta,bseen,
-                                    blo,bhi,kk_ ) ;
-       } else {                         /* subject-label Mantel null */
-         for( mm_=0 ; mm_ < nmod ; mm_++ ){
-           float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
-           THD_permstat ps = (mcache != NULL && mcache_ix[mm_] >= 0)
-             ? THD_mantel_corr_cached( neural , mv[mm_] , mcache,
-                                       mcache_ix[mm_] , ws , pn )
-             : THD_mantel_corr( neural , mv[mm_] , cmp_metric , pset , ws , pn ) ;
-           if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ;
-           rr[mm_][kk_] = ps.stat ;
-           ee[mm_][kk_] = ps.stat ;
-           pp[mm_][kk_] = ps.pval ;
-           zz[mm_][kk_] = ps.zscr ;
-           if( nboot > 0 )
-             THD_rsa_boot_isrsa( neural,mv[mm_],cmp_metric,rset,ws,
+           if( nboot > 0 ){
+             if( joint || nort > 0 )
+               THD_rsa_boot_isrsa_regress(neural,nmod,mv,nort,ort,cmp_metric,joint,
+                                       rset,ws,1.0f-boot_ci/100.0f,
+                                       br_y,brx,brcoef,brbeta,bseen,blo,bhi,kk_) ;
+             else for( mm_=0 ; mm_ < nmod ; mm_++ )
+               THD_rsa_boot_isrsa(neural,mv[mm_],cmp_metric,rset,ws,
                               1.0f-boot_ci/100.0f,bdraw,bseen,
-                              blo[mm_]+kk_,bhi[mm_]+kk_ ) ;
-         }
-       }
-
-       /* IS-RSA model contrasts: paired Mantel difference under the SAME
-          relabelings.  mv[ia]/mv[ib] may be fixed or may both have just been
-          rebuilt for this ROI/searchlight from -model_dset modalities. */
-       if( ncon > 0 && tset == NULL && phset == NULL ){
-         int cc ;
-         for( cc=0 ; cc < ncon ; cc++ ){
-           float *pn = do_confwe ? cpnull + (size_t)cc*npfwe : NULL ;
-           THD_permstat ps = (contrast_rset!=NULL)
-             ? THD_rsa_isrsa_superiority_test(neural,mv[con[cc].ia],mv[con[cc].ib],
-                                           cmp_metric,contrast_rset,ws,hdraw,bseen,pn)
-             : (mcache != NULL && mcache_ix[con[cc].ia] >= 0 &&
-                                  mcache_ix[con[cc].ib] >= 0)
-                 ? THD_mantel_contrast_cached( neural , mv[con[cc].ia] ,
-                                               mv[con[cc].ib] , mcache,
-                                               mcache_ix[con[cc].ia],
-                                               mcache_ix[con[cc].ib],ws,pn )
-                 : THD_mantel_contrast( neural , mv[con[cc].ia] ,
-                                        mv[con[cc].ib] , cmp_metric , pset , ws , pn ) ;
-           if( do_confwe ) THD_max_accum( npfwe , c_mx + (size_t)cc*npfwe , pn ) ;
-           cd[cc][kk_] = ps.stat ;   /* IS-RSA: the difference IS the statistic */
-           ce[cc][kk_] = ps.stat ;
-           cp[cc][kk_] = ps.pval ;
-           cz[cc][kk_] = ps.zscr ;
-           if( nboot > 0 )
-             THD_rsa_boot_isrsa_contrast( neural,mv[con[cc].ia],mv[con[cc].ib],
-                                       cmp_metric,rset,ws,
-                                       1.0f-boot_ci/100.0f,bdraw,bseen,
-                                       dblo[cc]+kk_,dbhi[cc]+kk_ ) ;
-         }
-       }
-
-       /* IS-RSA pairwise or three-predictor variance partition. Unique/partial
-          effects use model-specific reduced-residual nulls; shared regions use
-          complete neural-item relabeling. */
-       if( ncomq > 0 ){
-         int rq ;
-         for( rq=0 ; rq < nreqcom ; rq++ ){
-           int nq=com[rq].nq,qb=com[rq].qbase ;
-           float outv[RSA_MAXCOMMON],pvv[RSA_MAXCOMMON],zvv[RSA_MAXCOMMON] ;
-           float *pn = do_cafwe ? capnull : NULL ;
-           if( com[rq].nmodel==2 )
-             THD_commonality(neural,mv[com[rq].imod[0]],mv[com[rq].imod[1]],
-                              cmp_metric,pset,ws,outv,pvv,zvv,pn) ;
-           else
-             THD_commonality3(neural,mv[com[rq].imod[0]],mv[com[rq].imod[1]],
-                               mv[com[rq].imod[2]],cmp_metric,pset,ws,
-                               outv,pvv,zvv,pn) ;
-           if( do_cafwe )
-             THD_max_accum(nq*npfwe,ca_mx+(size_t)qb*npfwe,pn) ;
-           { int comp ; for( comp=0 ; comp<nq ; comp++ ){
-               int q=qb+comp ;
-               cav[q][kk_] = outv[comp] ;
-               cap[q][kk_] = pvv[comp] ;
-               caz[q][kk_] = zvv[comp] ;
-           } }
-           if( nboot>0 ){
-             if( com[rq].nmodel==2 )
-               THD_rsa_boot_isrsa_commonality(neural,mv[com[rq].imod[0]],
-                                            mv[com[rq].imod[1]],cmp_metric,rset,ws,
-                                            1.0f-boot_ci/100.0f,bca_y,bca_a,bca_b,
-                                            bcadraw,bseen,calo,cahi,qb,kk_) ;
-             else
-               THD_rsa_boot_isrsa_commonality3(neural,mv[com[rq].imod[0]],
-                                             mv[com[rq].imod[1]],mv[com[rq].imod[2]],
-                                             cmp_metric,rset,ws,1.0f-boot_ci/100.0f,
-                                             bca_y,bca_a,bca_b,bca_c,bcadraw,bseen,
-                                             calo,cahi,qb,kk_) ;
-           }
-         }
-       }
-
-       /* F7 fitted components: every subject-label draw repeats the complete
-          outer held-subject fit.  Slot 0 is identity and supplies both the
-          observed CV accuracy and the fold-mean normalized weights. */
-       if( nfit>0 ){
-         int fi,pk,cc ;
-         for( fi=0 ; fi<nfit ; fi++ ){
-           float obs ;
-           if( do_fitfwe ){
-             int exceed=0 ; float *fn=fnull+(size_t)fi*nfitperm ;
-             for( pk=0 ; pk<nfitperm ; pk++ ){
-               float *mw=(pk==0)?THD_rsa_fitws_weights(fitws[fi]):NULL ;
-               fn[pk]=rsa_fit_cv(rdm_over,nsub,nitem,NULL,neural,fit+fi,mv,
-                                  pset->perm+(size_t)pk*nsub,fit_condfold,
-                                  fitws[fi],mw,
-                                  (pk==0 && fitfoldz)?fitfoldz+(size_t)fi*nfitfold:NULL,
-                                  (pk==0 && fitvalid)?fitvalid+(size_t)fi*nfitfold:NULL) ;
-             }
-             obs=fn[0] ;
-             for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(fn[pk])>=fabsf(obs) ) exceed++ ;
-             fpv[fi][kk_]=(float)exceed/nfitperm ;
-             fzv[fi][kk_]=THD_perm_signed_z(fpv[fi][kk_],obs,PERM_TAIL_TWO) ;
-           } else {
-             obs=rsa_fit_cv(rdm_over,nsub,nitem,NULL,neural,fit+fi,mv,NULL,
-                            fit_condfold,fitws[fi],THD_rsa_fitws_weights(fitws[fi]),
-                            fitfoldz?fitfoldz+(size_t)fi*nfitfold:NULL,
-                            fitvalid?fitvalid+(size_t)fi*nfitfold:NULL) ;
-             fpv[fi][kk_]=-1.0f ; fzv[fi][kk_]=MYatanh(obs) ;
-           }
-           fr[fi][kk_]=obs ;
-           for( cc=0 ; cc<fit[fi].ncomp ; cc++ )
-             fwgt[fit[fi].wbase+cc][kk_]=THD_rsa_fitws_weights(fitws[fi])[cc] ;
-         }
-         /* F14: pair the two complete held-subject fits draw by draw.  Since
-            each F7 score is tanh(mean fold z), subtracting their atanh values
-            is exactly the mean paired held-fold Fisher-z accuracy difference. */
-         for( cc=0 ; cc<nfitcon ; cc++ ){
-           int ia=fcon[cc].ia,ib=fcon[cc].ib ;
-           if( fit_contrast_rset!=NULL ){
-             float *pn=do_fitconfwe?fcnull+(size_t)cc*nfitperm:NULL ;
-             THD_permstat hs=THD_rsa_fit_superiority_test(
-               nsub,(fit_condfold!=NULL)?fit_condfold->nfold:1,
-               fitfoldz+(size_t)ia*nfitfold,fitvalid+(size_t)ia*nfitfold,
-               fitfoldz+(size_t)ib*nfitfold,fitvalid+(size_t)ib*nfitfold,
-               fit_contrast_rset,hdraw,pn) ;
-             fcd[cc][kk_]=hs.stat ; fcp[cc][kk_]=hs.pval ; fcz[cc][kk_]=hs.zscr ;
-             if( do_fitconfwe ) THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,pn) ;
-           } else if( do_fitconfwe ){
-             int exceed=0 ; float *dn=fcnull+(size_t)cc*nfitperm ;
-             for( pk=0 ; pk<nfitperm ; pk++ )
-               dn[pk]=MYatanh(fnull[(size_t)ia*nfitperm+pk])
-                     -MYatanh(fnull[(size_t)ib*nfitperm+pk]) ;
-             fcd[cc][kk_]=dn[0] ;
-             for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(dn[pk])>=fabsf(dn[0]) ) exceed++ ;
-             fcp[cc][kk_]=(float)exceed/nfitperm ;
-             fcz[cc][kk_]=THD_perm_signed_z(fcp[cc][kk_],dn[0],PERM_TAIL_TWO) ;
-             for( pk=0 ; pk<nfitperm ; pk++ ) dn[pk]=fabsf(dn[pk]) ;
-             THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,dn) ;
-           } else {
-             fcd[cc][kk_]=MYatanh(fr[ia][kk_])-MYatanh(fr[ib][kk_]) ;
-             fcp[cc][kk_]=-1.0f ; fcz[cc][kk_]=fcd[cc][kk_] ;
-           }
-         }
-         /* Preserve the signed fitted null until every paired F14 contrast has
-            consumed it; F7's individual max family is on absolute accuracy. */
-         if( do_fitfwe ) for( fi=0 ; fi<nfit ; fi++ ){
-           float *fn=fnull+(size_t)fi*nfitperm ;
-           for( pk=0 ; pk<nfitperm ; pk++ ) fn[pk]=fabsf(fn[pk]) ;
-           THD_max_accum(nfitperm,f_mx+(size_t)fi*nfitperm,fn) ;
-         }
-       }
-
-       if( neural!=NULL ) THD_simmat_free(neural) ;
-       for( mm_=0 ; mm_ < nmod ; mm_++ )
-         if( mod[mm_].kind == MODK_DSET ) THD_simmat_free(mv[mm_]) ;
-
-     /*----------------------------------------------------------------*/
-     } else {   /* classic RSA: one matrix per subject, rows are conditions */
-
-       for( mm_=0 ; mm_ < nmod ; mm_++ ) mv[mm_] = mod[mm_].mat ;
-
-       /* Every classic statistic at this location consumes the same subject
-          RDMs.  Build each once, retain only its compact upper triangle, and
-          reuse it across primary models, contrasts, ceilings, and condition
-          bootstraps.  This matters most when construction includes runwise
-          crossnobis and residual-covariance whitening. */
-       for( jj_=0 ; jj_ < nsub ; jj_++ ){
-         neural = rsa_subject_rdm( jj_,rl,kk_,nitem,nvx,neu_metric,
-                                   dset,runset,condition_index,center_conditions,F,rpat,runraw,&wh ) ;
-         if( !THD_rsa_simmat_to_triangle(neural,srdm+(size_t)jj_*ntri,0,NULL,0) )
-           ERROR_exit("3dRSA: cannot compact subject %d's condition RDM",jj_+1) ;
-         if( srdmcov!=NULL )
-           THD_rdm_cov_transform(nitem,srdm+(size_t)jj_*ntri,
-                                 cmp_metric==CMP_CORR_COV,
-                                 srdmcov+(size_t)jj_*nitem*nitem) ;
-         THD_simmat_free(neural) ;
-       }
-
-       /* Comparator-specific inclusive and leave-one-subject-out templates.
-          Preserve srdm/srdmcov for all subsequent model statistics.  Aggregate
-          on the same Fisher-z scale as model _r. These reference estimates
-          are not guaranteed maxima of the Fisher-aggregated objective. */
-       if( do_nc ){
-         size_t q, width=(srdmcov!=NULL)?(size_t)nitem*nitem:(size_t)ntri ;
-         float *src=(srdmcov!=NULL)?srdmcov:srdm ;
-         float *full=(srdmcov!=NULL)?covA:triA ;
-         float *loo=(srdmcov!=NULL)?covB:triB ;
-         float *prep=(float *)malloc(sizeof(float)*(size_t)nsub*width) ;
-         double hi=0.0,lo=0.0 ;
-         if( prep==NULL ) ERROR_exit("3dRSA: cannot allocate ceiling templates") ;
-         for( jj_=0 ; jj_<nsub ; jj_++ ){
-           float *ts=src+(size_t)jj_*width,*ps=prep+(size_t)jj_*width ;
-           if( srdmcov==NULL && cmp_metric!=CMP_PEARSON ){
-             THD_rank_avg(ntri,ts,ps) ;
-           } else {
-             double mean=0.0,ss=0.0 ;
-             /* Covariance forms have already had the triangle mean removed
-                for corr_cov. Their Frobenius norm is the comparison norm. */
-             if( srdmcov==NULL ){
-               for( q=0 ; q<width ; q++ ) mean+=ts[q] ;
-               mean/=(double)width ;
-             }
-             for( q=0 ; q<width ; q++ ){
-               double v=(double)ts[q]-mean ; ss+=v*v ;
-             }
-             ss=(ss>0.0)?1.0/sqrt(ss):0.0 ;
-             for( q=0 ; q<width ; q++ ) ps[q]=(float)(((double)ts[q]-mean)*ss) ;
-           }
-         }
-         for( q=0 ; q<width ; q++ ){
-           double sum=0.0 ;
-           for( jj_=0 ; jj_<nsub ; jj_++ ) sum+=prep[(size_t)jj_*width+q] ;
-           /* Correlations are scale invariant: retain the sum so integer
-              and half-integer rank totals stay exact for LOO subtraction. */
-           full[q]=(float)sum ;
-         }
-         for( jj_=0 ; jj_<nsub ; jj_++ ){
-           float *ts=src+(size_t)jj_*width,*ps=prep+(size_t)jj_*width ;
-           for( q=0 ; q<width ; q++ )
-             loo[q]=(float)(((double)full[q]-ps[q])/(nsub-1)) ;
-           if( srdmcov!=NULL ){
-             hi+=MYatanh(THD_rdm_cov_cosine(nitem,ts,full)) ;
-             lo+=MYatanh(THD_rdm_cov_cosine(nitem,ts,loo)) ;
-           } else {
-             hi+=MYatanh(THD_tri_corr(ntri,ts,full,cmp_metric,ws->sc1,ws->sc2)) ;
-             lo+=MYatanh(THD_tri_corr(ntri,ts,loo,cmp_metric,ws->sc1,ws->sc2)) ;
-           }
-         }
-         ncA[kk_]=tanhf((float)(lo/nsub)) ; ncB[kk_]=tanhf((float)(hi/nsub)) ;
-         free(prep) ;
-       }
-
-       if( joint ){
-         float *bsub = (float *)malloc(sizeof(float)*(size_t)nsub*nmod) ;
-         if( ncboot > 0 && !dualboot )
-           memset(cbsum,0,sizeof(float)*(size_t)nmod*ncboot) ;
-         for( jj_=0 ; jj_ < nsub ; jj_++ ){
-           float *st = srdm + (size_t)jj_*ntri ;
-           THD_tri_regress( ntri , st , nmod , mtri , cmp_metric , ws , beta ) ;
-           for( mm_=0 ; mm_ < nmod ; mm_++ ) bsub[ jj_*nmod + mm_ ] = beta[mm_] ;
-           if( ncboot > 0 ){
-             int bb_ ;
-             for( bb_=0 ; bb_ < ncboot ; bb_++ ) if( crset->valid[bb_] ){
-               int mt_=THD_rsa_cond_boot_tri(st,nmod,mv,crset,bb_,cb_y,cbx) ;
-               THD_tri_regress(mt_,cb_y,nmod,cbx,cmp_metric,cws,cbbeta) ;
-               for( mm_=0 ; mm_ < nmod ; mm_++ ){
-                 if( dualboot )
-                   dualval[((size_t)mm_*nsub+jj_)*ncboot+bb_]=cbbeta[mm_] ;
-                 else cbsum[(size_t)mm_*ncboot+bb_] += cbbeta[mm_] ;
-               }
-             }
-           }
-         }
-         for( mm_=0 ; mm_ < nmod ; mm_++ ){
-           THD_permstat ps ; float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
-           for( jj_=0 ; jj_ < nsub ; jj_++ ) rsub[jj_] = bsub[ jj_*nmod + mm_ ] ;
-           ps = THD_signflip_t( nsub , rsub , pset , pn ) ;
-           if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ;
-           { float bbar=0.0f ;
-             for( jj_=0 ; jj_ < nsub ; jj_++ ) bbar += rsub[jj_] ;
-             rr[mm_][kk_] = bbar/(float)nsub ; }
-           if( dualboot )
-             THD_rsa_dual_boot_ci(nsub,rsub,rset,crset,
-                              dualval+(size_t)mm_*nsub*ncboot,0,
-                              1.0f-boot_ci/100.0f,dualwork,
                               blo[mm_]+kk_,bhi[mm_]+kk_) ;
-           else if( nboot > 0 )
-             THD_rsa_boot_subject_mean( nsub,rsub,rset,0,1.0f-boot_ci/100.0f,
-                                    bdraw,blo[mm_]+kk_,bhi[mm_]+kk_ ) ;
-           if( ncboot > 0 && !dualboot )
-             THD_rsa_cond_boot_ci( cbsum+(size_t)mm_*ncboot,nsub,crset,0,
-                               1.0f-boot_ci/100.0f,cbdraw,
-                               cblo[mm_]+kk_,cbhi[mm_]+kk_ ) ;
-           ee[mm_][kk_] = ps.stat ;
-           pp[mm_][kk_] = ps.pval ;
-           zz[mm_][kk_] = ps.zscr ;
+           }
+           for( mm_=0 ; mm_ < ncon ; mm_++ ){
+             if( contrast_rset!=NULL ){
+               float *pn=do_confwe ? cpnull+(size_t)mm_*npfwe : NULL ;
+               THD_permstat hs=THD_rsa_isrsa_superiority_test(
+                   neural,mv[con[mm_].ia],mv[con[mm_].ib],cmp_metric,
+                   contrast_rset,ws,hdraw,bseen,pn) ;
+               cd[mm_][kk_]=ce[mm_][kk_]=hs.stat ;
+               cp[mm_][kk_]=hs.pval ; cz[mm_][kk_]=hs.zscr ;
+             } else {
+               cd[mm_][kk_]=ce[mm_][kk_]=tscd[mm_] ;
+               cp[mm_][kk_]=tscp[mm_] ; cz[mm_][kk_]=tscz[mm_] ;
+             }
+             if( nboot > 0 )
+               THD_rsa_boot_isrsa_contrast(neural,mv[con[mm_].ia],mv[con[mm_].ib],
+                                        cmp_metric,rset,ws,
+                                        1.0f-boot_ci/100.0f,bdraw,bseen,
+                                        dblo[mm_]+kk_,dbhi[mm_]+kk_) ;
+           }
+           if( do_confwe ) THD_max_accum(ncon*npfwe,c_mx,cpnull) ;
+         } else if( joint ){              /* all models in one regression */
+           THD_rdm_regress( neural , nmod , mv , nort , ort , cmp_metric , pset ,
+                            ws , beta , prtl , (nperm > 0) ? pv : NULL ,
+                            do_fwe ? pnull : NULL ) ;
+           if( do_fwe ) THD_max_accum( nmod*npfwe , my_mx , pnull ) ;
+           for( mm_=0 ; mm_ < nmod ; mm_++ ){
+             rr[mm_][kk_] = beta[mm_] ;
+             ee[mm_][kk_] = prtl[mm_] ;
+             pp[mm_][kk_] = (nperm > 0) ? pv[mm_] : -1.0f ;
+             zz[mm_][kk_] = (nperm > 0) ? THD_p_to_z(pv[mm_],beta[mm_])
+                                        : MYatanh(beta[mm_]) ;
+           }
+           if( nboot > 0 )
+             THD_rsa_boot_isrsa_regress( neural,nmod,mv,nort,ort,cmp_metric,1,
+                                      rset,ws,1.0f-boot_ci/100.0f,
+                                      br_y,brx,brcoef,brbeta,bseen,
+                                      blo,bhi,kk_ ) ;
+         } else if( nort > 0 ){           /* each model separately, nuisances out */
+           for( mm_=0 ; mm_ < nmod ; mm_++ ){
+             float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
+             THD_rdm_regress( neural , 1 , mv+mm_ , nort , ort , cmp_metric , pset ,
+                              ws , beta , prtl , (nperm > 0) ? pv : NULL , pn ) ;
+             if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ;
+             rr[mm_][kk_] = beta[0] ;
+             ee[mm_][kk_] = prtl[0] ;
+             pp[mm_][kk_] = (nperm > 0) ? pv[0] : -1.0f ;
+             zz[mm_][kk_] = (nperm > 0) ? THD_p_to_z(pv[0],beta[0])
+                                        : MYatanh(beta[0]) ;
+           }
+           if( nboot > 0 )
+             THD_rsa_boot_isrsa_regress( neural,nmod,mv,nort,ort,cmp_metric,0,
+                                      rset,ws,1.0f-boot_ci/100.0f,
+                                      br_y,brx,brcoef,brbeta,bseen,
+                                      blo,bhi,kk_ ) ;
+         } else {                         /* subject-label Mantel null */
+           for( mm_=0 ; mm_ < nmod ; mm_++ ){
+             float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
+             THD_permstat ps = (mcache != NULL && mcache_ix[mm_] >= 0)
+               ? THD_mantel_corr_cached( neural , mv[mm_] , mcache,
+                                         mcache_ix[mm_] , ws , pn )
+               : THD_mantel_corr( neural , mv[mm_] , cmp_metric , pset , ws , pn ) ;
+             if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ;
+             rr[mm_][kk_] = ps.stat ;
+             ee[mm_][kk_] = ps.stat ;
+             pp[mm_][kk_] = ps.pval ;
+             zz[mm_][kk_] = ps.zscr ;
+             if( nboot > 0 )
+               THD_rsa_boot_isrsa( neural,mv[mm_],cmp_metric,rset,ws,
+                                1.0f-boot_ci/100.0f,bdraw,bseen,
+                                blo[mm_]+kk_,bhi[mm_]+kk_ ) ;
+           }
          }
-         free(bsub) ;
-       } else {
-         for( mm_=0 ; mm_ < nmod ; mm_++ ){
-           THD_permstat ps ; float zbar=0.0f ;
-           if( ncboot > 0 && !dualboot )
-             memset(cbsum+(size_t)mm_*ncboot,0,sizeof(float)*ncboot) ;
 
+         /* IS-RSA model contrasts: paired Mantel difference under the SAME
+            relabelings.  mv[ia]/mv[ib] may be fixed or may both have just been
+            rebuilt for this ROI/searchlight from -model_dset modalities. */
+         if( ncon > 0 && tset == NULL && phset == NULL ){
+           int cc ;
+           for( cc=0 ; cc < ncon ; cc++ ){
+             float *pn = do_confwe ? cpnull + (size_t)cc*npfwe : NULL ;
+             THD_permstat ps = (contrast_rset!=NULL)
+               ? THD_rsa_isrsa_superiority_test(neural,mv[con[cc].ia],mv[con[cc].ib],
+                                             cmp_metric,contrast_rset,ws,hdraw,bseen,pn)
+               : (mcache != NULL && mcache_ix[con[cc].ia] >= 0 &&
+                                    mcache_ix[con[cc].ib] >= 0)
+                   ? THD_mantel_contrast_cached( neural , mv[con[cc].ia] ,
+                                                 mv[con[cc].ib] , mcache,
+                                                 mcache_ix[con[cc].ia],
+                                                 mcache_ix[con[cc].ib],ws,pn )
+                   : THD_mantel_contrast( neural , mv[con[cc].ia] ,
+                                          mv[con[cc].ib] , cmp_metric , pset , ws , pn ) ;
+             if( do_confwe ) THD_max_accum( npfwe , c_mx + (size_t)cc*npfwe , pn ) ;
+             cd[cc][kk_] = ps.stat ;   /* IS-RSA: the difference IS the statistic */
+             ce[cc][kk_] = ps.stat ;
+             cp[cc][kk_] = ps.pval ;
+             cz[cc][kk_] = ps.zscr ;
+             if( nboot > 0 )
+               THD_rsa_boot_isrsa_contrast( neural,mv[con[cc].ia],mv[con[cc].ib],
+                                         cmp_metric,rset,ws,
+                                         1.0f-boot_ci/100.0f,bdraw,bseen,
+                                         dblo[cc]+kk_,dbhi[cc]+kk_ ) ;
+           }
+         }
+
+         /* IS-RSA pairwise or three-predictor variance partition. Unique/partial
+            effects use model-specific reduced-residual nulls; shared regions use
+            complete neural-item relabeling. */
+         if( ncomq > 0 ){
+           int rq ;
+           for( rq=0 ; rq < nreqcom ; rq++ ){
+             int nq=com[rq].nq,qb=com[rq].qbase ;
+             float outv[RSA_MAXCOMMON],pvv[RSA_MAXCOMMON],zvv[RSA_MAXCOMMON] ;
+             float *pn = do_cafwe ? capnull : NULL ;
+             if( com[rq].nmodel==2 )
+               THD_commonality(neural,mv[com[rq].imod[0]],mv[com[rq].imod[1]],
+                                cmp_metric,pset,ws,outv,pvv,zvv,pn) ;
+             else
+               THD_commonality3(neural,mv[com[rq].imod[0]],mv[com[rq].imod[1]],
+                                 mv[com[rq].imod[2]],cmp_metric,pset,ws,
+                                 outv,pvv,zvv,pn) ;
+             if( do_cafwe )
+               THD_max_accum(nq*npfwe,ca_mx+(size_t)qb*npfwe,pn) ;
+             { int comp ; for( comp=0 ; comp<nq ; comp++ ){
+                 int q=qb+comp ;
+                 cav[q][kk_] = outv[comp] ;
+                 cap[q][kk_] = pvv[comp] ;
+                 caz[q][kk_] = zvv[comp] ;
+             } }
+             if( nboot>0 ){
+               if( com[rq].nmodel==2 )
+                 THD_rsa_boot_isrsa_commonality(neural,mv[com[rq].imod[0]],
+                                              mv[com[rq].imod[1]],cmp_metric,rset,ws,
+                                              1.0f-boot_ci/100.0f,bca_y,bca_a,bca_b,
+                                              bcadraw,bseen,calo,cahi,qb,kk_) ;
+               else
+                 THD_rsa_boot_isrsa_commonality3(neural,mv[com[rq].imod[0]],
+                                               mv[com[rq].imod[1]],mv[com[rq].imod[2]],
+                                               cmp_metric,rset,ws,1.0f-boot_ci/100.0f,
+                                               bca_y,bca_a,bca_b,bca_c,bcadraw,bseen,
+                                               calo,cahi,qb,kk_) ;
+             }
+           }
+         }
+
+         /* F7 fitted components: every subject-label draw repeats the complete
+            outer held-subject fit.  Slot 0 is identity and supplies both the
+            observed CV accuracy and the fold-mean normalized weights. */
+         if( nfit>0 ){
+           int fi,pk,cc ;
+           for( fi=0 ; fi<nfit ; fi++ ){
+             float obs ;
+             if( do_fitfwe ){
+               int exceed=0 ; float *fn=fnull+(size_t)fi*nfitperm ;
+               for( pk=0 ; pk<nfitperm ; pk++ ){
+                 float *mw=(pk==0)?THD_rsa_fitws_weights(fitws[fi]):NULL ;
+                 fn[pk]=rsa_fit_cv(rdm_over,nsub,nitem,NULL,neural,fit+fi,mv,
+                                    pset->perm+(size_t)pk*nsub,fit_condfold,
+                                    fitws[fi],mw,
+                                    (pk==0 && fitfoldz)?fitfoldz+(size_t)fi*nfitfold:NULL,
+                                    (pk==0 && fitvalid)?fitvalid+(size_t)fi*nfitfold:NULL) ;
+               }
+               obs=fn[0] ;
+               for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(fn[pk])>=fabsf(obs) ) exceed++ ;
+               fpv[fi][kk_]=(float)exceed/nfitperm ;
+               fzv[fi][kk_]=THD_perm_signed_z(fpv[fi][kk_],obs,PERM_TAIL_TWO) ;
+             } else {
+               obs=rsa_fit_cv(rdm_over,nsub,nitem,NULL,neural,fit+fi,mv,NULL,
+                              fit_condfold,fitws[fi],THD_rsa_fitws_weights(fitws[fi]),
+                              fitfoldz?fitfoldz+(size_t)fi*nfitfold:NULL,
+                              fitvalid?fitvalid+(size_t)fi*nfitfold:NULL) ;
+               fpv[fi][kk_]=-1.0f ; fzv[fi][kk_]=MYatanh(obs) ;
+             }
+             fr[fi][kk_]=obs ;
+             for( cc=0 ; cc<fit[fi].ncomp ; cc++ )
+               fwgt[fit[fi].wbase+cc][kk_]=THD_rsa_fitws_weights(fitws[fi])[cc] ;
+           }
+           /* F14: pair the two complete held-subject fits draw by draw.  Since
+              each F7 score is tanh(mean fold z), subtracting their atanh values
+              is exactly the mean paired held-fold Fisher-z accuracy difference. */
+           for( cc=0 ; cc<nfitcon ; cc++ ){
+             int ia=fcon[cc].ia,ib=fcon[cc].ib ;
+             if( fit_contrast_rset!=NULL ){
+               float *pn=do_fitconfwe?fcnull+(size_t)cc*nfitperm:NULL ;
+               THD_permstat hs=THD_rsa_fit_superiority_test(
+                 nsub,(fit_condfold!=NULL)?fit_condfold->nfold:1,
+                 fitfoldz+(size_t)ia*nfitfold,fitvalid+(size_t)ia*nfitfold,
+                 fitfoldz+(size_t)ib*nfitfold,fitvalid+(size_t)ib*nfitfold,
+                 fit_contrast_rset,hdraw,pn) ;
+               fcd[cc][kk_]=hs.stat ; fcp[cc][kk_]=hs.pval ; fcz[cc][kk_]=hs.zscr ;
+               if( do_fitconfwe ) THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,pn) ;
+             } else if( do_fitconfwe ){
+               int exceed=0 ; float *dn=fcnull+(size_t)cc*nfitperm ;
+               for( pk=0 ; pk<nfitperm ; pk++ )
+                 dn[pk]=MYatanh(fnull[(size_t)ia*nfitperm+pk])
+                       -MYatanh(fnull[(size_t)ib*nfitperm+pk]) ;
+               fcd[cc][kk_]=dn[0] ;
+               for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(dn[pk])>=fabsf(dn[0]) ) exceed++ ;
+               fcp[cc][kk_]=(float)exceed/nfitperm ;
+               fcz[cc][kk_]=THD_perm_signed_z(fcp[cc][kk_],dn[0],PERM_TAIL_TWO) ;
+               for( pk=0 ; pk<nfitperm ; pk++ ) dn[pk]=fabsf(dn[pk]) ;
+               THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,dn) ;
+             } else {
+               fcd[cc][kk_]=MYatanh(fr[ia][kk_])-MYatanh(fr[ib][kk_]) ;
+               fcp[cc][kk_]=-1.0f ; fcz[cc][kk_]=fcd[cc][kk_] ;
+             }
+           }
+           /* Preserve the signed fitted null until every paired F14 contrast has
+              consumed it; F7's individual max family is on absolute accuracy. */
+           if( do_fitfwe ) for( fi=0 ; fi<nfit ; fi++ ){
+             float *fn=fnull+(size_t)fi*nfitperm ;
+             for( pk=0 ; pk<nfitperm ; pk++ ) fn[pk]=fabsf(fn[pk]) ;
+             THD_max_accum(nfitperm,f_mx+(size_t)fi*nfitperm,fn) ;
+           }
+         }
+
+         if( neural!=NULL ) THD_simmat_free(neural) ;
+         for( mm_=0 ; mm_ < nmod ; mm_++ )
+           if( mod[mm_].kind == MODK_DSET ) THD_simmat_free(mv[mm_]) ;
+
+       /*----------------------------------------------------------------*/
+       } else {   /* classic RSA: one matrix per subject, rows are conditions */
+
+         for( mm_=0 ; mm_ < nmod ; mm_++ ) mv[mm_] = mod[mm_].mat ;
+
+         /* Every classic statistic at this location consumes the same subject
+            RDMs.  Build each once, retain only its compact upper triangle, and
+            reuse it across primary models, contrasts, ceilings, and condition
+            bootstraps.  This matters most when construction includes runwise
+            crossnobis and residual-covariance whitening. */
+         for( jj_=0 ; jj_ < nsub ; jj_++ ){
+           neural = rsa_subject_rdm( jj_,rl,kk_,nitem,nvx,neu_metric,
+                                     dset,runset,condition_index,center_conditions,F,rpat,runraw,&wh ) ;
+           if( !THD_rsa_simmat_to_triangle(neural,srdm+(size_t)jj_*ntri,0,NULL,0) )
+             ERROR_exit("3dRSA: cannot compact subject %d's condition RDM",jj_+1) ;
+           if( srdmcov!=NULL )
+             THD_rdm_cov_transform(nitem,srdm+(size_t)jj_*ntri,
+                                   cmp_metric==CMP_CORR_COV,
+                                   srdmcov+(size_t)jj_*nitem*nitem) ;
+           THD_simmat_free(neural) ;
+         }
+
+         /* Comparator-specific inclusive and leave-one-subject-out templates.
+            Preserve srdm/srdmcov for all subsequent model statistics.  Aggregate
+            on the same Fisher-z scale as model _r. These reference estimates
+            are not guaranteed maxima of the Fisher-aggregated objective. */
+         if( do_nc ){
+           size_t q, width=(srdmcov!=NULL)?(size_t)nitem*nitem:(size_t)ntri ;
+           float *src=(srdmcov!=NULL)?srdmcov:srdm ;
+           float *full=(srdmcov!=NULL)?covA:triA ;
+           float *loo=(srdmcov!=NULL)?covB:triB ;
+           float *prep=(float *)malloc(sizeof(float)*(size_t)nsub*width) ;
+           double hi=0.0,lo=0.0 ;
+           if( prep==NULL ) ERROR_exit("3dRSA: cannot allocate ceiling templates") ;
+           for( jj_=0 ; jj_<nsub ; jj_++ ){
+             float *ts=src+(size_t)jj_*width,*ps=prep+(size_t)jj_*width ;
+             if( srdmcov==NULL && cmp_metric!=CMP_PEARSON ){
+               THD_rank_avg(ntri,ts,ps) ;
+             } else {
+               double mean=0.0,ss=0.0 ;
+               /* Covariance forms have already had the triangle mean removed
+                  for corr_cov. Their Frobenius norm is the comparison norm. */
+               if( srdmcov==NULL ){
+                 for( q=0 ; q<width ; q++ ) mean+=ts[q] ;
+                 mean/=(double)width ;
+               }
+               for( q=0 ; q<width ; q++ ){
+                 double v=(double)ts[q]-mean ; ss+=v*v ;
+               }
+               ss=(ss>0.0)?1.0/sqrt(ss):0.0 ;
+               for( q=0 ; q<width ; q++ ) ps[q]=(float)(((double)ts[q]-mean)*ss) ;
+             }
+           }
+           for( q=0 ; q<width ; q++ ){
+             double sum=0.0 ;
+             for( jj_=0 ; jj_<nsub ; jj_++ ) sum+=prep[(size_t)jj_*width+q] ;
+             /* Correlations are scale invariant: retain the sum so integer
+                and half-integer rank totals stay exact for LOO subtraction. */
+             full[q]=(float)sum ;
+           }
+           for( jj_=0 ; jj_<nsub ; jj_++ ){
+             float *ts=src+(size_t)jj_*width,*ps=prep+(size_t)jj_*width ;
+             for( q=0 ; q<width ; q++ )
+               loo[q]=(float)(((double)full[q]-ps[q])/(nsub-1)) ;
+             if( srdmcov!=NULL ){
+               hi+=MYatanh(THD_rdm_cov_cosine(nitem,ts,full)) ;
+               lo+=MYatanh(THD_rdm_cov_cosine(nitem,ts,loo)) ;
+             } else {
+               hi+=MYatanh(THD_tri_corr(ntri,ts,full,cmp_metric,ws->sc1,ws->sc2)) ;
+               lo+=MYatanh(THD_tri_corr(ntri,ts,loo,cmp_metric,ws->sc1,ws->sc2)) ;
+             }
+           }
+           ncA[kk_]=tanhf((float)(lo/nsub)) ; ncB[kk_]=tanhf((float)(hi/nsub)) ;
+           free(prep) ;
+         }
+
+         if( joint ){
+           float *bsub = (float *)malloc(sizeof(float)*(size_t)nsub*nmod) ;
+           if( ncboot > 0 && !dualboot )
+             memset(cbsum,0,sizeof(float)*(size_t)nmod*ncboot) ;
            for( jj_=0 ; jj_ < nsub ; jj_++ ){
              float *st = srdm + (size_t)jj_*ntri ;
-             THD_simmat *sm = (mod[mm_].sub_mat!=NULL)
-                                ? mod[mm_].sub_mat[jj_] : mv[mm_] ;
-             if( seed_mask!=NULL ){
-               float *ss=seed_srdm+(size_t)jj_*ntri ;
-               rsub[jj_]=MYatanh(THD_tri_corr(ntri,st,ss,cmp_metric,
-                                               ws->sc1,ws->sc2)) ;
-             } else if( srdmcov!=NULL )
-               rsub[jj_]=MYatanh(THD_rdm_cov_cosine(
-                                  nitem,srdmcov+(size_t)jj_*nitem*nitem,mcov[mm_])) ;
-             else {
-               rsub[jj_]=MYatanh(THD_simmat_corr_triangle(
-                                      st,sm,NULL,cmp_metric,ws)) ;
-             }
+             THD_tri_regress( ntri , st , nmod , mtri , cmp_metric , ws , beta ) ;
+             for( mm_=0 ; mm_ < nmod ; mm_++ ) bsub[ jj_*nmod + mm_ ] = beta[mm_] ;
              if( ncboot > 0 ){
                int bb_ ;
-               mv[mm_]=sm ;
                for( bb_=0 ; bb_ < ncboot ; bb_++ ) if( crset->valid[bb_] ){
-                 int mt_=THD_rsa_cond_boot_tri(st,1,mv+mm_,crset,bb_,cb_y,cbx) ;
-                 float rv_=THD_tri_corr(mt_,cb_y,cbx[0],cmp_metric,cws->sc1,cws->sc2) ;
-                 if( dualboot ) dualval[(size_t)jj_*ncboot+bb_]=MYatanh(rv_) ;
-                 else cbsum[(size_t)mm_*ncboot+bb_] += MYatanh(rv_) ;
+                 int mt_=THD_rsa_cond_boot_tri(st,nmod,mv,crset,bb_,cb_y,cbx) ;
+                 THD_tri_regress(mt_,cb_y,nmod,cbx,cmp_metric,cws,cbbeta) ;
+                 for( mm_=0 ; mm_ < nmod ; mm_++ ){
+                   if( dualboot )
+                     dualval[((size_t)mm_*nsub+jj_)*ncboot+bb_]=cbbeta[mm_] ;
+                   else cbsum[(size_t)mm_*ncboot+bb_] += cbbeta[mm_] ;
+                 }
                }
              }
            }
-           for( jj_=0 ; jj_ < nsub ; jj_++ ) zbar += rsub[jj_] ;
-           zbar /= (float)nsub ;
+           for( mm_=0 ; mm_ < nmod ; mm_++ ){
+             THD_permstat ps ; float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
+             for( jj_=0 ; jj_ < nsub ; jj_++ ) rsub[jj_] = bsub[ jj_*nmod + mm_ ] ;
+             ps = THD_signflip_t( nsub , rsub , pset , pn ) ;
+             if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ;
+             { float bbar=0.0f ;
+               for( jj_=0 ; jj_ < nsub ; jj_++ ) bbar += rsub[jj_] ;
+               rr[mm_][kk_] = bbar/(float)nsub ; }
+             if( dualboot )
+               THD_rsa_dual_boot_ci(nsub,rsub,rset,crset,
+                                dualval+(size_t)mm_*nsub*ncboot,0,
+                                1.0f-boot_ci/100.0f,dualwork,
+                                blo[mm_]+kk_,bhi[mm_]+kk_) ;
+             else if( nboot > 0 )
+               THD_rsa_boot_subject_mean( nsub,rsub,rset,0,1.0f-boot_ci/100.0f,
+                                      bdraw,blo[mm_]+kk_,bhi[mm_]+kk_ ) ;
+             if( ncboot > 0 && !dualboot )
+               THD_rsa_cond_boot_ci( cbsum+(size_t)mm_*ncboot,nsub,crset,0,
+                                 1.0f-boot_ci/100.0f,cbdraw,
+                                 cblo[mm_]+kk_,cbhi[mm_]+kk_ ) ;
+             ee[mm_][kk_] = ps.stat ;
+             pp[mm_][kk_] = ps.pval ;
+             zz[mm_][kk_] = ps.zscr ;
+           }
+           free(bsub) ;
+         } else {
+           for( mm_=0 ; mm_ < nmod ; mm_++ ){
+             THD_permstat ps ; float zbar=0.0f ;
+             if( ncboot > 0 && !dualboot )
+               memset(cbsum+(size_t)mm_*ncboot,0,sizeof(float)*ncboot) ;
 
-           { float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
+             for( jj_=0 ; jj_ < nsub ; jj_++ ){
+               float *st = srdm + (size_t)jj_*ntri ;
+               THD_simmat *sm = (mod[mm_].sub_mat!=NULL)
+                                  ? mod[mm_].sub_mat[jj_] : mv[mm_] ;
+               if( seed_mask!=NULL ){
+                 float *ss=seed_srdm+(size_t)jj_*ntri ;
+                 rsub[jj_]=MYatanh(THD_tri_corr(ntri,st,ss,cmp_metric,
+                                                 ws->sc1,ws->sc2)) ;
+               } else if( srdmcov!=NULL )
+                 rsub[jj_]=MYatanh(THD_rdm_cov_cosine(
+                                    nitem,srdmcov+(size_t)jj_*nitem*nitem,mcov[mm_])) ;
+               else {
+                 rsub[jj_]=MYatanh(THD_simmat_corr_triangle(
+                                        st,sm,NULL,cmp_metric,ws)) ;
+               }
+               if( ncboot > 0 ){
+                 int bb_ ;
+                 mv[mm_]=sm ;
+                 for( bb_=0 ; bb_ < ncboot ; bb_++ ) if( crset->valid[bb_] ){
+                   int mt_=THD_rsa_cond_boot_tri(st,1,mv+mm_,crset,bb_,cb_y,cbx) ;
+                   float rv_=THD_tri_corr(mt_,cb_y,cbx[0],cmp_metric,cws->sc1,cws->sc2) ;
+                   if( dualboot ) dualval[(size_t)jj_*ncboot+bb_]=MYatanh(rv_) ;
+                   else cbsum[(size_t)mm_*ncboot+bb_] += MYatanh(rv_) ;
+                 }
+               }
+             }
+             for( jj_=0 ; jj_ < nsub ; jj_++ ) zbar += rsub[jj_] ;
+             zbar /= (float)nsub ;
+
+             { float *pn = do_fwe ? pnull + (size_t)mm_*npfwe : NULL ;
+               if( classic_null==CLASSIC_NULL_CONDITIONS )
+                 ps=(seed_mask!=NULL)
+                      ? rsa_classic_seed_condition_test(nsub,nitem,srdm,seed_srdm,
+                                                         cmp_metric,cpset,ws,pn)
+                      : (mod[mm_].sub_tri!=NULL)
+                      ? rsa_classic_seed_condition_test(nsub,nitem,srdm,
+                                                         mod[mm_].sub_tri,
+                                                         cmp_metric,cpset,ws,pn)
+                      : rsa_classic_condition_test(nsub,nitem,srdm,srdmcov,
+                                                    mv[mm_],NULL,NULL,NULL,cmp_metric,cpset,
+                                                    ws,covA,covB,pn) ;
+               else ps=THD_signflip_t(nsub,rsub,pset,pn) ;
+               if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ; }
+             rr[mm_][kk_] = tanhf(zbar) ;
+             if( dualboot )
+               THD_rsa_dual_boot_ci(nsub,rsub,rset,crset,dualval,1,
+                                1.0f-boot_ci/100.0f,dualwork,
+                                blo[mm_]+kk_,bhi[mm_]+kk_) ;
+             else if( nboot > 0 )
+               THD_rsa_boot_subject_mean( nsub,rsub,rset,1,1.0f-boot_ci/100.0f,
+                                      bdraw,blo[mm_]+kk_,bhi[mm_]+kk_ ) ;
+             if( ncboot > 0 && !dualboot )
+               THD_rsa_cond_boot_ci( cbsum+(size_t)mm_*ncboot,nsub,crset,1,
+                                 1.0f-boot_ci/100.0f,cbdraw,
+                                 cblo[mm_]+kk_,cbhi[mm_]+kk_ ) ;
+             ee[mm_][kk_] = ps.stat ;
+             pp[mm_][kk_] = ps.pval ;
+             zz[mm_][kk_] = ps.zscr ;
+           }
+         }
+
+         /* classic-RSA model contrasts: the paired within-subject Fisher-z
+            difference.  The default population test sign-flips subjects (or uses
+            signed rank); S1 fixed effects jointly relabels both model condition
+            axes and tests the mean z difference for the observed subject sample. */
+         if( ncon > 0 ){
+           int cc ;
+           for( cc=0 ; cc < ncon ; cc++ ){
+             int ia = con[cc].ia , ib = con[cc].ib ; float dbar=0.0f,rdbar=0.0f ;
+             THD_permstat ps ; float *pn = do_confwe ? cpnull + (size_t)cc*npfwe : NULL ;
+             for( jj_=0 ; jj_ < nsub ; jj_++ ){
+               float *st = srdm + (size_t)jj_*ntri ;
+               float rA , rB , zA , zB ;
+               if( srdmcov!=NULL ){
+                 float *cs=srdmcov+(size_t)jj_*nitem*nitem ;
+                 rA=THD_rdm_cov_cosine(nitem,cs,mcov[ia]) ;
+                 rB=THD_rdm_cov_cosine(nitem,cs,mcov[ib]) ;
+               } else {
+                 THD_simmat_to_tri( mod[ia].sub_mat?mod[ia].sub_mat[jj_]:mod[ia].mat , ws->yperm ) ;
+                 rA = THD_tri_corr( ntri , st , ws->yperm ,
+                                    cmp_metric , ws->sc1 , ws->sc2 ) ;
+                 THD_simmat_to_tri( mod[ib].sub_mat?mod[ib].sub_mat[jj_]:mod[ib].mat , ws->yperm ) ;
+                 rB = THD_tri_corr( ntri , st , ws->yperm ,
+                                    cmp_metric , ws->sc1 , ws->sc2 ) ;
+               }
+               zA=MYatanh(rA) ; zB=MYatanh(rB) ;
+               dsub[jj_] = zA - zB ;
+               rdbar += rA-rB ;
+               if( dualboot ){
+                 THD_simmat *cmv[2] ; int bb_ ; cmv[0]=mv[ia] ; cmv[1]=mv[ib] ;
+                 for( bb_=0 ; bb_<ncboot ; bb_++ ) if( crset->valid[bb_] ){
+                   int mt_=THD_rsa_cond_boot_tri(st,2,cmv,crset,bb_,cb_y,cbx) ;
+                   float ca_=THD_tri_corr(mt_,cb_y,cbx[0],cmp_metric,cws->sc1,cws->sc2) ;
+                   float cb_=THD_tri_corr(mt_,cb_y,cbx[1],cmp_metric,cws->sc1,cws->sc2) ;
+                   dualval[(size_t)jj_*ncboot+bb_]=MYatanh(ca_)-MYatanh(cb_) ;
+                 }
+               }
+             }
+             for( jj_=0 ; jj_ < nsub ; jj_++ ) dbar += dsub[jj_] ;
+             dbar /= (float)nsub ;
+             rdbar /= (float)nsub ;
              if( classic_null==CLASSIC_NULL_CONDITIONS )
-               ps=(seed_mask!=NULL)
-                    ? rsa_classic_seed_condition_test(nsub,nitem,srdm,seed_srdm,
-                                                       cmp_metric,cpset,ws,pn)
-                    : (mod[mm_].sub_tri!=NULL)
-                    ? rsa_classic_seed_condition_test(nsub,nitem,srdm,
-                                                       mod[mm_].sub_tri,
-                                                       cmp_metric,cpset,ws,pn)
-                    : rsa_classic_condition_test(nsub,nitem,srdm,srdmcov,
-                                                  mv[mm_],NULL,NULL,NULL,cmp_metric,cpset,
-                                                  ws,covA,covB,pn) ;
-             else ps=THD_signflip_t(nsub,rsub,pset,pn) ;
-             if( do_fwe ) THD_max_accum( npfwe , my_mx + (size_t)mm_*npfwe , pn ) ; }
-           rr[mm_][kk_] = tanhf(zbar) ;
-           if( dualboot )
-             THD_rsa_dual_boot_ci(nsub,rsub,rset,crset,dualval,1,
-                              1.0f-boot_ci/100.0f,dualwork,
-                              blo[mm_]+kk_,bhi[mm_]+kk_) ;
-           else if( nboot > 0 )
-             THD_rsa_boot_subject_mean( nsub,rsub,rset,1,1.0f-boot_ci/100.0f,
-                                    bdraw,blo[mm_]+kk_,bhi[mm_]+kk_ ) ;
-           if( ncboot > 0 && !dualboot )
-             THD_rsa_cond_boot_ci( cbsum+(size_t)mm_*ncboot,nsub,crset,1,
-                               1.0f-boot_ci/100.0f,cbdraw,
-                               cblo[mm_]+kk_,cbhi[mm_]+kk_ ) ;
-           ee[mm_][kk_] = ps.stat ;
-           pp[mm_][kk_] = ps.pval ;
-           zz[mm_][kk_] = ps.zscr ;
+               ps=rsa_classic_condition_test(nsub,nitem,srdm,srdmcov,
+                                              mod[ia].mat,mod[ib].mat,
+                                              mod[ia].sub_mat,mod[ib].sub_mat,cmp_metric,cpset,ws,
+                                              covA,covB,pn) ;
+             else
+               ps = group_test ? THD_signrank_signflip( nsub , dsub , pset , pn )
+                               : THD_signflip_t      ( nsub , dsub , pset , pn ) ;
+             if( do_confwe ) THD_max_accum( npfwe , c_mx + (size_t)cc*npfwe , pn ) ;
+             crd[cc][kk_] = rdbar ;        /* descriptive mean raw-correlation difference */
+             cd[cc][kk_] = dbar ;          /* inferential mean Fisher-z difference */
+             ce[cc][kk_] = ps.stat ;       /* the t or W actually tested (for FWE)  */
+             cp[cc][kk_] = ps.pval ;
+             cz[cc][kk_] = ps.zscr ;
+             if( dualboot )
+               THD_rsa_dual_boot_ci(nsub,dsub,rset,crset,dualval,0,
+                                1.0f-boot_ci/100.0f,dualwork,
+                                dblo[cc]+kk_,dbhi[cc]+kk_) ;
+             else if( nboot > 0 )
+               THD_rsa_boot_subject_mean( nsub,dsub,rset,0,1.0f-boot_ci/100.0f,
+                                      bdraw,dblo[cc]+kk_,dbhi[cc]+kk_ ) ;
+           }
          }
-       }
 
-       /* classic-RSA model contrasts: the paired within-subject Fisher-z
-          difference.  The default population test sign-flips subjects (or uses
-          signed rank); S1 fixed effects jointly relabels both model condition
-          axes and tests the mean z difference for the observed subject sample. */
-       if( ncon > 0 ){
-         int cc ;
-         for( cc=0 ; cc < ncon ; cc++ ){
-           int ia = con[cc].ia , ib = con[cc].ib ; float dbar=0.0f,rdbar=0.0f ;
-           THD_permstat ps ; float *pn = do_confwe ? cpnull + (size_t)cc*npfwe : NULL ;
-           for( jj_=0 ; jj_ < nsub ; jj_++ ){
-             float *st = srdm + (size_t)jj_*ntri ;
-             float rA , rB , zA , zB ;
-             if( srdmcov!=NULL ){
-               float *cs=srdmcov+(size_t)jj_*nitem*nitem ;
-               rA=THD_rdm_cov_cosine(nitem,cs,mcov[ia]) ;
-               rB=THD_rdm_cov_cosine(nitem,cs,mcov[ib]) ;
-             } else {
-               THD_simmat_to_tri( mod[ia].sub_mat?mod[ia].sub_mat[jj_]:mod[ia].mat , ws->yperm ) ;
-               rA = THD_tri_corr( ntri , st , ws->yperm ,
-                                  cmp_metric , ws->sc1 , ws->sc2 ) ;
-               THD_simmat_to_tri( mod[ib].sub_mat?mod[ib].sub_mat[jj_]:mod[ib].mat , ws->yperm ) ;
-               rB = THD_tri_corr( ntri , st , ws->yperm ,
-                                  cmp_metric , ws->sc1 , ws->sc2 ) ;
+         /* F15 classic commonality.  The group statistic is the mean subject
+            component.  Unique/partial effects use per-subject reduced-model
+            residuals under one synchronized CONDITION relabeling; common uses
+            the complete condition null.  Subject sign flips are deliberately not
+            used because the squared unique effects are non-negative. */
+         if( ncomq > 0 ){
+           int rq ;
+           for( rq=0 ; rq < nreqcom ; rq++ ){
+             int nq=com[rq].nq,qb=com[rq].qbase,comp ;
+             float outv[RSA_MAXCOMMON],pvv[RSA_MAXCOMMON],zvv[RSA_MAXCOMMON] ;
+             float *pn=do_cafwe ? capnull : NULL ;
+             if( com[rq].nmodel==2 )
+               THD_classic_commonality(nsub,nitem,srdm,mv[com[rq].imod[0]],
+                                        mv[com[rq].imod[1]],cmp_metric,cpset,ws,
+                                        outv,pvv,zvv,pn,casub) ;
+             else
+               THD_classic_commonality3(nsub,nitem,srdm,mv[com[rq].imod[0]],
+                                         mv[com[rq].imod[1]],mv[com[rq].imod[2]],
+                                         cmp_metric,cpset,ws,outv,pvv,zvv,pn,casub) ;
+             if( do_cafwe )
+               THD_max_accum(nq*ncaperm,ca_mx+(size_t)qb*ncaperm,pn) ;
+             for( comp=0 ; comp<nq ; comp++ ){
+               int q=qb+comp ;
+               cav[q][kk_]=outv[comp] ; cap[q][kk_]=pvv[comp] ;
+               caz[q][kk_]=zvv[comp] ;
+               if( nboot > 0 )
+                 THD_rsa_boot_subject_mean(nsub,casub+(size_t)comp*nsub,rset,0,
+                                        1.0f-boot_ci/100.0f,bdraw,
+                                        calo[q]+kk_,cahi[q]+kk_) ;
              }
-             zA=MYatanh(rA) ; zB=MYatanh(rB) ;
-             dsub[jj_] = zA - zB ;
-             rdbar += rA-rB ;
-             if( dualboot ){
-               THD_simmat *cmv[2] ; int bb_ ; cmv[0]=mv[ia] ; cmv[1]=mv[ib] ;
-               for( bb_=0 ; bb_<ncboot ; bb_++ ) if( crset->valid[bb_] ){
-                 int mt_=THD_rsa_cond_boot_tri(st,2,cmv,crset,bb_,cb_y,cbx) ;
-                 float ca_=THD_tri_corr(mt_,cb_y,cbx[0],cmp_metric,cws->sc1,cws->sc2) ;
-                 float cb_=THD_tri_corr(mt_,cb_y,cbx[1],cmp_metric,cws->sc1,cws->sc2) ;
-                 dualval[(size_t)jj_*ncboot+bb_]=MYatanh(ca_)-MYatanh(cb_) ;
+           }
+         }
+         /* F7 classic RSA: condition labels are jointly relabeled across all
+            components, and the model is refit on N-1 subjects before scoring
+            the held subject.  This is distinct from the primary sign-flip null. */
+         if( nfit>0 ){
+           int fi,pk,cc ;
+           for( fi=0 ; fi<nfit ; fi++ ){
+             float obs ;
+             if( do_fitfwe ){
+               int exceed=0 ; float *fn=fnull+(size_t)fi*nfitperm ;
+               for( pk=0 ; pk<nfitperm ; pk++ ){
+                 float *mw=(pk==0)?THD_rsa_fitws_weights(fitws[fi]):NULL ;
+                 fn[pk]=rsa_fit_cv(rdm_over,nsub,nitem,srdm,NULL,fit+fi,mv,
+                                    cpset->perm+(size_t)pk*nitem,fit_condfold,
+                                    fitws[fi],mw,
+                                    (pk==0 && fitfoldz)?fitfoldz+(size_t)fi*nfitfold:NULL,
+                                    (pk==0 && fitvalid)?fitvalid+(size_t)fi*nfitfold:NULL) ;
                }
+               obs=fn[0] ;
+               for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(fn[pk])>=fabsf(obs) ) exceed++ ;
+               fpv[fi][kk_]=(float)exceed/nfitperm ;
+               fzv[fi][kk_]=THD_perm_signed_z(fpv[fi][kk_],obs,PERM_TAIL_TWO) ;
+             } else {
+               obs=rsa_fit_cv(rdm_over,nsub,nitem,srdm,NULL,fit+fi,mv,NULL,
+                              fit_condfold,fitws[fi],THD_rsa_fitws_weights(fitws[fi]),
+                              fitfoldz?fitfoldz+(size_t)fi*nfitfold:NULL,
+                              fitvalid?fitvalid+(size_t)fi*nfitfold:NULL) ;
+               fpv[fi][kk_]=-1.0f ; fzv[fi][kk_]=MYatanh(obs) ;
+             }
+             fr[fi][kk_]=obs ;
+             for( cc=0 ; cc<fit[fi].ncomp ; cc++ )
+               fwgt[fit[fi].wbase+cc][kk_]=THD_rsa_fitws_weights(fitws[fi])[cc] ;
+           }
+           /* F14 paired held-out fitted-model difference, under the exact same
+              condition relabeling and complete refit on both sides. */
+           for( cc=0 ; cc<nfitcon ; cc++ ){
+             int ia=fcon[cc].ia,ib=fcon[cc].ib ;
+             if( fit_contrast_rset!=NULL ){
+               float *pn=do_fitconfwe?fcnull+(size_t)cc*nfitperm:NULL ;
+               THD_permstat hs=THD_rsa_fit_superiority_test(
+                 nsub,(fit_condfold!=NULL)?fit_condfold->nfold:1,
+                 fitfoldz+(size_t)ia*nfitfold,fitvalid+(size_t)ia*nfitfold,
+                 fitfoldz+(size_t)ib*nfitfold,fitvalid+(size_t)ib*nfitfold,
+                 fit_contrast_rset,hdraw,pn) ;
+               fcd[cc][kk_]=hs.stat ; fcp[cc][kk_]=hs.pval ; fcz[cc][kk_]=hs.zscr ;
+               if( do_fitconfwe ) THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,pn) ;
+             } else if( do_fitconfwe ){
+               int exceed=0 ; float *dn=fcnull+(size_t)cc*nfitperm ;
+               for( pk=0 ; pk<nfitperm ; pk++ )
+                 dn[pk]=MYatanh(fnull[(size_t)ia*nfitperm+pk])
+                       -MYatanh(fnull[(size_t)ib*nfitperm+pk]) ;
+               fcd[cc][kk_]=dn[0] ;
+               for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(dn[pk])>=fabsf(dn[0]) ) exceed++ ;
+               fcp[cc][kk_]=(float)exceed/nfitperm ;
+               fcz[cc][kk_]=THD_perm_signed_z(fcp[cc][kk_],dn[0],PERM_TAIL_TWO) ;
+               for( pk=0 ; pk<nfitperm ; pk++ ) dn[pk]=fabsf(dn[pk]) ;
+               THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,dn) ;
+             } else {
+               fcd[cc][kk_]=MYatanh(fr[ia][kk_])-MYatanh(fr[ib][kk_]) ;
+               fcp[cc][kk_]=-1.0f ; fcz[cc][kk_]=fcd[cc][kk_] ;
              }
            }
-           for( jj_=0 ; jj_ < nsub ; jj_++ ) dbar += dsub[jj_] ;
-           dbar /= (float)nsub ;
-           rdbar /= (float)nsub ;
-           if( classic_null==CLASSIC_NULL_CONDITIONS )
-             ps=rsa_classic_condition_test(nsub,nitem,srdm,srdmcov,
-                                            mod[ia].mat,mod[ib].mat,
-                                            mod[ia].sub_mat,mod[ib].sub_mat,cmp_metric,cpset,ws,
-                                            covA,covB,pn) ;
-           else
-             ps = group_test ? THD_signrank_signflip( nsub , dsub , pset , pn )
-                             : THD_signflip_t      ( nsub , dsub , pset , pn ) ;
-           if( do_confwe ) THD_max_accum( npfwe , c_mx + (size_t)cc*npfwe , pn ) ;
-           crd[cc][kk_] = rdbar ;        /* descriptive mean raw-correlation difference */
-           cd[cc][kk_] = dbar ;          /* inferential mean Fisher-z difference */
-           ce[cc][kk_] = ps.stat ;       /* the t or W actually tested (for FWE)  */
-           cp[cc][kk_] = ps.pval ;
-           cz[cc][kk_] = ps.zscr ;
-           if( dualboot )
-             THD_rsa_dual_boot_ci(nsub,dsub,rset,crset,dualval,0,
-                              1.0f-boot_ci/100.0f,dualwork,
-                              dblo[cc]+kk_,dbhi[cc]+kk_) ;
-           else if( nboot > 0 )
-             THD_rsa_boot_subject_mean( nsub,dsub,rset,0,1.0f-boot_ci/100.0f,
-                                    bdraw,dblo[cc]+kk_,dbhi[cc]+kk_ ) ;
-         }
-       }
-
-       /* F15 classic commonality.  The group statistic is the mean subject
-          component.  Unique/partial effects use per-subject reduced-model
-          residuals under one synchronized CONDITION relabeling; common uses
-          the complete condition null.  Subject sign flips are deliberately not
-          used because the squared unique effects are non-negative. */
-       if( ncomq > 0 ){
-         int rq ;
-         for( rq=0 ; rq < nreqcom ; rq++ ){
-           int nq=com[rq].nq,qb=com[rq].qbase,comp ;
-           float outv[RSA_MAXCOMMON],pvv[RSA_MAXCOMMON],zvv[RSA_MAXCOMMON] ;
-           float *pn=do_cafwe ? capnull : NULL ;
-           if( com[rq].nmodel==2 )
-             THD_classic_commonality(nsub,nitem,srdm,mv[com[rq].imod[0]],
-                                      mv[com[rq].imod[1]],cmp_metric,cpset,ws,
-                                      outv,pvv,zvv,pn,casub) ;
-           else
-             THD_classic_commonality3(nsub,nitem,srdm,mv[com[rq].imod[0]],
-                                       mv[com[rq].imod[1]],mv[com[rq].imod[2]],
-                                       cmp_metric,cpset,ws,outv,pvv,zvv,pn,casub) ;
-           if( do_cafwe )
-             THD_max_accum(nq*ncaperm,ca_mx+(size_t)qb*ncaperm,pn) ;
-           for( comp=0 ; comp<nq ; comp++ ){
-             int q=qb+comp ;
-             cav[q][kk_]=outv[comp] ; cap[q][kk_]=pvv[comp] ;
-             caz[q][kk_]=zvv[comp] ;
-             if( nboot > 0 )
-               THD_rsa_boot_subject_mean(nsub,casub+(size_t)comp*nsub,rset,0,
-                                      1.0f-boot_ci/100.0f,bdraw,
-                                      calo[q]+kk_,cahi[q]+kk_) ;
+           if( do_fitfwe ) for( fi=0 ; fi<nfit ; fi++ ){
+             float *fn=fnull+(size_t)fi*nfitperm ;
+             for( pk=0 ; pk<nfitperm ; pk++ ) fn[pk]=fabsf(fn[pk]) ;
+             THD_max_accum(nfitperm,f_mx+(size_t)fi*nfitperm,fn) ;
            }
          }
        }
-       /* F7 classic RSA: condition labels are jointly relabeled across all
-          components, and the model is refit on N-1 subjects before scoring
-          the held subject.  This is distinct from the primary sign-flip null. */
-       if( nfit>0 ){
-         int fi,pk,cc ;
-         for( fi=0 ; fi<nfit ; fi++ ){
-           float obs ;
-           if( do_fitfwe ){
-             int exceed=0 ; float *fn=fnull+(size_t)fi*nfitperm ;
-             for( pk=0 ; pk<nfitperm ; pk++ ){
-               float *mw=(pk==0)?THD_rsa_fitws_weights(fitws[fi]):NULL ;
-               fn[pk]=rsa_fit_cv(rdm_over,nsub,nitem,srdm,NULL,fit+fi,mv,
-                                  cpset->perm+(size_t)pk*nitem,fit_condfold,
-                                  fitws[fi],mw,
-                                  (pk==0 && fitfoldz)?fitfoldz+(size_t)fi*nfitfold:NULL,
-                                  (pk==0 && fitvalid)?fitvalid+(size_t)fi*nfitfold:NULL) ;
-             }
-             obs=fn[0] ;
-             for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(fn[pk])>=fabsf(obs) ) exceed++ ;
-             fpv[fi][kk_]=(float)exceed/nfitperm ;
-             fzv[fi][kk_]=THD_perm_signed_z(fpv[fi][kk_],obs,PERM_TAIL_TWO) ;
-           } else {
-             obs=rsa_fit_cv(rdm_over,nsub,nitem,srdm,NULL,fit+fi,mv,NULL,
-                            fit_condfold,fitws[fi],THD_rsa_fitws_weights(fitws[fi]),
-                            fitfoldz?fitfoldz+(size_t)fi*nfitfold:NULL,
-                            fitvalid?fitvalid+(size_t)fi*nfitfold:NULL) ;
-             fpv[fi][kk_]=-1.0f ; fzv[fi][kk_]=MYatanh(obs) ;
-           }
-           fr[fi][kk_]=obs ;
-           for( cc=0 ; cc<fit[fi].ncomp ; cc++ )
-             fwgt[fit[fi].wbase+cc][kk_]=THD_rsa_fitws_weights(fitws[fi])[cc] ;
-         }
-         /* F14 paired held-out fitted-model difference, under the exact same
-            condition relabeling and complete refit on both sides. */
-         for( cc=0 ; cc<nfitcon ; cc++ ){
-           int ia=fcon[cc].ia,ib=fcon[cc].ib ;
-           if( fit_contrast_rset!=NULL ){
-             float *pn=do_fitconfwe?fcnull+(size_t)cc*nfitperm:NULL ;
-             THD_permstat hs=THD_rsa_fit_superiority_test(
-               nsub,(fit_condfold!=NULL)?fit_condfold->nfold:1,
-               fitfoldz+(size_t)ia*nfitfold,fitvalid+(size_t)ia*nfitfold,
-               fitfoldz+(size_t)ib*nfitfold,fitvalid+(size_t)ib*nfitfold,
-               fit_contrast_rset,hdraw,pn) ;
-             fcd[cc][kk_]=hs.stat ; fcp[cc][kk_]=hs.pval ; fcz[cc][kk_]=hs.zscr ;
-             if( do_fitconfwe ) THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,pn) ;
-           } else if( do_fitconfwe ){
-             int exceed=0 ; float *dn=fcnull+(size_t)cc*nfitperm ;
-             for( pk=0 ; pk<nfitperm ; pk++ )
-               dn[pk]=MYatanh(fnull[(size_t)ia*nfitperm+pk])
-                     -MYatanh(fnull[(size_t)ib*nfitperm+pk]) ;
-             fcd[cc][kk_]=dn[0] ;
-             for( pk=0 ; pk<nfitperm ; pk++ ) if( fabsf(dn[pk])>=fabsf(dn[0]) ) exceed++ ;
-             fcp[cc][kk_]=(float)exceed/nfitperm ;
-             fcz[cc][kk_]=THD_perm_signed_z(fcp[cc][kk_],dn[0],PERM_TAIL_TWO) ;
-             for( pk=0 ; pk<nfitperm ; pk++ ) dn[pk]=fabsf(dn[pk]) ;
-             THD_max_accum(nfitperm,fc_mx+(size_t)cc*nfitperm,dn) ;
-           } else {
-             fcd[cc][kk_]=MYatanh(fr[ia][kk_])-MYatanh(fr[ib][kk_]) ;
-             fcp[cc][kk_]=-1.0f ; fcz[cc][kk_]=fcd[cc][kk_] ;
-           }
-         }
-         if( do_fitfwe ) for( fi=0 ; fi<nfit ; fi++ ){
-           float *fn=fnull+(size_t)fi*nfitperm ;
-           for( pk=0 ; pk<nfitperm ; pk++ ) fn[pk]=fabsf(fn[pk]) ;
-           THD_max_accum(nfitperm,f_mx+(size_t)fi*nfitperm,fn) ;
-         }
-       }
-     }
 
-     rsa_progress_advance(&progress) ;
-   } /* end ROI loop */
+       rsa_progress_advance(&progress) ;
+     } /* end ROI loop */
 
-   /* fold this thread's private max-null into the shared one (same reduction
-      the thd_permute drivers use), so the FWE null is thread-count independent */
-   if( do_fwe )
-#pragma omp critical
-   { THD_max_accum( nmod*npfwe , mxflat , my_mx ) ;
-     if( run_resolved ) THD_max_accum(nmod*npfwe,run_mxflat,run_my_mx) ;
-     if( do_loofwe ) THD_max_accum( nloofam*npfwe , lmxflat , l_mx ) ;
-     if( do_confwe ) THD_max_accum( ncon*npfwe , cmxflat , c_mx ) ;
-     if( do_cafwe  ) THD_max_accum( ncomq*ncaperm , camx , ca_mx ) ; }
-   if( do_fitfwe )
-#pragma omp critical
-   { THD_max_accum(nfit*nfitperm,fmx,f_mx) ; }
-   if( do_fitconfwe )
-#pragma omp critical
-   { THD_max_accum(nfitcon*nfitperm,fcmx,fc_mx) ; }
+     /* fold this thread's private max-null into the shared one (same reduction
+        the thd_permute drivers use), so the FWE null is thread-count independent */
+     if( do_fwe )
+  #pragma omp critical
+     { THD_max_accum( nmod*npfwe , mxflat , my_mx ) ;
+       if( run_resolved ) THD_max_accum(nmod*npfwe,run_mxflat,run_my_mx) ;
+       if( do_loofwe ) THD_max_accum( nloofam*npfwe , lmxflat , l_mx ) ;
+       if( do_confwe ) THD_max_accum( ncon*npfwe , cmxflat , c_mx ) ;
+       if( do_cafwe  ) THD_max_accum( ncomq*ncaperm , camx , ca_mx ) ; }
+     if( do_fitfwe )
+  #pragma omp critical
+     { THD_max_accum(nfit*nfitperm,fmx,f_mx) ; }
+     if( do_fitconfwe )
+  #pragma omp critical
+     { THD_max_accum(nfitcon*nfitperm,fcmx,fc_mx) ; }
 
-   free(F) ; free(Z) ; free(ipat) ; free(tsmain) ; free(tslag) ; free(tsprep) ; free(tsnorm) ;
-   free(rneural) ; free(rF) ; free(rtri) ; free(rstat) ; free(rprstat) ;
-   free(rpval) ; free(rzscr) ; free(jmz) ;
-   free(rnull) ; free(mnull) ; free(rnge) ; free(run_my_mx) ;
-   free(rcstat); free(rcpr); free(rcpval); free(rczscr); free(rcnull); free(rcsum); free(rcnge) ;
-   free(phspec) ; free(phwork) ; free(phseries) ; free(phsc1) ; free(phsc2) ;
-   if( tsneural != NULL ) THD_simmat_free(tsneural) ;
-   free(mv) ; free(beta) ; free(prtl) ; free(pv) ;
-   if( bdraw != NULL ) free(bdraw) ;
-   if( hdraw != NULL ) free(hdraw) ;
-   if( bseen != NULL ) free(bseen) ;
-   if( br_y != NULL ) free(br_y) ;
-   if( br_xflat != NULL ) free(br_xflat) ;
-   if( brx != NULL ) free(brx) ;
-   if( brcoef != NULL ) free(brcoef) ;
-   if( brbeta != NULL ) free(brbeta) ;
-   if( bca_y != NULL ) free(bca_y) ;
-   if( bca_a != NULL ) free(bca_a) ;
-   if( bca_b != NULL ) free(bca_b) ;
-   if( bca_c != NULL ) free(bca_c) ;
-   if( bcadraw != NULL ) free(bcadraw) ;
-   if( cb_y != NULL ) free(cb_y) ;
-   if( cb_xflat != NULL ) free(cb_xflat) ;
-   if( cbx != NULL ) free(cbx) ;
-   if( cbsum != NULL ) free(cbsum) ;
-   if( cbdraw != NULL ) free(cbdraw) ;
-   if( cbbeta != NULL ) free(cbbeta) ;
-   if( dualval != NULL ) free(dualval) ;
-   if( dualwork != NULL ) free(dualwork) ;
-   if( cws != NULL ) THD_rdm_ws_free(cws) ;
-   if( rsub != NULL ) free(rsub) ;
-   if( dsub != NULL ) free(dsub) ;
-   if( tsz  != NULL ) free(tsz) ;
-   if( tscd != NULL ) free(tscd) ;
-   if( tscp != NULL ) free(tscp) ;
-   if( tscz != NULL ) free(tscz) ;
-   if( srdm != NULL ) free(srdm) ;
-   free(srdmcov) ; free(mcovflat) ; free(mcov) ;
-   if( mtriflat != NULL ) free(mtriflat) ;
-   if( mtri != NULL ) free(mtri) ;
-   if( triA  != NULL ) free(triA) ;
-   if( triB  != NULL ) free(triB) ;
-   free(covA) ; free(covB) ;
-   if( Fh    != NULL ) free(Fh) ;
-   if( my_mx != NULL ) free(my_mx) ;
-   if( pnull != NULL ) free(pnull) ;
-   if( l_mx  != NULL ) free(l_mx) ;
-   free(lbpred) ; free(lbx) ; free(lby) ; free(lbtarg) ;
-   if( c_mx  != NULL ) free(c_mx) ;
-   if( cpnull!= NULL ) free(cpnull) ;
-   if( ca_mx != NULL ) free(ca_mx) ;
-   if( capnull!= NULL ) free(capnull) ;
-   if( casub != NULL ) free(casub) ;
-   if( fitws != NULL ){ int fi ; for( fi=0 ; fi<nfit ; fi++ ) THD_rsa_fitws_free(fitws[fi]) ; free(fitws) ; }
-   free(fitfoldz) ; free(fitvalid) ;
-   free(f_mx) ; free(fnull) ; free(fc_mx) ; free(fcnull) ;
-   if( rpat  != NULL ){ int rr_ ; for( rr_=0 ; rr_ < maxrun_l ; rr_++ ) free(rpat[rr_]) ; free(rpat) ; }
-   free(runraw) ;
-   if( wh.residbuf != NULL ) free(wh.residbuf) ;
-   if( wh.Rmat     != NULL ) free(wh.Rmat) ;
-   if( wh.Whalf    != NULL ) free(wh.Whalf) ;
-   if( wh.wdiag    != NULL ) free(wh.wdiag) ;
-   if( wh.wtmp     != NULL ) free(wh.wtmp) ;
-   THD_rsa_rdm_workspace_free(rws) ;
-   THD_rdm_ws_free(ws) ;
- }
- AFNI_OMP_END ;
-
-   if( zcensor ){
-     if( !quiet ) for( kk=0 ; kk<nroi ; kk++ )
-       INFO_message("3dRSA: -zcensor ROI/searchlight %d retained at least %d of %d TRs\n"
-                    "       for every subject pair",
-                    rl->val[kk],zcmin[kk],nvals) ;
-     if( zkeep!=NULL ){
-       for( kk=0 ; kk<nroi ; kk++ ) free(zkeep[kk]) ;
-       free(zkeep) ; zkeep=NULL ;
-     }
-     free(zcmin) ; zcmin=NULL ;
+     free(F) ; free(Z) ; free(ipat) ; free(tsmain) ; free(tslag) ; free(tsprep) ; free(tsnorm) ;
+     free(rneural) ; free(rF) ; free(rtri) ; free(rstat) ; free(rprstat) ;
+     free(rpval) ; free(rzscr) ; free(jmz) ;
+     free(rnull) ; free(mnull) ; free(rnge) ; free(run_my_mx) ;
+     free(rcstat); free(rcpr); free(rcpval); free(rczscr); free(rcnull); free(rcsum); free(rcnge) ;
+     free(phspec) ; free(phwork) ; free(phseries) ; free(phsc1) ; free(phsc2) ;
+     if( tsneural != NULL ) THD_simmat_free(tsneural) ;
+     free(mv) ; free(beta) ; free(prtl) ; free(pv) ;
+     if( bdraw != NULL ) free(bdraw) ;
+     if( hdraw != NULL ) free(hdraw) ;
+     if( bseen != NULL ) free(bseen) ;
+     if( br_y != NULL ) free(br_y) ;
+     if( br_xflat != NULL ) free(br_xflat) ;
+     if( brx != NULL ) free(brx) ;
+     if( brcoef != NULL ) free(brcoef) ;
+     if( brbeta != NULL ) free(brbeta) ;
+     if( bca_y != NULL ) free(bca_y) ;
+     if( bca_a != NULL ) free(bca_a) ;
+     if( bca_b != NULL ) free(bca_b) ;
+     if( bca_c != NULL ) free(bca_c) ;
+     if( bcadraw != NULL ) free(bcadraw) ;
+     if( cb_y != NULL ) free(cb_y) ;
+     if( cb_xflat != NULL ) free(cb_xflat) ;
+     if( cbx != NULL ) free(cbx) ;
+     if( cbsum != NULL ) free(cbsum) ;
+     if( cbdraw != NULL ) free(cbdraw) ;
+     if( cbbeta != NULL ) free(cbbeta) ;
+     if( dualval != NULL ) free(dualval) ;
+     if( dualwork != NULL ) free(dualwork) ;
+     if( cws != NULL ) THD_rdm_ws_free(cws) ;
+     if( rsub != NULL ) free(rsub) ;
+     if( dsub != NULL ) free(dsub) ;
+     if( tsz  != NULL ) free(tsz) ;
+     if( tscd != NULL ) free(tscd) ;
+     if( tscp != NULL ) free(tscp) ;
+     if( tscz != NULL ) free(tscz) ;
+     if( srdm != NULL ) free(srdm) ;
+     free(srdmcov) ; free(mcovflat) ; free(mcov) ;
+     if( mtriflat != NULL ) free(mtriflat) ;
+     if( mtri != NULL ) free(mtri) ;
+     if( triA  != NULL ) free(triA) ;
+     if( triB  != NULL ) free(triB) ;
+     free(covA) ; free(covB) ;
+     if( Fh    != NULL ) free(Fh) ;
+     if( my_mx != NULL ) free(my_mx) ;
+     if( pnull != NULL ) free(pnull) ;
+     if( l_mx  != NULL ) free(l_mx) ;
+     free(lbpred) ; free(lbx) ; free(lby) ; free(lbtarg) ;
+     if( c_mx  != NULL ) free(c_mx) ;
+     if( cpnull!= NULL ) free(cpnull) ;
+     if( ca_mx != NULL ) free(ca_mx) ;
+     if( capnull!= NULL ) free(capnull) ;
+     if( casub != NULL ) free(casub) ;
+     if( fitws != NULL ){ int fi ; for( fi=0 ; fi<nfit ; fi++ ) THD_rsa_fitws_free(fitws[fi]) ; free(fitws) ; }
+     free(fitfoldz) ; free(fitvalid) ;
+     free(f_mx) ; free(fnull) ; free(fc_mx) ; free(fcnull) ;
+     if( rpat  != NULL ){ int rr_ ; for( rr_=0 ; rr_ < maxrun_l ; rr_++ ) free(rpat[rr_]) ; free(rpat) ; }
+     free(runraw) ;
+     if( wh.residbuf != NULL ) free(wh.residbuf) ;
+     if( wh.Rmat     != NULL ) free(wh.Rmat) ;
+     if( wh.Whalf    != NULL ) free(wh.Whalf) ;
+     if( wh.wdiag    != NULL ) free(wh.wdiag) ;
+     if( wh.wtmp     != NULL ) free(wh.wtmp) ;
+     THD_rsa_rdm_workspace_free(rws) ;
+     THD_rdm_ws_free(ws) ;
    }
+   AFNI_OMP_END ;
 
-   if( !quiet && progress_mode!=RSA_PROGRESS_OFF )
-     INFO_message("3dRSA [5/5] Reducing FWE/FDR results and writing outputs...") ;
+     if( zcensor ){
+       if( !quiet ) for( kk=0 ; kk<nroi ; kk++ )
+         INFO_message("3dRSA: -zcensor ROI/searchlight %d retained at least %d of %d TRs\n"
+                      "       for every subject pair",
+                      rl->val[kk],zcmin[kk],nvals) ;
+       if( zkeep!=NULL ){
+         for( kk=0 ; kk<nroi ; kk++ ) free(zkeep[kk]) ;
+         free(zkeep) ; zkeep=NULL ;
+       }
+       free(zcmin) ; zcmin=NULL ;
+     }
 
-   /* F20: a model series declares time x space as one searched family.  Each
-      per-time max-null above already spans space; collapse those synchronized
-      nulls across time before lookup.  Retaining the per-time arrays during the
-      parallel sweep keeps the existing estimator/cache paths unchanged. */
-   if( series_active && do_fwe ){
-     int pk ;
-     for( pk=0 ; pk < npfwe ; pk++ ){
-       float mx=-FLT_MAX ;
+     if( !quiet && progress_mode!=RSA_PROGRESS_OFF )
+       INFO_message("3dRSA [5/5] Reducing FWE/FDR results and writing outputs...") ;
+
+     /* F20: a model series declares time x space as one searched family.  Each
+        per-time max-null above already spans space; collapse those synchronized
+        nulls across time before lookup.  Retaining the per-time arrays during the
+        parallel sweep keeps the existing estimator/cache paths unchanged. */
+     if( series_active && do_fwe ){
+       int pk ;
+       for( pk=0 ; pk < npfwe ; pk++ ){
+         float mx=-FLT_MAX ;
+         for( mm=0 ; mm < nmod ; mm++ )
+           if( mxflat[(size_t)mm*npfwe+pk] > mx ) mx=mxflat[(size_t)mm*npfwe+pk] ;
+         mxflat[pk]=mx ;
+       }
+     }
+
+     /*----- FDR across ROIs, or jointly across time x space for F20 -----*/
+
+     if( nperm > 0 || rdm_over == RDM_BRICK ){
+       if( series_active ) bh_fdr_series(nmod,nroi,pp,qq) ;
+       else for( mm=0 ; mm < nmod ; mm++ ) THD_bh_fdr( nroi , pp[mm] , qq[mm] ) ;
+     } else {
        for( mm=0 ; mm < nmod ; mm++ )
-         if( mxflat[(size_t)mm*npfwe+pk] > mx ) mx=mxflat[(size_t)mm*npfwe+pk] ;
-       mxflat[pk]=mx ;
-     }
-   }
-
-   /*----- FDR across ROIs, or jointly across time x space for F20 -----*/
-
-   if( nperm > 0 || rdm_over == RDM_BRICK ){
-     if( series_active ) bh_fdr_series(nmod,nroi,pp,qq) ;
-     else for( mm=0 ; mm < nmod ; mm++ ) THD_bh_fdr( nroi , pp[mm] , qq[mm] ) ;
-   } else {
-     for( mm=0 ; mm < nmod ; mm++ )
-       for( kk=0 ; kk < nroi ; kk++ ) qq[mm][kk] = -1.0f ;
-   }
-   if( run_resolved ){
-     for( mm=0 ; mm<nmod ; mm++ ){
-       if( nperm>0 && nrunconspec>0 ){
-         int ru,nfam=(run_analysis==RUN_ANALYSIS_SEPARATE?series_runs->nrun:0)+nrunconspec ;
-         float **pvx=(float **)malloc(sizeof(float *)*nfam) ;
-         float **qvx=(float **)malloc(sizeof(float *)*nfam) ; int nx=0 ;
-         if( run_analysis==RUN_ANALYSIS_SEPARATE ) for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-           pvx[nx]=run_pp[mm*series_runs->nrun+ru]; qvx[nx]=run_qq[mm*series_runs->nrun+ru]; nx++ ;
-         }
-         for( ru=0 ; ru<nrunconspec ; ru++ ){
-           pvx[nx]=rcon_pp[mm*nrunconspec+ru]; qvx[nx]=rcon_qq[mm*nrunconspec+ru]; nx++ ;
-         }
-         bh_fdr_series(nfam,nroi,pvx,qvx); free(pvx); free(qvx) ;
-       } else if( nperm>0 )
-         bh_fdr_series(series_runs->nrun,nroi,
-                       run_pp+(size_t)mm*series_runs->nrun,
-                       run_qq+(size_t)mm*series_runs->nrun) ;
-       else {
-         int ru ; for( ru=0 ; ru<series_runs->nrun ; ru++ )
-           for( kk=0 ; kk<nroi ; kk++ )
-             run_qq[mm*series_runs->nrun+ru][kk]=-1.0f ;
-         for( ru=0 ; ru<nrunconspec ; ru++ )
-           for( kk=0 ; kk<nroi ; kk++ ) rcon_qq[mm*nrunconspec+ru][kk]=-1.0f ;
-       }
-     }
-   }
-   if( do_loo && nperm > 0 ){
-     for( mm=0 ; mm < nmod ; mm++ )
-       if( rsa_model_has_loo(mod+mm) ){
-         int own=loo_owner[mm] ;
-         if( own == mm ) THD_bh_fdr( nroi , lp[mm] , lq[mm] ) ;
-         else memcpy( lq[mm] , lq[own] , sizeof(float)*nroi ) ;
-       }
-   } else if( do_loo ){
-     for( mm=0 ; mm < nmod ; mm++ )
-       for( kk=0 ; kk < nroi ; kk++ ) lq[mm][kk] = -1.0f ;
-   }
-   if( ncon > 0 ){
-     int cc ;
-     if( nperm > 0 )
-       for( cc=0 ; cc < ncon ; cc++ ) THD_bh_fdr( nroi , cp[cc] , cq[cc] ) ;
-     else
-       for( cc=0 ; cc < ncon ; cc++ )
-         for( kk=0 ; kk < nroi ; kk++ ) cq[cc][kk] = -1.0f ;
-   }
-   if( ncomq > 0 ){
-     int q ;
-     if( nperm > 0 )
-       for( q=0 ; q < ncomq ; q++ ) THD_bh_fdr( nroi , cap[q] , caq[q] ) ;
-     else
-       for( q=0 ; q < ncomq ; q++ )
-         for( kk=0 ; kk < nroi ; kk++ ) caq[q][kk] = -1.0f ;
-   }
-   if( nfit>0 ){
-     if( nperm>0 ) for( ii=0 ; ii<nfit ; ii++ ) THD_bh_fdr(nroi,fpv[ii],fqv[ii]) ;
-     else for( ii=0 ; ii<nfit ; ii++ ) for( kk=0 ; kk<nroi ; kk++ ) fqv[ii][kk]=-1.0f ;
-   }
-   if( nfitcon>0 ){
-     if( nperm>0 ) for( ii=0 ; ii<nfitcon ; ii++ ) THD_bh_fdr(nroi,fcp[ii],fcq[ii]) ;
-     else for( ii=0 ; ii<nfitcon ; ii++ ) for( kk=0 ; kk<nroi ; kk++ ) fcq[ii][kk]=-1.0f ;
-   }
-
-   /*----- max-statistic FWE p and z: per model, or joint time x space -----*/
-
-   if( do_fwe ){
-     int pk ;
-     for( mm=0 ; mm < nmod ; mm++ ){
-       float *mn = series_active ? mxflat
-                                         : mxflat + (size_t)mm*npfwe ;
-       /* an untouched slot means every element was masked/degenerate here */
-       for( pk=0 ; pk < npfwe ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
-       qsort( mn , npfwe , sizeof(float) , flt_cmp_asc ) ;
-       for( kk=0 ; kk < nroi ; kk++ ){
-         /* observed statistic on the same scale as the null: r/beta for IS-RSA,
-            mean Fisher z for the classic condition null, otherwise one-sample t */
-         float obs = (rdm_over == RDM_SUBJ) ? rr[mm][kk] : ee[mm][kk] ;
-         pf[mm][kk] = THD_perm_emp_pvalue( mn , npfwe , fabsf(obs) ) ;
-         zf[mm][kk] = THD_perm_signed_z( pf[mm][kk] , obs , PERM_TAIL_TWO ) ;
-       }
+         for( kk=0 ; kk < nroi ; kk++ ) qq[mm][kk] = -1.0f ;
      }
      if( run_resolved ){
-       int ru ;
        for( mm=0 ; mm<nmod ; mm++ ){
-         float *mn=run_mxflat+(size_t)mm*npfwe ;
-         for( pk=0 ; pk<npfwe ; pk++ ) if( mn[pk]==-FLT_MAX ) mn[pk]=0.0f ;
-         qsort(mn,npfwe,sizeof(float),flt_cmp_asc) ;
-         for( ru=0 ; ru<series_runs->nrun ; ru++ ){
-           int ix=mm*series_runs->nrun+ru ;
-           for( kk=0 ; kk<nroi ; kk++ ){
-             run_pf[ix][kk]=THD_perm_emp_pvalue(mn,npfwe,fabsf(run_rr[ix][kk])) ;
-             run_zf[ix][kk]=THD_perm_signed_z(run_pf[ix][kk],run_rr[ix][kk],PERM_TAIL_TWO) ;
+         if( nperm>0 && nrunconspec>0 ){
+           int ru,nfam=(run_analysis==RUN_ANALYSIS_SEPARATE?series_runs->nrun:0)+nrunconspec ;
+           float **pvx=(float **)malloc(sizeof(float *)*nfam) ;
+           float **qvx=(float **)malloc(sizeof(float *)*nfam) ; int nx=0 ;
+           if( run_analysis==RUN_ANALYSIS_SEPARATE ) for( ru=0 ; ru<series_runs->nrun ; ru++ ){
+             pvx[nx]=run_pp[mm*series_runs->nrun+ru]; qvx[nx]=run_qq[mm*series_runs->nrun+ru]; nx++ ;
            }
-         }
-         for( ru=0 ; ru<nrunconspec ; ru++ ){
-           int ix=mm*nrunconspec+ru ;
-           for( kk=0 ; kk<nroi ; kk++ ){
-             rcon_pf[ix][kk]=THD_perm_emp_pvalue(mn,npfwe,fabsf(rcon_rr[ix][kk])) ;
-             rcon_zf[ix][kk]=THD_perm_signed_z(rcon_pf[ix][kk],rcon_rr[ix][kk],PERM_TAIL_TWO) ;
+           for( ru=0 ; ru<nrunconspec ; ru++ ){
+             pvx[nx]=rcon_pp[mm*nrunconspec+ru]; qvx[nx]=rcon_qq[mm*nrunconspec+ru]; nx++ ;
            }
+           bh_fdr_series(nfam,nroi,pvx,qvx); free(pvx); free(qvx) ;
+         } else if( nperm>0 )
+           bh_fdr_series(series_runs->nrun,nroi,
+                         run_pp+(size_t)mm*series_runs->nrun,
+                         run_qq+(size_t)mm*series_runs->nrun) ;
+         else {
+           int ru ; for( ru=0 ; ru<series_runs->nrun ; ru++ )
+             for( kk=0 ; kk<nroi ; kk++ )
+               run_qq[mm*series_runs->nrun+ru][kk]=-1.0f ;
+           for( ru=0 ; ru<nrunconspec ; ru++ )
+             for( kk=0 ; kk<nroi ; kk++ ) rcon_qq[mm*nrunconspec+ru][kk]=-1.0f ;
          }
        }
      }
-   }
+     if( do_loo && nperm > 0 ){
+       for( mm=0 ; mm < nmod ; mm++ )
+         if( rsa_model_has_loo(mod+mm) ){
+           int own=loo_owner[mm] ;
+           if( own == mm ) THD_bh_fdr( nroi , lp[mm] , lq[mm] ) ;
+           else memcpy( lq[mm] , lq[own] , sizeof(float)*nroi ) ;
+         }
+     } else if( do_loo ){
+       for( mm=0 ; mm < nmod ; mm++ )
+         for( kk=0 ; kk < nroi ; kk++ ) lq[mm][kk] = -1.0f ;
+     }
+     if( ncon > 0 ){
+       int cc ;
+       if( nperm > 0 )
+         for( cc=0 ; cc < ncon ; cc++ ) THD_bh_fdr( nroi , cp[cc] , cq[cc] ) ;
+       else
+         for( cc=0 ; cc < ncon ; cc++ )
+           for( kk=0 ; kk < nroi ; kk++ ) cq[cc][kk] = -1.0f ;
+     }
+     if( ncomq > 0 ){
+       int q ;
+       if( nperm > 0 )
+         for( q=0 ; q < ncomq ; q++ ) THD_bh_fdr( nroi , cap[q] , caq[q] ) ;
+       else
+         for( q=0 ; q < ncomq ; q++ )
+           for( kk=0 ; kk < nroi ; kk++ ) caq[q][kk] = -1.0f ;
+     }
+     if( nfit>0 ){
+       if( nperm>0 ) for( ii=0 ; ii<nfit ; ii++ ) THD_bh_fdr(nroi,fpv[ii],fqv[ii]) ;
+       else for( ii=0 ; ii<nfit ; ii++ ) for( kk=0 ; kk<nroi ; kk++ ) fqv[ii][kk]=-1.0f ;
+     }
+     if( nfitcon>0 ){
+       if( nperm>0 ) for( ii=0 ; ii<nfitcon ; ii++ ) THD_bh_fdr(nroi,fcp[ii],fcq[ii]) ;
+       else for( ii=0 ; ii<nfitcon ; ii++ ) for( kk=0 ; kk<nroi ; kk++ ) fcq[ii][kk]=-1.0f ;
+     }
 
-   /* LOO prediction FWE: its own max-null family (cross-validated accuracy),
-      computed only for data-table models that LOO can actually predict */
-   if( do_loofwe ){
-     int pk ;
-     for( mm=0 ; mm < nmod ; mm++ ){
-       if( !rsa_model_has_loo(mod+mm) ){
-         for( kk=0 ; kk < nroi ; kk++ ){ lpf[mm][kk] = -1.0f ; lzf[mm][kk] = 0.0f ; }
-         continue ;
-       }
-       if( loo_owner[mm] == mm ){
-         float *mn = lmxflat + (size_t)loo_fam[mm]*npfwe ;
+     /*----- max-statistic FWE p and z: per model, or joint time x space -----*/
+
+     if( do_fwe ){
+       int pk ;
+       for( mm=0 ; mm < nmod ; mm++ ){
+         float *mn = series_active ? mxflat
+                                           : mxflat + (size_t)mm*npfwe ;
+         /* an untouched slot means every element was masked/degenerate here */
          for( pk=0 ; pk < npfwe ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
          qsort( mn , npfwe , sizeof(float) , flt_cmp_asc ) ;
          for( kk=0 ; kk < nroi ; kk++ ){
-           lpf[mm][kk] = THD_perm_emp_pvalue( mn , npfwe , fabsf(lr[mm][kk]) ) ;
-           lzf[mm][kk] = THD_perm_signed_z( lpf[mm][kk] , lr[mm][kk] , PERM_TAIL_TWO ) ;
+           /* observed statistic on the same scale as the null: r/beta for IS-RSA,
+              mean Fisher z for the classic condition null, otherwise one-sample t */
+           float obs = (rdm_over == RDM_SUBJ) ? rr[mm][kk] : ee[mm][kk] ;
+           pf[mm][kk] = THD_perm_emp_pvalue( mn , npfwe , fabsf(obs) ) ;
+           zf[mm][kk] = THD_perm_signed_z( pf[mm][kk] , obs , PERM_TAIL_TWO ) ;
          }
-       } else {
-         int own=loo_owner[mm] ;
-         memcpy( lpf[mm] , lpf[own] , sizeof(float)*nroi ) ;
-         memcpy( lzf[mm] , lzf[own] , sizeof(float)*nroi ) ;
+       }
+       if( run_resolved ){
+         int ru ;
+         for( mm=0 ; mm<nmod ; mm++ ){
+           float *mn=run_mxflat+(size_t)mm*npfwe ;
+           for( pk=0 ; pk<npfwe ; pk++ ) if( mn[pk]==-FLT_MAX ) mn[pk]=0.0f ;
+           qsort(mn,npfwe,sizeof(float),flt_cmp_asc) ;
+           for( ru=0 ; ru<series_runs->nrun ; ru++ ){
+             int ix=mm*series_runs->nrun+ru ;
+             for( kk=0 ; kk<nroi ; kk++ ){
+               run_pf[ix][kk]=THD_perm_emp_pvalue(mn,npfwe,fabsf(run_rr[ix][kk])) ;
+               run_zf[ix][kk]=THD_perm_signed_z(run_pf[ix][kk],run_rr[ix][kk],PERM_TAIL_TWO) ;
+             }
+           }
+           for( ru=0 ; ru<nrunconspec ; ru++ ){
+             int ix=mm*nrunconspec+ru ;
+             for( kk=0 ; kk<nroi ; kk++ ){
+               rcon_pf[ix][kk]=THD_perm_emp_pvalue(mn,npfwe,fabsf(rcon_rr[ix][kk])) ;
+               rcon_zf[ix][kk]=THD_perm_signed_z(rcon_pf[ix][kk],rcon_rr[ix][kk],PERM_TAIL_TWO) ;
+             }
+           }
+         }
        }
      }
-   }
 
-   /* model-contrast FWE: each contrast its own max-null family.  The observed
-      value is the TEST statistic ce (the difference for IS-RSA, the t/W for
-      classic RSA) -- the same scale the null was built on. */
-   if( do_confwe ){
-     int pk , cc ;
-     for( cc=0 ; cc < ncon ; cc++ ){
-       float *mn = cmxflat + (size_t)cc*npfwe ;
-       for( pk=0 ; pk < npfwe ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
-       qsort( mn , npfwe , sizeof(float) , flt_cmp_asc ) ;
-       for( kk=0 ; kk < nroi ; kk++ ){
-         cpf[cc][kk] = (contrast_rset!=NULL && rdm_over==RDM_SUBJ)
-                         ? rsa_mc_emp_pvalue(mn,npfwe,fabsf(ce[cc][kk]))
-                         : THD_perm_emp_pvalue(mn,npfwe,fabsf(ce[cc][kk])) ;
-         czf[cc][kk] = THD_perm_signed_z( cpf[cc][kk] , cd[cc][kk] , PERM_TAIL_TWO ) ;
+     /* LOO prediction FWE: its own max-null family (cross-validated accuracy),
+        computed only for data-table models that LOO can actually predict */
+     if( do_loofwe ){
+       int pk ;
+       for( mm=0 ; mm < nmod ; mm++ ){
+         if( !rsa_model_has_loo(mod+mm) ){
+           for( kk=0 ; kk < nroi ; kk++ ){ lpf[mm][kk] = -1.0f ; lzf[mm][kk] = 0.0f ; }
+           continue ;
+         }
+         if( loo_owner[mm] == mm ){
+           float *mn = lmxflat + (size_t)loo_fam[mm]*npfwe ;
+           for( pk=0 ; pk < npfwe ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
+           qsort( mn , npfwe , sizeof(float) , flt_cmp_asc ) ;
+           for( kk=0 ; kk < nroi ; kk++ ){
+             lpf[mm][kk] = THD_perm_emp_pvalue( mn , npfwe , fabsf(lr[mm][kk]) ) ;
+             lzf[mm][kk] = THD_perm_signed_z( lpf[mm][kk] , lr[mm][kk] , PERM_TAIL_TWO ) ;
+           }
+         } else {
+           int own=loo_owner[mm] ;
+           memcpy( lpf[mm] , lpf[own] , sizeof(float)*nroi ) ;
+           memcpy( lzf[mm] , lzf[own] , sizeof(float)*nroi ) ;
+         }
        }
      }
-   }
 
-   /* commonality FWE: each raw/partial quantity has its own family */
-   if( do_cafwe ){
-     int pk , q ;
-     for( q=0 ; q < ncomq ; q++ ){
-       float *mn = camx + (size_t)q*ncaperm ;
-       for( pk=0 ; pk < ncaperm ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
-       qsort( mn , ncaperm , sizeof(float) , flt_cmp_asc ) ;
-       for( kk=0 ; kk < nroi ; kk++ ){
-         capf[q][kk] = THD_perm_emp_pvalue( mn , ncaperm , fabsf(cav[q][kk]) ) ;
-         cazf[q][kk] = THD_perm_signed_z( capf[q][kk] , cav[q][kk] , PERM_TAIL_TWO ) ;
+     /* model-contrast FWE: each contrast its own max-null family.  The observed
+        value is the TEST statistic ce (the difference for IS-RSA, the t/W for
+        classic RSA) -- the same scale the null was built on. */
+     if( do_confwe ){
+       int pk , cc ;
+       for( cc=0 ; cc < ncon ; cc++ ){
+         float *mn = cmxflat + (size_t)cc*npfwe ;
+         for( pk=0 ; pk < npfwe ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
+         qsort( mn , npfwe , sizeof(float) , flt_cmp_asc ) ;
+         for( kk=0 ; kk < nroi ; kk++ ){
+           cpf[cc][kk] = (contrast_rset!=NULL && rdm_over==RDM_SUBJ)
+                           ? rsa_mc_emp_pvalue(mn,npfwe,fabsf(ce[cc][kk]))
+                           : THD_perm_emp_pvalue(mn,npfwe,fabsf(ce[cc][kk])) ;
+           czf[cc][kk] = THD_perm_signed_z( cpf[cc][kk] , cd[cc][kk] , PERM_TAIL_TWO ) ;
+         }
        }
      }
-   }
-   if( do_fitfwe ){
-     int pk,fi ;
-     for( fi=0 ; fi<nfit ; fi++ ){
-       float *mn=fmx+(size_t)fi*nfitperm ;
-       for( pk=0 ; pk<nfitperm ; pk++ ) if( mn[pk]==-FLT_MAX ) mn[pk]=0.0f ;
-       qsort(mn,nfitperm,sizeof(float),flt_cmp_asc) ;
-       for( kk=0 ; kk<nroi ; kk++ ){
-         fpf[fi][kk]=THD_perm_emp_pvalue(mn,nfitperm,fabsf(fr[fi][kk])) ;
-         fzf[fi][kk]=THD_perm_signed_z(fpf[fi][kk],fr[fi][kk],PERM_TAIL_TWO) ;
+
+     /* commonality FWE: each raw/partial quantity has its own family */
+     if( do_cafwe ){
+       int pk , q ;
+       for( q=0 ; q < ncomq ; q++ ){
+         float *mn = camx + (size_t)q*ncaperm ;
+         for( pk=0 ; pk < ncaperm ; pk++ ) if( mn[pk] == -FLT_MAX ) mn[pk] = 0.0f ;
+         qsort( mn , ncaperm , sizeof(float) , flt_cmp_asc ) ;
+         for( kk=0 ; kk < nroi ; kk++ ){
+           capf[q][kk] = THD_perm_emp_pvalue( mn , ncaperm , fabsf(cav[q][kk]) ) ;
+           cazf[q][kk] = THD_perm_signed_z( capf[q][kk] , cav[q][kk] , PERM_TAIL_TWO ) ;
+         }
        }
      }
-   }
-   if( do_fitconfwe ){
-     int pk,cc ;
-     for( cc=0 ; cc<nfitcon ; cc++ ){
-       float *mn=fcmx+(size_t)cc*nfitperm ;
-       for( pk=0 ; pk<nfitperm ; pk++ ) if( mn[pk]==-FLT_MAX ) mn[pk]=0.0f ;
-       qsort(mn,nfitperm,sizeof(float),flt_cmp_asc) ;
-       for( kk=0 ; kk<nroi ; kk++ ){
-         fcpf[cc][kk]=(fit_contrast_rset!=NULL)
-                        ? rsa_mc_emp_pvalue(mn,nfitperm,fabsf(fcd[cc][kk]))
-                        : THD_perm_emp_pvalue(mn,nfitperm,fabsf(fcd[cc][kk])) ;
-         fczf[cc][kk]=THD_perm_signed_z(fcpf[cc][kk],fcd[cc][kk],PERM_TAIL_TWO) ;
+     if( do_fitfwe ){
+       int pk,fi ;
+       for( fi=0 ; fi<nfit ; fi++ ){
+         float *mn=fmx+(size_t)fi*nfitperm ;
+         for( pk=0 ; pk<nfitperm ; pk++ ) if( mn[pk]==-FLT_MAX ) mn[pk]=0.0f ;
+         qsort(mn,nfitperm,sizeof(float),flt_cmp_asc) ;
+         for( kk=0 ; kk<nroi ; kk++ ){
+           fpf[fi][kk]=THD_perm_emp_pvalue(mn,nfitperm,fabsf(fr[fi][kk])) ;
+           fzf[fi][kk]=THD_perm_signed_z(fpf[fi][kk],fr[fi][kk],PERM_TAIL_TWO) ;
+         }
        }
      }
-   }
+     if( do_fitconfwe ){
+       int pk,cc ;
+       for( cc=0 ; cc<nfitcon ; cc++ ){
+         float *mn=fcmx+(size_t)cc*nfitperm ;
+         for( pk=0 ; pk<nfitperm ; pk++ ) if( mn[pk]==-FLT_MAX ) mn[pk]=0.0f ;
+         qsort(mn,nfitperm,sizeof(float),flt_cmp_asc) ;
+         for( kk=0 ; kk<nroi ; kk++ ){
+           fcpf[cc][kk]=(fit_contrast_rset!=NULL)
+                          ? rsa_mc_emp_pvalue(mn,nfitperm,fabsf(fcd[cc][kk]))
+                          : THD_perm_emp_pvalue(mn,nfitperm,fabsf(fcd[cc][kk])) ;
+           fczf[cc][kk]=THD_perm_signed_z(fcpf[cc][kk],fcd[cc][kk],PERM_TAIL_TWO) ;
+         }
+       }
+     }
 
-   /*================== text table ==================*/
+     /*================== text table ==================*/
 
-   {  char fn[THD_MAX_NAME] ; FILE *fp ;
+     {  char fn[THD_MAX_NAME] ; FILE *fp ;
 
-      sprintf(fn,"%s.rsa.1D",prefix) ;
-      fp = fopen(fn,"w") ;
-      if( fp == NULL ) ERROR_exit("3dRSA: can't write '%s'",fn) ;
+        sprintf(fn,"%s.rsa.1D",prefix) ;
+        fp = fopen(fn,"w") ;
+        if( fp == NULL ) ERROR_exit("3dRSA: can't write '%s'",fn) ;
 
-      fprintf(fp,"# 3dRSA output\n") ;
-      fprintf(fp,"# output schema: 3dRSA-rsa-v2\n") ;
-      fprintf(fp,"# numerical input contract: finite values required in every used table column, mask label, and analyzed data brick; data outside the union analysis domain are ignored\n#\n") ;
-      fprintf(fp,"# Pearson feature matrices (when used): double accumulation, float storage; includes pairwise zero censoring\n") ;
-      fprintf(fp,"# mask     : %s\n",
-              input_rdm?"(none -- precomputed RDM pairs)":
-              all_1d_features?"(none -- all numeric 1D features)":
-              (maskname != NULL) ? maskname : "(none -- whole surface mesh)") ;
-      if(all_1d_features)
-        fprintf(fp,"# input: numeric 1D features in matching positional order; one nonspatial set\n# nvox denotes features, not spatial voxels\n");
-      if(input_rdm){
-        fprintf(fp,"# input: labeled condition RDMs; both axes aligned by exact labels; one nonspatial result\n");
-        fprintf(fp,"# nvox denotes unique condition pairs, not spatial voxels\n# condition order:");
-        for(ii=0;ii<input_rdm_axis->n;ii++){
-          fputc(' ',fp);THD_1D_print_token(fp,input_rdm_axis->label[ii]);
-        }
-        fprintf(fp,"\n# RDM validation: finite symmetric dissimilarities, zero diagonal; negative distances retained\n");
-      }
-      fprintf(fp,"# mode     : %s%s\n",
-              (rdm_over==RDM_SUBJ)?"IS-RSA":"RSA",
-              (rdm_over==RDM_SUBJ && mode==MODE_BETA)?" (feature=pattern)":
-              (rdm_over==RDM_SUBJ && mode==MODE_RDM)?" (feature=rdm)":"") ;
-      if( mode == MODE_RDM )
-        fprintf(fp,"# condition estimator: %s\n",
-                (runset != NULL) ?
-                  ((noise_norm==NN_NONE) ? "crossnobis (unwhitened)" :
-                   (noise_norm==NN_DIAG) ? "crossnobis (diagonal noise normalization)" :
-                                           "crossnobis (shrinkage noise normalization)")
-                                     : THD_simmat_metric_label(cond_metric)) ;
-      if( rdm_over == RDM_BRICK )
-        fprintf(fp,"# estimator: %s\n",
-                (runset != NULL) ?
-                  ((noise_norm==NN_NONE) ? "crossnobis (unwhitened)" :
-                   (noise_norm==NN_DIAG) ? "crossnobis (diagonal noise normalization)" :
-                                           "crossnobis (shrinkage noise normalization)")
-                                     : "same-data condition-pattern RDM") ;
-      if( rdm_over==RDM_BRICK || mode==MODE_RDM ){
-        int imetric=(rdm_over==RDM_BRICK) ? neu_metric : cond_metric ;
-        if( runset != NULL )
-          fprintf(fp,"# condition centering: not applied; crossnobis uses within-run "
-                     "condition contrasts (common offsets cancel)\n") ;
-        else if( center_conditions && imetric==SIM_EUCLID )
-          fprintf(fp,"# condition centering: subject requested; Euclidean distances "
-                     "are invariant (exact legacy computation retained)\n") ;
-        else if( center_conditions )
-          fprintf(fp,"# condition centering: subject-wise voxel mean across conditions "
-                     "removed before each ordinary RDM\n") ;
-        else
-          fprintf(fp,"# condition centering: none (raw-pattern compatibility default)\n") ;
-      }
-      if( runset != NULL && runset->has_condmap ){
-        int cc ;
-        if( runset->has_trialmap )
-          fprintf(fp,"# trial-beta descriptor: TrialFile (Subj/Run inherited); "
-                     "trial IDs unique within subject; condition trials averaged within run; "
-                     "pair-specific valid-run denominators\n") ;
-        else
-          fprintf(fp,"# runwise condition mapping: ConditionFile; repeated labels averaged; "
-                     "pair-specific valid-run denominators\n") ;
-        fprintf(fp,"# condition order:") ;
-        for( cc=0 ; cc<runset->ncond ; cc++ ) fprintf(fp," %s",runset->cond_lab[cc]) ;
-        fprintf(fp,"\n") ;
-      }
-      fprintf(fp,"# matrices : %d x %d (rows are %s)\n",nitem,nitem,
-              (rdm_over==RDM_SUBJ)?"subjects":"conditions") ;
-      fprintf(fp,"# models   : %s%s\n",
-              joint?"joint regression":(regout?"separate, nuisance-adjusted":"tested separately"),
-              (nort>0)?"  [with -ortvec nuisances projected out]":"") ;
-      if( ncon+nfitcon > 0 ){
-        const char *ch=(contrast_hypothesis==CONTRAST_SUPERIORITY)?"superiority":
-                       (contrast_hypothesis==CONTRAST_ALIGNMENT)?"alignment":"legacy" ;
-        fprintf(fp,"# contrast hypothesis: %s\n",ch) ;
-        if( ncon>0 && rdm_over==RDM_BRICK )
-          fprintf(fp,"# contrast estimand: zDiff=mean subject Fisher-z difference; rDiff=mean subject raw-correlation difference\n") ;
-        else if( ncon>0 )
-          fprintf(fp,"# contrast estimand: rDiff=r(neural,A)-r(neural,B)\n") ;
-        if( contrast_hypothesis==CONTRAST_SUPERIORITY && ncon>0 &&
-            rdm_over==RDM_SUBJ && nperm>0 ){
-          fprintf(fp,"# contrast null construction: centered paired subject bootstrap; neural/A/B resampled together; duplicate-copy diagonal dyads omitted (equal-performance null)\n") ;
-          fprintf(fp,"# contrast tail calculation: Monte-Carlo (1 + exceedances)/(1 + draws); max-FWE uses synchronized centered draws over space\n") ;
-        }
-        else if( contrast_hypothesis==CONTRAST_SUPERIORITY && ncon>0 &&
-                 rdm_over==RDM_SUBJ )
-          fprintf(fp,"# contrast null construction: none (-nperm 0; point estimate only)\n") ;
-        else if( contrast_hypothesis==CONTRAST_SUPERIORITY && ncon>0 )
-          fprintf(fp,"# contrast null construction: paired subject %s (equal-performance null)\n",
-                  group_test?"signed-rank sign flips":"sign flips") ;
-        else if( contrast_hypothesis==CONTRAST_ALIGNMENT && rdm_over==RDM_BRICK )
-          fprintf(fp,"# contrast null construction: shared condition-label relabeling (sharp alignment null; not an equal-performance null)\n") ;
-        else if( contrast_hypothesis==CONTRAST_ALIGNMENT )
-          fprintf(fp,"# contrast null construction: shared subject-label/temporal relabeling (sharp alignment null; not an equal-performance null)\n") ;
-        else
-          fprintf(fp,"# contrast null construction: legacy mode-dependent relabeling/sign-flip behavior\n") ;
-      }
-      if( seed_mask != NULL ){
-        fprintf(fp,"# representational connectivity: fixed seed ROI from %s\n",seed_mask) ;
-        fprintf(fp,"# seed ROI: value %d; label %s; voxels/nodes %d\n",
-                seedrl->val[0],(seedrl->lab[0]!=NULL)?seedrl->lab[0]:"-",
-                seedrl->vox[0].nar) ;
-        fprintf(fp,"# seed-target overlap: excluded %d location%s before inference; "
-                   "BH/max-FWE family contains %d non-overlapping target%s\n",
-                seed_excluded,(seed_excluded==1)?"":"s",nroi,(nroi==1)?"":"s") ;
-        if( rdm_over==RDM_BRICK )
-          fprintf(fp,"# seed estimand: subject-specific seed vs target condition-RDM "
-                     "correlation; effect=tanh(mean subject Fisher z)\n") ;
-        else
-          fprintf(fp,"# seed estimand: seed vs target subject-geometry Mantel "
-                     "correlation; seed held fixed under target relabeling\n") ;
-      }
-      if( nfit>0 ){
-        fprintf(fp,"# fitted models: nonnegative ridge components; ridge %.7g; %s\n",
-                fit_ridge,(fit_condfold!=NULL)
-                  ? "strict held-subject x held-condition fit and scoring"
-                  : "leave-one-subject-out fit and scoring") ;
-        if( fit_condfold!=NULL ){
-          int ff ;
-          fprintf(fp,"# fitted condition folds: %s; train=train/train, test=held/held; "
-                     "cross-boundary dyads excluded\n",fit_condfold_file) ;
-          fprintf(fp,"# fitted fold labels/sizes:") ;
-          for( ff=0 ; ff<fit_condfold->nfold ; ff++ )
-            fprintf(fp," %s:%d",fit_condfold->label[ff],fit_condfold->nmember[ff]) ;
-          fprintf(fp,"\n") ;
-        }
-        if( contrast_hypothesis!=CONTRAST_SUPERIORITY || nfitcon==0 )
-          fprintf(fp,"# fitted null: %s; the complete nested fit is repeated per relabeling%s\n",
-                  (rdm_over==RDM_SUBJ)?"joint subject-label relabeling":"joint condition-label relabeling",
-                  (nperm>0)?"":" (point estimates only)") ;
-      }
-      if( nfitcon>0 ){
-        fprintf(fp,"# fitted contrasts: paired mean held-fold Fisher-z accuracy differences; same folds valid for both models\n") ;
-        if( contrast_hypothesis==CONTRAST_SUPERIORITY && nperm>0 ){
-          fprintf(fp,"# fitted contrast null construction: centered paired outer-subject bootstrap of common-valid held-fold effects (equal-performance null)\n") ;
-          fprintf(fp,"# fitted contrast tail calculation: Monte-Carlo (1 + exceedances)/(1 + draws); max-FWE uses synchronized centered draws over space\n") ;
-        } else if( contrast_hypothesis==CONTRAST_SUPERIORITY )
-          fprintf(fp,"# fitted contrast null construction: none (-nperm 0; point estimate only)\n") ;
-        else
-          fprintf(fp,"# fitted contrast null construction: same shared relabeling and complete refit for both models%s\n",
-                  (nperm>0)?"":" (point estimates only)") ;
-      }
-      if( ncomq > 0 ){
-        int rq,npair=0,ntriple=0 ;
-        for( rq=0 ; rq<nreqcom ; rq++ )
-          if( com[rq].nmodel==2 ) npair++ ; else ntriple++ ;
-        fprintf(fp,"# commonality requests: %d pairwise, %d three-predictor; "
-                   "triple output is 7 raw regions + 3 conditional partial-R2 effects\n",
-                npair,ntriple) ;
-        fprintf(fp,"# commonality null: %s%s\n",
-                (rdm_over==RDM_SUBJ) ?
-                  "subject-label Freedman-Lane / complete relabeling" :
-                  "shared condition-label Freedman-Lane / complete relabeling",
-                (nperm>0) ? "" : " (point estimates only)") ;
-      }
-      if( ncomq > 0 && nperm > 0 )
-        fprintf(fp,"# commonality relabelings: %d\n",ncaperm) ;
-      fprintf(fp,"# metric   : %s neural, %s comparison\n",
-              THD_simmat_metric_label(neu_metric),
-              THD_simmat_cmp_label(cmp_metric)) ;
-      if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV )
-        fprintf(fp,"# RDM covariance: V=(C C') o (C C'); exchangeable-condition "
-                   "zero-distance approximation; balanced runwise crossnobis\n") ;
-      if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV )
-        fprintf(fp,"# covariance-model contract: fixed model matrices are interpreted "
-                   "as dissimilarity RDMs%s\n",
-                (cmp_metric==CMP_COS_COV)?" with a meaningful zero":"") ;
-      if( cmp_metric==CMP_RHOA )
-        fprintf(fp,"# rho-a contract: expected Spearman under independent random tie breaking; scalar comparison only\n") ;
-      { int na=(run_resolved && pset!=NULL)?pset->nperm:nperm ;
-        fprintf(fp,"# nperm    : %d   seed: %ld",na,seed) ;
-        if( na!=nperm ) fprintf(fp,"   requested: %d (exact group enumerated)",nperm) ;
-        fprintf(fp,"\n") ; }
-      fprintf(fp,"# null     : %s%s\n",
-              (null_mode==NULL_TIMESHIFT)?"circular timeshift":
-              (null_mode==NULL_PHASE)?"Fourier phase randomization":
-              (rdm_over==RDM_BRICK && classic_null==CLASSIC_NULL_CONDITIONS)?
-                "condition labels (fixed observed subjects)":
-              (rdm_over==RDM_BRICK)?"subject sign flips (population subjects)":"subject labels",
-              (null_mode==NULL_TIMESHIFT)?" (see min_shift below)":"") ;
-      if( rdm_over==RDM_BRICK && classic_null==CLASSIC_NULL_CONDITIONS )
-        fprintf(fp,"# classic condition-null statistic: mean subject Fisher z; "
-                   "one row+column relabeling shared over subjects and space\n") ;
-      if( seed_mask!=NULL && rdm_over==RDM_BRICK &&
-          classic_null==CLASSIC_NULL_CONDITIONS )
-        fprintf(fp,"# seed condition null: relabel seed condition axes relative to "
-                   "each subject's target RDM; same relabeling over subjects/space\n") ;
-      if( null_mode==NULL_TIMESHIFT )
-        fprintf(fp,"# min_shift: %d TR%s\n",min_shift,(min_shift==1)?"":"s") ;
-      if( null_mode==NULL_TIMESHIFT )
-        fprintf(fp,"# time-shift engine: subject-pair relative-lag lookup; model side unshifted\n") ;
-      if( null_mode==NULL_TIMESHIFT && regout )
-        fprintf(fp,"# time-shift regression null: fixed conditional design; complete neural-series alignment null\n") ;
-      if( null_mode==NULL_PHASE )
-        fprintf(fp,"# phase engine: local-spectrum real FFT cache; DC/Nyquist and model side unrandomized; power spectrum preserved\n") ;
-      if( null_mode==NULL_PHASE )
-        fprintf(fp,"# phase family: stateless subject x frequency draws shared over ROIs/searchlights; identity slot 0\n") ;
-      if( null_mode==NULL_PHASE && regout )
-        fprintf(fp,"# phase regression null: fixed conditional design; complete neural-series phase-alignment null\n") ;
-      if( dualboot )
-        fprintf(fp,"# dual_bootstrap: %d synchronized subject x condition draws; "
-                   "groups: %d; usable condition draws: %d; corrected variance t CI: %.6g%%; df: %d\n",
-                nboot,crset->ngroup,crset->nvalid,boot_ci,
-                ((nsub<crset->ngroup)?nsub:crset->ngroup)-1) ;
-      if( dualboot )
-        fprintf(fp,"# dual estimator: finite-sample corrected Vs + Vc - interaction; "
-                   "bounded by corrected one-axis variances and simultaneous Vsc; scale: %s\n",
-                joint?"standardized beta":"Fisher z (tanh endpoints)") ;
-      else if( nboot > 0 )
-        fprintf(fp,"# bootstrap: %d   percentile CI: %.6g%%\n",nboot,boot_ci) ;
-      if( nboot>0 && block_lab!=NULL )
-        fprintf(fp,"# bootstrap strata: %s; within-stratum subject resampling; "
-                   "original stratum sizes preserved; not a cluster bootstrap\n",
-                block_col) ;
-      if( ncboot > 0 && !dualboot )
-        fprintf(fp,"# cond_bootstrap: %d   groups: %d   usable: %d   percentile CI: %.6g%%\n",
-                ncboot,crset->ngroup,crset->nvalid,boot_ci) ;
-      if( do_loo )
-        fprintf(fp,"# loo      : %d model output%s from %d distinct target/estimand famil%s\n"
-                   "# loo estimands: AnnaK=foldwise neural typicality regression; "
-                   "scalar NN=rank-weighted neighbors; profile=mean measure-wise correlation\n",
-                nloo,(nloo==1)?"":"s",nloofam,(nloofam==1)?"y":"ies") ;
-      if( do_loo && nboot>0 )
-        fprintf(fp,"# loo bootstrap: completed out-of-sample prediction/target rows; "
-                   "predictions held fixed (no fold-refitting uncertainty)\n") ;
-      if( do_nc && rdm_over == RDM_BRICK )
-        fprintf(fp,"# noise ceiling: normalized subject LOO / inclusive templates; Fisher-z aggregate on %s RDMs\n",
-                (runset != NULL) ? "run-independent crossnobis" :
-                                   "same-data condition-pattern") ;
-      if(condition_level){
-        fprintf(fp,"# condition order:");
-        for(ii=0;ii<ncondition_level;ii++){fputc(' ',fp);THD_1D_print_token(fp,condition_level[ii]);}
-        fputc('\n',fp);
-        if(!condition_order_arg)fprintf(fp,"# condition order source: inferred from long-table labels, lexical order\n");
-      }
-      if(condition_index && nmodspec){
-        fprintf(fp,"# condition models: each subject's own ratings; rows aligned by Subj and condition; rules applied within subject\n");
-        for(ii=0;ii<nmodspec;ii++)fprintf(fp,"# condition model %s: %s\n",mod[ii].name,modspec[ii]);
-      }
-      if(nrdmspec){
-        fprintf(fp,"# model_rdm: labeled condition matrices from subject columns; %s\n",
-                rdm_over==RDM_BRICK?"paired subject-specific condition fits":"fixed subject geometry from aligned condition triangles");
-        for(ii=0;ii<nrdmspec;ii++)fprintf(fp,"# model_rdm %s column %s\n",rdmlabel[ii],rdmspec[ii]);
-      }
-      if( series_active ){
-        if( subject_series_file != NULL )
-          fprintf(fp,"# model_series_subjects: %s; mode=%s\n",subject_series_file,
-                  subject_series_mode==SUBSERIES_PAIRED?"paired":"loo") ;
-        else fprintf(fp,"# model_series: %s\n",series_file) ;
-        fprintf(fp,"# timepoints: %d (input order preserved; t#### maps to time_label)\n",
-                nseries) ;
-        fprintf(fp,"# multiplicity: BH FDR and max-statistic FWE use one joint "
-                   "time x space family\n") ;
-      }
-      if( series_runs!=NULL ){
-        int ru,rm ;
-        fprintf(fp,"# repeated runs: column %s; %d runs; %d total TRs; "
-                   "within-run %s; analysis=%s\n",run_column,series_runs->nrun,nvals,
-                run_normalize==RUN_NORM_ZSCORE?"zscore":
-                run_normalize==RUN_NORM_DEMEAN?"demean":"none",
-                run_analysis==RUN_ANALYSIS_SEPARATE?"separate+equal-run-mean":
-                run_analysis==RUN_ANALYSIS_MEAN?"equal-run-mean":"concatenate (TR-weighted)") ;
-        fprintf(fp,"# run order/length:") ;
-        for( ru=0 ; ru<series_runs->nrun ; ru++ )
-          fprintf(fp," %s=%d",series_runs->run_label[ru],series_runs->run_nval[ru]) ;
-        fprintf(fp,"\n") ;
-        for( rm=0 ; rm<nrunmodspec ; rm++ ){
-          char *co=strrchr(runmodspec[rm],':') ; int centered=0,cc ;
-          size_t nc=(size_t)(co-runmodspec[rm]) ;
-          for( cc=0 ; cc<nruncenter ; cc++ )
-            if( strlen(runcenter[cc])==nc && strncasecmp(runcenter[cc],runmodspec[rm],nc)==0 ) centered=1 ;
-          fprintf(fp,"# run model: %s; %s; whole subject trajectories relabeled together across runs/space\n",
-                  runmodspec[rm],centered?"subject-centered state + trait decomposition":"raw run-specific values") ;
-        }
-        for( rm=0 ; rm<nrunfactorspec ; rm++ ){
-          fprintf(fp,"# run factor: %s; fixed labeled runs:",runfactor[rm].column) ;
-          for( ru=0 ; ru<series_runs->nrun ; ru++ )
-            fprintf(fp," %s=%s",series_runs->run_label[ru],
-                    runfactor[rm].level[runfactor[rm].run_level[ru]]) ;
-          fprintf(fp,"\n") ;
-        }
-        for( rm=0 ; rm<nrunconspec ; rm++ )
-          fprintf(fp,"# run contrast: %s = mean(%s:%s) - mean(%s:%s); equal run weights; fixed-run estimand\n",
-                  runcon[rm].name,runfactor[runcon[rm].ifactor].column,
-                  runfactor[runcon[rm].ifactor].level[runcon[rm].ipos],
-                  runfactor[runcon[rm].ifactor].column,
-                  runfactor[runcon[rm].ifactor].level[runcon[rm].ineg]) ;
-      }
-      fprintf(fp,"# nsubj    : %d\n#\n",nsub) ;
-
-      if( run_resolved ){
-        int ru,nsum,ix,nbase ;
-        fprintf(fp,"# run-resolved estimator: %s is computed within each run;\n"
-                   "# MEAN is the equal-run arithmetic mean of signed %s\n",
-                   joint?"a standardized joint-regression coefficient and partial r":"model association",
-                   joint?"coefficients/partial correlations":"association statistics") ;
-        if( joint )
-          fprintf(fp,"# joint null: model-specific Freedman-Lane reduced residuals; fixed and run-varying models held conditional\n"
-                     "# planned contrasts: differences of standardized coefficients (partial-r differences are descriptive)\n") ;
-        fprintf(fp,
-                   "# run null synchronization: one subject relabeling is shared by every run and location\n") ;
-        if( run_analysis==RUN_ANALYSIS_SEPARATE )
-          fprintf(fp,"# multiplicity: per model, run effects and planned contrasts share joint run/contrast x space BH FDR and max-FWE; MEAN uses space\n") ;
-        else fprintf(fp,"# multiplicity: per model, planned contrasts share contrast x space BH FDR/max-FWE; MEAN uses space\n") ;
-        fprintf(fp,"#%-6s %-28s %7s %-18s %-20s %14s",
-                "ROI","label","nvox","summary","model",joint?"beta":"effect") ;
-        if( joint ) fprintf(fp," %14s","partial_r") ;
-        fprintf(fp," %14s %14s","p","q") ;
-        if( do_fwe ) fprintf(fp," %14s","pfwe") ;
-        fprintf(fp," %14s",(nperm>0)?"z":"uncalibrated") ;
-        if( do_fwe ) fprintf(fp," %14s","zfwe") ;
-        fprintf(fp,"\n") ;
-        nbase=1+((run_analysis==RUN_ANALYSIS_SEPARATE)?series_runs->nrun:0) ;
-        nsum=nbase+nrunconspec ;
-        for( mm=0 ; mm<nmod ; mm++ ) for( kk=0 ; kk<nroi ; kk++ ){
-          for( ru=0 ; ru<nsum ; ru++ ){
-            const char *slab ; float ev,pev=0.0f,pv2,qv2,zv2,pfv2=-1.0f,zfv2=0.0f ;
-            if( ru==0 ){ slab="MEAN"; ev=rr[mm][kk]; pv2=pp[mm][kk];
-              pev=ee[mm][kk];
-              qv2=qq[mm][kk]; zv2=zz[mm][kk];
-              if( do_fwe ){ pfv2=pf[mm][kk]; zfv2=zf[mm][kk]; }
-            } else if( ru<nbase ){ int rrn=ru-1; ix=mm*series_runs->nrun+rrn; slab=series_runs->run_label[rrn];
-              ev=run_rr[ix][kk]; pv2=run_pp[ix][kk]; qv2=run_qq[ix][kk]; zv2=run_zz[ix][kk];
-              pev=run_ee[ix][kk];
-              if( do_fwe ){ pfv2=run_pf[ix][kk]; zfv2=run_zf[ix][kk]; }
-            } else { int cc=ru-nbase; ix=mm*nrunconspec+cc; slab=runcon[cc].name;
-              ev=rcon_rr[ix][kk]; pv2=rcon_pp[ix][kk]; qv2=rcon_qq[ix][kk]; zv2=rcon_zz[ix][kk];
-              pev=rcon_ee[ix][kk];
-              if( do_fwe ){ pfv2=rcon_pf[ix][kk]; zfv2=rcon_zf[ix][kk]; }
-            }
-            fprintf(fp," %-6d %-28s %7d %-18s %-20s %14.6f",
-                    rl->val[kk],(rl->lab[kk]!=NULL)?rl->lab[kk]:"-",rl->vox[kk].nar,
-                    slab,mod[mm].name,ev) ;
-            if( joint ) fprintf(fp," %14.6f",pev) ;
-            fprintf(fp," %14.6g %14.6g",pv2,qv2) ;
-            if( do_fwe ) fprintf(fp," %14.6g",pfv2) ;
-            fprintf(fp," %14.6f",zv2) ; if( do_fwe ) fprintf(fp," %14.6f",zfv2) ;
-            fprintf(fp,"\n") ;
+        fprintf(fp,"# 3dRSA output\n") ;
+        fprintf(fp,"# output schema: 3dRSA-rsa-v2\n") ;
+        fprintf(fp,"# numerical input contract: finite values required in every used table column, mask label, and analyzed data brick; data outside the union analysis domain are ignored\n#\n") ;
+        fprintf(fp,"# Pearson feature matrices (when used): double accumulation, float storage; includes pairwise zero censoring\n") ;
+        fprintf(fp,"# mask     : %s\n",
+                input_rdm?"(none -- precomputed RDM pairs)":
+                all_1d_features?"(none -- all numeric 1D features)":
+                (maskname != NULL) ? maskname : "(none -- whole surface mesh)") ;
+        if(all_1d_features)
+          fprintf(fp,"# input: numeric 1D features in matching positional order; one nonspatial set\n# nvox denotes features, not spatial voxels\n");
+        if(input_rdm){
+          fprintf(fp,"# input: labeled condition RDMs; both axes aligned by exact labels; one nonspatial result\n");
+          fprintf(fp,"# nvox denotes unique condition pairs, not spatial voxels\n# condition order:");
+          for(ii=0;ii<input_rdm_axis->n;ii++){
+            fputc(' ',fp);THD_1D_print_token(fp,input_rdm_axis->label[ii]);
           }
+          fprintf(fp,"\n# RDM validation: finite symmetric dissimilarities, zero diagonal; negative distances retained\n");
         }
-      } else if( series_active ){
-        fprintf(fp,"#%-6s %-28s %7s %10s %-20s %14s %14s %14s %14s",
-                "ROI","label","nvox","time_index","time_label","effect","stat","p","q") ;
-        if( do_fwe ) fprintf(fp," %14s","pfwe") ;
-        fprintf(fp," %14s","z") ;
-        if( do_fwe ) fprintf(fp," %14s","zfwe") ;
-        if( nboot > 0 ) fprintf(fp," %14s %14s",dualboot?"dualLo":"bootLo",
-                                                     dualboot?"dualHi":"bootHi") ;
-        if( ncboot > 0 && !dualboot ) fprintf(fp," %14s %14s","cbootLo","cbootHi") ;
-        if( do_nc ){
-          if( rdm_over == RDM_SUBJ ) fprintf(fp," %14s","reliability") ;
-          else                       fprintf(fp," %14s %14s","nc_low","nc_high") ;
-        }
-        fprintf(fp,"\n") ;
-        for( mm=0 ; mm < nmod ; mm++ )
-          for( kk=0 ; kk < nroi ; kk++ ){
-            fprintf(fp," %-6d %-28s %7d %10d %-20s %14.6f %14.6f %14.6g %14.6g",
-                    rl->val[kk],(rl->lab[kk]!=NULL)?rl->lab[kk]:"-",
-                    rl->vox[kk].nar,mm,series_time[mm],
-                    rr[mm][kk],ee[mm][kk],pp[mm][kk],qq[mm][kk]) ;
-            if( do_fwe ) fprintf(fp," %14.6g",pf[mm][kk]) ;
-            fprintf(fp," %14.6f",zz[mm][kk]) ;
-            if( do_fwe ) fprintf(fp," %14.6f",zf[mm][kk]) ;
-            if( nboot > 0 ) fprintf(fp," %14.6f %14.6f",blo[mm][kk],bhi[mm][kk]) ;
-            if( ncboot > 0 && !dualboot )
-              fprintf(fp," %14.6f %14.6f",cblo[mm][kk],cbhi[mm][kk]) ;
-            if( do_nc ){
-              if( rdm_over == RDM_SUBJ ) fprintf(fp," %14.6f",ncA[kk]) ;
-              else                       fprintf(fp," %14.6f %14.6f",ncA[kk],ncB[kk]) ;
-            }
-            fprintf(fp,"\n") ;
-          }
-      } else {
-      fprintf(fp,"#%-6s %-28s %7s","ROI","label","nvox") ;
-      for( mm=0 ; mm < nmod ; mm++ ){
-        if( regout )
-          fprintf(fp," %14s_b %14s_pr %15s_p %15s_q",
-                  mod[mm].name,mod[mm].name,mod[mm].name,mod[mm].name) ;
-        else
-          fprintf(fp," %14s_r %15s_p %15s_q",
-                  mod[mm].name,mod[mm].name,mod[mm].name) ;
-        if( do_fwe ) fprintf(fp," %12s_pfwe",mod[mm].name) ;
-        if( nboot > 0 )
-          fprintf(fp,dualboot?" %14s_dualLo %14s_dualHi":" %14s_bootLo %14s_bootHi",
-                  mod[mm].name,mod[mm].name) ;
-        if( ncboot > 0 && !dualboot )
-          fprintf(fp," %14s_cbootLo %14s_cbootHi",mod[mm].name,mod[mm].name) ;
-      }
-      { int fi,cc ;
-        for( fi=0 ; fi<nfit ; fi++ ){
-          fprintf(fp," %13s_cvR %14s_cvP %14s_cvQ",fit[fi].name,fit[fi].name,fit[fi].name) ;
-          if( do_fitfwe ) fprintf(fp," %11s_cvPfwe",fit[fi].name) ;
-          for( cc=0 ; cc<fit[fi].ncomp ; cc++ )
-            fprintf(fp," %12s_w_%s",fit[fi].name,mod[fit[fi].comp[cc]].name) ;
-        }
-      }
-      { int cc ;
-        for( cc=0 ; cc<nfitcon ; cc++ ){
-          fprintf(fp," %11s_cvDiff %14s_cvP %14s_cvQ",
-                  fcon[cc].name,fcon[cc].name,fcon[cc].name) ;
-          if( do_fitconfwe ) fprintf(fp," %11s_cvPfwe",fcon[cc].name) ;
-        }
-      }
-      if( do_loo )
-        for( mm=0 ; mm < nmod ; mm++ )
-          if( rsa_model_has_loo(mod+mm) ){
-            fprintf(fp," %12s_looR %13s_looP %13s_looQ",
-                    mod[mm].name,mod[mm].name,mod[mm].name) ;
-            if( do_loofwe ) fprintf(fp," %10s_looPfwe",mod[mm].name) ;
-            if( nboot>0 ) fprintf(fp," %10s_looBootLo %10s_looBootHi",
-                                  mod[mm].name,mod[mm].name) ;
-          }
-      { int cc ;
-        for( cc=0 ; cc < ncon ; cc++ ){
-          if( rdm_over==RDM_BRICK )
-            fprintf(fp," %13s_rDiff %13s_zDiff %14s_p %14s_q",
-                    con[cc].name,con[cc].name,con[cc].name,con[cc].name) ;
+        fprintf(fp,"# mode     : %s%s\n",
+                (rdm_over==RDM_SUBJ)?"IS-RSA":"RSA",
+                (rdm_over==RDM_SUBJ && mode==MODE_BETA)?" (feature=pattern)":
+                (rdm_over==RDM_SUBJ && mode==MODE_RDM)?" (feature=rdm)":"") ;
+        if( mode == MODE_RDM )
+          fprintf(fp,"# condition estimator: %s\n",
+                  (runset != NULL) ?
+                    ((noise_norm==NN_NONE) ? "crossnobis (unwhitened)" :
+                     (noise_norm==NN_DIAG) ? "crossnobis (diagonal noise normalization)" :
+                                             "crossnobis (shrinkage noise normalization)")
+                                       : THD_simmat_metric_label(cond_metric)) ;
+        if( rdm_over == RDM_BRICK )
+          fprintf(fp,"# estimator: %s\n",
+                  (runset != NULL) ?
+                    ((noise_norm==NN_NONE) ? "crossnobis (unwhitened)" :
+                     (noise_norm==NN_DIAG) ? "crossnobis (diagonal noise normalization)" :
+                                             "crossnobis (shrinkage noise normalization)")
+                                       : "same-data condition-pattern RDM") ;
+        if( rdm_over==RDM_BRICK || mode==MODE_RDM ){
+          int imetric=(rdm_over==RDM_BRICK) ? neu_metric : cond_metric ;
+          if( runset != NULL )
+            fprintf(fp,"# condition centering: not applied; crossnobis uses within-run "
+                       "condition contrasts (common offsets cancel)\n") ;
+          else if( center_conditions && imetric==SIM_EUCLID )
+            fprintf(fp,"# condition centering: subject requested; Euclidean distances "
+                       "are invariant (exact legacy computation retained)\n") ;
+          else if( center_conditions )
+            fprintf(fp,"# condition centering: subject-wise voxel mean across conditions "
+                       "removed before each ordinary RDM\n") ;
           else
-            fprintf(fp," %13s_diff %14s_p %14s_q",
-                    con[cc].name,con[cc].name,con[cc].name) ;
-          if( do_confwe ) fprintf(fp," %11s_pfwe",con[cc].name) ;
-          if( nboot > 0 )
-            fprintf(fp,(rdm_over==RDM_BRICK)
-                         ? (dualboot?" %14s_zDiff_dualLo %14s_zDiff_dualHi":" %14s_zDiff_bootLo %14s_zDiff_bootHi")
-                         : (dualboot?" %14s_dualLo %14s_dualHi":" %14s_bootLo %14s_bootHi"),
-                    con[cc].name,con[cc].name) ;
+            fprintf(fp,"# condition centering: none (raw-pattern compatibility default)\n") ;
         }
-      }
-      { int q ;
-        for( q=0 ; q < ncomq ; q++ ){
-          const char *nm = comlab[q] ;
-          fprintf(fp," %18s %18s_p %18s_q",nm,nm,nm) ;
-          if( do_cafwe ) fprintf(fp," %15s_pfwe",nm) ;
-          if( nboot > 0 )
-            fprintf(fp," %14s_bootLo %14s_bootHi",nm,nm) ;
+        if( runset != NULL && runset->has_condmap ){
+          int cc ;
+          if( runset->has_trialmap )
+            fprintf(fp,"# trial-beta descriptor: TrialFile (Subj/Run inherited); "
+                       "trial IDs unique within subject; condition trials averaged within run; "
+                       "pair-specific valid-run denominators\n") ;
+          else
+            fprintf(fp,"# runwise condition mapping: ConditionFile; repeated labels averaged; "
+                       "pair-specific valid-run denominators\n") ;
+          fprintf(fp,"# condition order:") ;
+          for( cc=0 ; cc<runset->ncond ; cc++ ) fprintf(fp," %s",runset->cond_lab[cc]) ;
+          fprintf(fp,"\n") ;
         }
-      }
-      if( do_nc ){
-        if( rdm_over == RDM_SUBJ ) fprintf(fp," %14s","reliability") ;
-        else                       fprintf(fp," %14s %14s","nc_low","nc_high") ;
-      }
-      fprintf(fp,"\n") ;
+        fprintf(fp,"# matrices : %d x %d (rows are %s)\n",nitem,nitem,
+                (rdm_over==RDM_SUBJ)?"subjects":"conditions") ;
+        fprintf(fp,"# models   : %s%s\n",
+                joint?"joint regression":(regout?"separate, nuisance-adjusted":"tested separately"),
+                (nort>0)?"  [with -ortvec nuisances projected out]":"") ;
+        if( ncon+nfitcon > 0 ){
+          const char *ch=(contrast_hypothesis==CONTRAST_SUPERIORITY)?"superiority":
+                         (contrast_hypothesis==CONTRAST_ALIGNMENT)?"alignment":"legacy" ;
+          fprintf(fp,"# contrast hypothesis: %s\n",ch) ;
+          if( ncon>0 && rdm_over==RDM_BRICK )
+            fprintf(fp,"# contrast estimand: zDiff=mean subject Fisher-z difference; rDiff=mean subject raw-correlation difference\n") ;
+          else if( ncon>0 )
+            fprintf(fp,"# contrast estimand: rDiff=r(neural,A)-r(neural,B)\n") ;
+          if( contrast_hypothesis==CONTRAST_SUPERIORITY && ncon>0 &&
+              rdm_over==RDM_SUBJ && nperm>0 ){
+            fprintf(fp,"# contrast null construction: centered paired subject bootstrap; neural/A/B resampled together; duplicate-copy diagonal dyads omitted (equal-performance null)\n") ;
+            fprintf(fp,"# contrast tail calculation: Monte-Carlo (1 + exceedances)/(1 + draws); max-FWE uses synchronized centered draws over space\n") ;
+          }
+          else if( contrast_hypothesis==CONTRAST_SUPERIORITY && ncon>0 &&
+                   rdm_over==RDM_SUBJ )
+            fprintf(fp,"# contrast null construction: none (-nperm 0; point estimate only)\n") ;
+          else if( contrast_hypothesis==CONTRAST_SUPERIORITY && ncon>0 )
+            fprintf(fp,"# contrast null construction: paired subject %s (equal-performance null)\n",
+                    group_test?"signed-rank sign flips":"sign flips") ;
+          else if( contrast_hypothesis==CONTRAST_ALIGNMENT && rdm_over==RDM_BRICK )
+            fprintf(fp,"# contrast null construction: shared condition-label relabeling (sharp alignment null; not an equal-performance null)\n") ;
+          else if( contrast_hypothesis==CONTRAST_ALIGNMENT )
+            fprintf(fp,"# contrast null construction: shared subject-label/temporal relabeling (sharp alignment null; not an equal-performance null)\n") ;
+          else
+            fprintf(fp,"# contrast null construction: legacy mode-dependent relabeling/sign-flip behavior\n") ;
+        }
+        if( seed_mask != NULL ){
+          fprintf(fp,"# representational connectivity: fixed seed ROI from %s\n",seed_mask) ;
+          fprintf(fp,"# seed ROI: value %d; label %s; voxels/nodes %d\n",
+                  seedrl->val[0],(seedrl->lab[0]!=NULL)?seedrl->lab[0]:"-",
+                  seedrl->vox[0].nar) ;
+          fprintf(fp,"# seed-target overlap: excluded %d location%s before inference; "
+                     "BH/max-FWE family contains %d non-overlapping target%s\n",
+                  seed_excluded,(seed_excluded==1)?"":"s",nroi,(nroi==1)?"":"s") ;
+          if( rdm_over==RDM_BRICK )
+            fprintf(fp,"# seed estimand: subject-specific seed vs target condition-RDM "
+                       "correlation; effect=tanh(mean subject Fisher z)\n") ;
+          else
+            fprintf(fp,"# seed estimand: seed vs target subject-geometry Mantel "
+                       "correlation; seed held fixed under target relabeling\n") ;
+        }
+        if( nfit>0 ){
+          fprintf(fp,"# fitted models: nonnegative ridge components; ridge %.7g; %s\n",
+                  fit_ridge,(fit_condfold!=NULL)
+                    ? "strict held-subject x held-condition fit and scoring"
+                    : "leave-one-subject-out fit and scoring") ;
+          if( fit_condfold!=NULL ){
+            int ff ;
+            fprintf(fp,"# fitted condition folds: %s; train=train/train, test=held/held; "
+                       "cross-boundary dyads excluded\n",fit_condfold_file) ;
+            fprintf(fp,"# fitted fold labels/sizes:") ;
+            for( ff=0 ; ff<fit_condfold->nfold ; ff++ )
+              fprintf(fp," %s:%d",fit_condfold->label[ff],fit_condfold->nmember[ff]) ;
+            fprintf(fp,"\n") ;
+          }
+          if( contrast_hypothesis!=CONTRAST_SUPERIORITY || nfitcon==0 )
+            fprintf(fp,"# fitted null: %s; the complete nested fit is repeated per relabeling%s\n",
+                    (rdm_over==RDM_SUBJ)?"joint subject-label relabeling":"joint condition-label relabeling",
+                    (nperm>0)?"":" (point estimates only)") ;
+        }
+        if( nfitcon>0 ){
+          fprintf(fp,"# fitted contrasts: paired mean held-fold Fisher-z accuracy differences; same folds valid for both models\n") ;
+          if( contrast_hypothesis==CONTRAST_SUPERIORITY && nperm>0 ){
+            fprintf(fp,"# fitted contrast null construction: centered paired outer-subject bootstrap of common-valid held-fold effects (equal-performance null)\n") ;
+            fprintf(fp,"# fitted contrast tail calculation: Monte-Carlo (1 + exceedances)/(1 + draws); max-FWE uses synchronized centered draws over space\n") ;
+          } else if( contrast_hypothesis==CONTRAST_SUPERIORITY )
+            fprintf(fp,"# fitted contrast null construction: none (-nperm 0; point estimate only)\n") ;
+          else
+            fprintf(fp,"# fitted contrast null construction: same shared relabeling and complete refit for both models%s\n",
+                    (nperm>0)?"":" (point estimates only)") ;
+        }
+        if( ncomq > 0 ){
+          int rq,npair=0,ntriple=0 ;
+          for( rq=0 ; rq<nreqcom ; rq++ )
+            if( com[rq].nmodel==2 ) npair++ ; else ntriple++ ;
+          fprintf(fp,"# commonality requests: %d pairwise, %d three-predictor; "
+                     "triple output is 7 raw regions + 3 conditional partial-R2 effects\n",
+                  npair,ntriple) ;
+          fprintf(fp,"# commonality null: %s%s\n",
+                  (rdm_over==RDM_SUBJ) ?
+                    "subject-label Freedman-Lane / complete relabeling" :
+                    "shared condition-label Freedman-Lane / complete relabeling",
+                  (nperm>0) ? "" : " (point estimates only)") ;
+        }
+        if( ncomq > 0 && nperm > 0 )
+          fprintf(fp,"# commonality relabelings: %d\n",ncaperm) ;
+        fprintf(fp,"# metric   : %s neural, %s comparison\n",
+                THD_simmat_metric_label(neu_metric),
+                THD_simmat_cmp_label(cmp_metric)) ;
+        if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV )
+          fprintf(fp,"# RDM covariance: V=(C C') o (C C'); exchangeable-condition "
+                     "zero-distance approximation; balanced runwise crossnobis\n") ;
+        if( cmp_metric==CMP_CORR_COV || cmp_metric==CMP_COS_COV )
+          fprintf(fp,"# covariance-model contract: fixed model matrices are interpreted "
+                     "as dissimilarity RDMs%s\n",
+                  (cmp_metric==CMP_COS_COV)?" with a meaningful zero":"") ;
+        if( cmp_metric==CMP_RHOA )
+          fprintf(fp,"# rho-a contract: expected Spearman under independent random tie breaking; scalar comparison only\n") ;
+        { int na=(run_resolved && pset!=NULL)?pset->nperm:nperm ;
+          fprintf(fp,"# nperm    : %d   seed: %ld",na,seed) ;
+          if( na!=nperm ) fprintf(fp,"   requested: %d (exact group enumerated)",nperm) ;
+          fprintf(fp,"\n") ; }
+        fprintf(fp,"# null     : %s%s\n",
+                (null_mode==NULL_TIMESHIFT)?"circular timeshift":
+                (null_mode==NULL_PHASE)?"Fourier phase randomization":
+                (rdm_over==RDM_BRICK && classic_null==CLASSIC_NULL_CONDITIONS)?
+                  "condition labels (fixed observed subjects)":
+                (rdm_over==RDM_BRICK)?"subject sign flips (population subjects)":"subject labels",
+                (null_mode==NULL_TIMESHIFT)?" (see min_shift below)":"") ;
+        if( rdm_over==RDM_BRICK && classic_null==CLASSIC_NULL_CONDITIONS )
+          fprintf(fp,"# classic condition-null statistic: mean subject Fisher z; "
+                     "one row+column relabeling shared over subjects and space\n") ;
+        if( seed_mask!=NULL && rdm_over==RDM_BRICK &&
+            classic_null==CLASSIC_NULL_CONDITIONS )
+          fprintf(fp,"# seed condition null: relabel seed condition axes relative to "
+                     "each subject's target RDM; same relabeling over subjects/space\n") ;
+        if( null_mode==NULL_TIMESHIFT )
+          fprintf(fp,"# min_shift: %d TR%s\n",min_shift,(min_shift==1)?"":"s") ;
+        if( null_mode==NULL_TIMESHIFT )
+          fprintf(fp,"# time-shift engine: subject-pair relative-lag lookup; model side unshifted\n") ;
+        if( null_mode==NULL_TIMESHIFT && regout )
+          fprintf(fp,"# time-shift regression null: fixed conditional design; complete neural-series alignment null\n") ;
+        if( null_mode==NULL_PHASE )
+          fprintf(fp,"# phase engine: local-spectrum real FFT cache; DC/Nyquist and model side unrandomized; power spectrum preserved\n") ;
+        if( null_mode==NULL_PHASE )
+          fprintf(fp,"# phase family: stateless subject x frequency draws shared over ROIs/searchlights; identity slot 0\n") ;
+        if( null_mode==NULL_PHASE && regout )
+          fprintf(fp,"# phase regression null: fixed conditional design; complete neural-series phase-alignment null\n") ;
+        if( dualboot )
+          fprintf(fp,"# dual_bootstrap: %d synchronized subject x condition draws; "
+                     "groups: %d; usable condition draws: %d; corrected variance t CI: %.6g%%; df: %d\n",
+                  nboot,crset->ngroup,crset->nvalid,boot_ci,
+                  ((nsub<crset->ngroup)?nsub:crset->ngroup)-1) ;
+        if( dualboot )
+          fprintf(fp,"# dual estimator: finite-sample corrected Vs + Vc - interaction; "
+                     "bounded by corrected one-axis variances and simultaneous Vsc; scale: %s\n",
+                  joint?"standardized beta":"Fisher z (tanh endpoints)") ;
+        else if( nboot > 0 )
+          fprintf(fp,"# bootstrap: %d   percentile CI: %.6g%%\n",nboot,boot_ci) ;
+        if( nboot>0 && block_lab!=NULL )
+          fprintf(fp,"# bootstrap strata: %s; within-stratum subject resampling; "
+                     "original stratum sizes preserved; not a cluster bootstrap\n",
+                  block_col) ;
+        if( ncboot > 0 && !dualboot )
+          fprintf(fp,"# cond_bootstrap: %d   groups: %d   usable: %d   percentile CI: %.6g%%\n",
+                  ncboot,crset->ngroup,crset->nvalid,boot_ci) ;
+        if( do_loo )
+          fprintf(fp,"# loo      : %d model output%s from %d distinct target/estimand famil%s\n"
+                     "# loo estimands: AnnaK=foldwise neural typicality regression; "
+                     "scalar NN=rank-weighted neighbors; profile=mean measure-wise correlation\n",
+                  nloo,(nloo==1)?"":"s",nloofam,(nloofam==1)?"y":"ies") ;
+        if( do_loo && nboot>0 )
+          fprintf(fp,"# loo bootstrap: completed out-of-sample prediction/target rows; "
+                     "predictions held fixed (no fold-refitting uncertainty)\n") ;
+        if( do_nc && rdm_over == RDM_BRICK )
+          fprintf(fp,"# noise ceiling: normalized subject LOO / inclusive templates; Fisher-z aggregate on %s RDMs\n",
+                  (runset != NULL) ? "run-independent crossnobis" :
+                                     "same-data condition-pattern") ;
+        if(condition_level){
+          fprintf(fp,"# condition order:");
+          for(ii=0;ii<ncondition_level;ii++){fputc(' ',fp);THD_1D_print_token(fp,condition_level[ii]);}
+          fputc('\n',fp);
+          if(!condition_order_arg)fprintf(fp,"# condition order source: inferred from long-table labels, lexical order\n");
+        }
+        if(condition_index && nmodspec){
+          fprintf(fp,"# condition models: each subject's own ratings; rows aligned by Subj and condition; rules applied within subject\n");
+          for(ii=0;ii<nmodspec;ii++)fprintf(fp,"# condition model %s: %s\n",mod[ii].name,modspec[ii]);
+        }
+        if(nrdmspec){
+          fprintf(fp,"# model_rdm: labeled condition matrices from subject columns; %s\n",
+                  rdm_over==RDM_BRICK?"paired subject-specific condition fits":"fixed subject geometry from aligned condition triangles");
+          for(ii=0;ii<nrdmspec;ii++)fprintf(fp,"# model_rdm %s column %s\n",rdmlabel[ii],rdmspec[ii]);
+        }
+        if( series_active ){
+          if( subject_series_file != NULL )
+            fprintf(fp,"# model_series_subjects: %s; mode=%s\n",subject_series_file,
+                    subject_series_mode==SUBSERIES_PAIRED?"paired":"loo") ;
+          else fprintf(fp,"# model_series: %s\n",series_file) ;
+          fprintf(fp,"# timepoints: %d (input order preserved; t#### maps to time_label)\n",
+                  nseries) ;
+          fprintf(fp,"# multiplicity: BH FDR and max-statistic FWE use one joint "
+                     "time x space family\n") ;
+        }
+        if( series_runs!=NULL ){
+          int ru,rm ;
+          fprintf(fp,"# repeated runs: column %s; %d runs; %d total TRs; "
+                     "within-run %s; analysis=%s\n",run_column,series_runs->nrun,nvals,
+                  run_normalize==RUN_NORM_ZSCORE?"zscore":
+                  run_normalize==RUN_NORM_DEMEAN?"demean":"none",
+                  run_analysis==RUN_ANALYSIS_SEPARATE?"separate+equal-run-mean":
+                  run_analysis==RUN_ANALYSIS_MEAN?"equal-run-mean":"concatenate (TR-weighted)") ;
+          fprintf(fp,"# run order/length:") ;
+          for( ru=0 ; ru<series_runs->nrun ; ru++ )
+            fprintf(fp," %s=%d",series_runs->run_label[ru],series_runs->run_nval[ru]) ;
+          fprintf(fp,"\n") ;
+          for( rm=0 ; rm<nrunmodspec ; rm++ ){
+            char *co=strrchr(runmodspec[rm],':') ; int centered=0,cc ;
+            size_t nc=(size_t)(co-runmodspec[rm]) ;
+            for( cc=0 ; cc<nruncenter ; cc++ )
+              if( strlen(runcenter[cc])==nc && strncasecmp(runcenter[cc],runmodspec[rm],nc)==0 ) centered=1 ;
+            fprintf(fp,"# run model: %s; %s; whole subject trajectories relabeled together across runs/space\n",
+                    runmodspec[rm],centered?"subject-centered state + trait decomposition":"raw run-specific values") ;
+          }
+          for( rm=0 ; rm<nrunfactorspec ; rm++ ){
+            fprintf(fp,"# run factor: %s; fixed labeled runs:",runfactor[rm].column) ;
+            for( ru=0 ; ru<series_runs->nrun ; ru++ )
+              fprintf(fp," %s=%s",series_runs->run_label[ru],
+                      runfactor[rm].level[runfactor[rm].run_level[ru]]) ;
+            fprintf(fp,"\n") ;
+          }
+          for( rm=0 ; rm<nrunconspec ; rm++ )
+            fprintf(fp,"# run contrast: %s = mean(%s:%s) - mean(%s:%s); equal run weights; fixed-run estimand\n",
+                    runcon[rm].name,runfactor[runcon[rm].ifactor].column,
+                    runfactor[runcon[rm].ifactor].level[runcon[rm].ipos],
+                    runfactor[runcon[rm].ifactor].column,
+                    runfactor[runcon[rm].ifactor].level[runcon[rm].ineg]) ;
+        }
+        fprintf(fp,"# nsubj    : %d\n#\n",nsub) ;
 
-      for( kk=0 ; kk < nroi ; kk++ ){
-        fprintf(fp," %-6d %-28s %7d",
-                rl->val[kk] , (rl->lab[kk] != NULL) ? rl->lab[kk] : "-" ,
-                rl->vox[kk].nar) ;
+        if( run_resolved ){
+          int ru,nsum,ix,nbase ;
+          fprintf(fp,"# run-resolved estimator: %s is computed within each run;\n"
+                     "# MEAN is the equal-run arithmetic mean of signed %s\n",
+                     joint?"a standardized joint-regression coefficient and partial r":"model association",
+                     joint?"coefficients/partial correlations":"association statistics") ;
+          if( joint )
+            fprintf(fp,"# joint null: model-specific Freedman-Lane reduced residuals; fixed and run-varying models held conditional\n"
+                       "# planned contrasts: differences of standardized coefficients (partial-r differences are descriptive)\n") ;
+          fprintf(fp,
+                     "# run null synchronization: one subject relabeling is shared by every run and location\n") ;
+          if( run_analysis==RUN_ANALYSIS_SEPARATE )
+            fprintf(fp,"# multiplicity: per model, run effects and planned contrasts share joint run/contrast x space BH FDR and max-FWE; MEAN uses space\n") ;
+          else fprintf(fp,"# multiplicity: per model, planned contrasts share contrast x space BH FDR/max-FWE; MEAN uses space\n") ;
+          fprintf(fp,"#%-6s %-28s %7s %-18s %-20s %14s",
+                  "ROI","label","nvox","summary","model",joint?"beta":"effect") ;
+          if( joint ) fprintf(fp," %14s","partial_r") ;
+          fprintf(fp," %14s %14s","p","q") ;
+          if( do_fwe ) fprintf(fp," %14s","pfwe") ;
+          fprintf(fp," %14s",(nperm>0)?"z":"uncalibrated") ;
+          if( do_fwe ) fprintf(fp," %14s","zfwe") ;
+          fprintf(fp,"\n") ;
+          nbase=1+((run_analysis==RUN_ANALYSIS_SEPARATE)?series_runs->nrun:0) ;
+          nsum=nbase+nrunconspec ;
+          for( mm=0 ; mm<nmod ; mm++ ) for( kk=0 ; kk<nroi ; kk++ ){
+            for( ru=0 ; ru<nsum ; ru++ ){
+              const char *slab ; float ev,pev=0.0f,pv2,qv2,zv2,pfv2=-1.0f,zfv2=0.0f ;
+              if( ru==0 ){ slab="MEAN"; ev=rr[mm][kk]; pv2=pp[mm][kk];
+                pev=ee[mm][kk];
+                qv2=qq[mm][kk]; zv2=zz[mm][kk];
+                if( do_fwe ){ pfv2=pf[mm][kk]; zfv2=zf[mm][kk]; }
+              } else if( ru<nbase ){ int rrn=ru-1; ix=mm*series_runs->nrun+rrn; slab=series_runs->run_label[rrn];
+                ev=run_rr[ix][kk]; pv2=run_pp[ix][kk]; qv2=run_qq[ix][kk]; zv2=run_zz[ix][kk];
+                pev=run_ee[ix][kk];
+                if( do_fwe ){ pfv2=run_pf[ix][kk]; zfv2=run_zf[ix][kk]; }
+              } else { int cc=ru-nbase; ix=mm*nrunconspec+cc; slab=runcon[cc].name;
+                ev=rcon_rr[ix][kk]; pv2=rcon_pp[ix][kk]; qv2=rcon_qq[ix][kk]; zv2=rcon_zz[ix][kk];
+                pev=rcon_ee[ix][kk];
+                if( do_fwe ){ pfv2=rcon_pf[ix][kk]; zfv2=rcon_zf[ix][kk]; }
+              }
+              fprintf(fp," %-6d %-28s %7d %-18s %-20s %14.6f",
+                      rl->val[kk],(rl->lab[kk]!=NULL)?rl->lab[kk]:"-",rl->vox[kk].nar,
+                      slab,mod[mm].name,ev) ;
+              if( joint ) fprintf(fp," %14.6f",pev) ;
+              fprintf(fp," %14.6g %14.6g",pv2,qv2) ;
+              if( do_fwe ) fprintf(fp," %14.6g",pfv2) ;
+              fprintf(fp," %14.6f",zv2) ; if( do_fwe ) fprintf(fp," %14.6f",zfv2) ;
+              fprintf(fp,"\n") ;
+            }
+          }
+        } else if( series_active ){
+          fprintf(fp,"#%-6s %-28s %7s %10s %-20s %14s %14s %14s %14s",
+                  "ROI","label","nvox","time_index","time_label","effect","stat","p","q") ;
+          if( do_fwe ) fprintf(fp," %14s","pfwe") ;
+          fprintf(fp," %14s","z") ;
+          if( do_fwe ) fprintf(fp," %14s","zfwe") ;
+          if( nboot > 0 ) fprintf(fp," %14s %14s",dualboot?"dualLo":"bootLo",
+                                                       dualboot?"dualHi":"bootHi") ;
+          if( ncboot > 0 && !dualboot ) fprintf(fp," %14s %14s","cbootLo","cbootHi") ;
+          if( do_nc ){
+            if( rdm_over == RDM_SUBJ ) fprintf(fp," %14s","reliability") ;
+            else                       fprintf(fp," %14s %14s","nc_low","nc_high") ;
+          }
+          fprintf(fp,"\n") ;
+          for( mm=0 ; mm < nmod ; mm++ )
+            for( kk=0 ; kk < nroi ; kk++ ){
+              fprintf(fp," %-6d %-28s %7d %10d %-20s %14.6f %14.6f %14.6g %14.6g",
+                      rl->val[kk],(rl->lab[kk]!=NULL)?rl->lab[kk]:"-",
+                      rl->vox[kk].nar,mm,series_time[mm],
+                      rr[mm][kk],ee[mm][kk],pp[mm][kk],qq[mm][kk]) ;
+              if( do_fwe ) fprintf(fp," %14.6g",pf[mm][kk]) ;
+              fprintf(fp," %14.6f",zz[mm][kk]) ;
+              if( do_fwe ) fprintf(fp," %14.6f",zf[mm][kk]) ;
+              if( nboot > 0 ) fprintf(fp," %14.6f %14.6f",blo[mm][kk],bhi[mm][kk]) ;
+              if( ncboot > 0 && !dualboot )
+                fprintf(fp," %14.6f %14.6f",cblo[mm][kk],cbhi[mm][kk]) ;
+              if( do_nc ){
+                if( rdm_over == RDM_SUBJ ) fprintf(fp," %14.6f",ncA[kk]) ;
+                else                       fprintf(fp," %14.6f %14.6f",ncA[kk],ncB[kk]) ;
+              }
+              fprintf(fp,"\n") ;
+            }
+        } else {
+        fprintf(fp,"#%-6s %-28s %7s","ROI","label","nvox") ;
         for( mm=0 ; mm < nmod ; mm++ ){
           if( regout )
-            fprintf(fp," %16.6f %17.6f %17.6g %17.6g",
-                    rr[mm][kk] , ee[mm][kk] , pp[mm][kk] , qq[mm][kk]) ;
+            fprintf(fp," %14s_b %14s_pr %15s_p %15s_q",
+                    mod[mm].name,mod[mm].name,mod[mm].name,mod[mm].name) ;
           else
-            fprintf(fp," %16.6f %17.6g %17.6g",
-                    rr[mm][kk] , pp[mm][kk] , qq[mm][kk]) ;
-          if( do_fwe ) fprintf(fp," %17.6g",pf[mm][kk]) ;
-          if( nboot > 0 ) fprintf(fp," %20.6f %20.6f",blo[mm][kk],bhi[mm][kk]) ;
+            fprintf(fp," %14s_r %15s_p %15s_q",
+                    mod[mm].name,mod[mm].name,mod[mm].name) ;
+          if( do_fwe ) fprintf(fp," %12s_pfwe",mod[mm].name) ;
+          if( nboot > 0 )
+            fprintf(fp,dualboot?" %14s_dualLo %14s_dualHi":" %14s_bootLo %14s_bootHi",
+                    mod[mm].name,mod[mm].name) ;
           if( ncboot > 0 && !dualboot )
-            fprintf(fp," %20.6f %20.6f",cblo[mm][kk],cbhi[mm][kk]) ;
+            fprintf(fp," %14s_cbootLo %14s_cbootHi",mod[mm].name,mod[mm].name) ;
         }
         { int fi,cc ;
           for( fi=0 ; fi<nfit ; fi++ ){
-            fprintf(fp," %17.6f %17.6g %17.6g",fr[fi][kk],fpv[fi][kk],fqv[fi][kk]) ;
-            if( do_fitfwe ) fprintf(fp," %17.6g",fpf[fi][kk]) ;
+            fprintf(fp," %13s_cvR %14s_cvP %14s_cvQ",fit[fi].name,fit[fi].name,fit[fi].name) ;
+            if( do_fitfwe ) fprintf(fp," %11s_cvPfwe",fit[fi].name) ;
             for( cc=0 ; cc<fit[fi].ncomp ; cc++ )
-              fprintf(fp," %17.6f",fwgt[fit[fi].wbase+cc][kk]) ;
+              fprintf(fp," %12s_w_%s",fit[fi].name,mod[fit[fi].comp[cc]].name) ;
           }
         }
         { int cc ;
           for( cc=0 ; cc<nfitcon ; cc++ ){
-            fprintf(fp," %18.6f %17.6g %17.6g",
-                    fcd[cc][kk],fcp[cc][kk],fcq[cc][kk]) ;
-            if( do_fitconfwe ) fprintf(fp," %17.6g",fcpf[cc][kk]) ;
+            fprintf(fp," %11s_cvDiff %14s_cvP %14s_cvQ",
+                    fcon[cc].name,fcon[cc].name,fcon[cc].name) ;
+            if( do_fitconfwe ) fprintf(fp," %11s_cvPfwe",fcon[cc].name) ;
           }
         }
         if( do_loo )
           for( mm=0 ; mm < nmod ; mm++ )
             if( rsa_model_has_loo(mod+mm) ){
-              fprintf(fp," %17.6f %17.6g %17.6g",
-                      lr[mm][kk] , lp[mm][kk] , lq[mm][kk]) ;
-              if( do_loofwe ) fprintf(fp," %17.6g",lpf[mm][kk]) ;
-              if( nboot>0 ) fprintf(fp," %20.6f %20.6f",
-                                    lblo[mm][kk],lbhi[mm][kk]) ;
+              fprintf(fp," %12s_looR %13s_looP %13s_looQ",
+                      mod[mm].name,mod[mm].name,mod[mm].name) ;
+              if( do_loofwe ) fprintf(fp," %10s_looPfwe",mod[mm].name) ;
+              if( nboot>0 ) fprintf(fp," %10s_looBootLo %10s_looBootHi",
+                                    mod[mm].name,mod[mm].name) ;
             }
         { int cc ;
           for( cc=0 ; cc < ncon ; cc++ ){
             if( rdm_over==RDM_BRICK )
-              fprintf(fp," %18.6f %18.6f %16.6g %16.6g",
-                      crd[cc][kk],cd[cc][kk],cp[cc][kk],cq[cc][kk]) ;
+              fprintf(fp," %13s_rDiff %13s_zDiff %14s_p %14s_q",
+                      con[cc].name,con[cc].name,con[cc].name,con[cc].name) ;
             else
-              fprintf(fp," %18.6f %16.6g %16.6g",
-                      cd[cc][kk],cp[cc][kk],cq[cc][kk]) ;
-            if( do_confwe ) fprintf(fp," %16.6g",cpf[cc][kk]) ;
+              fprintf(fp," %13s_diff %14s_p %14s_q",
+                      con[cc].name,con[cc].name,con[cc].name) ;
+            if( do_confwe ) fprintf(fp," %11s_pfwe",con[cc].name) ;
             if( nboot > 0 )
-              fprintf(fp," %20.6f %20.6f",dblo[cc][kk],dbhi[cc][kk]) ;
+              fprintf(fp,(rdm_over==RDM_BRICK)
+                           ? (dualboot?" %14s_zDiff_dualLo %14s_zDiff_dualHi":" %14s_zDiff_bootLo %14s_zDiff_bootHi")
+                           : (dualboot?" %14s_dualLo %14s_dualHi":" %14s_bootLo %14s_bootHi"),
+                      con[cc].name,con[cc].name) ;
           }
         }
         { int q ;
           for( q=0 ; q < ncomq ; q++ ){
-            fprintf(fp," %18.6f %20.6g %20.6g",
-                    cav[q][kk] , cap[q][kk] , caq[q][kk]) ;
-            if( do_cafwe ) fprintf(fp," %20.6g",capf[q][kk]) ;
+            const char *nm = comlab[q] ;
+            fprintf(fp," %18s %18s_p %18s_q",nm,nm,nm) ;
+            if( do_cafwe ) fprintf(fp," %15s_pfwe",nm) ;
             if( nboot > 0 )
-              fprintf(fp," %20.6f %20.6f",calo[q][kk],cahi[q][kk]) ;
+              fprintf(fp," %14s_bootLo %14s_bootHi",nm,nm) ;
           }
         }
         if( do_nc ){
-          if( rdm_over == RDM_SUBJ ) fprintf(fp," %14.6f",ncA[kk]) ;
-          else                       fprintf(fp," %14.6f %14.6f",ncA[kk],ncB[kk]) ;
+          if( rdm_over == RDM_SUBJ ) fprintf(fp," %14s","reliability") ;
+          else                       fprintf(fp," %14s %14s","nc_low","nc_high") ;
         }
         fprintf(fp,"\n") ;
-      }
-      }
-      fclose(fp) ;
-      if( !quiet ) INFO_message("3dRSA: wrote table %s",fn) ;
-   }
 
-   /*================== dataset ==================*/
-
-   if( do_dset && run_resolved ){
-      int nbase=1+((run_analysis==RUN_ANALYSIS_SEPARATE)?series_runs->nrun:0) ;
-      int nsumm=nbase+nrunconspec ;
-      int per=2+(do_fwe?1:0),nbrik=nmod*nsumm*per,bs=0,su ;
-      int z_is_fizt=(nperm>0) ;
-      oset=EDIT_empty_copy(mset) ;
-      EDIT_dset_items(oset,ADN_prefix,prefix,ADN_nvals,nbrik,ADN_ntt,0,
-                      ADN_type,HEAD_FUNC_TYPE,ADN_func_type,FUNC_BUCK_TYPE,ADN_none) ;
-      if( THD_deathcon() && THD_is_file(DSET_HEADNAME(oset)) )
-        ERROR_exit("3dRSA: output dataset %s already exists",DSET_HEADNAME(oset)) ;
-      for( mm=0 ; mm<nmod ; mm++ ) for( su=0 ; su<nsumm ; su++ ){
-        int ru=su-1,ix=-1 ; const char *slab,*zsuf,*esuf ; float *er,*zr,*zfr=NULL ; char lab[220] ;
-        if( su==0 ){ slab="MEAN"; er=rr[mm]; zr=zz[mm]; if(do_fwe)zfr=zf[mm]; }
-        else if( su<nbase ){
-          ix=mm*series_runs->nrun+ru; slab=series_runs->run_label[ru] ;
-          er=run_rr[ix]; zr=run_zz[ix]; if(do_fwe)zfr=run_zf[ix] ;
-        } else {
-          int cc=su-nbase; ix=mm*nrunconspec+cc; slab=runcon[cc].name ;
-          er=rcon_rr[ix]; zr=rcon_zz[ix]; if(do_fwe)zfr=rcon_zf[ix] ;
+        for( kk=0 ; kk < nroi ; kk++ ){
+          fprintf(fp," %-6d %-28s %7d",
+                  rl->val[kk] , (rl->lab[kk] != NULL) ? rl->lab[kk] : "-" ,
+                  rl->vox[kk].nar) ;
+          for( mm=0 ; mm < nmod ; mm++ ){
+            if( regout )
+              fprintf(fp," %16.6f %17.6f %17.6g %17.6g",
+                      rr[mm][kk] , ee[mm][kk] , pp[mm][kk] , qq[mm][kk]) ;
+            else
+              fprintf(fp," %16.6f %17.6g %17.6g",
+                      rr[mm][kk] , pp[mm][kk] , qq[mm][kk]) ;
+            if( do_fwe ) fprintf(fp," %17.6g",pf[mm][kk]) ;
+            if( nboot > 0 ) fprintf(fp," %20.6f %20.6f",blo[mm][kk],bhi[mm][kk]) ;
+            if( ncboot > 0 && !dualboot )
+              fprintf(fp," %20.6f %20.6f",cblo[mm][kk],cbhi[mm][kk]) ;
+          }
+          { int fi,cc ;
+            for( fi=0 ; fi<nfit ; fi++ ){
+              fprintf(fp," %17.6f %17.6g %17.6g",fr[fi][kk],fpv[fi][kk],fqv[fi][kk]) ;
+              if( do_fitfwe ) fprintf(fp," %17.6g",fpf[fi][kk]) ;
+              for( cc=0 ; cc<fit[fi].ncomp ; cc++ )
+                fprintf(fp," %17.6f",fwgt[fit[fi].wbase+cc][kk]) ;
+            }
+          }
+          { int cc ;
+            for( cc=0 ; cc<nfitcon ; cc++ ){
+              fprintf(fp," %18.6f %17.6g %17.6g",
+                      fcd[cc][kk],fcp[cc][kk],fcq[cc][kk]) ;
+              if( do_fitconfwe ) fprintf(fp," %17.6g",fcpf[cc][kk]) ;
+            }
+          }
+          if( do_loo )
+            for( mm=0 ; mm < nmod ; mm++ )
+              if( rsa_model_has_loo(mod+mm) ){
+                fprintf(fp," %17.6f %17.6g %17.6g",
+                        lr[mm][kk] , lp[mm][kk] , lq[mm][kk]) ;
+                if( do_loofwe ) fprintf(fp," %17.6g",lpf[mm][kk]) ;
+                if( nboot>0 ) fprintf(fp," %20.6f %20.6f",
+                                      lblo[mm][kk],lbhi[mm][kk]) ;
+              }
+          { int cc ;
+            for( cc=0 ; cc < ncon ; cc++ ){
+              if( rdm_over==RDM_BRICK )
+                fprintf(fp," %18.6f %18.6f %16.6g %16.6g",
+                        crd[cc][kk],cd[cc][kk],cp[cc][kk],cq[cc][kk]) ;
+              else
+                fprintf(fp," %18.6f %16.6g %16.6g",
+                        cd[cc][kk],cp[cc][kk],cq[cc][kk]) ;
+              if( do_confwe ) fprintf(fp," %16.6g",cpf[cc][kk]) ;
+              if( nboot > 0 )
+                fprintf(fp," %20.6f %20.6f",dblo[cc][kk],dbhi[cc][kk]) ;
+            }
+          }
+          { int q ;
+            for( q=0 ; q < ncomq ; q++ ){
+              fprintf(fp," %18.6f %20.6g %20.6g",
+                      cav[q][kk] , cap[q][kk] , caq[q][kk]) ;
+              if( do_cafwe ) fprintf(fp," %20.6g",capf[q][kk]) ;
+              if( nboot > 0 )
+                fprintf(fp," %20.6f %20.6f",calo[q][kk],cahi[q][kk]) ;
+            }
+          }
+          if( do_nc ){
+            if( rdm_over == RDM_SUBJ ) fprintf(fp," %14.6f",ncA[kk]) ;
+            else                       fprintf(fp," %14.6f %14.6f",ncA[kk],ncB[kk]) ;
+          }
+          fprintf(fp,"\n") ;
         }
-        zsuf=z_is_fizt?"Z":(joint?"U":((su>=nbase)?"U":"FZ")) ;
-        esuf=joint?((su>=nbase)?"bDiff":"b"):((su>=nbase)?"diff":"r") ;
-        EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-        EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
-        THD_roilist_paint(DSET_ARRAY(oset,bs),rl,er) ;
-        THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,zr) ;
-        snprintf(lab,sizeof(lab),"%.90s_%.76s_%s",mod[mm].name,slab,esuf); EDIT_BRICK_LABEL(oset,bs,lab) ;
-        snprintf(lab,sizeof(lab),"%.90s_%.78s_%s",mod[mm].name,slab,zsuf); EDIT_BRICK_LABEL(oset,bs+1,lab) ;
-        if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,bs+1) ;
-        EDIT_BRICK_FACTOR(oset,bs,0.0); EDIT_BRICK_FACTOR(oset,bs+1,0.0); bs+=2 ;
-        if( do_fwe ){
+        }
+        fclose(fp) ;
+        if( !quiet ) INFO_message("3dRSA: wrote table %s",fn) ;
+     }
+
+     /*================== dataset ==================*/
+
+     if( do_dset && run_resolved ){
+        int nbase=1+((run_analysis==RUN_ANALYSIS_SEPARATE)?series_runs->nrun:0) ;
+        int nsumm=nbase+nrunconspec ;
+        int per=2+(do_fwe?1:0),nbrik=nmod*nsumm*per,bs=0,su ;
+        int z_is_fizt=(nperm>0) ;
+        oset=EDIT_empty_copy(mset) ;
+        EDIT_dset_items(oset,ADN_prefix,prefix,ADN_nvals,nbrik,ADN_ntt,0,
+                        ADN_type,HEAD_FUNC_TYPE,ADN_func_type,FUNC_BUCK_TYPE,ADN_none) ;
+        if( THD_deathcon() && THD_is_file(DSET_HEADNAME(oset)) )
+          ERROR_exit("3dRSA: output dataset %s already exists",DSET_HEADNAME(oset)) ;
+        for( mm=0 ; mm<nmod ; mm++ ) for( su=0 ; su<nsumm ; su++ ){
+          int ru=su-1,ix=-1 ; const char *slab,*zsuf,*esuf ; float *er,*zr,*zfr=NULL ; char lab[220] ;
+          if( su==0 ){ slab="MEAN"; er=rr[mm]; zr=zz[mm]; if(do_fwe)zfr=zf[mm]; }
+          else if( su<nbase ){
+            ix=mm*series_runs->nrun+ru; slab=series_runs->run_label[ru] ;
+            er=run_rr[ix]; zr=run_zz[ix]; if(do_fwe)zfr=run_zf[ix] ;
+          } else {
+            int cc=su-nbase; ix=mm*nrunconspec+cc; slab=runcon[cc].name ;
+            er=rcon_rr[ix]; zr=rcon_zz[ix]; if(do_fwe)zfr=rcon_zf[ix] ;
+          }
+          zsuf=z_is_fizt?"Z":(joint?"U":((su>=nbase)?"U":"FZ")) ;
+          esuf=joint?((su>=nbase)?"bDiff":"b"):((su>=nbase)?"diff":"r") ;
           EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,zfr) ;
-          snprintf(lab,sizeof(lab),"%.90s_%.74s_ZFWE",mod[mm].name,slab); EDIT_BRICK_LABEL(oset,bs,lab) ;
-          EDIT_BRICK_TO_FIZT(oset,bs); EDIT_BRICK_FACTOR(oset,bs,0.0); bs++ ;
+          EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
+          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,er) ;
+          THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,zr) ;
+          snprintf(lab,sizeof(lab),"%.90s_%.76s_%s",mod[mm].name,slab,esuf); EDIT_BRICK_LABEL(oset,bs,lab) ;
+          snprintf(lab,sizeof(lab),"%.90s_%.78s_%s",mod[mm].name,slab,zsuf); EDIT_BRICK_LABEL(oset,bs+1,lab) ;
+          if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,bs+1) ;
+          EDIT_BRICK_FACTOR(oset,bs,0.0); EDIT_BRICK_FACTOR(oset,bs+1,0.0); bs+=2 ;
+          if( do_fwe ){
+            EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs),rl,zfr) ;
+            snprintf(lab,sizeof(lab),"%.90s_%.74s_ZFWE",mod[mm].name,slab); EDIT_BRICK_LABEL(oset,bs,lab) ;
+            EDIT_BRICK_TO_FIZT(oset,bs); EDIT_BRICK_FACTOR(oset,bs,0.0); bs++ ;
+          }
         }
-      }
-      THD_copy_labeltable_atr(oset->dblk,mset->dblk) ;
-      if( !THD_copy_surface_node_domain(oset,mset,domain_err,sizeof(domain_err)) )
-        ERROR_exit("3dRSA: %s",domain_err) ;
-      tross_Copy_History(mset,oset); tross_Make_History("3dRSA",argc,argv,oset) ;
-      DSET_write(oset); if( !quiet ) INFO_message("3dRSA: wrote dataset %s",DSET_BRIKNAME(oset)) ;
-      do_dset=0 ;                    /* dedicated run-resolved writer handled it */
-   }
+        THD_copy_labeltable_atr(oset->dblk,mset->dblk) ;
+        if( !THD_copy_surface_node_domain(oset,mset,domain_err,sizeof(domain_err)) )
+          ERROR_exit("3dRSA: %s",domain_err) ;
+        tross_Copy_History(mset,oset); tross_Make_History("3dRSA",argc,argv,oset) ;
+        DSET_write(oset); if( !quiet ) INFO_message("3dRSA: wrote dataset %s",DSET_BRIKNAME(oset)) ;
+        do_dset=0 ;                    /* dedicated run-resolved writer handled it */
+     }
 
-   if( do_dset ){
-      int nc_nbr = do_nc ? ((rdm_over == RDM_SUBJ) ? 1 : 2) : 0 ;  /* NC maps */
-      int nconbrick = ((rdm_over==RDM_BRICK)?3:2)*ncon ;
-      int base_nbrik = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
-                                  + (do_loofwe ? nloo : 0)
-                                  + nconbrick + (do_confwe ? ncon : 0)
-                                  + 2*ncomq + (do_cafwe ? ncomq : 0)
-                                  + nc_nbr ;
-      int nbrik = base_nbrik + ((nboot > 0) ? 2*(nmod+ncon+ncomq+nloo) : 0)
-                              + ((ncboot > 0 && !dualboot) ? 2*nmod : 0)
-                              + 2*nfit + (do_fitfwe?nfit:0) + nfitw
-                              + 2*nfitcon + (do_fitconfwe?nfitcon:0) , bslot ;
-      /* The second brick per model is a calibrated z ONLY when a real test ran:
-         a permutation z (nperm>0), or the classic-RSA parametric one-sample t
-         across independent subjects (RDM_BRICK, even at nperm=0).  For IS-RSA at
-         nperm=0 it is just atanh(effect) over non-independent dyads -- a useful
-         effect map but NOT a standard normal, so it must not be FIZT-typed. */
-      int z_is_fizt = (nperm > 0) || (rdm_over == RDM_BRICK) ;
-      char *zsuf = z_is_fizt ? "Z" : "FZ" ;
+     if( do_dset ){
+        int nc_nbr = do_nc ? ((rdm_over == RDM_SUBJ) ? 1 : 2) : 0 ;  /* NC maps */
+        int nconbrick = ((rdm_over==RDM_BRICK)?3:2)*ncon ;
+        int base_nbrik = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
+                                    + (do_loofwe ? nloo : 0)
+                                    + nconbrick + (do_confwe ? ncon : 0)
+                                    + 2*ncomq + (do_cafwe ? ncomq : 0)
+                                    + nc_nbr ;
+        int nbrik = base_nbrik + ((nboot > 0) ? 2*(nmod+ncon+ncomq+nloo) : 0)
+                                + ((ncboot > 0 && !dualboot) ? 2*nmod : 0)
+                                + 2*nfit + (do_fitfwe?nfit:0) + nfitw
+                                + 2*nfitcon + (do_fitconfwe?nfitcon:0) , bslot ;
+        /* The second brick per model is a calibrated z ONLY when a real test ran:
+           a permutation z (nperm>0), or the classic-RSA parametric one-sample t
+           across independent subjects (RDM_BRICK, even at nperm=0).  For IS-RSA at
+           nperm=0 it is just atanh(effect) over non-independent dyads -- a useful
+           effect map but NOT a standard normal, so it must not be FIZT-typed. */
+        int z_is_fizt = (nperm > 0) || (rdm_over == RDM_BRICK) ;
+        char *zsuf = z_is_fizt ? "Z" : "FZ" ;
 
-      oset = EDIT_empty_copy( mset ) ;
-      EDIT_dset_items( oset ,
-                         ADN_prefix    , prefix         ,
-                         ADN_nvals     , nbrik          ,
-                         ADN_ntt       , 0              ,
-                         ADN_type      , HEAD_FUNC_TYPE ,
-                         ADN_func_type , FUNC_BUCK_TYPE ,
-                       ADN_none ) ;
+        oset = EDIT_empty_copy( mset ) ;
+        EDIT_dset_items( oset ,
+                           ADN_prefix    , prefix         ,
+                           ADN_nvals     , nbrik          ,
+                           ADN_ntt       , 0              ,
+                           ADN_type      , HEAD_FUNC_TYPE ,
+                           ADN_func_type , FUNC_BUCK_TYPE ,
+                         ADN_none ) ;
 
-      if( THD_deathcon() && THD_is_file(DSET_HEADNAME(oset)) )
-        ERROR_exit("3dRSA: output dataset %s already exists",DSET_HEADNAME(oset)) ;
+        if( THD_deathcon() && THD_is_file(DSET_HEADNAME(oset)) )
+          ERROR_exit("3dRSA: output dataset %s already exists",DSET_HEADNAME(oset)) ;
 
-      for( mm=0 ; mm < nmod ; mm++ ){
-        char lab[160] ;
-        EDIT_substitute_brick( oset , 2*mm   , MRI_float , NULL ) ;
-        EDIT_substitute_brick( oset , 2*mm+1 , MRI_float , NULL ) ;
-        THD_roilist_paint( DSET_ARRAY(oset,2*mm  ) , rl , rr[mm] ) ;
-        THD_roilist_paint( DSET_ARRAY(oset,2*mm+1) , rl , zz[mm] ) ;
-
-        sprintf(lab,"%.140s_%s",mod[mm].name,regout?"b":"r") ;
-        EDIT_BRICK_LABEL(oset,2*mm,lab) ;
-        sprintf(lab,"%.139s_%s",mod[mm].name,zsuf) ;
-        EDIT_BRICK_LABEL(oset,2*mm+1,lab) ;
-        if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,2*mm+1) ;
-        EDIT_BRICK_FACTOR(oset,2*mm  ,0.0) ;
-        EDIT_BRICK_FACTOR(oset,2*mm+1,0.0) ;
-      }
-
-      /* LOO prediction maps, per predictable data-table model */
-      bslot = 2*nmod ;
-      if( do_loo )
         for( mm=0 ; mm < nmod ; mm++ ){
           char lab[160] ;
-          if( !rsa_model_has_loo(mod+mm) ) continue ;
-          EDIT_substitute_brick( oset , bslot   , MRI_float , NULL ) ;
-          EDIT_substitute_brick( oset , bslot+1 , MRI_float , NULL ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,bslot  ) , rl , lr[mm] ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,bslot+1) , rl , lz[mm] ) ;
-          sprintf(lab,"%.135s_looR",mod[mm].name) ;
-          EDIT_BRICK_LABEL(oset,bslot,lab) ;
-          sprintf(lab,"%.134s_loo%s",mod[mm].name,zsuf) ;
-          EDIT_BRICK_LABEL(oset,bslot+1,lab) ;
-          if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,bslot+1) ;
-          EDIT_BRICK_FACTOR(oset,bslot  ,0.0) ;
-          EDIT_BRICK_FACTOR(oset,bslot+1,0.0) ;
-          bslot += 2 ;
+          EDIT_substitute_brick( oset , 2*mm   , MRI_float , NULL ) ;
+          EDIT_substitute_brick( oset , 2*mm+1 , MRI_float , NULL ) ;
+          THD_roilist_paint( DSET_ARRAY(oset,2*mm  ) , rl , rr[mm] ) ;
+          THD_roilist_paint( DSET_ARRAY(oset,2*mm+1) , rl , zz[mm] ) ;
+
+          sprintf(lab,"%.140s_%s",mod[mm].name,regout?"b":"r") ;
+          EDIT_BRICK_LABEL(oset,2*mm,lab) ;
+          sprintf(lab,"%.139s_%s",mod[mm].name,zsuf) ;
+          EDIT_BRICK_LABEL(oset,2*mm+1,lab) ;
+          if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,2*mm+1) ;
+          EDIT_BRICK_FACTOR(oset,2*mm  ,0.0) ;
+          EDIT_BRICK_FACTOR(oset,2*mm+1,0.0) ;
         }
 
-      /* FWE-corrected z maps follow the fixed 2-per-model and LOO slots, whose
-         established layout remains undisturbed. */
-      if( do_fwe ){
-        int fslot = 2*nmod + 2*nloo ;
-        for( mm=0 ; mm < nmod ; mm++ ){
-          char lab[160] ;
-          EDIT_substitute_brick( oset , fslot , MRI_float , NULL ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,fslot) , rl , zf[mm] ) ;
-          sprintf(lab,"%.133s_ZFWE",mod[mm].name) ;
-          EDIT_BRICK_LABEL(oset,fslot,lab) ;
-          EDIT_BRICK_TO_FIZT(oset,fslot) ;
-          EDIT_BRICK_FACTOR(oset,fslot,0.0) ;
-          fslot++ ;
-        }
-        /* then LOO-prediction FWE z maps for predictable data-table models */
-        if( do_loofwe )
+        /* LOO prediction maps, per predictable data-table model */
+        bslot = 2*nmod ;
+        if( do_loo )
           for( mm=0 ; mm < nmod ; mm++ ){
             char lab[160] ;
             if( !rsa_model_has_loo(mod+mm) ) continue ;
+            EDIT_substitute_brick( oset , bslot   , MRI_float , NULL ) ;
+            EDIT_substitute_brick( oset , bslot+1 , MRI_float , NULL ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,bslot  ) , rl , lr[mm] ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,bslot+1) , rl , lz[mm] ) ;
+            sprintf(lab,"%.135s_looR",mod[mm].name) ;
+            EDIT_BRICK_LABEL(oset,bslot,lab) ;
+            sprintf(lab,"%.134s_loo%s",mod[mm].name,zsuf) ;
+            EDIT_BRICK_LABEL(oset,bslot+1,lab) ;
+            if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,bslot+1) ;
+            EDIT_BRICK_FACTOR(oset,bslot  ,0.0) ;
+            EDIT_BRICK_FACTOR(oset,bslot+1,0.0) ;
+            bslot += 2 ;
+          }
+
+        /* FWE-corrected z maps follow the fixed 2-per-model and LOO slots, whose
+           established layout remains undisturbed. */
+        if( do_fwe ){
+          int fslot = 2*nmod + 2*nloo ;
+          for( mm=0 ; mm < nmod ; mm++ ){
+            char lab[160] ;
             EDIT_substitute_brick( oset , fslot , MRI_float , NULL ) ;
-            THD_roilist_paint( DSET_ARRAY(oset,fslot) , rl , lzf[mm] ) ;
-            sprintf(lab,"%.130s_looZFWE",mod[mm].name) ;
+            THD_roilist_paint( DSET_ARRAY(oset,fslot) , rl , zf[mm] ) ;
+            sprintf(lab,"%.133s_ZFWE",mod[mm].name) ;
             EDIT_BRICK_LABEL(oset,fslot,lab) ;
             EDIT_BRICK_TO_FIZT(oset,fslot) ;
             EDIT_BRICK_FACTOR(oset,fslot,0.0) ;
             fslot++ ;
           }
-      }
-
-      /* Model-contrast maps.  Classic RSA exposes both descriptive raw-r and
-         inferential Fisher-z differences; IS-RSA's direct r difference is one
-         effect brick.  Each is followed by its signed test-z map. */
-      if( ncon > 0 ){
-        int cc , cslot = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
-                                         + (do_loofwe ? nloo : 0) ;
-        for( cc=0 ; cc < ncon ; cc++ ){
-          char lab[200] ;
-          if( rdm_over==RDM_BRICK ){
-            EDIT_substitute_brick(oset,cslot,MRI_float,NULL) ;
-            EDIT_substitute_brick(oset,cslot+1,MRI_float,NULL) ;
-            EDIT_substitute_brick(oset,cslot+2,MRI_float,NULL) ;
-            THD_roilist_paint(DSET_ARRAY(oset,cslot),rl,crd[cc]) ;
-            THD_roilist_paint(DSET_ARRAY(oset,cslot+1),rl,cd[cc]) ;
-            THD_roilist_paint(DSET_ARRAY(oset,cslot+2),rl,cz[cc]) ;
-            sprintf(lab,"%.148s_rDiff",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot,lab) ;
-            sprintf(lab,"%.148s_zDiff",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot+1,lab) ;
-            sprintf(lab,"%.147s_Zstat",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot+2,lab) ;
-            EDIT_BRICK_TO_FIZT(oset,cslot+2) ;
-            EDIT_BRICK_FACTOR(oset,cslot,0.0) ; EDIT_BRICK_FACTOR(oset,cslot+1,0.0) ;
-            EDIT_BRICK_FACTOR(oset,cslot+2,0.0) ; cslot += 3 ;
-          } else {
-            EDIT_substitute_brick(oset,cslot,MRI_float,NULL) ;
-            EDIT_substitute_brick(oset,cslot+1,MRI_float,NULL) ;
-            THD_roilist_paint(DSET_ARRAY(oset,cslot),rl,cd[cc]) ;
-            THD_roilist_paint(DSET_ARRAY(oset,cslot+1),rl,cz[cc]) ;
-            sprintf(lab,"%.150s_diff",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot,lab) ;
-            sprintf(lab,"%.150s_%sdiff",con[cc].name,z_is_fizt?"Z":"FZ") ;
-            EDIT_BRICK_LABEL(oset,cslot+1,lab) ;
-            if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,cslot+1) ;
-            EDIT_BRICK_FACTOR(oset,cslot,0.0) ; EDIT_BRICK_FACTOR(oset,cslot+1,0.0) ;
-            cslot += 2 ;
-          }
+          /* then LOO-prediction FWE z maps for predictable data-table models */
+          if( do_loofwe )
+            for( mm=0 ; mm < nmod ; mm++ ){
+              char lab[160] ;
+              if( !rsa_model_has_loo(mod+mm) ) continue ;
+              EDIT_substitute_brick( oset , fslot , MRI_float , NULL ) ;
+              THD_roilist_paint( DSET_ARRAY(oset,fslot) , rl , lzf[mm] ) ;
+              sprintf(lab,"%.130s_looZFWE",mod[mm].name) ;
+              EDIT_BRICK_LABEL(oset,fslot,lab) ;
+              EDIT_BRICK_TO_FIZT(oset,fslot) ;
+              EDIT_BRICK_FACTOR(oset,fslot,0.0) ;
+              fslot++ ;
+            }
         }
-        if( do_confwe )
+
+        /* Model-contrast maps.  Classic RSA exposes both descriptive raw-r and
+           inferential Fisher-z differences; IS-RSA's direct r difference is one
+           effect brick.  Each is followed by its signed test-z map. */
+        if( ncon > 0 ){
+          int cc , cslot = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
+                                           + (do_loofwe ? nloo : 0) ;
           for( cc=0 ; cc < ncon ; cc++ ){
             char lab[200] ;
-            EDIT_substitute_brick( oset , cslot , MRI_float , NULL ) ;
-            THD_roilist_paint( DSET_ARRAY(oset,cslot) , rl , czf[cc] ) ;
-            sprintf(lab,"%.146s_ZdiffFWE",con[cc].name) ;
-            EDIT_BRICK_LABEL(oset,cslot,lab) ;
-            EDIT_BRICK_TO_FIZT(oset,cslot) ;
-            EDIT_BRICK_FACTOR(oset,cslot,0.0) ;
-            cslot++ ;
+            if( rdm_over==RDM_BRICK ){
+              EDIT_substitute_brick(oset,cslot,MRI_float,NULL) ;
+              EDIT_substitute_brick(oset,cslot+1,MRI_float,NULL) ;
+              EDIT_substitute_brick(oset,cslot+2,MRI_float,NULL) ;
+              THD_roilist_paint(DSET_ARRAY(oset,cslot),rl,crd[cc]) ;
+              THD_roilist_paint(DSET_ARRAY(oset,cslot+1),rl,cd[cc]) ;
+              THD_roilist_paint(DSET_ARRAY(oset,cslot+2),rl,cz[cc]) ;
+              sprintf(lab,"%.148s_rDiff",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot,lab) ;
+              sprintf(lab,"%.148s_zDiff",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot+1,lab) ;
+              sprintf(lab,"%.147s_Zstat",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot+2,lab) ;
+              EDIT_BRICK_TO_FIZT(oset,cslot+2) ;
+              EDIT_BRICK_FACTOR(oset,cslot,0.0) ; EDIT_BRICK_FACTOR(oset,cslot+1,0.0) ;
+              EDIT_BRICK_FACTOR(oset,cslot+2,0.0) ; cslot += 3 ;
+            } else {
+              EDIT_substitute_brick(oset,cslot,MRI_float,NULL) ;
+              EDIT_substitute_brick(oset,cslot+1,MRI_float,NULL) ;
+              THD_roilist_paint(DSET_ARRAY(oset,cslot),rl,cd[cc]) ;
+              THD_roilist_paint(DSET_ARRAY(oset,cslot+1),rl,cz[cc]) ;
+              sprintf(lab,"%.150s_diff",con[cc].name) ; EDIT_BRICK_LABEL(oset,cslot,lab) ;
+              sprintf(lab,"%.150s_%sdiff",con[cc].name,z_is_fizt?"Z":"FZ") ;
+              EDIT_BRICK_LABEL(oset,cslot+1,lab) ;
+              if( z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,cslot+1) ;
+              EDIT_BRICK_FACTOR(oset,cslot,0.0) ; EDIT_BRICK_FACTOR(oset,cslot+1,0.0) ;
+              cslot += 2 ;
+            }
           }
-      }
-
-      /* commonality maps: per quantity a value brick and its signed z, then the
-         FWE-corrected z grouped at the end */
-      if( ncomq > 0 ){
-        int q , qslot = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
-                                        + (do_loofwe ? nloo : 0)
-                                        + nconbrick + (do_confwe ? ncon : 0) ;
-        int ca_z_is_fizt = (nperm > 0) ;
-        for( q=0 ; q < ncomq ; q++ ){
-          char lab[220] ;
-          const char *nm = comlab[q] ;
-          EDIT_substitute_brick( oset , qslot   , MRI_float , NULL ) ;
-          EDIT_substitute_brick( oset , qslot+1 , MRI_float , NULL ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,qslot  ) , rl , cav[q] ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,qslot+1) , rl , caz[q] ) ;
-          snprintf(lab,sizeof(lab),"%.200s",nm) ;
-          EDIT_BRICK_LABEL(oset,qslot,lab) ;
-          snprintf(lab,sizeof(lab),"%.196s_%s",nm,ca_z_is_fizt?"Z":"FZ") ;
-          EDIT_BRICK_LABEL(oset,qslot+1,lab) ;
-          if( ca_z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,qslot+1) ;
-          EDIT_BRICK_FACTOR(oset,qslot  ,0.0) ;
-          EDIT_BRICK_FACTOR(oset,qslot+1,0.0) ;
-          qslot += 2 ;
+          if( do_confwe )
+            for( cc=0 ; cc < ncon ; cc++ ){
+              char lab[200] ;
+              EDIT_substitute_brick( oset , cslot , MRI_float , NULL ) ;
+              THD_roilist_paint( DSET_ARRAY(oset,cslot) , rl , czf[cc] ) ;
+              sprintf(lab,"%.146s_ZdiffFWE",con[cc].name) ;
+              EDIT_BRICK_LABEL(oset,cslot,lab) ;
+              EDIT_BRICK_TO_FIZT(oset,cslot) ;
+              EDIT_BRICK_FACTOR(oset,cslot,0.0) ;
+              cslot++ ;
+            }
         }
-        if( do_cafwe )
+
+        /* commonality maps: per quantity a value brick and its signed z, then the
+           FWE-corrected z grouped at the end */
+        if( ncomq > 0 ){
+          int q , qslot = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
+                                          + (do_loofwe ? nloo : 0)
+                                          + nconbrick + (do_confwe ? ncon : 0) ;
+          int ca_z_is_fizt = (nperm > 0) ;
           for( q=0 ; q < ncomq ; q++ ){
             char lab[220] ;
             const char *nm = comlab[q] ;
-            EDIT_substitute_brick( oset , qslot , MRI_float , NULL ) ;
-            THD_roilist_paint( DSET_ARRAY(oset,qslot) , rl , cazf[q] ) ;
-            snprintf(lab,sizeof(lab),"%.192s_ZFWE",nm) ;
+            EDIT_substitute_brick( oset , qslot   , MRI_float , NULL ) ;
+            EDIT_substitute_brick( oset , qslot+1 , MRI_float , NULL ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,qslot  ) , rl , cav[q] ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,qslot+1) , rl , caz[q] ) ;
+            snprintf(lab,sizeof(lab),"%.200s",nm) ;
             EDIT_BRICK_LABEL(oset,qslot,lab) ;
-            EDIT_BRICK_TO_FIZT(oset,qslot) ;
-            EDIT_BRICK_FACTOR(oset,qslot,0.0) ;
-            qslot++ ;
+            snprintf(lab,sizeof(lab),"%.196s_%s",nm,ca_z_is_fizt?"Z":"FZ") ;
+            EDIT_BRICK_LABEL(oset,qslot+1,lab) ;
+            if( ca_z_is_fizt ) EDIT_BRICK_TO_FIZT(oset,qslot+1) ;
+            EDIT_BRICK_FACTOR(oset,qslot  ,0.0) ;
+            EDIT_BRICK_FACTOR(oset,qslot+1,0.0) ;
+            qslot += 2 ;
           }
-      }
-
-      /* Noise-ceiling maps follow the inferential/commonality maps.  These are
-         correlations, not test statistics, so they are plain effect bricks
-         (no FIZT typing).  IS-RSA
-         has one 'reliability' map (split-half geometry stability); classic RSA
-         has leave-one-out and inclusive ceiling estimates. */
-      if( do_nc ){
-        int nslot = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
-                                    + (do_loofwe ? nloo : 0)
-                                    + nconbrick + (do_confwe ? ncon : 0)
-                                    + 2*ncomq + (do_cafwe ? ncomq : 0) ;
-        if( rdm_over == RDM_SUBJ ){
-          EDIT_substitute_brick( oset , nslot , MRI_float , NULL ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,nslot) , rl , ncA ) ;
-          EDIT_BRICK_LABEL( oset , nslot , "reliability" ) ;
-          EDIT_BRICK_FACTOR( oset , nslot , 0.0 ) ;
-        } else {
-          EDIT_substitute_brick( oset , nslot   , MRI_float , NULL ) ;
-          EDIT_substitute_brick( oset , nslot+1 , MRI_float , NULL ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,nslot  ) , rl , ncA ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,nslot+1) , rl , ncB ) ;
-          EDIT_BRICK_LABEL( oset , nslot   , "nc_low" ) ;
-          EDIT_BRICK_LABEL( oset , nslot+1 , "nc_high" ) ;
-          EDIT_BRICK_FACTOR( oset , nslot   , 0.0 ) ;
-          EDIT_BRICK_FACTOR( oset , nslot+1 , 0.0 ) ;
+          if( do_cafwe )
+            for( q=0 ; q < ncomq ; q++ ){
+              char lab[220] ;
+              const char *nm = comlab[q] ;
+              EDIT_substitute_brick( oset , qslot , MRI_float , NULL ) ;
+              THD_roilist_paint( DSET_ARRAY(oset,qslot) , rl , cazf[q] ) ;
+              snprintf(lab,sizeof(lab),"%.192s_ZFWE",nm) ;
+              EDIT_BRICK_LABEL(oset,qslot,lab) ;
+              EDIT_BRICK_TO_FIZT(oset,qslot) ;
+              EDIT_BRICK_FACTOR(oset,qslot,0.0) ;
+              qslot++ ;
+            }
         }
-      }
 
-      /* Bootstrap bounds are appended after all inferential/diagnostic maps.
-         They are ordinary effect-size bounds, never FIZT-typed statistics. */
-      if( nboot > 0 ){
-        int bs=base_nbrik ;
-        for( mm=0 ; mm < nmod ; mm++ ){
-          char lab[180] ;
-          EDIT_substitute_brick( oset , bs   , MRI_float , NULL ) ;
-          EDIT_substitute_brick( oset , bs+1 , MRI_float , NULL ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , blo[mm] ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , bhi[mm] ) ;
-          sprintf(lab,dualboot?"%.137s_dualLo":"%.137s_bootLo",mod[mm].name) ;
-          EDIT_BRICK_LABEL(oset,bs,lab) ;
-          sprintf(lab,dualboot?"%.137s_dualHi":"%.137s_bootHi",mod[mm].name) ;
-          EDIT_BRICK_LABEL(oset,bs+1,lab) ;
-          EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
-          bs += 2 ;
+        /* Noise-ceiling maps follow the inferential/commonality maps.  These are
+           correlations, not test statistics, so they are plain effect bricks
+           (no FIZT typing).  IS-RSA
+           has one 'reliability' map (split-half geometry stability); classic RSA
+           has leave-one-out and inclusive ceiling estimates. */
+        if( do_nc ){
+          int nslot = 2*nmod + 2*nloo + (do_fwe ? nmod : 0)
+                                      + (do_loofwe ? nloo : 0)
+                                      + nconbrick + (do_confwe ? ncon : 0)
+                                      + 2*ncomq + (do_cafwe ? ncomq : 0) ;
+          if( rdm_over == RDM_SUBJ ){
+            EDIT_substitute_brick( oset , nslot , MRI_float , NULL ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,nslot) , rl , ncA ) ;
+            EDIT_BRICK_LABEL( oset , nslot , "reliability" ) ;
+            EDIT_BRICK_FACTOR( oset , nslot , 0.0 ) ;
+          } else {
+            EDIT_substitute_brick( oset , nslot   , MRI_float , NULL ) ;
+            EDIT_substitute_brick( oset , nslot+1 , MRI_float , NULL ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,nslot  ) , rl , ncA ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,nslot+1) , rl , ncB ) ;
+            EDIT_BRICK_LABEL( oset , nslot   , "nc_low" ) ;
+            EDIT_BRICK_LABEL( oset , nslot+1 , "nc_high" ) ;
+            EDIT_BRICK_FACTOR( oset , nslot   , 0.0 ) ;
+            EDIT_BRICK_FACTOR( oset , nslot+1 , 0.0 ) ;
+          }
         }
-        { int cc ;
-          for( cc=0 ; cc < ncon ; cc++ ){
-            char lab[200] ;
+
+        /* Bootstrap bounds are appended after all inferential/diagnostic maps.
+           They are ordinary effect-size bounds, never FIZT-typed statistics. */
+        if( nboot > 0 ){
+          int bs=base_nbrik ;
+          for( mm=0 ; mm < nmod ; mm++ ){
+            char lab[180] ;
             EDIT_substitute_brick( oset , bs   , MRI_float , NULL ) ;
             EDIT_substitute_brick( oset , bs+1 , MRI_float , NULL ) ;
-            THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , dblo[cc] ) ;
-            THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , dbhi[cc] ) ;
-            sprintf(lab,(rdm_over==RDM_BRICK)
-                          ? (dualboot?"%.151s_zDiff_dualLo":"%.151s_zDiff_bootLo")
-                          : (dualboot?"%.157s_dualLo":"%.157s_bootLo"),con[cc].name) ;
+            THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , blo[mm] ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , bhi[mm] ) ;
+            sprintf(lab,dualboot?"%.137s_dualLo":"%.137s_bootLo",mod[mm].name) ;
             EDIT_BRICK_LABEL(oset,bs,lab) ;
-            sprintf(lab,(rdm_over==RDM_BRICK)
-                          ? (dualboot?"%.151s_zDiff_dualHi":"%.151s_zDiff_bootHi")
-                          : (dualboot?"%.157s_dualHi":"%.157s_bootHi"),con[cc].name) ;
+            sprintf(lab,dualboot?"%.137s_dualHi":"%.137s_bootHi",mod[mm].name) ;
             EDIT_BRICK_LABEL(oset,bs+1,lab) ;
             EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
             bs += 2 ;
           }
+          { int cc ;
+            for( cc=0 ; cc < ncon ; cc++ ){
+              char lab[200] ;
+              EDIT_substitute_brick( oset , bs   , MRI_float , NULL ) ;
+              EDIT_substitute_brick( oset , bs+1 , MRI_float , NULL ) ;
+              THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , dblo[cc] ) ;
+              THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , dbhi[cc] ) ;
+              sprintf(lab,(rdm_over==RDM_BRICK)
+                            ? (dualboot?"%.151s_zDiff_dualLo":"%.151s_zDiff_bootLo")
+                            : (dualboot?"%.157s_dualLo":"%.157s_bootLo"),con[cc].name) ;
+              EDIT_BRICK_LABEL(oset,bs,lab) ;
+              sprintf(lab,(rdm_over==RDM_BRICK)
+                            ? (dualboot?"%.151s_zDiff_dualHi":"%.151s_zDiff_bootHi")
+                            : (dualboot?"%.157s_dualHi":"%.157s_bootHi"),con[cc].name) ;
+              EDIT_BRICK_LABEL(oset,bs+1,lab) ;
+              EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
+              bs += 2 ;
+            }
+          }
+          { int q ;
+            for( q=0 ; q < ncomq ; q++ ){
+              char lab[240] ;
+              const char *nm=comlab[q] ;
+              EDIT_substitute_brick( oset , bs   , MRI_float , NULL ) ;
+              EDIT_substitute_brick( oset , bs+1 , MRI_float , NULL ) ;
+              THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , calo[q] ) ;
+              THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , cahi[q] ) ;
+              snprintf(lab,sizeof(lab),"%.216s_bootLo",nm) ;
+              EDIT_BRICK_LABEL(oset,bs,lab) ;
+              snprintf(lab,sizeof(lab),"%.216s_bootHi",nm) ;
+              EDIT_BRICK_LABEL(oset,bs+1,lab) ;
+              EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
+              bs += 2 ;
+            }
+          }
+          if( do_loo ) for( mm=0 ; mm<nmod ; mm++ ){
+            char lab[180] ;
+            if( !rsa_model_has_loo(mod+mm) ) continue ;
+            EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
+            EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs),rl,lblo[mm]) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,lbhi[mm]) ;
+            sprintf(lab,"%.132s_looBootLo",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
+            sprintf(lab,"%.132s_looBootHi",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs+1,lab) ;
+            EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
+            bs+=2 ;
+          }
         }
-        { int q ;
-          for( q=0 ; q < ncomq ; q++ ){
-            char lab[240] ;
-            const char *nm=comlab[q] ;
+
+        if( ncboot > 0 && !dualboot ){
+          int bs=base_nbrik + ((nboot > 0) ? 2*(nmod+ncon+ncomq+nloo) : 0) ;
+          for( mm=0 ; mm < nmod ; mm++ ){
+            char lab[180] ;
             EDIT_substitute_brick( oset , bs   , MRI_float , NULL ) ;
             EDIT_substitute_brick( oset , bs+1 , MRI_float , NULL ) ;
-            THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , calo[q] ) ;
-            THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , cahi[q] ) ;
-            snprintf(lab,sizeof(lab),"%.216s_bootLo",nm) ;
-            EDIT_BRICK_LABEL(oset,bs,lab) ;
-            snprintf(lab,sizeof(lab),"%.216s_bootHi",nm) ;
-            EDIT_BRICK_LABEL(oset,bs+1,lab) ;
+            THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , cblo[mm] ) ;
+            THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , cbhi[mm] ) ;
+            sprintf(lab,"%.136s_cbootLo",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
+            sprintf(lab,"%.136s_cbootHi",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs+1,lab) ;
             EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
             bs += 2 ;
           }
         }
-        if( do_loo ) for( mm=0 ; mm<nmod ; mm++ ){
-          char lab[180] ;
-          if( !rsa_model_has_loo(mod+mm) ) continue ;
-          EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-          EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,lblo[mm]) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,lbhi[mm]) ;
-          sprintf(lab,"%.132s_looBootLo",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
-          sprintf(lab,"%.132s_looBootHi",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs+1,lab) ;
-          EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
-          bs+=2 ;
+
+        /* F7 fitted-model effects and diagnostics are appended, preserving every
+           established brick offset above.  Weights are fold-mean L1-normalized
+           component weights and are descriptive rather than test statistics. */
+        if( nfit>0 ){
+          int fi,cc,bs=nbrik-(2*nfit+(do_fitfwe?nfit:0)+nfitw
+                              +2*nfitcon+(do_fitconfwe?nfitcon:0)) ;
+          for( fi=0 ; fi<nfit ; fi++ ){
+            char lab[220] ;
+            EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
+            EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fr[fi]) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,fzv[fi]) ;
+            snprintf(lab,sizeof(lab),"%.190s_cvR",fit[fi].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
+            snprintf(lab,sizeof(lab),"%.188s_cv%s",fit[fi].name,(nperm>0)?"Z":"FZ") ;
+            EDIT_BRICK_LABEL(oset,bs+1,lab) ;
+            if( nperm>0 ) EDIT_BRICK_TO_FIZT(oset,bs+1) ;
+            EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ; bs+=2 ;
+          }
+          if( do_fitfwe ) for( fi=0 ; fi<nfit ; fi++ ){
+            char lab[220] ; EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fzf[fi]) ;
+            snprintf(lab,sizeof(lab),"%.184s_cvZFWE",fit[fi].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
+            EDIT_BRICK_TO_FIZT(oset,bs) ; EDIT_BRICK_FACTOR(oset,bs,0.0) ; bs++ ;
+          }
+          for( fi=0 ; fi<nfit ; fi++ ) for( cc=0 ; cc<fit[fi].ncomp ; cc++ ){
+            char lab[220] ; EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fwgt[fit[fi].wbase+cc]) ;
+            snprintf(lab,sizeof(lab),"%.80s_w_%.100s",fit[fi].name,
+                     mod[fit[fi].comp[cc]].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
+            EDIT_BRICK_FACTOR(oset,bs,0.0) ; bs++ ;
+          }
+          /* F14 maps follow the F7 fits and descriptive weights.  The effect is
+             in held-fold Fisher-z accuracy units; only permutation-derived z
+             bricks receive AFNI's FIZT statistical code. */
+          for( cc=0 ; cc<nfitcon ; cc++ ){
+            char lab[220] ;
+            EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
+            EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fcd[cc]) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,fcz[cc]) ;
+            snprintf(lab,sizeof(lab),"%.185s_cvDiff",fcon[cc].name) ;
+            EDIT_BRICK_LABEL(oset,bs,lab) ;
+            snprintf(lab,sizeof(lab),"%.181s_cv%sdiff",fcon[cc].name,
+                     (nperm>0)?"Z":"FZ") ;
+            EDIT_BRICK_LABEL(oset,bs+1,lab) ;
+            if( nperm>0 ) EDIT_BRICK_TO_FIZT(oset,bs+1) ;
+            EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ; bs+=2 ;
+          }
+          if( do_fitconfwe ) for( cc=0 ; cc<nfitcon ; cc++ ){
+            char lab[220] ; EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
+            THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fczf[cc]) ;
+            snprintf(lab,sizeof(lab),"%.177s_cvZdiffFWE",fcon[cc].name) ;
+            EDIT_BRICK_LABEL(oset,bs,lab) ; EDIT_BRICK_TO_FIZT(oset,bs) ;
+            EDIT_BRICK_FACTOR(oset,bs,0.0) ; bs++ ;
+          }
         }
-      }
 
-      if( ncboot > 0 && !dualboot ){
-        int bs=base_nbrik + ((nboot > 0) ? 2*(nmod+ncon+ncomq+nloo) : 0) ;
-        for( mm=0 ; mm < nmod ; mm++ ){
-          char lab[180] ;
-          EDIT_substitute_brick( oset , bs   , MRI_float , NULL ) ;
-          EDIT_substitute_brick( oset , bs+1 , MRI_float , NULL ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,bs  ) , rl , cblo[mm] ) ;
-          THD_roilist_paint( DSET_ARRAY(oset,bs+1) , rl , cbhi[mm] ) ;
-          sprintf(lab,"%.136s_cbootLo",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
-          sprintf(lab,"%.136s_cbootHi",mod[mm].name) ; EDIT_BRICK_LABEL(oset,bs+1,lab) ;
-          EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ;
-          bs += 2 ;
-        }
-      }
+        THD_copy_labeltable_atr( oset->dblk , mset->dblk ) ;
 
-      /* F7 fitted-model effects and diagnostics are appended, preserving every
-         established brick offset above.  Weights are fold-mean L1-normalized
-         component weights and are descriptive rather than test statistics. */
-      if( nfit>0 ){
-        int fi,cc,bs=nbrik-(2*nfit+(do_fitfwe?nfit:0)+nfitw
-                            +2*nfitcon+(do_fitconfwe?nfitcon:0)) ;
-        for( fi=0 ; fi<nfit ; fi++ ){
-          char lab[220] ;
-          EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-          EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fr[fi]) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,fzv[fi]) ;
-          snprintf(lab,sizeof(lab),"%.190s_cvR",fit[fi].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
-          snprintf(lab,sizeof(lab),"%.188s_cv%s",fit[fi].name,(nperm>0)?"Z":"FZ") ;
-          EDIT_BRICK_LABEL(oset,bs+1,lab) ;
-          if( nperm>0 ) EDIT_BRICK_TO_FIZT(oset,bs+1) ;
-          EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ; bs+=2 ;
-        }
-        if( do_fitfwe ) for( fi=0 ; fi<nfit ; fi++ ){
-          char lab[220] ; EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fzf[fi]) ;
-          snprintf(lab,sizeof(lab),"%.184s_cvZFWE",fit[fi].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
-          EDIT_BRICK_TO_FIZT(oset,bs) ; EDIT_BRICK_FACTOR(oset,bs,0.0) ; bs++ ;
-        }
-        for( fi=0 ; fi<nfit ; fi++ ) for( cc=0 ; cc<fit[fi].ncomp ; cc++ ){
-          char lab[220] ; EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fwgt[fit[fi].wbase+cc]) ;
-          snprintf(lab,sizeof(lab),"%.80s_w_%.100s",fit[fi].name,
-                   mod[fit[fi].comp[cc]].name) ; EDIT_BRICK_LABEL(oset,bs,lab) ;
-          EDIT_BRICK_FACTOR(oset,bs,0.0) ; bs++ ;
-        }
-        /* F14 maps follow the F7 fits and descriptive weights.  The effect is
-           in held-fold Fisher-z accuracy units; only permutation-derived z
-           bricks receive AFNI's FIZT statistical code. */
-        for( cc=0 ; cc<nfitcon ; cc++ ){
-          char lab[220] ;
-          EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-          EDIT_substitute_brick(oset,bs+1,MRI_float,NULL) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fcd[cc]) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs+1),rl,fcz[cc]) ;
-          snprintf(lab,sizeof(lab),"%.185s_cvDiff",fcon[cc].name) ;
-          EDIT_BRICK_LABEL(oset,bs,lab) ;
-          snprintf(lab,sizeof(lab),"%.181s_cv%sdiff",fcon[cc].name,
-                   (nperm>0)?"Z":"FZ") ;
-          EDIT_BRICK_LABEL(oset,bs+1,lab) ;
-          if( nperm>0 ) EDIT_BRICK_TO_FIZT(oset,bs+1) ;
-          EDIT_BRICK_FACTOR(oset,bs,0.0) ; EDIT_BRICK_FACTOR(oset,bs+1,0.0) ; bs+=2 ;
-        }
-        if( do_fitconfwe ) for( cc=0 ; cc<nfitcon ; cc++ ){
-          char lab[220] ; EDIT_substitute_brick(oset,bs,MRI_float,NULL) ;
-          THD_roilist_paint(DSET_ARRAY(oset,bs),rl,fczf[cc]) ;
-          snprintf(lab,sizeof(lab),"%.177s_cvZdiffFWE",fcon[cc].name) ;
-          EDIT_BRICK_LABEL(oset,bs,lab) ; EDIT_BRICK_TO_FIZT(oset,bs) ;
-          EDIT_BRICK_FACTOR(oset,bs,0.0) ; bs++ ;
-        }
-      }
+        if( !THD_copy_surface_node_domain(oset,mset,domain_err,sizeof(domain_err)) )
+          ERROR_exit("3dRSA: %s",domain_err) ;
 
-      THD_copy_labeltable_atr( oset->dblk , mset->dblk ) ;
+        tross_Copy_History( mset , oset ) ;
+        tross_Make_History( "3dRSA" , argc , argv , oset ) ;
 
-      if( !THD_copy_surface_node_domain(oset,mset,domain_err,sizeof(domain_err)) )
-        ERROR_exit("3dRSA: %s",domain_err) ;
+        DSET_write(oset) ;
+        if( !quiet ) INFO_message("3dRSA: wrote dataset %s",DSET_BRIKNAME(oset)) ;
+     }
 
-      tross_Copy_History( mset , oset ) ;
-      tross_Make_History( "3dRSA" , argc , argv , oset ) ;
+     /*================== suggest 1dplot.py commands ==================*/
 
-      DSET_write(oset) ;
-      if( !quiet ) INFO_message("3dRSA: wrote dataset %s",DSET_BRIKNAME(oset)) ;
-   }
+     if( !quiet && !series_active && !run_resolved ){
+        int gsize = (regout ? 4 : 3) + (do_fwe ? 1 : 0)
+                                        + ((nboot > 0) ? 2 : 0)
+                                        + ((ncboot > 0 && !dualboot) ? 2 : 0) ; /* cols/model */
+        char rfn[THD_MAX_NAME] , efn[THD_MAX_NAME] ;
 
-   /*================== suggest 1dplot.py commands ==================*/
+        sprintf(rfn,"%s.rsa.1D",prefix) ;
 
-   if( !quiet && !series_active && !run_resolved ){
-      int gsize = (regout ? 4 : 3) + (do_fwe ? 1 : 0)
-                                      + ((nboot > 0) ? 2 : 0)
-                                      + ((ncboot > 0 && !dualboot) ? 2 : 0) ; /* cols/model */
-      char rfn[THD_MAX_NAME] , efn[THD_MAX_NAME] ;
-
-      sprintf(rfn,"%s.rsa.1D",prefix) ;
-
-      printf("\n"
-             "++ 3dRSA: some 1dplot.py commands to visualize the output --\n") ;
-
-      for( mm=0 ; mm < nmod ; mm++ ){
-        float msum=0.0f ; int kk , col = 4 + mm*gsize ;
-        for( kk=0 ; kk < nroi ; kk++ ) msum += rr[mm][kk] ;
-        msum /= (nroi > 0) ? nroi : 1 ;
-        sprintf(efn,"%s_%s_%s.1D",prefix,mod[mm].name,regout?"b":"r") ;
         printf("\n"
-               "   # %s across ROIs\n"
-               "   grep -v '^#' %s | awk '{print $%d}' > %s\n"
-               "   1dplot.py -histogram -vline 0 -vline_hl %.4g 'mean %.3f' \\\n"
-               "             -xlabel %s_%s -title '%s: %s across ROIs' \\\n"
-               "             -prefix %s_hist_%s.png -infiles %s\n" ,
-               mod[mm].name , rfn , col , efn ,
-               msum , msum , mod[mm].name , regout?"b":"r" ,
-               mod[mm].name , regout?"b":"r" ,
-               prefix , mod[mm].name , efn ) ;
-      }
+               "++ 3dRSA: some 1dplot.py commands to visualize the output --\n") ;
 
-      if( nmod > 1 ){
-        char afn[THD_MAX_NAME] , bfn[THD_MAX_NAME] ;
-        int cola = 4 , colb = 4 + gsize ;
-        sprintf(afn,"%s_%s_%s.1D",prefix,mod[0].name,regout?"b":"r") ;
-        sprintf(bfn,"%s_%s_%s.1D",prefix,mod[1].name,regout?"b":"r") ;
-        printf("\n"
-               "   # %s vs %s effect, across ROIs (extracted above)\n"
-               "   1dplot.py -scatter -diagonal -xfile %s -xlabel %s_%s \\\n"
-               "             -ylabels %s_%s -prefix %s_compare_%s_vs_%s.png \\\n"
-               "             -infiles %s\n" ,
-               mod[0].name , mod[1].name , afn , mod[0].name , regout?"b":"r" ,
-               mod[1].name , regout?"b":"r" , prefix , mod[0].name , mod[1].name ,
-               bfn ) ;
-        (void)cola ; (void)colb ; /* already encoded via the per-model extraction above */
-      }
-
-      if( save_rdm != NULL ){
         for( mm=0 ; mm < nmod ; mm++ ){
-          char mfn[THD_MAX_NAME] ;
-          if( mod[mm].mat == NULL ){
+          float msum=0.0f ; int kk , col = 4 + mm*gsize ;
+          for( kk=0 ; kk < nroi ; kk++ ) msum += rr[mm][kk] ;
+          msum /= (nroi > 0) ? nroi : 1 ;
+          sprintf(efn,"%s_%s_%s.1D",prefix,mod[mm].name,regout?"b":"r") ;
+          printf("\n"
+                 "   # %s across ROIs\n"
+                 "   grep -v '^#' %s | awk '{print $%d}' > %s\n"
+                 "   1dplot.py -histogram -vline 0 -vline_hl %.4g 'mean %.3f' \\\n"
+                 "             -xlabel %s_%s -title '%s: %s across ROIs' \\\n"
+                 "             -prefix %s_hist_%s.png -infiles %s\n" ,
+                 mod[mm].name , rfn , col , efn ,
+                 msum , msum , mod[mm].name , regout?"b":"r" ,
+                 mod[mm].name , regout?"b":"r" ,
+                 prefix , mod[mm].name , efn ) ;
+        }
+
+        if( nmod > 1 ){
+          char afn[THD_MAX_NAME] , bfn[THD_MAX_NAME] ;
+          int cola = 4 , colb = 4 + gsize ;
+          sprintf(afn,"%s_%s_%s.1D",prefix,mod[0].name,regout?"b":"r") ;
+          sprintf(bfn,"%s_%s_%s.1D",prefix,mod[1].name,regout?"b":"r") ;
+          printf("\n"
+                 "   # %s vs %s effect, across ROIs (extracted above)\n"
+                 "   1dplot.py -scatter -diagonal -xfile %s -xlabel %s_%s \\\n"
+                 "             -ylabels %s_%s -prefix %s_compare_%s_vs_%s.png \\\n"
+                 "             -infiles %s\n" ,
+                 mod[0].name , mod[1].name , afn , mod[0].name , regout?"b":"r" ,
+                 mod[1].name , regout?"b":"r" , prefix , mod[0].name , mod[1].name ,
+                 bfn ) ;
+          (void)cola ; (void)colb ; /* already encoded via the per-model extraction above */
+        }
+
+        if( save_rdm != NULL ){
+          for( mm=0 ; mm < nmod ; mm++ ){
+            char mfn[THD_MAX_NAME] ;
+            if( mod[mm].mat == NULL ){
+              printf("\n"
+                     "   # model RDM: %s varies by ROI; no single model RDM file was written\n",
+                     mod[mm].name ) ;
+              continue ;
+            }
+            sprintf(mfn,"%s_model_%s.1D",save_rdm,mod[mm].name) ;
             printf("\n"
-                   "   # model RDM: %s varies by ROI; no single model RDM file was written\n",
-                   mod[mm].name ) ;
-            continue ;
+                   "   # model RDM: %s\n"
+                   "   1dplot.py -heat -title 'model: %s' -prefix %s_model_%s.png \\\n"
+                   "             -infiles %s\n" ,
+                   mod[mm].name , mod[mm].name , prefix , mod[mm].name , mfn ) ;
           }
-          sprintf(mfn,"%s_model_%s.1D",save_rdm,mod[mm].name) ;
+          {
+            char nfn[THD_MAX_NAME] ;
+            sprintf(nfn,"%s_roi%04d.1D",save_rdm,rl->val[0]) ;
+            printf("\n"
+                   "   # neural RDM, ROI %d (repeat for other ROIs' %s_roi####.1D files)\n"
+                   "   1dplot.py -heat -zerocenter -cbar Reds_and_Blues_Inv \\\n"
+                   "             -title 'neural RDM, ROI %d' -prefix %s_neural_roi%04d.png \\\n"
+                   "             -infiles %s\n" ,
+                   rl->val[0] , save_rdm , rl->val[0] , prefix , rl->val[0] , nfn ) ;
+          }
+        } else {
           printf("\n"
-                 "   # model RDM: %s\n"
-                 "   1dplot.py -heat -title 'model: %s' -prefix %s_model_%s.png \\\n"
-                 "             -infiles %s\n" ,
-                 mod[mm].name , mod[mm].name , prefix , mod[mm].name , mfn ) ;
+                 "   (add '-save_rdm QQQ' to also get commands for the RDM heatmaps)\n") ;
         }
-        {
-          char nfn[THD_MAX_NAME] ;
-          sprintf(nfn,"%s_roi%04d.1D",save_rdm,rl->val[0]) ;
-          printf("\n"
-                 "   # neural RDM, ROI %d (repeat for other ROIs' %s_roi####.1D files)\n"
-                 "   1dplot.py -heat -zerocenter -cbar Reds_and_Blues_Inv \\\n"
-                 "             -title 'neural RDM, ROI %d' -prefix %s_neural_roi%04d.png \\\n"
-                 "             -infiles %s\n" ,
-                 rl->val[0] , save_rdm , rl->val[0] , prefix , rl->val[0] , nfn ) ;
-        }
-      } else {
+        printf("\n") ;
+     } else if( !quiet && run_resolved ){
+        printf("\n++ 3dRSA: run-resolved output is in long ROI x summary x model form in\n"
+               "   %s.rsa.1D; MEAN is an equal-run mean of signed %s%s.\n\n",
+               prefix,joint?"conditional standardized coefficients":"association statistics",
+               nrunconspec?", and named rows are fixed-run planned contrasts":"") ;
+     } else if( !quiet ){
         printf("\n"
-               "   (add '-save_rdm QQQ' to also get commands for the RDM heatmaps)\n") ;
-      }
-      printf("\n") ;
-   } else if( !quiet && run_resolved ){
-      printf("\n++ 3dRSA: run-resolved output is in long ROI x summary x model form in\n"
-             "   %s.rsa.1D; MEAN is an equal-run mean of signed %s%s.\n\n",
-             prefix,joint?"conditional standardized coefficients":"association statistics",
-             nrunconspec?", and named rows are fixed-run planned contrasts":"") ;
-   } else if( !quiet ){
-      printf("\n"
-             "++ 3dRSA: -model_series output is in long time x ROI form in\n"
-             "   %s.rsa.1D; dataset bricks use t#### labels mapped to the\n"
-             "   verbatim time labels in that table.\n\n",prefix) ;
-   }
+               "++ 3dRSA: -model_series output is in long time x ROI form in\n"
+               "   %s.rsa.1D; dataset bricks use t#### labels mapped to the\n"
+               "   verbatim time labels in that table.\n\n",prefix) ;
+     }
 
- rsa_cleanup:
+   } /* end general analysis; both branches share cleanup below */
+
    THD_free_labeled_matrix(input_rdm_axis);
    THD_mantel_cache_free(mcache) ; free(mcache_ix) ;
    free(loo_owner) ; free(loo_fam) ;

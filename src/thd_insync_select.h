@@ -1,10 +1,15 @@
+/* How to read this file
+   Owned source/schedule structures and header-only APIs. Source masks use
+   original TRs; the driver adds sample-derived exclusions. See
+   thd_insync_select.c for construction/reporting order.
+*/
 #ifndef THD_INSYNC_SELECT_H
 #define THD_INSYNC_SELECT_H
 #include <stdio.h>
 #include "thd_insync.h"
 #include "thd_xmat.h"
 
-/* M1/M2: source normalization and original-coordinate schedules. No sample reads.
+/* Source normalization and original-coordinate schedules. No sample reads.
    Objects own strings/arrays/source-table copies; caller's table is unmodified.
    Source and row indices are zero based internally; runs are one based. */
 typedef struct {

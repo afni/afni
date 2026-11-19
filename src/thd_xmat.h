@@ -1,3 +1,11 @@
+/* How to read this file (3dInSync callers)
+   Design metadata and original-time stimulus/run support; used by -xmat_*
+   selections.
+   Read the public contracts in thd_xmat.h before the implementations.
+   These helpers are shared with other AFNI programs: keep ISC-specific policy
+   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
+   dimensions, and failure rules remain defined at each shared API below.
+*/
 #ifndef _THD_XMAT_HEADER_
 #define _THD_XMAT_HEADER_
 /*----------------------------------------------------------------------------
@@ -131,6 +139,14 @@ typedef struct {
    until written and reread. NULL on error. */
 extern THD_xmat *THD_xmat_extract_run(const THD_xmat *source,
    const THD_xmat *uncensored, int run, double zero_tol,
+   THD_xmat_run_map **map, char *err, int nerr);
+/* As above, but nonzero drop_censored allows IM columns with exactly zero
+   retained support to be omitted. Requires a matching uncensored reference;
+   empty original/cross-run IM columns and partially retained failures remain
+   errors, as does losing every IM trial in a run. inverse is -1 for excluded
+   columns. Ownership is unchanged. */
+extern THD_xmat *THD_xmat_extract_run_censored(const THD_xmat *source,
+   const THD_xmat *uncensored, int run, double zero_tol, int drop_censored,
    THD_xmat_run_map **map, char *err, int nerr);
 extern void THD_xmat_run_map_free(THD_xmat_run_map *map);
 

@@ -28,10 +28,48 @@ void THD_sampleset_free_identity( THD_sampleset_identity *identity )
    free(identity->dataset_path) ; free(identity->first_sample) ; free(identity) ;
 }
 
+/* The caller owns identity and all storage attached during construction. */
+static int ss_fill_identity( const THD_sampleset *ss,
+                             THD_sampleset_identity *identity,
+                             char *err, int nerr )
+{
+   int dd,ii,jj ;
+   identity->nsample=ss->nsample ; identity->ndset=ss->ndset ;
+   identity->first_sample=(int *)malloc(sizeof(int)*(size_t)ss->nsample) ;
+   identity->dataset_path=(char **)calloc((size_t)ss->ndset,sizeof(char *)) ;
+   if( identity->first_sample==NULL || identity->dataset_path==NULL )
+     return ss_error(err,nerr,"cannot allocate sample identity map") ;
+   for( dd=0 ; dd<ss->ndset ; dd++ ){
+     const char *name ;
+     if( !ISVALID_DSET(ss->dset[dd]) ||
+         (name=DSET_HEADNAME(ss->dset[dd]))==NULL || *name=='\0' ){
+       return ss_error(err,nerr,"sample identity: dataset %d has no valid header path",dd+1) ;
+     }
+     identity->dataset_path[dd]=realpath(name,NULL) ;
+     if( identity->dataset_path[dd]==NULL ) identity->dataset_path[dd]=strdup(name) ;
+     if( identity->dataset_path[dd]==NULL )
+       return ss_error(err,nerr,"cannot allocate sample identity map") ;
+   }
+   for( ii=0 ; ii<ss->nsample ; ii++ ){
+     dd=ss->sample_dset[ii] ;
+     if( dd<0 || dd>=ss->ndset || ss->sample_brick[ii]<0 ||
+         ss->sample_brick[ii]>=DSET_NVALS(ss->dset[dd]) ){
+       return ss_error(err,nerr,"sample identity: sample %d has an invalid dataset/brick index",ii+1) ;
+     }
+     identity->first_sample[ii]=ii ;
+     for( jj=0 ; jj<ii ; jj++ )
+       if( ss->sample_brick[ii]==ss->sample_brick[jj] &&
+           !strcmp(identity->dataset_path[dd],identity->dataset_path[ss->sample_dset[jj]]) ){
+         identity->first_sample[ii]=jj ; break ;
+       }
+   }
+   return 1 ;
+}
+
 THD_sampleset_identity * THD_sampleset_build_identity( const THD_sampleset *ss,
                                                        char *err, int nerr )
 {
-   THD_sampleset_identity *identity=NULL ; int dd,ii,jj ;
+   THD_sampleset_identity *identity ;
    if( err!=NULL && nerr>0 ) err[0]='\0' ;
    if( ss==NULL || ss->nsample<1 || ss->ndset<1 || ss->dset==NULL ||
        ss->sample_dset==NULL || ss->sample_brick==NULL ){
@@ -42,39 +80,13 @@ THD_sampleset_identity * THD_sampleset_build_identity( const THD_sampleset *ss,
      ss_error(err,nerr,"sample identity map is too large") ; return NULL ;
    }
    identity=(THD_sampleset_identity *)calloc(1,sizeof(*identity)) ;
-   if( identity==NULL ) goto nomem ;
-   identity->nsample=ss->nsample ; identity->ndset=ss->ndset ;
-   identity->first_sample=(int *)malloc(sizeof(int)*(size_t)ss->nsample) ;
-   identity->dataset_path=(char **)calloc((size_t)ss->ndset,sizeof(char *)) ;
-   if( identity->first_sample==NULL || identity->dataset_path==NULL ) goto nomem ;
-   for( dd=0 ; dd<ss->ndset ; dd++ ){
-     const char *name ;
-     if( !ISVALID_DSET(ss->dset[dd]) ||
-         (name=DSET_HEADNAME(ss->dset[dd]))==NULL || *name=='\0' ){
-       ss_error(err,nerr,"sample identity: dataset %d has no valid header path",dd+1) ; goto fail ;
-     }
-     identity->dataset_path[dd]=realpath(name,NULL) ;
-     if( identity->dataset_path[dd]==NULL ) identity->dataset_path[dd]=strdup(name) ;
-     if( identity->dataset_path[dd]==NULL ) goto nomem ;
+   if( identity==NULL ){
+     ss_error(err,nerr,"cannot allocate sample identity map") ; return NULL ;
    }
-   for( ii=0 ; ii<ss->nsample ; ii++ ){
-     dd=ss->sample_dset[ii] ;
-     if( dd<0 || dd>=ss->ndset || ss->sample_brick[ii]<0 ||
-         ss->sample_brick[ii]>=DSET_NVALS(ss->dset[dd]) ){
-       ss_error(err,nerr,"sample identity: sample %d has an invalid dataset/brick index",ii+1) ; goto fail ;
-     }
-     identity->first_sample[ii]=ii ;
-     for( jj=0 ; jj<ii ; jj++ )
-       if( ss->sample_brick[ii]==ss->sample_brick[jj] &&
-           !strcmp(identity->dataset_path[dd],identity->dataset_path[ss->sample_dset[jj]]) ){
-         identity->first_sample[ii]=jj ; break ;
-       }
+   if( !ss_fill_identity(ss,identity,err,nerr) ){
+     THD_sampleset_free_identity(identity) ; return NULL ;
    }
    return identity ;
-nomem:
-   ss_error(err,nerr,"cannot allocate sample identity map") ;
-fail:
-   THD_sampleset_free_identity(identity) ; return NULL ;
 }
 
 void THD_sampleset_free_levels( char **level, int nlevel )

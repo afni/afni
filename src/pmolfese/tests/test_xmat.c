@@ -45,11 +45,42 @@ static int write_xmat( const char *fn )
    return 0 ;
 }
 
+/* Independently check the shared reader, not just the CLI. The first signal
+   is supplied data with no Basis block; the second is IM at original slot 7.
+   The compact item index must stay 1 even though its file ID is 7. */
+static int check_sparse_reader(const char *fn)
+{
+   FILE *fp=fopen(fn,"w"); THD_xmat *x; THD_xmat_item *items;
+   char err[512]; int n;
+   CHECK(fp,"open sparse fixture");
+   fputs("# <matrix\n# ni_type = \"3*double\"\n# ni_dimen = \"3\"\n"
+         "# Nstim = \"2\"\n# StimLabels = \"plain ; event\"\n"
+         "# StimBots = \"1,2\"\n# StimTops = \"1,2\"\n"
+         "# ColumnGroups = \"-1,2,7\"\n# BasisNstim = \"9\"\n"
+         "# BasisOption_000007 = \"-stim_times_IM\"\n"
+         "# BasisFormula_000007 = \"GAM\"\n# BasisColumns_000007 = \"2:2\"\n"
+         "# >\n1 1 0\n1 0 1\n1 0 0\n# </matrix>\n",fp);
+   fclose(fp);
+   x=THD_xmat_read(fn,err,sizeof(err)); CHECK(x,err);
+   CHECK(x->stim[0].id==2 && x->stim[1].id==7,"sparse source IDs stored separately");
+   CHECK(!x->stim[0].option && !x->stim[0].formula,"plain signal has no invented basis");
+   CHECK(x->stim[1].option && !strcmp(x->stim[1].option,"-stim_times_IM"),"sparse IM option attached");
+   CHECK(x->stim[1].formula && !strcmp(x->stim[1].formula,"GAM"),"sparse formula attached");
+   items=THD_xmat_items(x,NULL,&n);
+   CHECK(items && n==2 && items[1].stim==1,"item API retains compact array positions");
+   THD_xmat_items_free(items,n);
+   CHECK(THD_xmat_validate_metadata(x,err,sizeof(err)),err);
+   x->stim[1].id=3;
+   CHECK(!THD_xmat_validate_metadata(x,err,sizeof(err)),"modified IDs cannot bypass validation");
+   THD_xmat_free(x); remove(fn); return 0;
+}
+
 int main( int argc , char **argv )
 {
    char fn[512] , err[512] , *dir=getenv("TMPDIR") ; THD_xmat *xm ; int ii , r , *lab , n ;
    unsigned char *cens , *want ; THD_xmat_item *it ;
    snprintf(fn,sizeof(fn),"%s/thd_xmat_unit_%d.xmat.1D",dir?dir:".",(int)getpid()) ;
+   CHECK(check_sparse_reader(fn)==0,"shared sparse reader");
    CHECK(write_xmat(fn)==0,"write the test matrix") ;
 
    xm=THD_xmat_read(fn,err,sizeof(err)) ;

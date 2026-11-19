@@ -1,3 +1,11 @@
+/* How to read this file (3dInSync callers)
+   Immutable subject/bootstrap/temporal draw descriptions and empirical-
+   null accumulators; shared draws enable family-wide correction.
+   Read the public contracts in thd_permute.h before the implementations.
+   These helpers are shared with other AFNI programs: keep ISC-specific policy
+   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
+   dimensions, and failure rules remain defined at each shared API below.
+*/
 #ifndef THD_PERMUTE_HEADER_
 #define THD_PERMUTE_HEADER_
 

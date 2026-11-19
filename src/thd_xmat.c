@@ -1,3 +1,11 @@
+/* How to read this file (3dInSync callers)
+   Design metadata and original-time stimulus/run support; used by -xmat_*
+   selections.
+   Read the public contracts in thd_xmat.h before the implementations.
+   These helpers are shared with other AFNI programs: keep ISC-specific policy
+   in thd_insync*.c. The call flow is documented in thd_insync.c; ownership,
+   dimensions, and failure rules remain defined at each shared API below.
+*/
 #include "mrilib.h"
 #include "thd_xmat.h"
 #include <errno.h>
@@ -681,10 +689,10 @@ int THD_xmat_validate_reference(const THD_xmat *a,const THD_xmat *u,
 
 /* Populate caller-owned output objects; failure leaves them safe to destroy. */
 static int xm_extract_run(const THD_xmat *a,const THD_xmat *u,
-   int run,double tol,THD_xmat *x,THD_xmat_run_map *m,char *err,int nerr)
+   int run,double tol,int drop_censored,THD_xmat *x,THD_xmat_run_map *m,char *err,int nerr)
 {
    const THD_xmat *ref=u?u:a;
-   int r,c,s,i,start,end,nr=0,nc=0; const char *v; char buf[128];
+   int r,c,s,i,start,end,nr=0,nc=0,original_im=0,retained_im=0; const char *v; char buf[128];
    if(err && nerr>0) *err='\0';
    if(!xm_structure_valid(a) ||
       run<0 || run>=a->nrun || !isfinite(tol) || tol<0 || tol>=1)
@@ -693,6 +701,7 @@ static int xm_extract_run(const THD_xmat *a,const THD_xmat *u,
       !THD_xmat_attr(a,"GoodList"))
       return xm_failure(err,nerr,"run extraction requires explicit RunStart, NRowFull and GoodList");
    if(!THD_xmat_validate_metadata(a,err,nerr)) return 0;
+   if(drop_censored && !u) return xm_failure(err,nerr,"dropping censored trials requires an uncensored reference");
    if(u && !THD_xmat_validate_reference(a,u,err,nerr)) return 0;
    start=a->runstart[run]; end=start+THD_xmat_run_length(a,run);
    if(!m || !x) return xm_failure(err,nerr,"out of memory");
@@ -734,12 +743,21 @@ static int xm_extract_run(const THD_xmat *a,const THD_xmat *u,
          xm_err(err,nerr,"IM column '%s' has cross-run support; run ownership is ambiguous",a->collab[c]);
          return 0;
       }
-      if(xm_im(a,s) && local>0 && kept<=tol*peak){
+      /* Do not turn a small retained tail into a censoring exclusion. Only
+       * exact zero is unestimable by this policy; tolerance failures stay strict. */
+      if(xm_im(a,s) && local>0 && kept<=tol*peak &&
+         !(drop_censored && kept==0)){
          xm_err(err,nerr,"IM column '%s' loses its support after censoring",a->collab[c]); return 0;
+      }
+      if(xm_im(a,s) && local>0){
+         original_im++;
+         if(kept>tol*peak)retained_im++;
       }
       m->inverse[c]=-1;
       if(local>0 && kept>tol*peak){ m->inverse[c]=nc; m->columns[nc++]=c; }
    }
+   if(drop_censored && original_im && !retained_im)
+      return xm_failure(err,nerr,"selected run loses every IM trial after censoring");
    if(!nc) return xm_failure(err,nerr,"selected run has no active columns");
    m->nrow=nr; m->ncol=nc;
    if(!xm_subset(a,x,m,err,nerr)) return 0;
@@ -747,6 +765,7 @@ static int xm_extract_run(const THD_xmat *a,const THD_xmat *u,
    xm_setint(x,"XmatSourceRun",run+1); xm_setint(x,"XmatSourceStart",start);
    xm_setlist(x,"XmatSourceRows",nr,m->rows); xm_setlist(x,"XmatSourceColumns",nc,m->columns);
    xm_setpath(x,"XmatSupportFile",ref->fname);
+   if(drop_censored) xm_set(x,"XmatDropCensoredTrials","exact-zero");
    snprintf(buf,sizeof(buf),"%.17g",tol); xm_set(x,"XmatZeroTolerance",buf);
    v=THD_xmat_attr(a,"CommandLine"); if(v) xm_set(x,"XmatSourceCommandLine",v);
    xm_set(x,"CommandLine","THD_xmat_extract_run (see XmatSource* provenance)");
@@ -761,6 +780,13 @@ static int xm_extract_run(const THD_xmat *a,const THD_xmat *u,
 THD_xmat *THD_xmat_extract_run(const THD_xmat *a,const THD_xmat *u,
    int run,double tol,THD_xmat_run_map **mapping,char *err,int nerr)
 {
+   return THD_xmat_extract_run_censored(a,u,run,tol,0,mapping,err,nerr);
+}
+
+/* Explicit policy variant; the original API remains strict for other callers. */
+THD_xmat *THD_xmat_extract_run_censored(const THD_xmat *a,const THD_xmat *u,
+   int run,double tol,int drop_censored,THD_xmat_run_map **mapping,char *err,int nerr)
+{
    THD_xmat *x; THD_xmat_run_map *m;
    if(mapping) *mapping=NULL;
    if(!mapping){
@@ -768,7 +794,7 @@ THD_xmat *THD_xmat_extract_run(const THD_xmat *a,const THD_xmat *u,
       return NULL;
    }
    x=calloc(1,sizeof(*x)); m=calloc(1,sizeof(*m));
-   if(xm_extract_run(a,u,run,tol,x,m,err,nerr)){
+   if(xm_extract_run(a,u,run,tol,drop_censored,x,m,err,nerr)){
       *mapping=m;return x;
    }
    THD_xmat_free(x);THD_xmat_run_map_free(m);

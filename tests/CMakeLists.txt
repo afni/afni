@@ -561,9 +561,19 @@ if(ENABLE_TESTS)
   add_test(NAME thd_crossval:unit COMMAND thd_crossval_unit)
   set_tests_properties(thd_crossval:unit PROPERTIES LABELS "3dMVPA;numeric;unit")
 
+  add_executable(thd_regression_unit
+    ${CMAKE_SOURCE_DIR}/src/thd_regression.c
+    ${CMAKE_SOURCE_DIR}/src/pmolfese/tests/test_regression.c
+  )
+  target_include_directories(thd_regression_unit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+  target_link_libraries(thd_regression_unit PRIVATE eispack m)
+  add_test(NAME thd_regression:unit COMMAND thd_regression_unit)
+  set_tests_properties(thd_regression:unit PROPERTIES LABELS "3dMVPA;numeric;unit")
+
   add_executable(
     thd_mvpa_unit
     ${CMAKE_SOURCE_DIR}/src/thd_mvpa.c
+    ${CMAKE_SOURCE_DIR}/src/thd_regression.c
     ${CMAKE_SOURCE_DIR}/src/thd_crossval.c
     ${CMAKE_SOURCE_DIR}/src/thd_sampleset.c
     ${CMAKE_SOURCE_DIR}/src/thd_datatable.c
@@ -572,7 +582,7 @@ if(ENABLE_TESTS)
   target_include_directories(thd_mvpa_unit PRIVATE ${CMAKE_SOURCE_DIR}/src)
   target_link_libraries(
     thd_mvpa_unit
-    PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m
+    PRIVATE AFNI::mri eispack NIFTI::nifti2 NIFTI::nifticdf m
   )
   add_test(NAME thd_mvpa:unit COMMAND thd_mvpa_unit)
   set_tests_properties(thd_mvpa:unit PROPERTIES LABELS "3dMVPA;numeric;unit")
