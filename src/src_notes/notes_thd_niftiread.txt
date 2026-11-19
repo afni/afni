@@ -1,0 +1,67 @@
+Context: processing an AFNI extension from a NIFTI dataset
+
+   2021.12.13
+      THD_nifti_process_afni_ext(): If we have a valid AFNI extension, call
+      THD_dblkatr_from_niml() to put those NIML attributes into the dblk,
+      and call THD_datablock_apply_atr() to apply desired ones into the
+      actual THD_3dim_dataset struct.
+
+      copy attributes upon read (e.g. in the case of NIFTI)
+
+         - THD_dblkatr_from_niml(ngr, blk):
+            - blk seems to start with natr == 0
+            - this copies ngr attributes (parts) to blk attributes
+               - deletes old if it exists, adds new and ADDTO_KILL()
+               - does not inspect the attributes
+
+         - THD_datablock_apply_atr(dset): 450 lines: use attrs to modify dset
+            - ATRNAME_BRICK_LABS       : brick labels
+            - ATRNAME_KEYWORDS         : keywords for dataset
+            - ATRNAME_BRICK_KEYWORDS   : keywords for sub-bricks
+            - ATRNAME_BRICK_STATAUX    : auxiliary statistics
+            - FDRCURVE_*               : FDR curves
+            - MDFCURVE_*               : FDR curves
+            - ID codes
+               ATRNAME_IDSTRING, ATRNAME_IDDATE, ATRNAME_IDANATPAR,
+               ATRNAME_IDWARPPAR
+            - parent names
+               ATRNAME_ANATOMY_PARENT, ATRNAME_WARP_PARENT, ATRNAME_DATANAME
+            - markers
+               ATRNAME_MARKSXYZ, ATRNAME_MARKSLAB, ATRNAME_MARKSHELP
+            - warp (any warp - affine or tlrc_12)
+               ATRNAME_WARP_TYPE, ATRNAME_WARP_DATA
+               - or auto_tlrc warp (ATRNAME_WARP_DATA_3DWD_AF), from 3dWarpDrive
+            - ATRNAME_BRICK_STATS      : brick stats
+            - tagset
+               ATRNAME_TAGSET_NUM, ATRNAME_TAGSET_FLOATS, ATRNAME_TAGSET_LABELS
+            - sform                    : IJK_TO_DICOM_REAL
+            - attributes for time axes
+               - ATRNAME_TAXIS_NUMS, ATRNAME_TAXIS_FLOATS, ATRNAME_TAXIS_OFFSETS
+            - template space
+               - THD_get_space() : populate dset->atlas_space
+            - INT_CMAP                 : flag for integer colormap display
+
+
+         ** NOTE **
+            - ORIGIN             : does not propagate
+            - DELTA              : does not propagate
+            - IJK_TO_DICOM       : does not propagate
+            - IJK_TO_DICOM_REAL  : does not propagate, *except* for 3dinfo
+
+            - SCENE_DATA         : does not propagate
+            - ORIENT_SPECIFIC    : does effect orientation
+
+            === "does not propagate"
+               - has no effect on basic "3dinfo" output (maybe more specific?)
+               - 3dcopy results are identical (diff washed away)
+
+      to consider:
+        - block ID codes?
+          - NOTE: ID codes are not quite unique
+        - warn on TR discrepency
+        - how dies 3dinfo get otherwise ignored IJK_TO_DICOM_REAL (from atrs??)
+
+
+      save attributes upon write (e.g. NIFTI)
+         - had intended to skip those in badlist[], but code not correct
+
