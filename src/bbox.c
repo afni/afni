@@ -21,6 +21,22 @@ void BBOX_set_wsubtype( char *wt ){ wsubtype = wt ; }
 static Widget old_wpar=NULL ; /* Apr 2013 -- for Allison */
 static int old_xx=-666,old_yy=-666;
 
+#ifdef DARWIN
+/*----------------------------------------------------------------------
+  [pt: 2026-10-28] Enable paste into AFNI GUI menus on macOS.
+  On macOS/XQuartz, the Command key is mapped to Mod2 (XQuartz < 2.8)
+  or Mod4 (XQuartz >= 2.8).  Apply both so Cmd+V paste works regardless
+  of XQuartz version in any editable text widget.
+----------------------------------------------------------------------*/
+static void MCW_apply_darwin_paste_fix( Widget w )
+{
+   if( w == NULL ) return ;
+   XtOverrideTranslations( w , XtParseTranslationTable(
+      "Mod2<KeyPress>v: paste-clipboard()\n"
+      "Mod4<KeyPress>v: paste-clipboard()" ) ) ;
+}
+#endif
+
 /* macro to relocate popup w.r.t. parent [12 Oct 2017] */
 
 #undef  RELOCATE
@@ -753,6 +769,9 @@ ENTRY("new_MCW_arrowval") ;
          av->text_CB   = (str_func *)AV_default_text_CB ;
          av->text_data = NULL ;
       }
+#ifdef DARWIN
+      MCW_apply_darwin_paste_fix( av->wtext ); /* Mac cmd+v paste fix [Oct 2026] */
+#endif
       break ;
 
    }
@@ -3009,6 +3028,10 @@ ENTRY("MCW_choose_string") ;
                  XmNinitialResourcesPersistent , False ,
                  XmNtraversalOn , True ,
               NULL ) ;
+
+#ifdef DARWIN
+   MCW_apply_darwin_paste_fix( wtf ) ;  /* macOS cmd+v paste fix [Oct 2026] */
+#endif
 
    if( default_string != NULL && default_string[0] != '\0' ){
      int qq  = strlen(default_string) , ii ;
