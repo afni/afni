@@ -26,6 +26,17 @@ add_test(
 )
 set_tests_properties(do.examples PROPERTIES LABELS GLX)
 
+if(TARGET ConvertDset)
+  add_test(
+    NAME ConvertDset:pure-output
+    COMMAND ${Python_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/tests/scripts/test_ConvertDset.py
+      --bin $<TARGET_FILE:ConvertDset>
+  )
+  set_tests_properties(ConvertDset:pure-output PROPERTIES
+    LABELS "ConvertDset;regression")
+endif()
+
 if(TARGET 3dInSync)
   add_test(
     NAME 3dInSync:edges-oracle
