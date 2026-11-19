@@ -66,7 +66,8 @@ static void SUMA_SurfACF_defaults(SUMA_SurfaceObject *SO,
    give a smooth estimate.  Use 1 when measuring real data and accuracy
    matters; use a stride when the estimate is an inner step of something else.
 
-   Returns 1 on success, 0 if the field carried no usable variance.
+   Returns 1 on success, 0 for unusable variance, allocation failure or a
+   failed neighbourhood walk. Failed calls leave acf_accum and nacc unchanged.
 */
 static int SUMA_SurfACF_accumulate_str(SUMA_SurfaceObject *SO,
                                    const float *field,
@@ -91,12 +92,15 @@ static int SUMA_SurfACF_accumulate_str(SUMA_SurfaceObject *SO,
 
    acc = (double *)calloc(nbins, sizeof(double));
    cnt = (int    *)calloc(nbins, sizeof(int));
-   if (!acc || !cnt) goto done;
+   ok = (acc != NULL && cnt != NULL);
 
    if (stride < 1) stride = 1;
-   for (n=0; n < SO->N_Node; n += stride) {
+   for (n=0; ok && n < SO->N_Node; n += stride) {
       if (mask && !mask[n]) continue;
-      if (!SUMA_getoffsets2(n, SO, radius, off, NULL, 0)) goto done;
+      if (!SUMA_getoffsets2(n, SO, radius, off, NULL, 0)) {
+         ok = 0;
+         break;
+      }
       arg = (double)field[n] - fbar;
       for (layer=1; layer < off->N_layers; ++layer) {
          for (item=0; item < off->layers[layer].N_NodesInLayer; ++item) {
@@ -112,17 +116,17 @@ static int SUMA_SurfACF_accumulate_str(SUMA_SurfaceObject *SO,
       SUMA_Recycle_getoffsets(off);
    }
 
-   /* same guard as mri_estimate_ACF(): ignore thinly populated bins */
-   for (ib=1; ib < nbins; ++ib) {
-      if (cnt[ib] > 5) {
-         acf_accum[ib] += acc[ib] / (fvar * ((double)cnt[ib] - 1.0));
-         nacc[ib]      += 1.0;
+   if (ok) {
+      /* same guard as mri_estimate_ACF(): ignore thinly populated bins */
+      for (ib=1; ib < nbins; ++ib) {
+         if (cnt[ib] > 5) {
+            acf_accum[ib] += acc[ib] / (fvar * ((double)cnt[ib] - 1.0));
+            nacc[ib]      += 1.0;
+         }
       }
+      acf_accum[0] += 1.0; nacc[0] += 1.0;   /* ACF(0) == 1 by definition */
    }
-   acf_accum[0] += 1.0; nacc[0] += 1.0;   /* ACF(0) == 1 by definition */
-   ok = 1;
 
-done:
    if (acc) free(acc);
    if (cnt) free(cnt);
    return ok;

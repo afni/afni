@@ -683,20 +683,23 @@ def main():
         rcn, noargtext = run([args.bin])
         help_contract = ["especially useful for EEG and MEG analyses",
                          "Output file                              | Written when",
-                         "EXAMPLE: EEG/MEG RDM MOVIE -> fMRI RSA",
-                         "EXAMPLE: PAIRED EEG/MEG -> fMRI RSA",
-                         "EXAMPLE: LEAVE-ONE-SUBJECT-OUT EEG/MEG -> fMRI RSA",
-                         "EXAMPLE: LABELED EEG TRIALS -> LABELED CONDITION RDMs",
-                         "EXAMPLE: MEG WITH GENERATED TIME LABELS AND INDEPENDENT RUNS",
-                         "EXAMPLE: WINDOWS, SENSOR GROUPS, AND EXISTING AXIS FILES",
+                         "EXAMPLE 4: EEG/MEG RDM MOVIE -> fMRI RSA",
+                         "EXAMPLE 5: PAIRED EEG/MEG -> fMRI RSA (SAME SUBJECTS)",
+                         "EXAMPLE 6: LEAVE-ONE-SUBJECT-OUT EEG/MEG -> fMRI RSA",
+                         "EXAMPLE 1: LABELED EEG TRIALS -> LABELED CONDITION RDMs",
+                         "EXAMPLE 2: MEG WITH GENERATED TIME LABELS AND INDEPENDENT RUNS",
+                         "EXAMPLE 3: WINDOWS, SENSOR GROUPS, AND EXISTING AXIS FILES",
                          "-matrix_format numeric|labeled",
                          "-model_series_subjects paired",
                          "-model_series_subjects loo",
                          "3dRSA -mode RSA", "-dataTable FILE", "-prefix OUT",
                          "++ Compile date ="]
+        missing_help = [text for text in help_contract if text not in helptext]
+        noarg_compile_date = "++ Compile date =" in noargtext
         check("expanded scientific help, canonical input/output options, bridge example, and compile date",
-              rch == rcn == 0 and all(x in helptext for x in help_contract) and
-              "++ Compile date =" in noargtext)
+              rch == rcn == 0 and not missing_help and noarg_compile_date,
+              "help rc=%d, no-argument rc=%d, missing help=%s, no-argument compile date=%s" %
+              (rch, rcn, missing_help, noarg_compile_date))
         cases = [("corr", 1, 1, "mean", "none"),
                  ("cosine", 2, 2, "mean", "subject"),
                  ("euclid", 2, 1, "concat", "none"),

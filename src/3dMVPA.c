@@ -953,6 +953,19 @@ static void usage_3dMVPA( void )
 "                         Checks include selected beta values (finite inside\n"
 "                         the selected ROIs/neighborhoods), numeric targets,\n"
 "                         grids/node domains, and outer/inner training folds.\n"
+"                         Classification reports counts/missing labels by\n"
+"                         subject and observed subject/run, plus outer/inner\n"
+"                         fold coverage. Missing group classes are descriptive;\n"
+"                         every training fold must contain every input class.\n"
+"                         Missing test classes are allowed except for transfer,\n"
+"                         which retains its complete-test-class requirement.\n"
+"                         Coverage is checked before normal fitting too. All\n"
+"                         invalid outer folds are listed before stopping; if\n"
+"                         outer coverage passes, all inner folds are checked.\n"
+"                         No samples/folds are silently dropped or relabelled.\n"
+"                         Classes/runs absent from the entire input cannot be\n"
+"                         inferred. This checks observed labels, not the planned\n"
+"                         experimental category list or permutation coverage.\n"
 "                         Values are checked after AFNI loading/conversion;\n"
 "                         readers may repair bad floats. This is not a raw\n"
 "                         file-integrity check.\n"
@@ -3054,6 +3067,108 @@ static void mvpa_descriptive_coefficients(THD_sampleset *ss,THD_3dim_dataset *ms
    free(attr);free(fname);free(mapname);
 }
 
+/* Report observed subject and subject/run counts against the table's class
+ * universe. A missing group class is descriptive, not a training-fold failure.
+ * Reuse one run-count table per subject; do not allocate subject*run*class.
+ * A class or group absent from the entire input cannot be inferred here. */
+static void mvpa_class_group_coverage(const THD_sampleset *ss,const int *classes,
+   char **labels,int nclass,int detailed,int quiet)
+{
+   FILE *fp=detailed?stdout:stderr;
+   int subject,i,r,c,missing=0;
+   size_t nrun=ss->nrun>0?(size_t)ss->nrun:1;
+   int *counts,*subject_counts;
+   if(!detailed && quiet)return;
+   if(nrun>SIZE_MAX/sizeof(int)/(size_t)nclass)
+      ERROR_exit(PROGRAM_NAME ": class coverage table is too large");
+   counts=calloc(nrun*(size_t)nclass,sizeof(int));
+   subject_counts=calloc((size_t)nclass,sizeof(int));
+   if(!counts || !subject_counts)ERROR_exit(PROGRAM_NAME ": cannot allocate class coverage counts");
+   if(detailed){
+      fputs("# Class coverage uses observed input labels; globally absent categories/runs cannot be inferred.\n",fp);
+      fputs("# GroupClassCoverage\nScope\tSubject\tRun\tLabel\tNSample\tCoverage\n",fp);
+   }
+   for(subject=0;subject<ss->nsubject;subject++){
+      memset(counts,0,nrun*(size_t)nclass*sizeof(int));
+      memset(subject_counts,0,(size_t)nclass*sizeof(int));
+      for(i=0;i<ss->nsample;i++)if(ss->subject[i]==subject){
+         subject_counts[classes[i]]++;
+         if(ss->nrun>0)counts[(size_t)ss->run[i]*nclass+classes[i]]++;
+      }
+      /* r=-1 is the subject total; other rows are observed subject/run pairs. */
+      for(r=-1;r<ss->nrun;r++){
+         int *group=r<0?subject_counts:counts+(size_t)r*nclass,total=0;
+         for(c=0;c<nclass;c++)total+=group[c];
+         if(!total)continue;
+         for(c=0;c<nclass;c++){
+            if(!group[c])missing++;
+            if(!detailed && (quiet || group[c]))continue;
+            if(!detailed)fputs("# MissingClass\t",fp);
+            fputs(r<0?"Subject\t":"SubjectRun\t",fp);
+            mvpa_1D_text(fp,ss->subject_label[subject]);fputc('\t',fp);
+            mvpa_1D_text(fp,r<0?"NA":ss->run_label[r]);fputc('\t',fp);
+            mvpa_1D_text(fp,labels[c]);fprintf(fp,"\t%d\t%s\n",group[c],group[c]?"PRESENT":"MISSING");
+         }
+      }
+   }
+   if(detailed || (missing && !quiet))
+      fprintf(fp,"# GroupClassCoverageMissing\t%d; descriptive only, training folds determine validity.\n",missing);
+   free(counts);free(subject_counts);
+}
+
+/* Count all outer or inner folds before rejecting any of them. Inner row
+ * indexes refer to positions in the corresponding outer training array, not
+ * to global sample rows. Missing test classes are allowed except under the
+ * existing transfer policy; missing training classes are always errors.
+ * detailed prints all counts; ordinary fitting prints only invalid rows. */
+static void mvpa_class_fold_coverage(const THD_foldplan *outer,
+   const THD_nested_foldplan *nested,const int *classes,char **labels,int nclass,
+   int require_test,int detailed)
+{
+   FILE *fp=detailed?stdout:stderr;
+   int *train=calloc((size_t)nclass,sizeof(int)),*test=calloc((size_t)nclass,sizeof(int));
+   int o,f,i,c,failures=0;char first[1024]="";
+   if(!train || !test)ERROR_exit(PROGRAM_NAME ": cannot allocate fold coverage counts");
+   if(detailed)fprintf(fp,"# %sClassCoverage\nOuterFold\tInnerFold\tLabel\tNTrain\tNTest\tCoverage\n",nested?"Inner":"Outer");
+   for(o=0;o<(nested?outer->nfold:1);o++){
+      const THD_foldplan *plan=nested?nested->inner[o]:outer;
+      for(f=0;f<plan->nfold;f++){
+         memset(train,0,(size_t)nclass*sizeof(int));memset(test,0,(size_t)nclass*sizeof(int));
+         for(i=0;i<plan->ntrain[f];i++){
+            int row=plan->train[f][i];if(nested)row=outer->train[o][row];
+            train[classes[row]]++;
+         }
+         for(i=0;i<plan->ntest[f];i++){
+            int row=plan->test[f][i];if(nested)row=outer->train[o][row];
+            test[classes[row]]++;
+         }
+         for(c=0;c<nclass;c++){
+            int invalid=!train[c] || (require_test && !test[c]);
+            if(invalid){
+               failures++;
+               if(!*first){
+                  if(nested)snprintf(first,sizeof(first),"inner folds of outer %s: fold %s has no class %d in its training set (label %s)",outer->name[o],plan->name[f],c+1,labels[c]);
+                  else snprintf(first,sizeof(first),"fold %s has no class %d in its %s set (label %s)",plan->name[f],c+1,!train[c]?"training":"test",labels[c]);
+               }
+            }
+            if(!detailed && !invalid)continue;
+            if(!detailed)fputs("# InvalidClassCoverage\t",fp);
+            mvpa_1D_text(fp,nested?outer->name[o]:plan->name[f]);fputc('\t',fp);
+            mvpa_1D_text(fp,nested?plan->name[f]:"NA");fputc('\t',fp);
+            mvpa_1D_text(fp,labels[c]);fprintf(fp,"\t%d\t%d\t%s\n",train[c],test[c],
+               !train[c]?"MISSING_TRAIN":require_test && !test[c]?"MISSING_REQUIRED_TEST":
+               !test[c] && plan->kind!=THD_CV_TRAIN_ONLY?"MISSING_TEST_ALLOWED":"PASS");
+         }
+      }
+   }
+   free(train);free(test);
+   if(detailed || failures){
+      fprintf(fp,"# %sClassCoverage\t%s\t%d invalid fold/class combination(s)\n",nested?"Inner":"Outer",failures?"FAIL":"PASS",failures);
+      fflush(fp);
+   }
+   if(failures)ERROR_exit(PROGRAM_NAME ": class coverage failed: %s; see coverage rows for all failures",first);
+}
+
 /* Check model-independent training requirements without allocating a solver.
    Inner-fold indexes are local to the outer training set. */
 static void mvpa_validate_fold_inputs(const THD_foldplan *plan,
@@ -4447,8 +4562,10 @@ int main( int argc, char **argv )
    if(two_tables && !transfer.column)mvpa_check_table_overlap(ss,plan);
    if(transfer.column)mvpa_transfer_check(&transfer,ss,plan,two_tables,continuous,encoding?design_columns:target_column);
    if(save_model && !train_only && (plan->kind!=THD_CV_FIXED || plan->nfold!=1))ERROR_exit(PROGRAM_NAME ": -save_model v1 requires one explicit fixed train/test partition; save within-subject transfer models one subject at a time");
-   if( !continuous && !THD_foldplan_check_classes(plan,class_id,nclass,transfer.column!=NULL,err,sizeof(err)) )
-     ERROR_exit(PROGRAM_NAME ": %s",err) ;
+   if(!continuous){
+     mvpa_class_group_coverage(ss,class_id,class_label,nclass,validate_only,quiet);
+     mvpa_class_fold_coverage(plan,NULL,class_id,class_label,nclass,transfer.column!=NULL,validate_only);
+   }
    if(partition_column && !continuous)mvpa_fixed_class_order(plan,class_id,class_label,nclass);
    if(partition_column && nperm>0)mvpa_fixed_permutation_blocks(ss,plan,permute_within);
    if(partition_column && !transfer.column && !quiet)
@@ -4469,6 +4586,9 @@ int main( int argc, char **argv )
      if(show_folds)THD_nested_foldplan_print(nested,ss,stdout);
      if(!quiet)INFO_message(PROGRAM_NAME ": nested tuning: %d feature-count, %d PCA-count, %d penalty candidates; inner groups from %s",nfeature_counts?nfeature_counts:1,npca_counts?npca_counts:1,logistic_class?logistic_ngrid:svm_class?svm_ngrid:nlambda?nlambda:1,inner_column);
    }
+
+   if(!continuous && nested)
+     mvpa_class_fold_coverage(plan,nested,class_id,class_label,nclass,0,validate_only);
 
    if(nuisance_columns){
      int j;

@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Read and validate AFNI-style tables, access columns, select rows, and
+read labeled matrices. Program-specific interpretation stays with callers.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dXmatTool, 1dTrdm.
+Start with the types and contracts below; implementations are in thd_datatable.c.
+Check ownership and row/column identity before transforming a table.
+*/
 #ifndef _THD_DATATABLE_HEADER_
 #define _THD_DATATABLE_HEADER_
 

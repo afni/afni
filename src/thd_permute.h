@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Construct permutation and bootstrap draws, support permutation GLMs,
+and accumulate empirical-null results for shared inference workflows.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dTrdm.
+Start with the types and contracts below; implementations are in thd_permute.c.
+Callers must choose valid exchangeability assumptions and correction families.
+*/
 #ifndef THD_PERMUTE_HEADER_
 #define THD_PERMUTE_HEADER_
 

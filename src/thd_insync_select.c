@@ -1,4 +1,19 @@
-/* M1/M2: normalize source rows and construct original-time schedules.
+/*
+PJM Wants you to know && How to read this file:
+
+Begin with INSYNC_schedule_build and the structures in thd_insync_select.h.
+It normalizes repeated table rows into sources, validates header/time metadata,
+expands manual or Xmat selections, and attaches source-local censor masks.
+Next read xmat_prepare/xmat_expand for -xmat_* and expand for -window/-step.
+INSYNC_schedule_report writes the original-time provenance used by -check_table.
+Source/row/TR indices are zero based; run numbers are one based. Segment stop
+indices are inclusive. Censoring changes eligibility, never these coordinates.
+-censor and -censor_column intersect with each source's Xmat mask. The driver
+adds -zcensor after reading samples; this file performs no BOLD sample reads.
+Schedule objects own their allocations; caller options/table are borrowed.
+Extend schedule construction before modifying the estimator's packing logic.
+*/
+/* Normalize source rows and construct original-time schedules.
    Deliberately no DSET_load/THD_get_voxel calls: preflight reads headers only. */
 #include "mrilib.h"
 #include "thd_insync_select.h"
@@ -10,6 +25,7 @@
 
 #define SEL_FAIL(...) ERROR_exit("3dInSync selection: " __VA_ARGS__)
 
+/* Allocate checked zeroed schedule storage; allocation failure is fatal. */
 static void *allocate(size_t n, size_t size)
 {
    void *p;
@@ -19,11 +35,13 @@ static void *allocate(size_t n, size_t size)
    return p;
 }
 
+/* Parse a bounded decimal option/table integer; reject trailing text and
+   overflow with a fatal diagnostic. */
 int INSYNC_selection_int(const char *value, int minimum, const char *name)
 {
    char *end; long n;
    if(!value || !*value) SEL_FAIL("%s requires an integer",name);
-   /* strtol accepts whitespace and signs: our new indices are decimal digits. */
+   /* strtol accepts whitespace and signs: indices here require decimal digits. */
    for(end=(char *)value; *end; end++)
       if(*end<'0' || *end>'9') SEL_FAIL("%s: '%s' is not a decimal integer",name,value);
    errno=0; n=strtol(value,&end,10);
@@ -32,15 +50,20 @@ int INSYNC_selection_int(const char *value, int minimum, const char *name)
    return (int)n;
 }
 
+/* Determine whether options/table metadata require the original-time
+   selection driver rather than static estimation. */
 int INSYNC_selection_requested(const INSYNC_options *o, THD_datatable *t)
 {
    const char *cols[]={"Selection","Segment","StartTR","StopTR","Xmat","XmatFull"};
    int i;
+   if(INSYNC_MISSING_LOCAL(o->missing_policy) || o->diagnostic_draws || o->summary_weight_given) return 1;
    if(o->temporal_censor || o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given || o->min_valid_given || o->min_valid_frac_given || o->combine_given || o->segment_center_given || o->window || o->step_given || o->run_starts || o->tr_given || o->xmat_blocks || o->xmat_stims || o->xmat_runs || o->xmat_threshold_given || o->xmat_across_runs) return 1;
    if(t) for(i=0;i<6;i++) if(THD_datatable_column(t,(char *)cols[i])>=0) return 1;
    return 0;
 }
 
+/* Sort normalized source identities so repeated subject/condition rows can
+   share a single dataset. */
 static int source_compare(const void *a, const void *b)
 {
    const INSYNC_source *x=a,*y=b;
@@ -48,6 +71,8 @@ static int source_compare(const void *a, const void *b)
    return c?c:strcmp(x->condition,y->condition);
 }
 
+/* Compare nominal segment identity and coordinates; ignore source identity
+   when checking aligned schedules. */
 static int segment_key(const INSYNC_segment *x,const INSYNC_segment *y)
 {
    int c;
@@ -61,12 +86,14 @@ static int segment_key(const INSYNC_segment *x,const INSYNC_segment *y)
    return strcmp(x->segment,y->segment);
 }
 
+/* Order segments by source, then their selection/segment coordinates. */
 static int by_source(const void *a,const void *b)
 {
    const INSYNC_segment *x=a,*y=b;
    return x->source!=y->source?(x->source<y->source?-1:1):segment_key(x,y);
 }
 
+/* Order nominal segment identities for schedule validation. */
 static int by_segment_identity(const void *a,const void *b)
 {
    const INSYNC_segment *x=a,*y=b;
@@ -81,6 +108,8 @@ static int by_segment_identity(const void *a,const void *b)
    same condition. This also checks intervals producing zero windows. */
 static void xmat_counts(FILE *,const INSYNC_schedule *);
 
+/* Require matching requested segments across sources before window
+   expansion; failures identify the offending subject/condition. */
 static void validate_nominal(INSYNC_schedule *s)
 {
    int i,j,k;
@@ -127,6 +156,8 @@ static int selection_key(const INSYNC_segment *x,const INSYNC_segment *y)
    return x->window?segment_key(x,y):0;
 }
 
+/* Order expanded segments into contiguous selection groups for
+   estimation/reporting. */
 static int by_selection(const void *a,const void *b)
 {
    const INSYNC_segment *x=a,*y=b;
@@ -134,6 +165,8 @@ static int by_selection(const void *a,const void *b)
    return c?c:by_source(a,b);
 }
 
+/* Append an owned segment record, growing storage safely; preserve original-
+   time coordinates for reporting and sample reads. */
 static void add_segment(INSYNC_schedule *s,int *capacity,int source,int row,
                         const char *label,const char *segment,int run,int start,int stop,int window)
 {
@@ -155,6 +188,8 @@ static void add_segment(INSYNC_schedule *s,int *capacity,int source,int row,
    if(!e->label || !e->segment) SEL_FAIL("cannot copy selection labels");
 }
 
+/* -window/-step: retain the requested interval and emit full windows within
+   it; short intervals are counted rather than padded. */
 static void expand(INSYNC_schedule *s,int *cap,const INSYNC_options *o,int source,int row,
                    const char *label,const char *segment,int run,int start,int stop)
 {
@@ -191,11 +226,15 @@ static double header_tr(THD_3dim_dataset *d)
    return tr;
 }
 
+/* Compare sampling intervals with the existing relative tolerance used for
+   header/-tr consistency. */
 static int same_tr(double a,double b)
 {
    return fabs(a-b)<=fmax(1.e-6,1.e-6*fmax(a,b));
 }
 
+/* -run_starts: parse run boundaries on the original timeline and validate
+   ascending, in-range starts. */
 static void run_starts(INSYNC_schedule *s,const char *list)
 {
    char *copy,*p,*next; int n=1,i=0;
@@ -216,6 +255,8 @@ static void run_starts(INSYNC_schedule *s,const char *list)
    free(copy);
 }
 
+/* Require a mask/atlas dataset to share the reference spatial grid without
+   loading its samples. */
 static void check_header(THD_3dim_dataset *first,const char *name,const char *kind)
 {
    THD_3dim_dataset *d;
@@ -239,6 +280,7 @@ static long metadata_integer(const char **cursor,const char *name,const char *pa
    *cursor=end; return value;
 }
 
+/* Check a serialized Xmat metadata list against expected original-time indices. */
 static void metadata_list(const THD_xmat *x,const char *name,int n,const int *expected)
 {
    const char *p=THD_xmat_attr(x,name); int count=0;
@@ -318,6 +360,7 @@ static THD_xmat *design_read(INSYNC_schedule *s,const char *path)
    s->design[s->ndesign++]=x; return x;
 }
 
+/* Look up an exact Xmat stimulus label; return -1 if unavailable. */
 static int stim_index(const THD_xmat *x,const char *label)
 {
    int j; for(j=0;j<x->nstim;j++) if(!strcmp(x->stim[j].label,label)) return j;
@@ -348,6 +391,8 @@ static void matching_full(const THD_xmat *x,const THD_xmat *f)
    }
 }
 
+/* -xmat_*: read/cache design metadata, reconcile full and censored designs,
+   choose runs/stimuli, and populate source-local original-time masks. */
 static void xmat_prepare(INSYNC_schedule *s,const INSYNC_options *o,THD_datatable *t,int xc,int fc)
 {
    int i,j,k,reference=0; THD_xmat *ref; char *copy,*p,*next;
@@ -361,7 +406,7 @@ static void xmat_prepare(INSYNC_schedule *s,const INSYNC_options *o,THD_datatabl
       f=s->full[i]=fc>=0?design_read(s,DT_CELL(t,source->row,fc)):x;
       if(fc>=0) matching_full(x,f);
       if(x->nfull!=s->ntime) SEL_FAIL("Subj %s: Xmat NRowFull %d differs from input length %d",source->subject,x->nfull,s->ntime);
-      if(o->xmat_blocks && f->nrow!=f->nfull) SEL_FAIL("Subj %s: censored Xmat needs matching uncensored XmatFull for block boundaries",source->subject);
+      if((o->xmat_blocks || o->diagnostic_draws) && f->nrow!=f->nfull) SEL_FAIL("Subj %s: censored Xmat needs matching uncensored XmatFull for block boundaries",source->subject);
       if(source->row<s->source[reference].row) reference=i;
       if(x->tr>0 && f->tr>0 && !same_tr(x->tr,f->tr)) SEL_FAIL("Xmat RowTR mismatch");
       {
@@ -435,6 +480,8 @@ static void xmat_prepare(INSYNC_schedule *s,const INSYNC_options *o,THD_datatabl
    }
 }
 
+/* Attach stimulus/block/aggregate provenance to newly emitted segments and
+   their requested interval. */
 static void tag_expansion(INSYNC_schedule *s,int first,int requested,int stim,int block,int aggregate)
 {
    int i;
@@ -442,6 +489,8 @@ static void tag_expansion(INSYNC_schedule *s,int first,int requested,int stim,in
    for(i=requested;i<s->nrequested;i++){ s->requested[i].stimulus=stim; s->requested[i].block=block; s->requested[i].aggregate=aggregate; }
 }
 
+/* -xmat_blocks: convert selected stimulus support into requested blocks and
+   optional summaries, retaining run-local boundaries. */
 static void xmat_expand(INSYNC_schedule *s,const INSYNC_options *o,int *cap)
 {
    int i,j,r,k;
@@ -483,6 +532,7 @@ static void xmat_expand(INSYNC_schedule *s,const INSYNC_options *o,int *cap)
 }
 
 static void token(FILE *,const char *);
+/* Print design support diagnostics to help identify incompatible Xmat schedules. */
 static void xmat_counts(FILE *fp,const INSYNC_schedule *s)
 {
    int i,j,r,k;
@@ -511,6 +561,8 @@ static void xmat_counts(FILE *fp,const INSYNC_schedule *s)
    }
 }
 
+/* Intersect an existing nt-entry keep mask with a finite binary censor file;
+   malformed or mismatched vectors are fatal. */
 void INSYNC_apply_censor(unsigned char *keep,int nt,const char *path)
 {
    MRI_IMAGE *im=mri_read_1D((char *)path),*f; float *v; int i;
@@ -525,6 +577,8 @@ void INSYNC_apply_censor(unsigned char *keep,int nt,const char *path)
    mri_free(f);
 }
 
+/* Apply global/source censor vectors to source masks, then record each
+   segment own/common retained coverage for reports. */
 static void censor_counts(INSYNC_schedule *s,const INSYNC_options *o,THD_datatable *t,int cc)
 {
    int i,j,k; unsigned char *common=allocate(s->ntime,1), *global=allocate(s->ntime,1);
@@ -532,7 +586,9 @@ static void censor_counts(INSYNC_schedule *s,const INSYNC_options *o,THD_datatab
    if(o->censor_name) INSYNC_apply_censor(global,s->ntime,o->censor_name);
    for(i=0;i<s->nsource;i++){
       unsigned char *keep=s->keep+(size_t)i*s->ntime;
-      if(cc>=0) INSYNC_apply_censor(keep,s->ntime,DT_CELL(t,s->source[i].row,cc));
+      if(cc>=0) INSYNC_apply_censor(keep,s->source[i].ntime,DT_CELL(t,s->source[i].row,cc));
+      /* Aligned tail truncation never compresses or shifts original time. */
+      for(j=s->source[i].ntime;j<s->ntime;j++) keep[j]=0;
       /* The global censor belongs to each source mask, too. */
       for(j=0;j<s->ntime;j++) keep[j]&=global[j];
       for(j=0;j<s->ntime;j++) common[j]&=keep[j];
@@ -549,6 +605,10 @@ static void censor_counts(INSYNC_schedule *s,const INSYNC_options *o,THD_datatab
    free(common); free(global);
 }
 
+/* Build an owned source/schedule object from borrowed options/table:
+   validate identities, geometry and TR, expand selections, and attach
+   source-local censor masks. Errors are fatal; free with
+   INSYNC_schedule_free. */
 INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t)
 {
    INSYNC_schedule *s=allocate(1,sizeof(*s));
@@ -560,6 +620,13 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
    int cols[5],xc,fc,cc;
    if(!t || t->nrow<1 || t->icol_subj<0 || t->icol_input<0)
       SEL_FAIL("preflight requires a nonempty table with explicit Subj and InputFile");
+   if(!INSYNC_MISSING_LOCAL(o->missing_policy) &&
+      (o->block_drop_common==2 || o->block_weight || o->summary_weight))
+      SEL_FAIL("component block admission and valid-sample weights require -missing pairwise or interp");
+   if(INSYNC_MISSING_LOCAL(o->missing_policy) && o->temporal_mode &&
+      (o->temporal_mode!=INSYNC_TNULL_TIMESHIFT || !o->temporal_censor))
+      SEL_FAIL("source-local missing temporal inference requires timeshift with -temporal_censor joint_shift; censored phases remain unsupported");
+   if(o->diagnostic_draws && o->check_table) SEL_FAIL("-missing_diagnostics requires sample loading, not -check_table");
    if(o->combine_pool && (o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given)) SEL_FAIL("block-summary options cannot be combined with -combine_blocks pool");
    if(o->segment_center_given && !o->combine_pool) SEL_FAIL("-segment_center requires -combine_blocks pool");
    if(o->step_given && !o->window) SEL_FAIL("-step requires -window");
@@ -594,8 +661,8 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
    if(!o->temporal_mode && (o->nnull || o->temporal_tail_given)) SEL_FAIL("-nnull/-temporal_tail require -temporal_null");
    if(o->temporal_mode && o->nnull<20) SEL_FAIL("-temporal_null requires -nnull >= 20");
    if(o->min_shift_given && o->temporal_mode!=INSYNC_TNULL_TIMESHIFT) SEL_FAIL("-min_shift applies only to timeshift");
-   if(o->temporal_mode && (o->do_zcensor || o->missing_policy==INSYNC_MISSING_COMMON))
-      SEL_FAIL("temporal nulls require intact runs: -zcensor/-missing common await M8a");
+   if(o->temporal_mode && !INSYNC_MISSING_LOCAL(o->missing_policy) && (o->do_zcensor || o->missing_policy==INSYNC_MISSING_COMMON))
+      SEL_FAIL("temporal nulls require intact runs: -zcensor/-missing common are not supported");
    if((o->roi_only || o->roi_sel || o->matrix_name) && !o->atlas_name) SEL_FAIL("ROI options require -atlas");
    s->source=allocate(t->nrow,sizeof(*s->source)); row_source=allocate(t->nrow,sizeof(int));
    for(r=0;r<t->nrow;r++){
@@ -642,14 +709,16 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
       x->tr=tr;
       if(!first){ first=d; s->ntime=x->ntime; s->tr=tr; }
       else {
-         if(x->ntime!=s->ntime) SEL_FAIL("row %d Subj %s: %d TRs; expected %d",x->row+1,x->subject,x->ntime,s->ntime);
+         if(x->ntime!=s->ntime && !INSYNC_MISSING_LOCAL(o->missing_policy)) SEL_FAIL("row %d Subj %s: %d TRs; expected %d",x->row+1,x->subject,x->ntime,s->ntime);
+         if(x->ntime>s->ntime) s->ntime=x->ntime;
          if(!EQUIV_GRIDS(first,d)) SEL_FAIL("row %d Subj %s is off-grid",x->row+1,x->subject);
          if(tr>0 && s->tr>0 && !same_tr(tr,s->tr)) SEL_FAIL("header TR mismatch for Subj %s",x->subject);
          if(tr<=0 || s->tr<=0) s->tr=0; /* no fabricated shared seconds */
          DSET_delete(d);
       }
-      if(x->ntime<3) SEL_FAIL("Subj %s has fewer than 3 TRs",x->subject);
+      if(x->ntime<(INSYNC_MISSING_LOCAL(o->missing_policy)?1:3)) SEL_FAIL("Subj %s has fewer than 3 TRs",x->subject);
    }
+   if(s->ntime<3) SEL_FAIL("the nominal timeline needs at least 3 TRs");
    {
       int reference_count=1, begin=0;
       while(reference_count<s->nsource && !strcmp(s->source[0].subject,s->source[reference_count].subject)) reference_count++;
@@ -663,6 +732,11 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
       }
    }
    if(nsub<3) SEL_FAIL("need at least 3 subjects; found %d",nsub);
+   /* Validate -between_groups for header-only preflight as well as estimation. */
+   if(o->between_groups){
+      for(i=1;i<s->nsource;i++) if(strcmp(s->source[0].group,s->source[i].group)) break;
+      if(i==s->nsource) SEL_FAIL("-between_groups requires at least two groups");
+   }
    for(i=0;i<s->nsource;i++){
       int members=0;
       for(j=0;j<s->nsource;j++) if(!strcmp(s->source[i].condition,s->source[j].condition) &&
@@ -753,12 +827,14 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
          if(end-begin<3 || (o->temporal_mode==INSYNC_TNULL_TIMESHIFT && (long long)end-begin-2LL*o->min_shift+1<2))
             SEL_FAIL("run %d too short for temporal null/min_shift (%d TRs)",rr+1,end-begin);
          for(ss=0;ss<s->nsource;ss++) for(tt=begin;tt<end;tt++) if(!o->temporal_censor && !s->keep[(size_t)ss*s->ntime+tt])
-            SEL_FAIL("temporal nulls require intact runs: run %d Subj %s censored TR %d; censor support awaits M8a",rr+1,s->source[ss].subject,tt);
+            SEL_FAIL("temporal nulls require intact runs: run %d Subj %s censored TR %d; use -temporal_censor joint_shift for censored timeshift inference",rr+1,s->source[ss].subject,tt);
       }
    }
    return s;
 }
 
+/* Release schedule-owned strings, source tables, designs, segments, and
+   masks; caller options and input table remain untouched. */
 void INSYNC_schedule_free(INSYNC_schedule *s)
 {
    int i; if(!s) return;
@@ -788,6 +864,8 @@ static void token(FILE *fp,const char *value)
    }
 }
 
+/* -check_table and selection analysis: write normalized sources, intervals,
+   and coverage manifests in original-time coordinates. */
 int INSYNC_schedule_report(const INSYNC_options *o, THD_datatable *t, INSYNC_schedule *s)
 {
    char manifest[THD_MAX_NAME],summary[THD_MAX_NAME]; FILE *fp,*report;
@@ -798,7 +876,7 @@ int INSYNC_schedule_report(const INSYNC_options *o, THD_datatable *t, INSYNC_sch
    fp=fopen(manifest,"w"); if(!fp) SEL_FAIL("cannot write '%s'",manifest);
    report=fopen(summary,"w"); if(!report){ fclose(fp); remove(manifest); SEL_FAIL("cannot write '%s'",summary); }
    fprintf(fp,"# 3dInSync selection schema 3; TSV escapes: backslash, tab, newline, CR\n");
-   fprintf(fp,"# BlockSummary: %s; BlockMissing: %s; BlockWeight: equal; MinBlocks: %d; MinBlockFraction: %.17g\n",o->block_summary==INSYNC_SUMMARY_MEDIAN?"median":"fisher_mean",o->block_drop_common?"drop_common":"require_all",o->min_blocks,o->min_block_frac);
+   fprintf(fp,"# BlockSummary: %s; BlockMissing: %s; BlockWeight: equal; MinBlocks: %d; MinBlockFraction: %.17g\n",o->block_summary==INSYNC_SUMMARY_MEDIAN?"median":"fisher_mean",o->block_drop_common==2?"drop_component":o->block_drop_common?"drop_common":"require_all",o->min_blocks,o->min_block_frac);
    fprintf(fp,"# GlobalCensor: "); token(fp,o->censor_name?o->censor_name:"NA"); fputc('\n',fp);
    if(o->xmat_blocks) fprintf(fp,"# XmatThreshold: %.17g; inclusive full-design peak fraction; overlap allowed; Blocks: %s; AcrossRuns: %d\n",o->xmat_threshold,o->xmat_blocks==2?"by_stim":"each",o->xmat_across_runs);
    fprintf(fp,"Subject\tCondition\tGroup\tSelectionID\tSelectionLabel\tSegmentID\tRole\tRun\tRunStartTR\tStartTR\tStopTR\tOriginalStartTR\tOriginalStopTR\tNominalN\tCensorKeptN\tTRSeconds\tSourceRow\tInputFile\tPolicy\tStimulus\tBlock\tSourceKeptN\tXmat\tXmatFull\tCensor\tParentSelectionID\tComponentSelectionID\n");
@@ -876,6 +954,8 @@ int INSYNC_schedule_report(const INSYNC_options *o, THD_datatable *t, INSYNC_sch
    return 0;
 }
 
+/* Header-only entry point: build, report, and release a schedule without
+   estimating ISC or reading BOLD samples. */
 int INSYNC_check_table(const INSYNC_options *o, THD_datatable *t)
 {
    INSYNC_schedule *s=INSYNC_schedule_build(o,t);
@@ -883,4 +963,5 @@ int INSYNC_check_table(const INSYNC_options *o, THD_datatable *t)
    INSYNC_schedule_free(s); return status;
 }
 
+/* Write a table-safe token using the same escaping rules as schedule reports. */
 void INSYNC_selection_token(FILE *fp,const char *value){ token(fp,value); }

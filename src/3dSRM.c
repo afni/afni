@@ -12,87 +12,86 @@
 
 #define PROGRAM_NAME "3dSRM"
 
-/*----------------------------------------------------------------------------
-  How to read this file
-  =====================
+/*
+PJM Wants you to know && How to read this file:
 
-  3dSRM is the command-line driver around the dataset-agnostic Shared Response
-  Model numerics in thd_srm.c / thd_srm.h (read the header comment of
-  thd_srm.h first: it defines the model X_i ~= W_i S + noise, the matrix
-  layouts, and the gauge).  Everything in THIS file is about getting data in
-  and results out: tables, datasets, censoring, normalization, cross-validation
-  bookkeeping, scores, and output files.  No SRM math lives here.
+3dSRM is the command-line driver around the dataset-agnostic Shared Response
+Model numerics in thd_srm.c / thd_srm.h (read the header comment of
+thd_srm.h first: it defines the model X_i ~= W_i S + noise, the matrix
+layouts, and the gauge).  Everything in THIS file is about getting data in
+and results out: tables, datasets, censoring, normalization, cross-validation
+bookkeeping, scores, and output files.  No SRM math lives here.
 
-  Program flow (main, at the bottom of the file)
-    1. Options are parsed into an srm_opts.  Many combinations are refused
-       early with a message saying what to do instead.
-    2. The data table (-dataTable / -dataTableFile; thd_datatable.h) is read.
-       One row per subject (x run, or x item).  Optional expansions: an Xmat
-       column on the item axis becomes one row per stimulus column (-axis item),
-       and -lss expands LSS event tables.
-    3. Two side paths leave main early:
-         -model_in : place NEW subjects into a saved model (srm_run_model_in).
-         -apply_W  : apply each subject's saved W to OTHER data of that subject
-                     (srm_run_apply_W).
-    4. The data stage (functions named srm_data_*), in this order:
-         table   -> subjects, runs, groups, masks           (srm_data_table / _items)
-         shape   -> open headers: lengths, grids, masks      (srm_data_shape / _items)
-         read    -> masked time series onto the input timeline (srm_data_read / _items)
-         censor  -> each subject's censored points: interp, drop, or missing
-         timeline-> keep the retained time points, pack the columns
-         normalize-> z-score each feature within each run, drop constant features
-       With -compress (the default when every subject has more voxels than time
-       points) the stage runs one subject at a time and each subject's data X
-       (voxels x T) is replaced by a small factor R (rank x T) with R'R = X'X
-       (srm_data_compress_stream).
-    5. The fit (SRM_fit_multistart), canonicalized so components are ordered
-       by variance (SRM_canonicalize).
-    6. Optional held-out scoring (-cv run | loso), possibly per group
-       (-cv_fit, -balance), per condition (-score_by), with permutation tests
-       (-nperm) and reliability (-reliability).
-    7. Outputs: PREFIX.S.1D, .objective.1D, .rho2.1D, .fit.txt, .scores*.txt,
-       the model file PREFIX.srm (SRM_save_model), and per-subject projections,
-       W maps, reconstructions and R^2 maps.
+Program flow (main, at the bottom of the file)
+  1. Options are parsed into an srm_opts.  Many combinations are refused
+     early with a message saying what to do instead.
+  2. The data table (-dataTable / -dataTableFile; thd_datatable.h) is read.
+     One row per subject (x run, or x item).  Optional expansions: an Xmat
+     column on the item axis becomes one row per stimulus column (-axis item),
+     and -lss expands LSS event tables.
+  3. Two side paths leave main early:
+       -model_in : place NEW subjects into a saved model (srm_run_model_in).
+       -apply_W  : apply each subject's saved W to OTHER data of that subject
+                   (srm_run_apply_W).
+  4. The data stage (functions named srm_data_*), in this order:
+       table   -> subjects, runs, groups, masks           (srm_data_table / _items)
+       shape   -> open headers: lengths, grids, masks      (srm_data_shape / _items)
+       read    -> masked time series onto the input timeline (srm_data_read / _items)
+       censor  -> each subject's censored points: interp, drop, or missing
+       timeline-> keep the retained time points, pack the columns
+       normalize-> z-score each feature within each run, drop constant features
+     With -compress (the default when every subject has more voxels than time
+     points) the stage runs one subject at a time and each subject's data X
+     (voxels x T) is replaced by a small factor R (rank x T) with R'R = X'X
+     (srm_data_compress_stream).
+  5. The fit (SRM_fit_multistart), canonicalized so components are ordered
+     by variance (SRM_canonicalize).
+  6. Optional held-out scoring (-cv run | loso), possibly per group
+     (-cv_fit, -balance), per condition (-score_by), with permutation tests
+     (-nperm) and reliability (-reliability).
+  7. Outputs: PREFIX.S.1D, .objective.1D, .rho2.1D, .fit.txt, .scores*.txt,
+     the model file PREFIX.srm (SRM_save_model), and per-subject projections,
+     W maps, reconstructions and R^2 maps.
 
-  A short glossary for readers new to neuroimaging
-    dataset     An AFNI 3D+time file (BRIK/HEAD or NIfTI): a 3D grid of voxels,
-                with one volume (also called a sub-brick) per time point or per
-                statistic.  THD_open_dataset / DSET_* macros access it.
-    voxel       One grid location (a "feature" here).  A subject's matrix X has
-                one row per voxel inside the mask, one column per sample.
-    mask        A dataset whose nonzero voxels are the ones analyzed.  s->vox[f]
-                is the grid index of feature f.
-    grid        The geometry (dimensions, voxel size, orientation) of a dataset;
-                EQUIV_GRIDS checks two datasets share it.
-    TR          Repetition time: seconds between successive volumes.
-    run         One continuous scan.  Runs are concatenated in time; z-scoring,
-                interpolation and -cv folds respect the run boundaries.
-    censoring   Dropping time points with too much head motion.  afni_proc.py
-                writes a 0/1 censor file and, in its residual dataset ("errts"),
-                sets censored volumes to zero.  Its regression design
-                X.xmat.1D (thd_xmat.h) records RunStart (where runs begin in a
-                concatenated input) and GoodList (the uncensored time points).
-    time vs item axis
-                -axis time: columns are time points of one stimulus that every
-                subject experienced in sync (a movie).  -axis item: columns are
-                trial or condition betas, matched across subjects by label.
-    z-scoring   Per feature: subtract the mean and divide by the standard
-                deviation, here separately within each run (-zscore run).
+A short glossary for readers new to neuroimaging
+  dataset     An AFNI 3D+time file (BRIK/HEAD or NIfTI): a 3D grid of voxels,
+              with one volume (also called a sub-brick) per time point or per
+              statistic.  THD_open_dataset / DSET_* macros access it.
+  voxel       One grid location (a "feature" here).  A subject's matrix X has
+              one row per voxel inside the mask, one column per sample.
+  mask        A dataset whose nonzero voxels are the ones analyzed.  s->vox[f]
+              is the grid index of feature f.
+  grid        The geometry (dimensions, voxel size, orientation) of a dataset;
+              EQUIV_GRIDS checks two datasets share it.
+  TR          Repetition time: seconds between successive volumes.
+  run         One continuous scan.  Runs are concatenated in time; z-scoring,
+              interpolation and -cv folds respect the run boundaries.
+  censoring   Dropping time points with too much head motion.  afni_proc.py
+              writes a 0/1 censor file and, in its residual dataset ("errts"),
+              sets censored volumes to zero.  Its regression design
+              X.xmat.1D (thd_xmat.h) records RunStart (where runs begin in a
+              concatenated input) and GoodList (the uncensored time points).
+  time vs item axis
+              -axis time: columns are time points of one stimulus that every
+              subject experienced in sync (a movie).  -axis item: columns are
+              trial or condition betas, matched across subjects by label.
+  z-scoring   Per feature: subtract the mean and divide by the standard
+              deviation, here separately within each run (-zscore run).
 
-  The main structs
-    srm_opts   every command-line option (one instance, in main).
-    srm_subj   one subject: table rows, mask voxels, data x (nvox x T), the
-               censoring masks, and (-compress) the factor R in place of x.
-    srm_data   the whole table's data stage: subjects, runs, the input and the
-               retained timelines, the item keys.
-    srm_ctx    what the cross-validation code needs: subjects, T, K, params,
-               the -score_by factors.  Subsets of subjects get their own
-               shallow srm_ctx (srm_ctx_subset).
-    srm_folds  the held-out sets (runs, time blocks, or item levels); either one
-               common plan (thd_crossval.h) or each subject's own folds.
-    srm_cvres  the held-out scores [subject][fold][metric], per-level scores,
-               held-out projections, voxelwise R^2.
-------------------------------------------------------------------------------*/
+The main structs
+  srm_opts   every command-line option (one instance, in main).
+  srm_subj   one subject: table rows, mask voxels, data x (nvox x T), the
+             censoring masks, and (-compress) the factor R in place of x.
+  srm_data   the whole table's data stage: subjects, runs, the input and the
+             retained timelines, the item keys.
+  srm_ctx    what the cross-validation code needs: subjects, T, K, params,
+             the -score_by factors.  Subsets of subjects get their own
+             shallow srm_ctx (srm_ctx_subset).
+  srm_folds  the held-out sets (runs, time blocks, or item levels); either one
+             common plan (thd_crossval.h) or each subject's own folds.
+  srm_cvres  the held-out scores [subject][fold][metric], per-level scores,
+             held-out projections, voxelwise R^2.
+*/
 
 /*! Threads the fits may use (for the memory estimate). */
 static int srm_omp_threads( void )

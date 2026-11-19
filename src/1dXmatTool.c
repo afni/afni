@@ -145,6 +145,21 @@ static void usage(void)
 "  -uncensored FILE  Matching full-row design, recommended with censoring.\n"
 "                    Determines column support before censoring. Dimensions,\n"
 "                    labels, stimuli, run starts and retained values must match.\n"
+"  -drop_censored_trials  Opt in to dropping exactly zero-support IM trials.\n"
+"                    Requires -uncensored; applies to split, export_manifest,\n"
+"                    and describe/validate. Empty original or cross-run IMs\n"
+"                    still fail. Partially supported trials are not dropped.\n"
+"                    Use the SAME input/reference, zero_tol and drop option\n"
+"                    for validation, splitting and manifest export. Refit LSS\n"
+"                    from the new split matrices before using the manifest.\n"
+"                    Events must keep ALL original Run/Volume rows, including\n"
+"                    excluded trials. Output Volume is compact; SourceVolume\n"
+"                    and Sample retain the original run-local trial identity.\n"
+"                    Export also writes PREFIX.excluded.1D (possibly empty),\n"
+"                    with original identities, labels, columns and reasons.\n"
+"                    Split .columns.1D maps mark removed columns Kept=0.\n"
+"                    -validate -for lss checks the reduced per-run designs;\n"
+"                    FullModel diagnostics still describe the original input.\n"
 "  -runs LIST        One-based run numbers, e.g. '1,3..5' (default: all).\n"
 "  -zero_tol T       Relative support threshold, 0 <= T < 1 (default: 1e-6).\n"
 "                    A column's peak within a run must exceed T times its\n"
@@ -171,7 +186,8 @@ static void usage(void)
 "* Use -uncensored X.nocensor.xmat.1D for censored designs, including\n"
 "  -validate -for lss and -validate -for reml. Quote paths containing spaces\n"
 "  or parentheses. Without a reference, pre-censor fractions are unknown.\n"
-"* Fully censored IM: error 'loses its support after censoring'. Without a\n"
+"* Fully censored IM: by default, error 'loses its support after censoring'.\n"
+"  Use -drop_censored_trials to explicitly omit it. Without a\n"
 "  reference: 'trial may be fully censored'. Zero in the full design: check\n"
 "  onsets/basis. Cross-run support is a separate ownership error.\n"
 "* Partial loss: -describe -warn_support_frac 0.5 can warn 'support fraction\n"
@@ -183,7 +199,7 @@ static void usage(void)
 "  e.g. 'run 4: 11 of 12 assigned IM columns retained after censoring'.\n"
 "* Event mismatch: 'missing event for run R volume V' or 'events contain\n"
 "  unmatched rows'. Check run/volume indexing and event/design correspondence;\n"
-"  censoring alone does not establish the cause. Lost IMs fail extraction.\n"
+"  censoring alone does not establish the cause. Lost IMs fail by default.\n"
 "* Failed extraction preserves NKept; unavailable derived diagnostics use -1\n"
 "  (condition: nan). Unknown support ratios use unknown / JSON null.\n"
 "  Missing timeline metadata suppresses support/count diagnostics and input\n"
@@ -198,8 +214,10 @@ static void usage(void)
 "  Does not refit, normalize or demean. Values retain thd_xmat float precision;\n"
 "  original double-precision text is not preserved beyond that precision.\n"
 "* IM columns must belong to exactly one run. Zero/cross-run IM support, or\n"
-"  loss of an IM column's support after censoring, is an error. Fully censored\n"
-"  runs also fail. Without -uncensored, support is known only in retained rows.\n"
+"  loss of an IM column's support after censoring, is an error by default.\n"
+"  -drop_censored_trials permits only the latter, with exactly zero support.\n"
+"  Fully censored runs and runs losing every IM trial still fail.\n"
+"  Without -uncensored, support is known only in retained rows.\n"
 "* Rebuilds stimulus ranges; preserves column labels and per-stimulus Basis\n"
 "  attributes. Input stimulus IDs may be sparse; output IDs are compact.\n"
 "  Drops GLTs and ColumnMasks (and records their removal).\n"
@@ -282,7 +300,7 @@ static void comment_text(FILE *f,const char *p)
  * and TR queries, but the latter must resolve to exactly one design column.
  */
 typedef struct {
-   int describe,validate,select,manifest,drop_glts;
+   int describe,validate,select,manifest,drop_glts,drop_censored;
    int show_trs,tr_fraction,tr_threshold_set;
    double tr_threshold;
    double warn_support_frac;
@@ -510,7 +528,7 @@ static int xt_report(const THD_xmat *a,const THD_xmat *u,const XT_options *o,dou
    if(json)fputs("  \"runs\": [\n",json);
    puts("# Columns: Run Start Length NKept NColumns Rank ResidualDF Condition ZeroColumns DuplicatePairs Valid");
    for(run=0;(input_timeline || inferred) && run<a->nrun;run++){
-      THD_xmat_run_map *map=NULL;THD_xmat *x=THD_xmat_extract_run(a,u,run,zero_tol,&map,err,sizeof(err));
+      THD_xmat_run_map *map=NULL;THD_xmat *x=THD_xmat_extract_run_censored(a,u,run,zero_tol,o->drop_censored,&map,err,sizeof(err));
       THD_xmat_diagnostic rd={0};int nr=0,nc=-1,r,diagnosed=0;ok=x!=NULL;
       for(r=0;r<a->nrow;r++)if(THD_xmat_run_of(a,a->good[r])==run)nr++;
       if(ok){nr=x->nrow;nc=x->ncol;ok=THD_xmat_diagnostics(x,o->rank_tol,&rd,err,sizeof(err));diagnosed=ok;}
@@ -806,25 +824,45 @@ static int xt_events_valid(const THD_xmat *a,const THD_datatable *events,
    return 1;
 }
 
-/* Write one run using borrowed resources, marking matched rows in seen. */
-static int xt_manifest_run(const THD_xmat *a,const THD_xmat *x,
+/* Match events to original run-local IM positions, including excluded trials.
+ * Only surviving betas advance local; source_volume and Sample never compact.
+ * original is the uncensored run map in drop mode, otherwise NULL. All streams
+ * and maps are borrowed; every matched event is marked in caller-owned seen. */
+static int xt_manifest_run(const THD_xmat *a,
    const THD_xmat_run_map *m,const XT_options *o,const THD_datatable *events,
    int ri,int vi,int ci,int ii,int im,int run,const char *beta,FILE *fp,
+   FILE *excluded,const THD_xmat_run_map *original,
    int *seen,int *total,char *err,int nerr)
 {
-   int c,r,local=0;
-   for(c=0;c<x->ncol;c++)if(m->columns[c]>=a->stim[im].bot && m->columns[c]<=a->stim[im].top){
-      for(r=0;r<events->nrow;r++){int rr,vv;xt_integer(DT_CELL(events,r,ri),&rr);xt_integer(DT_CELL(events,r,vi),&vv);if(rr==run+1 && vv==local)break;}
-      if(r==events->nrow){snprintf(err,nerr,"missing event for run %d volume %d; check run/volume indexing and event-to-design correspondence",run+1,local);return 0;}
-      seen[r]=1;(*total)++;
-      {char *sample=THD_zzprintf(NULL,"%s_r%02d_v%04d",o->subject,run+1,local),*sel=NULL;
+   int c,r,local=0,source_volume=0;
+   const THD_xmat_run_map *identity=original?original:m;
+   for(c=0;c<identity->ncol;c++)if(identity->columns[c]>=a->stim[im].bot && identity->columns[c]<=a->stim[im].top){
+      int source_column=identity->columns[c];
+      int dropped=m->inverse[source_column]<0;
+      for(r=0;r<events->nrow;r++){int rr,vv;xt_integer(DT_CELL(events,r,ri),&rr);xt_integer(DT_CELL(events,r,vi),&vv);if(rr==run+1 && vv==source_volume)break;}
+      if(r==events->nrow){snprintf(err,nerr,"missing event for run %d volume %d; check run/volume indexing and event-to-design correspondence",run+1,source_volume);return 0;}
+      seen[r]=1;
+      if(dropped){
+         char *sample=THD_zzprintf(NULL,"%s_r%02d_v%04d",o->subject,run+1,source_volume);
+         THD_1D_print_token(excluded,sample);fputc(' ',excluded);
+         THD_1D_print_token(excluded,o->subject);fprintf(excluded," %d %d ",run+1,source_volume);
+         THD_1D_print_token(excluded,ii>=0?DT_CELL(events,r,ii):a->collab[source_column]);
+         fputc(' ',excluded);THD_1D_print_token(excluded,DT_CELL(events,r,ci));
+         fputc(' ',excluded);THD_1D_print_token(excluded,a->fname);
+         fprintf(excluded," %d fully_censored\n",source_column);
+         fprintf(stderr,"# Dropped run %d original volume %d: %s (fully censored)\n",run+1,source_volume,a->collab[source_column]);
+         free(sample);source_volume++;continue;
+      }
+      (*total)++;
+      {char *sample=THD_zzprintf(NULL,"%s_r%02d_v%04d",o->subject,run+1,source_volume),*sel=NULL;
        THD_1D_print_token(fp,sample);fputc(' ',fp);THD_1D_print_token(fp,o->subject);
-       fprintf(fp," %d ",run+1);THD_1D_print_token(fp,ii>=0?DT_CELL(events,r,ii):a->collab[m->columns[c]]);
+       fprintf(fp," %d ",run+1);THD_1D_print_token(fp,ii>=0?DT_CELL(events,r,ii):a->collab[source_column]);
        fputc(' ',fp);THD_1D_print_token(fp,DT_CELL(events,r,ci));fprintf(fp," %d ",local);THD_1D_print_token(fp,a->fname);
-       fprintf(fp," %d ",m->columns[c]);
+       fprintf(fp," %d ",source_column);
+       if(o->drop_censored)fprintf(fp,"%d ",source_volume);
        if(o->manifest_format && !strcmp(o->manifest_format,"selected"))sel=THD_zzprintf(NULL,"%s[%d]",beta,local);
        THD_1D_print_token(fp,sel?sel:beta);fputc('\n',fp);free(sel);free(sample);}
-      local++;
+      local++;source_volume++;
    }
    return 1;
 }
@@ -832,14 +870,14 @@ static int xt_manifest_run(const THD_xmat *a,const THD_xmat *x,
 /* Join extracted IM columns to explicit event labels using (Run, Volume).
  * Volume counts IM betas within each run; it is not a time-point index or a
  * column number in the full design. Require a bijection between event rows
- * and extracted trials so missing, duplicate or surplus labels cannot silently
- * shift trial identities. Emit either whole-bucket + Volume rows or selected
+ * and original trials (including exclusions), so missing, duplicate or surplus
+ * labels cannot silently shift trial identities. Emit either whole-bucket + Volume rows or selected
  * InputFile[volume] rows. Any failure removes the partially written manifest.
  */
 static int xt_manifest(const THD_xmat *a,const THD_xmat *u,const XT_options *o,const char *prefix,double tol)
 {
-   THD_datatable *events=NULL;FILE *fp=NULL;int ri,vi,ci,ii,run,r,im=-1,ok=0,total=0;
-   int *seen=NULL;char *path=NULL,err[1024]="";
+   THD_datatable *events=NULL;FILE *fp=NULL,*excluded=NULL;int ri,vi,ci,ii,run,r,im=-1,ok=0,total=0,excluded_owned=0;
+   int *seen=NULL;char *path=NULL,*excluded_path=NULL,err[1024]="";
    if(!prefix || !o->events || !o->subject || (!o->beta && !o->beta_pattern) || (o->beta && o->beta_pattern)){
       fprintf(stderr,"** export needs -prefix -events -subject and exactly one of -beta/-beta_pattern\n");return 1;
    }
@@ -854,21 +892,30 @@ static int xt_manifest(const THD_xmat *a,const THD_xmat *u,const XT_options *o,c
       if(!seen){snprintf(err,sizeof(err),"out of memory");ok=0;}
    }
    if(ok){path=THD_zzprintf(NULL,"%s.trials.1D",prefix);fp=xt_open(path);ok=fp!=NULL;}
+   if(ok && o->drop_censored){
+      excluded_path=THD_zzprintf(NULL,"%s.excluded.1D",prefix);
+      excluded=xt_open(excluded_path);ok=excluded!=NULL;excluded_owned=ok;
+      if(ok)fputs("# Columns: Sample Subj Run SourceVolume Item Condition Xmat XColumn Reason\n",excluded);
+   }
    if(ok){
       fprintf(fp,"# 1dXmatTool trial manifest; Run is one-based, Volume/XColumn are zero-based.\n");
-      fprintf(fp,"# Columns: Sample Subj Run Item Condition Volume %s InputFile\n",
-         o->manifest_format && !strcmp(o->manifest_format,"selected")?"SourceXmat SourceColumn":"Xmat XColumn");
+      fprintf(fp,"# Columns: Sample Subj Run Item Condition Volume %s %sInputFile\n",
+         o->manifest_format && !strcmp(o->manifest_format,"selected")?"SourceXmat SourceColumn":"Xmat XColumn",
+         o->drop_censored?"SourceVolume ":"");
    }
    for(run=0;ok && run<a->nrun;run++){
-      THD_xmat_run_map *m=NULL;
-      THD_xmat *x=THD_xmat_extract_run(a,u,run,tol,&m,err,sizeof(err));
+      THD_xmat_run_map *m=NULL,*original=NULL;
+      THD_xmat *full=NULL;
+      THD_xmat *x=THD_xmat_extract_run_censored(a,u,run,tol,o->drop_censored,&m,err,sizeof(err));
+      if(x && o->drop_censored)full=THD_xmat_extract_run(u,NULL,run,tol,&original,err,sizeof(err));
       char *beta=xt_beta_name(o,run+1);
-      if(!x || !beta){
+      if(!x || !beta || (o->drop_censored && !full)){
          if(!*err)snprintf(err,sizeof(err),"beta pattern must contain exactly one {run}");
          ok=0;
-      }else ok=xt_manifest_run(a,x,m,o,events,ri,vi,ci,ii,im,run,beta,fp,
-                               seen,&total,err,sizeof(err));
+      }else ok=xt_manifest_run(a,m,o,events,ri,vi,ci,ii,im,run,beta,fp,
+                               excluded,original,seen,&total,err,sizeof(err));
       THD_xmat_free(x);THD_xmat_run_map_free(m);free(beta);
+      THD_xmat_free(full);THD_xmat_run_map_free(original);
    }
    /* Having found every design trial is insufficient: extra event rows would
     * otherwise leave incorrect or stale metadata unnoticed. */
@@ -876,10 +923,12 @@ static int xt_manifest(const THD_xmat *a,const THD_xmat *u,const XT_options *o,c
       snprintf(err,sizeof(err),"events contain unmatched rows: row %d, run %s volume %s; check run/volume indexing and event-to-design correspondence",
                r+1,DT_CELL(events,r,ri),DT_CELL(events,r,vi));ok=0;
    }
+   if(excluded){if(!xt_close(excluded,excluded_path))ok=0;excluded=NULL;}
    if(ok){ok=xt_close(fp,path);fp=NULL;}
    if(ok)printf("# Exported %d trials -> %s\n",total,path);
    if(fp){fclose(fp);unlink(path);}if(!ok)fprintf(stderr,"** manifest: %s\n",*err?err:"cannot write output");
-   free(path);free(seen);THD_free_datatable(events);return !ok;
+   if(!ok && excluded_path && excluded_owned)unlink(excluded_path);
+   free(excluded_path);free(path);free(seen);THD_free_datatable(events);return !ok;
 }
 
 /* ========================================================================
@@ -1439,6 +1488,11 @@ static int xt_export_betas(const XT_beta_options *o)
 static const char *xt_options_error(const XT_options *ops,const char *in,
    const char *unc,const char *prefix,const char *runlist,int split)
 {
+   if(ops->drop_censored && (!unc || ops->beta_manifest ||
+      !(split || ops->manifest || ops->describe || ops->validate)))
+      return "-drop_censored_trials requires -uncensored and split, export_manifest, or describe/validate";
+   if(ops->drop_censored && ops->force_inferred_metadata)
+      return "-drop_censored_trials requires explicit timeline metadata";
    if(ops->show_trs && (!ops->tr_threshold_set || ops->groups || prefix ||
       ((ops->columns!=NULL)+(ops->labels!=NULL)+(ops->stimuli!=NULL)!=1)))
       return "-show_trs requires one threshold and one column/stimulus selection; no -prefix or -select_groups";
@@ -1494,7 +1548,7 @@ static int xt_error(char *err,int nerr,const char *message)
 /* Prepare and write run subsets. The caller releases resources and rolls back
    completed files on failure; done tracks precisely which paths we own. */
 static int xt_split_write(const THD_xmat *a,const THD_xmat *u,
-   const char *prefix,const char *runlist,double tol,XT_split *out,
+   const char *prefix,const char *runlist,double tol,int drop_censored,XT_split *out,
    char *err,int nerr)
 {
    int i,j,fd;struct stat st;
@@ -1520,7 +1574,7 @@ static int xt_split_write(const THD_xmat *a,const THD_xmat *u,
    for(i=0;i<out->n;i++){
       if(out->runs->ar[i]<1 || out->runs->ar[i]>a->nrun) return xt_error(err,nerr,"-runs index outside the input run range");
       for(j=0;j<i;j++) if(out->runs->ar[i]==out->runs->ar[j]) return xt_error(err,nerr,"duplicate run in -runs");
-      out->x[i]=THD_xmat_extract_run(a,u,out->runs->ar[i]-1,tol,out->maps+i,err,nerr);
+      out->x[i]=THD_xmat_extract_run_censored(a,u,out->runs->ar[i]-1,tol,drop_censored,out->maps+i,err,nerr);
       if(!out->x[i]) return 1;
       out->paths[3*i]=outname(prefix,out->runs->ar[i],"xmat.1D");
       out->paths[3*i+1]=outname(prefix,out->runs->ar[i],"rows.1D");
@@ -1555,10 +1609,10 @@ static int xt_split_write(const THD_xmat *a,const THD_xmat *u,
 
 /* Release split storage once, removing only newly created outputs on failure. */
 static int xt_split_runs(const THD_xmat *a,const THD_xmat *u,
-   const char *prefix,const char *runlist,double tol)
+   const char *prefix,const char *runlist,double tol,int drop_censored)
 {
    XT_split out={0};char err[1024]="";int i;
-   int rc=xt_split_write(a,u,prefix,runlist,tol,&out,err,sizeof(err));
+   int rc=xt_split_write(a,u,prefix,runlist,tol,drop_censored,&out,err,sizeof(err));
    if(out.fp)fclose(out.fp);
    if(rc){
       fprintf(stderr,"** 1dXmatTool: %s\n",err);
@@ -1593,6 +1647,7 @@ int main(int argc,char **argv)
       if(!strcmp(argv[i],"-validate")){ops.validate=1;continue;}
       if(!strcmp(argv[i],"-export_manifest")){ops.manifest=1;continue;}
       if(!strcmp(argv[i],"-drop_glts")){ops.drop_glts=1;continue;}
+      if(!strcmp(argv[i],"-drop_censored_trials")){ops.drop_censored=1;continue;}
       if(!strcmp(argv[i],"-split_runs")){split=1;continue;}
       if(i+1>=argc){fprintf(stderr,"** missing argument after %s\n",argv[i]);return 1;}
       if(!strcmp(argv[i],"-infile")) in=argv[++i];
@@ -1665,7 +1720,7 @@ int main(int argc,char **argv)
    if(a && !unc && a->nrow<a->nfull && (ops.describe || ops.validate || ops.manifest))
       fprintf(stderr,"# WARNING: support is inferred only from retained rows; supply -uncensored for pre-censor support.\n");
    if(!a || (unc && !u))fprintf(stderr,"** 1dXmatTool: %s\n",err);
-   else if(split)rc=xt_split_runs(a,u,prefix,runlist,tol);
+   else if(split)rc=xt_split_runs(a,u,prefix,runlist,tol,ops.drop_censored);
    else if(ops.show_trs)rc=xt_show_trs(a,u,&ops,runlist);
    else if(ops.describe||ops.validate)rc=xt_report(a,u,&ops,tol);
    else if(ops.compare)rc=xt_compare(a,&ops);

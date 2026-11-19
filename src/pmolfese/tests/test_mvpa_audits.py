@@ -223,8 +223,23 @@ with tempfile.TemporaryDirectory(prefix='thd_mvpa_audits.') as temp:
         run(base + ['-save_confusion', sentinel, option, sentinel], fail='different files')
         assert sentinel.read_text() == 'keep me\n'
     run(base + ['-prefix', work / 'roi_collision', '-save_summary_scores', work / 'roi_collision.roi.1D'], fail='cannot replace ROI')
-    run(base + ['-method', 'ridge', '-lambda', 'auto', '-prefix', work / 'tuned',
-                '-save_confusion', work / 'tuned.tuning.1D'], fail='filenames must differ')
+    # The unequal-count fixture is valid for outer CV, but s02's A-only run
+    # leaves an inner training split without B/C when lambda is tuned. Keep
+    # that rejection explicit, and use s01's three complete runs to reach the
+    # filename check instead of depending on validation order.
+    run(base + ['-method', 'ridge', '-lambda', 'auto', '-prefix', work / 'bad_inner'],
+        fail='class coverage failed')
+    tuning_base = base.copy()
+    tuning_base[tuning_base.index('-dataTableFile') + 1] = work / 's01.1D'
+    run(tuning_base + ['-method', 'ridge', '-lambda', 'auto', '-prefix', work / 'valid_tuning',
+                      '-save_confusion', work / 'valid_tuning.conf.1D'])
+    assert (work / 'valid_tuning.tuning.1D').is_file()
+    assert (work / 'valid_tuning.conf.1D').is_file()
+    tuning_sentinel = work / 'tuned.tuning.1D'
+    tuning_sentinel.write_text('keep tuning audit\n')
+    run(tuning_base + ['-method', 'ridge', '-lambda', 'auto', '-prefix', work / 'tuned',
+                      '-save_confusion', tuning_sentinel], fail='filenames must differ')
+    assert tuning_sentinel.read_text() == 'keep tuning audit\n'
     run(base + ['-method', 'ridge', '-save_coefficients', work / 'coef',
                 '-save_confusion', work / 'coef.coefficients.1D'], fail='filenames must differ')
     continuous = base.copy(); continuous[continuous.index('-mode') + 1] = 'decode'

@@ -49,6 +49,102 @@ def write(path, data, attrs):
         f.write('# </matrix>\n')
 
 
+def check_censored_trials(w, tools, run):
+    """A lost middle trial must not shift labels; verify LSS against pinv."""
+    full = np.loadtxt(w / 'U.xmat.1D')
+    attrs = header(w / 'U.xmat.1D')
+    bot, top = map(int, attrs['BasisColumns_000001'].split(':'))
+    lost = bot + 1
+    keep = np.flatnonzero(full[:, lost] == 0)
+    censored = dict(attrs, GoodList=','.join(map(str, keep)))
+    write(w / 'lost.1D', full[keep], censored)
+    common = [tools['tool'], '-infile', 'lost.1D', '-uncensored', 'U.xmat.1D']
+    drop = ['-drop_censored_trials']
+    run(common + ['-split_runs', '-prefix', 'strict_lost'], 'loses its support')
+    assert not list(w.glob('strict_lost.*'))
+    run([tools['tool'], '-infile', 'lost.1D', '-split_runs', *drop,
+         '-prefix', 'no_reference'], 'requires -uncensored')
+    run(common + drop + ['-validate', '-for', 'lss'])
+    run(common + drop + ['-split_runs', '-prefix', 'dropped'])
+    x = np.loadtxt(w / 'dropped.r01.xmat.1D')
+    h = header(w / 'dropped.r01.xmat.1D')
+    assert h['XmatDropCensoredTrials'] == 'exact-zero'
+    assert ints(h['GoodList']) == list(keep[keep < 80])
+    columns = ints(h['XmatSourceColumns'])
+    assert lost not in columns
+    np.testing.assert_array_equal(x.astype('float32'), full[np.ix_(keep[keep < 80], columns)].astype('float32'))
+    run([tools['lss'], '-nodata', '-matrix', 'dropped.r01.xmat.1D',
+         '-save1D', 'dropped.est.1D'])
+    b, e = map(int, h['BasisColumns_000001'].split(':'))
+    nuisance, trials = np.delete(x, np.s_[b:e+1], axis=1), x[:, b:e+1]
+    ref = np.column_stack([
+        np.linalg.pinv(np.column_stack([nuisance, trials.sum(axis=1)-trials[:, j], trials[:, j]]))[-1]
+        for j in range(trials.shape[1])])
+    np.testing.assert_allclose(np.loadtxt(w / 'dropped.est.1D'), ref, atol=2e-6, rtol=2e-5)
+    events = '# Columns: Run Volume Condition Item\n' + ''.join(
+        f'{r} {v} {("face", "scene", "object")[v % 3]} item{r}_{v}\n'
+        for r, n in ((1, 4), (2, 5)) for v in range(n))
+    (w / 'drop.events.1D').write_text(events)
+    export = ['-export_manifest', '-events', 'drop.events.1D', '-subject', 's01',
+              '-beta_pattern', 'beta.r{run}.nii']
+    run(common + drop + export + ['-prefix', 'drop_manifest'])
+    rows = table(w / 'drop_manifest.trials.1D')
+    assert len(rows) == 8
+    r1 = [r for r in rows if r['Run'] == '1']
+    assert [r['Volume'] for r in r1] == ['0', '1', '2']
+    assert [r['SourceVolume'] for r in r1] == ['0', '2', '3']
+    assert [r['Condition'] for r in r1] == ['face', 'object', 'face']
+    assert [r['Item'] for r in r1] == ['item1_0', 'item1_2', 'item1_3']
+    assert [int(r['XColumn']) for r in r1] == [bot, bot+2, bot+3]
+    assert [r['Sample'] for r in r1] == ['s01_r01_v0000', 's01_r01_v0002', 's01_r01_v0003']
+    excluded = table(w / 'drop_manifest.excluded.1D')
+    assert len(excluded) == 1
+    assert excluded[0]['SourceVolume'] == '1' and excluded[0]['Condition'] == 'scene'
+    assert excluded[0]['Reason'] == 'fully_censored'
+    run(common + drop + export + ['-prefix', 'drop_selected', '-manifest_format', 'selected'])
+    selected = table(w / 'drop_selected.trials.1D')
+    assert [r['InputFile'] for r in selected[:3]] == ['beta.r01.nii[0]', 'beta.r01.nii[1]', 'beta.r01.nii[2]']
+    # Full manifests retain the same identities, and strict output stays unchanged.
+    run([tools['tool'], '-infile', 'U.xmat.1D', *export, '-prefix', 'full_manifest'])
+    full_rows = table(w / 'full_manifest.trials.1D')
+    assert len(full_rows) == 9 and 'SourceVolume' not in full_rows[0]
+    assert [r['Sample'] for r in rows] == [r['Sample'] for r in full_rows if r['XColumn'] != str(lost)]
+    run([tools['tool'], '-infile', 'U.xmat.1D', '-uncensored', 'U.xmat.1D',
+         *drop, *export, '-prefix', 'no_loss'])
+    assert not table(w / 'no_loss.excluded.1D')
+    # Excluded events must still be accounted for; rollback both output files.
+    (w / 'drop.events.1D').write_text(events.replace('1 1 scene item1_1\n', ''))
+    run(common + drop + export + ['-prefix', 'missing_dropped'], 'missing event')
+    assert not list(w.glob('missing_dropped.*'))
+    (w / 'drop.events.1D').write_text(events)
+    (w / 'collision.excluded.1D').write_text('existing report\n')
+    run(common + drop + export + ['-prefix', 'collision'], 'cannot create')
+    assert (w / 'collision.excluded.1D').read_text() == 'existing report\n'
+    assert not (w / 'collision.trials.1D').exists()
+    # A tiny retained tail is NOT a fully censored trial, even below zero_tol.
+    tiny = full.copy(); tiny[0, lost] = 1.e-9
+    write(w / 'tiny_full.1D', tiny, attrs)
+    write(w / 'tiny_lost.1D', tiny[keep], censored)
+    run([tools['tool'], '-infile', 'tiny_lost.1D', '-uncensored', 'tiny_full.1D',
+         *drop, '-split_runs', '-prefix', 'tiny_lost'], 'loses its support')
+    # Dropping does not excuse invalid original designs or reference mismatches.
+    empty = full.copy(); empty[:, lost] = 0
+    write(w / 'empty_original.1D', empty, attrs)
+    run([tools['tool'], '-infile', 'empty_original.1D', '-uncensored', 'empty_original.1D',
+         *drop, '-split_runs', '-prefix', 'empty_original_split'], 'no nonzero value')
+    cross = full.copy(); cross[100, lost] = 1
+    write(w / 'cross_original.1D', cross, attrs)
+    run([tools['tool'], '-infile', 'cross_original.1D', '-uncensored', 'cross_original.1D',
+         *drop, '-split_runs', '-prefix', 'cross_original_split'], 'cross-run support')
+    run([tools['tool'], '-infile', 'lost.1D', '-uncensored', 'cross_original.1D',
+         *drop, '-split_runs', '-prefix', 'mismatch_split'], 'differs at a retained matrix value')
+    # Losing every trial in a run must not produce a nuisance-only LSS matrix.
+    keep_none = np.flatnonzero(np.all(full[:, bot:bot+4] == 0, axis=1))
+    write(w / 'none.1D', full[keep_none], dict(attrs, GoodList=','.join(map(str, keep_none))))
+    run([tools['tool'], '-infile', 'none.1D', '-uncensored', 'U.xmat.1D',
+         *drop, '-split_runs', '-prefix', 'none_split'], 'loses every IM trial')
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--tool', required=True)
@@ -350,6 +446,7 @@ def main():
     write(w / 'tiny.1D', tiny, attrs)
     split(src='tiny.1D', prefix='tiny')
     split(src='tiny.1D', prefix='exact', extra=['-zero_tol', '0'], error='cross-run support')
+    check_censored_trials(w, tools, run)
     print(f'1dXmatTool checks passed; max synthetic beta error {worst:.3g}; artifacts: {w}')
     if temporary:
         temporary.cleanup()

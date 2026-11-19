@@ -168,7 +168,7 @@ def main():
     # Deterministic seed changes really change the synchronized temporal draws.
     q=run(base+['-temporal_null','timeshift','-seed','42']); assert (root/(p+'.temporal_draws.tsv')).read_bytes()!=(root/(q+'.temporal_draws.tsv')).read_bytes()
     # Header-only validation: censoring outside a window still invalidates its run.
-    for opts,error in ((['-nnull','20'],'require'),(['-temporal_null','timeshift'],'requires'),(['-temporal_null','phase','-nnull','20','-min_shift','2'],'only'),(['-temporal_null','timeshift','-nnull','20','-min_shift','13'],'too short'),(['-temporal_null','timeshift','-nnull','20','-missing','common'],'M8a'),(['-temporal_null','phase','-nnull','20','-zcensor'],'M8a')):
+    for opts,error in ((['-nnull','20'],'require'),(['-temporal_null','timeshift'],'requires'),(['-temporal_null','phase','-nnull','20','-min_shift','2'],'only'),(['-temporal_null','timeshift','-nnull','20','-min_shift','13'],'too short'),(['-temporal_null','timeshift','-nnull','20','-missing','common'],'intact runs'),(['-temporal_null','phase','-nnull','20','-zcensor'],'intact runs')):
         run(['-window','8','-run_starts','0,24','-check_table']+opts,error=error)
     for mode in ('timeshift','phase'):
         run(base+['-temporal_null',mode],table='censor_subjects.txt',error='intact')

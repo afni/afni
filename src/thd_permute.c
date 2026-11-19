@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Construct permutation and bootstrap draws, support permutation GLMs,
+and accumulate empirical-null results for shared inference workflows.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dTrdm.
+Start with the contracts in thd_permute.h, then the implementation below.
+Callers must choose valid exchangeability assumptions and correction families.
+*/
 /*----------------------------------------------------------------------------
   thd_permute.c -- permutation inference for the general linear model.
 
@@ -810,24 +820,13 @@ THD_resample_set * THD_resample_set_build( int nobs, int nresample, long seed )
    return rset ;
 }
 
-THD_resample_set * THD_resample_set_build_stratified( int nobs, int nresample,
-                                                       long seed, int *block )
+/* Build from borrowed scratch arrays; the public constructor owns them. */
+static THD_resample_set * resample_stratified_fill( int nobs, int nresample,
+   long seed, int *block, int *label, int *size, int *fill, int *member, int *offset )
 {
    THD_resample_set *rset ;
    uint64_t state ;
-   int *label=NULL, *size=NULL, *fill=NULL, *member=NULL, *offset=NULL ;
    int ii,jj,bb,ir,nblock=0 ;
-
-   if( block == NULL ) return THD_resample_set_build(nobs,nresample,seed) ;
-   if( nobs < 2 || nresample < 1 ) return NULL ;
-   if( (size_t)nresample > ((size_t)-1)/((size_t)nobs*sizeof(int)) ) return NULL ;
-
-   label=(int *)malloc(sizeof(int)*(size_t)nobs) ;
-   size =(int *)calloc((size_t)nobs,sizeof(int)) ;
-   fill =(int *)calloc((size_t)nobs,sizeof(int)) ;
-   member=(int *)malloc(sizeof(int)*(size_t)nobs) ;
-   offset=(int *)malloc(sizeof(int)*(size_t)(nobs+1)) ;
-   if( label==NULL || size==NULL || fill==NULL || member==NULL || offset==NULL ) goto bad ;
 
    /* Relabel arbitrary integers by first appearance, matching PERM_scheme. */
    for( ii=0 ; ii<nobs ; ii++ ){
@@ -845,10 +844,10 @@ THD_resample_set * THD_resample_set_build_stratified( int nobs, int nresample,
    }
 
    rset=(THD_resample_set *)calloc(1,sizeof(THD_resample_set)) ;
-   if( rset==NULL ) goto bad ;
+   if( rset==NULL ) return NULL ;
    rset->nobs=nobs ; rset->nresample=nresample ;
    rset->index=(int *)malloc(sizeof(int)*(size_t)nobs*nresample) ;
-   if( rset->index==NULL ){ free(rset) ; rset=NULL ; goto bad ; }
+   if( rset->index==NULL ){ free(rset) ; return NULL ; }
 
    state=(uint64_t)(unsigned long long)seed ^ UINT64_C(0xd1b54a32d192ed03) ;
    for( ir=0 ; ir<nresample ; ir++ ) for( ii=0 ; ii<nobs ; ii++ ){
@@ -856,12 +855,28 @@ THD_resample_set * THD_resample_set_build_stratified( int nobs, int nresample,
       rset->index[(size_t)ir*nobs+ii]
         =member[offset[bb]+resample_index(&state,size[bb])] ;
    }
+   return rset ;
+}
+
+THD_resample_set * THD_resample_set_build_stratified( int nobs, int nresample,
+                                                       long seed, int *block )
+{
+   THD_resample_set *rset=NULL ;
+   int *label=NULL, *size=NULL, *fill=NULL, *member=NULL, *offset=NULL ;
+
+   if( block == NULL ) return THD_resample_set_build(nobs,nresample,seed) ;
+   if( nobs < 2 || nresample < 1 ) return NULL ;
+   if( (size_t)nresample > ((size_t)-1)/((size_t)nobs*sizeof(int)) ) return NULL ;
+
+   label=(int *)malloc(sizeof(int)*(size_t)nobs) ;
+   size =(int *)calloc((size_t)nobs,sizeof(int)) ;
+   fill =(int *)calloc((size_t)nobs,sizeof(int)) ;
+   member=(int *)malloc(sizeof(int)*(size_t)nobs) ;
+   offset=(int *)malloc(sizeof(int)*(size_t)(nobs+1)) ;
+   if( label!=NULL && size!=NULL && fill!=NULL && member!=NULL && offset!=NULL )
+      rset=resample_stratified_fill(nobs,nresample,seed,block,label,size,fill,member,offset) ;
    free(label);free(size);free(fill);free(member);free(offset) ;
    return rset ;
-
-bad:
-   free(label);free(size);free(fill);free(member);free(offset) ;
-   return NULL ;
 }
 
 void THD_resample_set_free( THD_resample_set *rset )
@@ -1041,11 +1056,88 @@ void THD_perm_glm_free( PERM_glm *glm )
    free(glm) ;
 }
 
+typedef struct { matrix MtMinv, tmp, Cq, cmc ; } perm_glm_work ;
+
+/* Fill an initialized GLM using scratch matrices owned by the caller. */
+static int perm_glm_setup_fill( PERM_glm *glm, matrix X, matrix Z, matrix *Ct,
+                                perm_glm_work *work )
+{
+   int nobs=glm->nobs, nreg=glm->nreg, nnuis=glm->nnuis, npar=glm->npar ;
+   int ncon, ii, jj ;
+
+   /* full design: interest columns first, nuisance columns after */
+
+   matrix_create(nobs,npar,&glm->M) ;
+   for( ii=0 ; ii < nobs ; ii++ ){
+      for( jj=0 ; jj < nreg ; jj++ )  glm->M.elts[ii][jj] = X.elts[ii][jj] ;
+      for( jj=0 ; jj < nnuis ; jj++ ) glm->M.elts[ii][nreg+jj] = Z.elts[ii][jj] ;
+   }
+   if( nnuis > 0 ){
+      matrix_equate(Z,&glm->Z) ;
+      matrix_psinv(glm->Z,NULL,&glm->pinvZ) ;
+      if( !ISVALID_MATRIX(glm->pinvZ) ){
+         ERROR_message("permutation GLM: nuisance matrix Z is degenerate") ;
+         return 0 ;
+      }
+   }
+
+   matrix_psinv(glm->M,&work->MtMinv,&glm->pinvM) ;
+   if( !ISVALID_MATRIX(glm->pinvM) || !ISVALID_MATRIX(work->MtMinv) ){
+      ERROR_message("permutation GLM: full design matrix is degenerate") ;
+      return 0 ;
+   }
+
+   glm->rank = perm_matrix_rank(glm->M) ;
+   glm->dof  = nobs - glm->rank ;
+   if( glm->dof < 1 ){
+      ERROR_message("permutation GLM: no residual degrees of freedom") ;
+      return 0 ;
+   }
+   if( glm->rank < npar )
+      WARNING_message("permutation GLM: design has rank %d but %d columns; "
+                      "collinear regressors make the contrast hard to interpret",
+                      glm->rank,npar) ;
+
+   /* contrast: caller's, or "all of X at once" */
+
+   if( Ct != NULL && ISVALID_MATRIX(*Ct) ){
+      if( Ct->cols != npar ){
+         ERROR_message("permutation GLM: contrast has %d columns but the design has %d",
+                       Ct->cols,npar) ;
+         return 0 ;
+      }
+      matrix_equate(*Ct,&glm->Ct) ;
+   } else {
+      matrix_create(nreg,npar,&glm->Ct) ;
+      for( ii=0 ; ii < nreg ; ii++ ) glm->Ct.elts[ii][ii] = 1.0 ;
+   }
+   ncon = glm->Ct.rows ;
+   glm->ncon = ncon ;
+   glm->is_ftest = (ncon > 1) ;
+
+   /* cmc = Ct (M'M)^+ Ct' -- the contrast's variance factor */
+
+   matrix_transpose(glm->Ct,&work->Cq) ;
+   matrix_multiply(work->MtMinv,work->Cq,&work->tmp) ;
+   matrix_multiply(glm->Ct,work->tmp,&work->cmc) ;
+   if( !perm_small_inverse(work->cmc,&glm->cmc_inv) ){
+      ERROR_message("permutation GLM: contrast is not estimable") ;
+      return 0 ;
+   }
+   glm->cvar = (ncon == 1) ? work->cmc.elts[0][0] : 0.0 ;
+   if( ncon == 1 && glm->cvar <= 0.0 ){
+      ERROR_message("permutation GLM: contrast has non-positive variance factor") ;
+      return 0 ;
+   }
+
+   return 1 ;
+}
+
 PERM_glm * THD_perm_glm_setup( matrix X, matrix Z, matrix *Ct )
 {
    PERM_glm *glm ;
-   matrix MtMinv, tmp, Cq, cmc ;
-   int nobs, nreg, nnuis, npar, ncon, ii, jj ;
+   perm_glm_work work ;
+   int nobs, nreg, nnuis, npar, ok ;
 
 ENTRY("THD_perm_glm_setup") ;
 
@@ -1072,85 +1164,16 @@ ENTRY("THD_perm_glm_setup") ;
    matrix_initialize(&glm->M) ;      matrix_initialize(&glm->Z) ;
    matrix_initialize(&glm->pinvM) ;  matrix_initialize(&glm->pinvZ) ;
    matrix_initialize(&glm->Ct) ;     matrix_initialize(&glm->cmc_inv) ;
-   matrix_initialize(&MtMinv) ; matrix_initialize(&tmp) ;
-   matrix_initialize(&Cq) ;     matrix_initialize(&cmc) ;
+   matrix_initialize(&work.MtMinv) ; matrix_initialize(&work.tmp) ;
+   matrix_initialize(&work.Cq) ;     matrix_initialize(&work.cmc) ;
 
    glm->nobs = nobs ; glm->nreg = nreg ; glm->nnuis = nnuis ; glm->npar = npar ;
 
-   /* full design: interest columns first, nuisance columns after */
-
-   matrix_create(nobs,npar,&glm->M) ;
-   for( ii=0 ; ii < nobs ; ii++ ){
-      for( jj=0 ; jj < nreg ; jj++ )  glm->M.elts[ii][jj] = X.elts[ii][jj] ;
-      for( jj=0 ; jj < nnuis ; jj++ ) glm->M.elts[ii][nreg+jj] = Z.elts[ii][jj] ;
-   }
-   if( nnuis > 0 ){
-      matrix_equate(Z,&glm->Z) ;
-      matrix_psinv(glm->Z,NULL,&glm->pinvZ) ;
-      if( !ISVALID_MATRIX(glm->pinvZ) ){
-         ERROR_message("permutation GLM: nuisance matrix Z is degenerate") ;
-         goto BAILOUT ;
-      }
-   }
-
-   matrix_psinv(glm->M,&MtMinv,&glm->pinvM) ;
-   if( !ISVALID_MATRIX(glm->pinvM) || !ISVALID_MATRIX(MtMinv) ){
-      ERROR_message("permutation GLM: full design matrix is degenerate") ;
-      goto BAILOUT ;
-   }
-
-   glm->rank = perm_matrix_rank(glm->M) ;
-   glm->dof  = nobs - glm->rank ;
-   if( glm->dof < 1 ){
-      ERROR_message("permutation GLM: no residual degrees of freedom") ;
-      goto BAILOUT ;
-   }
-   if( glm->rank < npar )
-      WARNING_message("permutation GLM: design has rank %d but %d columns; "
-                      "collinear regressors make the contrast hard to interpret",
-                      glm->rank,npar) ;
-
-   /* contrast: caller's, or "all of X at once" */
-
-   if( Ct != NULL && ISVALID_MATRIX(*Ct) ){
-      if( Ct->cols != npar ){
-         ERROR_message("permutation GLM: contrast has %d columns but the design has %d",
-                       Ct->cols,npar) ;
-         goto BAILOUT ;
-      }
-      matrix_equate(*Ct,&glm->Ct) ;
-   } else {
-      matrix_create(nreg,npar,&glm->Ct) ;
-      for( ii=0 ; ii < nreg ; ii++ ) glm->Ct.elts[ii][ii] = 1.0 ;
-   }
-   ncon = glm->Ct.rows ;
-   glm->ncon = ncon ;
-   glm->is_ftest = (ncon > 1) ;
-
-   /* cmc = Ct (M'M)^+ Ct' -- the contrast's variance factor */
-
-   matrix_transpose(glm->Ct,&Cq) ;
-   matrix_multiply(MtMinv,Cq,&tmp) ;
-   matrix_multiply(glm->Ct,tmp,&cmc) ;
-   if( !perm_small_inverse(cmc,&glm->cmc_inv) ){
-      ERROR_message("permutation GLM: contrast is not estimable") ;
-      goto BAILOUT ;
-   }
-   glm->cvar = (ncon == 1) ? cmc.elts[0][0] : 0.0 ;
-   if( ncon == 1 && glm->cvar <= 0.0 ){
-      ERROR_message("permutation GLM: contrast has non-positive variance factor") ;
-      goto BAILOUT ;
-   }
-
-   matrix_destroy(&MtMinv) ; matrix_destroy(&tmp) ;
-   matrix_destroy(&Cq) ;     matrix_destroy(&cmc) ;
+   ok = perm_glm_setup_fill(glm,X,Z,Ct,&work) ;
+   matrix_destroy(&work.MtMinv) ; matrix_destroy(&work.tmp) ;
+   matrix_destroy(&work.Cq) ;     matrix_destroy(&work.cmc) ;
+   if( !ok ){ THD_perm_glm_free(glm) ; glm=NULL ; }
    RETURN(glm) ;
-
-BAILOUT:
-   matrix_destroy(&MtMinv) ; matrix_destroy(&tmp) ;
-   matrix_destroy(&Cq) ;     matrix_destroy(&cmc) ;
-   THD_perm_glm_free(glm) ;
-   RETURN(NULL) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1171,10 +1194,56 @@ BAILOUT:
     same column space.  A nuisance block contributes nothing but its span, and
     the reduction is what keeps [X Z] full rank.                            */
 
+typedef struct {
+   matrix D, C, Dc, cdc, cdcinv, MD, Cpinv, Ccp, Cv, ident, Zraw ;
+} perm_partition_work ;
+
+static int perm_partition_fill( matrix M, matrix Ct, matrix *X, matrix *Z,
+                                perm_partition_work *work )
+{
+   int ok, pp=M.cols ;
+
+   matrix_psinv(M,&work->D,NULL) ;                  /* D = (M'M)^+ */
+   if( !ISVALID_MATRIX(work->D) ) return 0 ;
+   matrix_transpose(Ct,&work->C) ;                  /* C = Ct' , p x s */
+
+   /* X = M D C (C' D C)^+ */
+   matrix_multiply(work->D,work->C,&work->Dc) ;
+   matrix_multiply(Ct,work->Dc,&work->cdc) ;
+   if( !perm_small_inverse(work->cdc,&work->cdcinv) ) return 0 ;
+   matrix_multiply(M,work->Dc,&work->MD) ;
+   matrix_multiply(work->MD,work->cdcinv,X) ;
+
+   /* Cv = I - C C^+ spans the null space of C', so C'Cv = 0 and the nuisance
+      part of the reparametrization drops out of the contrast exactly.
+      matrix_subtract() writes its result through matrix_create(), which frees
+      the destination first, so it must not alias either input. */
+   matrix_psinv(work->C,NULL,&work->Cpinv) ;              /* Cpinv = C^+ , s x p */
+   if( !ISVALID_MATRIX(work->Cpinv) ) return 0 ;
+   matrix_multiply(work->C,work->Cpinv,&work->Ccp) ;            /* C C^+ , p x p */
+   matrix_identity(pp,&work->ident) ;
+   matrix_subtract(work->ident,work->Ccp,&work->Cv) ;
+
+   /* Z = M Cv */
+   matrix_multiply(M,work->Cv,&work->Zraw) ;
+
+   /* Zraw has as many columns as M but only rank(M)-rank(C) of them are
+      independent, which would leave [X Z] rank deficient and its contrast
+      variance ill-defined.  Only the span matters, so hand back a basis. */
+   if( !ISVALID_MATRIX(work->Zraw) ) return 0 ;
+   if( perm_orth_basis(work->Zraw,Z) < 1 ) return 0 ;
+
+   ok = ISVALID_MATRIX(*X) && ISVALID_MATRIX(*Z) ;
+   if( ok && Z->cols < work->Zraw.cols )
+      INFO_message("design partition: nuisance space reduced from %d columns to "
+                   "a rank-%d basis",work->Zraw.cols,Z->cols) ;
+   return ok ;
+}
+
 int THD_perm_partition_design( matrix M, matrix Ct, matrix *X, matrix *Z )
 {
-   matrix D, C, Dc, cdc, cdcinv, MD, Cpinv, Ccp, Cv, ident, Zraw ;
-   int ok = 0, pp ;
+   perm_partition_work work ;
+   int ok ;
 
 ENTRY("THD_perm_partition_design") ;
 
@@ -1185,57 +1254,21 @@ ENTRY("THD_perm_partition_design") ;
                     Ct.cols,M.cols) ;
       RETURN(0) ;
    }
-   pp = M.cols ;
 
-   matrix_initialize(&D) ;     matrix_initialize(&C) ;
-   matrix_initialize(&Dc) ;    matrix_initialize(&cdc) ;
-   matrix_initialize(&cdcinv); matrix_initialize(&MD) ;
-   matrix_initialize(&Cpinv) ; matrix_initialize(&Ccp) ;
-   matrix_initialize(&Cv) ;    matrix_initialize(&ident) ;
-   matrix_initialize(&Zraw) ;
+   matrix_initialize(&work.D) ;     matrix_initialize(&work.C) ;
+   matrix_initialize(&work.Dc) ;    matrix_initialize(&work.cdc) ;
+   matrix_initialize(&work.cdcinv); matrix_initialize(&work.MD) ;
+   matrix_initialize(&work.Cpinv) ; matrix_initialize(&work.Ccp) ;
+   matrix_initialize(&work.Cv) ;    matrix_initialize(&work.ident) ;
+   matrix_initialize(&work.Zraw) ;
 
-   matrix_psinv(M,&D,NULL) ;                  /* D = (M'M)^+ */
-   if( !ISVALID_MATRIX(D) ) goto DONE ;
-   matrix_transpose(Ct,&C) ;                  /* C = Ct' , p x s */
-
-   /* X = M D C (C' D C)^+ */
-   matrix_multiply(D,C,&Dc) ;
-   matrix_multiply(Ct,Dc,&cdc) ;
-   if( !perm_small_inverse(cdc,&cdcinv) ) goto DONE ;
-   matrix_multiply(M,Dc,&MD) ;
-   matrix_multiply(MD,cdcinv,X) ;
-
-   /* Cv = I - C C^+ spans the null space of C', so C'Cv = 0 and the nuisance
-      part of the reparametrization drops out of the contrast exactly.
-      matrix_subtract() writes its result through matrix_create(), which frees
-      the destination first, so it must not alias either input. */
-   matrix_psinv(C,NULL,&Cpinv) ;              /* Cpinv = C^+ , s x p */
-   if( !ISVALID_MATRIX(Cpinv) ) goto DONE ;
-   matrix_multiply(C,Cpinv,&Ccp) ;            /* C C^+ , p x p */
-   matrix_identity(pp,&ident) ;
-   matrix_subtract(ident,Ccp,&Cv) ;
-
-   /* Z = M Cv */
-   matrix_multiply(M,Cv,&Zraw) ;
-
-   /* Zraw has as many columns as M but only rank(M)-rank(C) of them are
-      independent, which would leave [X Z] rank deficient and its contrast
-      variance ill-defined.  Only the span matters, so hand back a basis. */
-   if( !ISVALID_MATRIX(Zraw) ) goto DONE ;
-   if( perm_orth_basis(Zraw,Z) < 1 ) goto DONE ;
-
-   ok = ISVALID_MATRIX(*X) && ISVALID_MATRIX(*Z) ;
-   if( ok && Z->cols < Zraw.cols )
-      INFO_message("design partition: nuisance space reduced from %d columns to "
-                   "a rank-%d basis",Zraw.cols,Z->cols) ;
-
-DONE:
-   matrix_destroy(&D) ;      matrix_destroy(&C) ;
-   matrix_destroy(&Dc) ;     matrix_destroy(&cdc) ;
-   matrix_destroy(&cdcinv) ; matrix_destroy(&MD) ;
-   matrix_destroy(&Cpinv) ;  matrix_destroy(&Ccp) ;
-   matrix_destroy(&Cv) ;     matrix_destroy(&ident) ;
-   matrix_destroy(&Zraw) ;
+   ok = perm_partition_fill(M,Ct,X,Z,&work) ;
+   matrix_destroy(&work.D) ;      matrix_destroy(&work.C) ;
+   matrix_destroy(&work.Dc) ;     matrix_destroy(&work.cdc) ;
+   matrix_destroy(&work.cdcinv) ; matrix_destroy(&work.MD) ;
+   matrix_destroy(&work.Cpinv) ;  matrix_destroy(&work.Ccp) ;
+   matrix_destroy(&work.Cv) ;     matrix_destroy(&work.ident) ;
+   matrix_destroy(&work.Zraw) ;
    RETURN(ok) ;
 }
 

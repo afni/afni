@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Provide dataset-independent FDR adjustment, running maxima, and a
+shared memory-budget ledger over caller-owned arrays.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dTrdm.
+Start with the contracts in thd_mapinfer.h, then the implementation below.
+Callers define correction families, validity masks, and memory-limit policy.
+*/
 #include "thd_mapinfer.h"
 
 #include <stdlib.h>

@@ -1,4 +1,18 @@
-/* M6 model bundles: absolute shell working directories, local dataset selectors,
+/*
+PJM Wants you to know && How to read this file:
+
+Lifecycle: INSYNC_model_preflight validates -save_pairwise/-isc_* and output
+paths; begin creates the bundle; job writes one selection/condition-pair job;
+finish marks the manifest complete. This module exports, never fits a model.
+Pair maps contain Fisher-z transformed final component correlations. Tables
+represent subjects as crossed pair members; source metadata (Censor, Xmat,
+selections) is not automatically a model covariate. qVars/GLTs are validated.
+Shell quoting and R/AFNI table token validation solve different problems.
+Check both when adding columns or paths. Preserve relative dataset selectors
+and absolute job working directories so scripts work outside the launch cwd.
+Separate 3dISC jobs do not provide joint inference across windows.
+*/
+/* Model bundles: absolute shell working directories, local dataset selectors,
    one crossed-subject model per selection and ordered condition pairing. */
 #include "mrilib.h"
 #include "thd_insync_model.h"
@@ -10,12 +24,15 @@
 #include <fcntl.h>
 #define MODEL_FAIL(...) ERROR_exit("3dInSync model export: " __VA_ARGS__)
 
+/* Allocate checked zeroed model metadata; allocation failure is fatal. */
 static void *alloc(size_t n,size_t size)
 {
    void *p;
    if(size && n>SIZE_MAX/size) MODEL_FAIL("allocation overflow");
    p=calloc(n?n:1,size); if(!p) MODEL_FAIL("cannot allocate model metadata"); return p;
 }
+/* Write one safely single-quoted shell argument; embedded apostrophes are
+   escaped outside the quoted span. */
 static void shell(FILE *fp,const char *s)
 {
    fputc('\'',fp);
@@ -31,6 +48,8 @@ static void token_check(const char *s,const char *what,int name)
    if(name && !(isalpha(*p) || *p=='_')) MODEL_FAIL("invalid %s name '%s'",what,s);
    for(;*p;p++) if(!(isalnum(*p) || *p=='_' || *p=='.' || (!name && (*p=='-' || *p=='+')))) MODEL_FAIL("unrepresentable %s token '%s'",what,s);
 }
+/* Exclude identity, input, censor, and scheduling columns from automatically
+   exported model predictors. */
 static int ignored(const INSYNC_options *o,THD_datatable *t,int c)
 {
    const char *names[]={"Xmat","XmatFull","Selection","Segment","Run","StartTR","StopTR","Censor",o->group_column,o->condition_column,o->censor_column};
@@ -39,12 +58,18 @@ static int ignored(const INSYNC_options *o,THD_datatable *t,int c)
    for(i=0;i<11;i++) if(names[i] && !strcasecmp(names[i],t->cname[c])) return 1;
    return 0;
 }
+/* Join a bundle directory and relative product name; fail instead of
+   truncating the path. */
 static void path(char *dst,const INSYNC_model *m,const char *base)
 {
    if(snprintf(dst,THD_MAX_NAME,"%s/%s",m->directory,base)>=THD_MAX_NAME) MODEL_FAIL("bundle path too long");
 }
+/* Build a deterministic selection/ordered-condition job stem; exported
+   condition numbers are one based. */
 static void jobbase(char *dst,int id,int c,int d)
 { snprintf(dst,96,"sel%06d.c%03d_c%03d",id,c+1,d+1); }
+/* Require an existing output to be a writable regular file and respect AFNI
+   overwrite policy. */
 static void check_path(const char *name)
 {
    struct stat st;
@@ -54,6 +79,8 @@ static void check_path(const char *name)
       if(access(name,W_OK)) MODEL_FAIL("output is not writable: %s",name);
    }
 }
+/* Compare canonical existing paths or canonical parents plus basenames,
+   including destinations not yet created. */
 static int same_path(const char *a,const char *b)
 {
    char pa[PATH_MAX],pb[PATH_MAX],scratch[PATH_MAX],*slash;
@@ -77,22 +104,32 @@ static int same_path(const char *a,const char *b)
    }
    return !strcmp(pa,pb);
 }
+/* Reject bundle output/input and ROI-matrix collisions before creating files. */
 static void check_destination(INSYNC_model *m,const char *name)
 {
    int i;
    check_path(name);
+   if(m->options->counts_name && same_path(name,m->options->counts_name)) MODEL_FAIL("model output collides with counts report: %s",name);
+   if(m->options->missing_name && same_path(name,m->options->missing_name)) MODEL_FAIL("model output collides with missing report: %s",name);
    if(same_path(name,m->options->matrix_name)) MODEL_FAIL("ROI matrix output collides with model bundle: %s",name);
    for(i=0;i<m->schedule->nsource;i++) if(same_path(name,m->schedule->source[i].file)) MODEL_FAIL("model output collides with input: %s",name);
 }
+/* Open an owned bundle text stream after destination preflight; close with
+   closefile. */
 static FILE *openfile(INSYNC_model *m,const char *base)
 {
    char name[THD_MAX_NAME]; FILE *fp; path(name,m,base);
    fp=fopen(name,"w"); if(!fp) MODEL_FAIL("cannot write %s",name); return fp;
 }
+/* Close an owned bundle stream and treat buffered write failures as fatal. */
 static void closefile(FILE *fp)
 { int bad=ferror(fp); if(fclose(fp)) bad=1; if(bad) MODEL_FAIL("failed writing bundle text"); }
+/* Return whether a complete token is a finite numeric value without
+   conversion errors. */
 static int finite_number(const char *s)
 { char *end; double v; errno=0; v=strtod(s,&end); return *s && !*end && isfinite(v) && !errno; }
+/* Validate -isc_qVarCenters or GLT weights, including separators and
+   expected count; does not retain parsed values. */
 static void numeric_list(const char *s,int comma,int expected,const char *what)
 {
    char *copy=strdup(s),*p=copy,*end; int n=0; double value;
@@ -108,6 +145,9 @@ static void numeric_list(const char *s,int comma,int expected,const char *what)
    free(copy);
    if(!n || (expected>=0 && n!=expected)) MODEL_FAIL("%s count does not match qVars",what);
 }
+/* Validate pair-map/model options, covariates and destinations before
+   loading BOLD. Return NULL without -save_pairwise, otherwise an owned model
+   object borrowing options/table/schedule until finish. */
 INSYNC_model *INSYNC_model_preflight(const INSYNC_options *o,THD_datatable *t,const INSYNC_schedule *s,int ns,int nc,const int *sources,char **conditions)
 {
    INSYNC_model *m; int i,j,k,id,c,d,ncols=8,nq=0; char **cols;
@@ -198,6 +238,8 @@ INSYNC_model *INSYNC_model_preflight(const INSYNC_options *o,THD_datatable *t,co
    }
    return m;
 }
+/* Create the model bundle and initial manifests after all model preflight
+   checks have passed. */
 void INSYNC_model_begin(INSYNC_model *m)
 {
    FILE *fp; INSYNC_options report=*m->options; char prefix[THD_MAX_NAME];
@@ -211,9 +253,11 @@ void INSYNC_model_begin(INSYNC_model *m)
    fputs("grep -q '^# Status: complete$' jobs.tsv || { echo 'Incomplete 3dInSync model bundle' >&2; exit 1; }\n",m->master);
    fp=openfile(m,"README.txt");
    fprintf(fp,"Source working directory: %s\n",m->source_directory);
-   fprintf(fp,"3dInSync selection 3dISC bundles\n\nRun with: sh run_all.sh (scripts are never automatically executed).\nOne fit per selection and ORDERED condition pairing, one row per unique subject pair.\nSubjects use stable lexical order; cross-condition r is corr(Subj1/cond1, Subj2/cond2), not an average of both orientations.\nDefault model: 1+(1|Subj1)+(1|Subj2). It estimates an intercept, not a group difference.\nPair maps are Fisher-z of final pair-r (clamp exact endpoints to +/-0.999999).\nBinary masks require every modeled pair finite. Zero placeholders outside the mask must never be included.\nExport is pairwise regardless of the descriptive estimator. Block admission requires every modeled pair finite; the equal-weight aggregate uses the same admitted blocks for all modeled edges.\nSupport bricks: standalone/pool = ValidTR; aggregate = RetainedTR, Eligible, Weight for each ordered schedule segment, repeating per block. Weights are zero when the aggregate fails.\nEach job table references only local numeric filenames; scripts cd to the absolute bundle directory. Moving the bundle requires updating these cd paths.\nIndependent fits do not test changes across selections or correct across windows/voxels. Joint repeated-window models are not generated.\nUser models/GLTs are passed as arguments; R validates formulas, rank and GLT dimensions. qVars are numeric exported covariate1/covariate2 columns only.\n3dISC duplicates dyads and swaps Subj1/Subj2 internally, but does not swap custom covariate1/covariate2 fields. They are lexical pair-slot values; symmetric transforms are NOT inferred. Use explicit scientific model expressions and verify their meaning.\nOriginal source/control metadata are in schedule.selections.tsv; Xmat, Censor and selection controls are excluded from model covariates.\n"); closefile(fp);
+   fprintf(fp,"3dInSync selection 3dISC bundles\n\nRun with: sh run_all.sh (scripts are never automatically executed).\nOne fit per selection and ORDERED condition pairing, one row per unique subject pair.\nSubjects use stable lexical order; cross-condition r is corr(Subj1/cond1, Subj2/cond2), not an average of both orientations.\nDefault model: 1+(1|Subj1)+(1|Subj2). It estimates an intercept, not a group difference.\nPair maps are Fisher-z of final pair-r (clamp exact endpoints to +/-0.999999).\nBinary masks require every modeled pair finite. Zero placeholders outside the mask must never be included.\nExport is pairwise regardless of the descriptive estimator. For error/common, block admission requires every modeled pair finite; the equal-weight aggregate uses the same admitted blocks for all modeled edges.\nFor error/common, support bricks: standalone/pool = ValidTR; aggregate = RetainedTR, Eligible, Weight for each ordered schedule segment, repeating per block. Weights are zero when the aggregate fails.\nEach job table references only local numeric filenames; scripts cd to the absolute bundle directory. Moving the bundle requires updating these cd paths.\nIndependent fits do not test changes across selections or correct across windows/voxels. Joint repeated-window models are not generated.\nUser models/GLTs are passed as arguments; R validates formulas, rank and GLT dimensions. qVars are numeric exported covariate1/covariate2 columns only.\n3dISC duplicates dyads and swaps Subj1/Subj2 internally, but does not swap custom covariate1/covariate2 fields. They are lexical pair-slot values; symmetric transforms are NOT inferred. Use explicit scientific model expressions and verify their meaning.\nFor -missing pairwise/interp: component-specific admission and requested block weights apply. Support bricks alternate OverlapTR/UsedTR for lexical pairs, followed by own ValidTR for first-condition then second-condition subjects. These spatial maps are covariate-design inputs, not automatic inverse-variance weights or scalar qVars.\nFor interp, correlations include bounded fills; OverlapTR/UsedTR/ValidTR remain real observations. Additional support bricks alternate SamplesTR/UsedSamplesTR for pairs, then FilledTR for first-condition and second-condition subjects. Interpolation does not estimate effective df or repair informative missingness.\nOriginal source/control metadata are in schedule.selections.tsv; Xmat, Censor and selection controls are excluded from model covariates.\n"); closefile(fp);
    path(prefix,m,"schedule"); report.prefix=prefix; report.quiet=1; INSYNC_schedule_report(&report,m->table,(INSYNC_schedule *)m->schedule);
 }
+/* -save_pairwise: write one selection/ordered-condition pair-map job,
+   support maps, model table, and runnable script; input arrays are borrowed. */
 void INSYNC_model_job(INSYNC_model *m,int id,int c,int d,THD_3dim_dataset *reference,float **maps,float *mask,float **support,int nsupport,int nvalid,const int *rows)
 {
    char job[96],base[THD_MAX_NAME],name[THD_MAX_NAME],pairs[128],table[128],script[128],maskfile[128],supportfile[128],fit[128];
@@ -237,6 +281,12 @@ void INSYNC_model_job(INSYNC_model *m,int id,int c,int d,THD_3dim_dataset *refer
          EDIT_substitute_brick(out,i,MRI_float,data); EDIT_BRICK_TO_NOSTAT(out,i);
          if(k==0) snprintf(base,sizeof(base),"Z_pair%06d",i+1);
          else if(k==1) strcpy(base,"ModelValid");
+         else if(INSYNC_MISSING_LOCAL(m->options->missing_policy)){
+            if(i<2*nedge) snprintf(base,sizeof(base),"Pair%d_%s",i/2+1,i%2?"UsedTR":"OverlapTR");
+            else if(i<2*nedge+2*m->nsub) snprintf(base,sizeof(base),"ValidTR_C%d_Subj%d",(i-2*nedge)/m->nsub+1,(i-2*nedge)%m->nsub+1);
+            else if(i<4*nedge+2*m->nsub) snprintf(base,sizeof(base),"Pair%d_%s",(i-2*nedge-2*m->nsub)/2+1,i%2?"UsedSamplesTR":"SamplesTR");
+            else snprintf(base,sizeof(base),"FilledTR_C%d_Subj%d",(i-4*nedge-2*m->nsub)/m->nsub+1,(i-4*nedge-2*m->nsub)%m->nsub+1);
+         }
          else if(nb==1) strcpy(base,"ValidTR");
          else snprintf(base,sizeof(base),"B%d_%s",i/3+1,i%3==0?"RetainedTR":i%3==1?"Eligible":"Weight");
          EDIT_BRICK_LABEL(out,i,base);
@@ -277,12 +327,14 @@ void INSYNC_model_job(INSYNC_model *m,int id,int c,int d,THD_3dim_dataset *refer
    fprintf(m->master,"sh %s\n",script);
    fprintf(m->index,"sel%06d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\n",id,m->conditions[c],m->conditions[d],pairs,maskfile,supportfile,table,script,fit,nvalid);
    /* Support block order is explicit even when segment names differ by condition. */
-   if(nsupport>1) for(i=0;i<nsupport/3;i++){
+   if(!INSYNC_MISSING_LOCAL(m->options->missing_policy) && nsupport>1) for(i=0;i<nsupport/3;i++){
       const INSYNC_segment *e=m->schedule->segment+rows[i];
       fprintf(m->index,"# %s support block %d: run %d original TR %d..%d; bricks %d,%d,%d\n",job,i+1,e->run,e->original_start,e->original_stop,3*i,3*i+1,3*i+2);
    }
    if(fflush(m->index) || ferror(m->master)) MODEL_FAIL("failed writing job index/scripts");
 }
+/* Close bundle manifests and mark successful completion only after all
+   requested jobs have been written. */
 void INSYNC_model_finish(INSYNC_model *m)
 {
    char name[THD_MAX_NAME];

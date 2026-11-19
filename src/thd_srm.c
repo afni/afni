@@ -4,50 +4,52 @@
   (deterministic and probabilistic), model memory management, and the
   linear-algebra kernels they stand on.
                                                      -- P Molfese, Oct 2026
+*/
 
-  How to read this file
-  ---------------------
-  A short glossary for readers new to neuroimaging:
-    voxel       one 3-D pixel of a brain image; here, one row ("feature") of a
-                subject's data matrix.  An atlas parcel or an EEG channel can
-                play the same role.
-    view        one subject's data matrix X_i (nvox[i] features x ntime
-                samples).  Different subjects may have different numbers of
-                voxels; they must share the same columns.
-    time point  one column; in fMRI one volume, acquired every TR (repetition
-                time, typically 1-2 s).  With "items" a column is one trial or
-                condition estimate instead.
-    run         a contiguous block of columns acquired in one scan; the code
-                calls these "segments" (nseg, seglen[]).
-    censoring   time points removed because of head motion etc.  When only
-                some subjects are censored at a time point, the fit treats
-                those values as "missing" for those subjects (SRM_params.obs).
+/*
+PJM Wants you to know && How to read this file:
 
-  The model is X_i ~= W_i S + noise, with W_i' W_i = I (see thd_srm.h).  The
-  file is ordered bottom-up:
-    1. small utilities: error text, a portable random-number generator;
-    2. dense linear algebra on small k x k matrices: a Jacobi eigensolver and
-       the "polar factor" that solves every orthogonal-Procrustes step;
-    3. kernels over the (large) data: W'X and X S', in double precision;
-    4. SRM_fit(): the EM loop for probabilistic SRM and the alternating loop
-       for deterministic SRM, on either the raw data ("voxel" kernel) or on
-       per-subject Gram matrices ("gram" kernel, mathematically identical);
-    5. step 3: a separate W per run, tied to a per-subject anchor;
-    6. step 4: SRM_update(), adding new subjects to a fitted S;
-    7. step 2: using a model (project, reconstruct, fit a new subject's W);
-    8. compression of tall views (nvox >> ntime) to an exact small factor;
-    9. the gauge (rotation) of the solution;
-   10. step 5: held-out metrics, reliability, z-scoring;
-   11. step 6: the plain-text model file.
-  ("step" numbers refer to the order in which the features were added.)
+A short glossary for readers new to neuroimaging:
+  voxel       one 3-D pixel of a brain image; here, one row ("feature") of a
+              subject's data matrix.  An atlas parcel or an EEG channel can
+              play the same role.
+  view        one subject's data matrix X_i (nvox[i] features x ntime
+              samples).  Different subjects may have different numbers of
+              voxels; they must share the same columns.
+  time point  one column; in fMRI one volume, acquired every TR (repetition
+              time, typically 1-2 s).  With "items" a column is one trial or
+              condition estimate instead.
+  run         a contiguous block of columns acquired in one scan; the code
+              calls these "segments" (nseg, seglen[]).
+  censoring   time points removed because of head motion etc.  When only
+              some subjects are censored at a time point, the fit treats
+              those values as "missing" for those subjects (SRM_params.obs).
 
-  Notation used in the comments: k = nfeat (number of shared components),
-  T = ntime, V = nvox[i]; A' is the transpose of A; |A|^2 is the squared
-  Frobenius norm (sum of squares of all entries); <A,B> = sum of A.*B.
-  References: Chen et al. (2015) NIPS, "A Reduced-Dimension fMRI Shared
-  Response Model"; BrainIAK brainiak/funcalign/srm.py (SRM and DetSRM),
-  which this code follows step for step except where noted.
-------------------------------------------------------------------------------*/
+The model is X_i ~= W_i S + noise, with W_i' W_i = I (see thd_srm.h).  The
+file is ordered bottom-up:
+  1. small utilities: error text, a portable random-number generator;
+  2. dense linear algebra on small k x k matrices: a Jacobi eigensolver and
+     the "polar factor" that solves every orthogonal-Procrustes step;
+  3. kernels over the (large) data: W'X and X S', in double precision;
+  4. SRM_fit(): the EM loop for probabilistic SRM and the alternating loop
+     for deterministic SRM, on either the raw data ("voxel" kernel) or on
+     per-subject Gram matrices ("gram" kernel, mathematically identical);
+  5. step 3: a separate W per run, tied to a per-subject anchor;
+  6. step 4: SRM_update(), adding new subjects to a fitted S;
+  7. step 2: using a model (project, reconstruct, fit a new subject's W);
+  8. compression of tall views (nvox >> ntime) to an exact small factor;
+  9. the gauge (rotation) of the solution;
+ 10. step 5: held-out metrics, reliability, z-scoring;
+ 11. step 6: the plain-text model file.
+("step" numbers refer to the order in which the features were added.)
+
+Notation used in the comments: k = nfeat (number of shared components),
+T = ntime, V = nvox[i]; A' is the transpose of A; |A|^2 is the squared
+Frobenius norm (sum of squares of all entries); <A,B> = sum of A.*B.
+References: Chen et al. (2015) NIPS, "A Reduced-Dimension fMRI Shared
+Response Model"; BrainIAK brainiak/funcalign/srm.py (SRM and DetSRM),
+which this code follows step for step except where noted.
+*/
 
 #include <float.h>
 #include <math.h>

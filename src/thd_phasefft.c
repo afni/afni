@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Provide a namespaced, reentrant float FFT for phase-randomization
+workflows, coexisting with the legacy FFT symbols in libmrix.
+
+Current program consumers: 3dRSA, 3dInSync.
+Start with the contracts in thd_phasefft.h, then the implementation below.
+The callers construct the null draws; this module supplies the transform.
+*/
 /* fftn_OMP.c is explicitly designed to be included by a consumer.  Namespace
    its public entry points so linking 3dRSA with libmrix cannot collide with
    the older FFT implementation pulled in by csfft.c. */

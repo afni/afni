@@ -325,13 +325,14 @@ def _nc_transform(rdm_mat, method):
 
 
 def noise_ceiling(rdm_mat, method, normalize='rsatoolbox', fisher=False):
-    """Leave-one-out lower bound and full-set upper bound.
+    """Leave-one-out and inclusive template reference scores.
 
-    normalize='rsatoolbox': each RDM is normalized/ranked as rsatoolbox's
-       boot_noise_ceiling does before averaging.
+    normalize='rsatoolbox': historical name for comparator-specific pooling;
+       covariance metrics use the V^-1 norm, unlike rsatoolbox 0.3.2's pooling.
     normalize='raw': legacy unnormalized subject templates.
     fisher=True: use 3dRSA's clipped Fisher aggregation for subject scores.
-    Returns (lower, upper).
+    Returns (LOO, inclusive). These are not guaranteed bounds on Fisher-mean
+    model scores; rank pooling is also not a general optimization procedure.
     """
     rdm_mat = np.asarray(rdm_mat, float)
     cmp = COMPARE[method]

@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Build and compare similarity/dissimilarity matrices, fit matrix-based
+models, and support resampling and cached relative-lag correlations.
+
+Current program consumers: 3dRSA, 3dInSync, 1dTrdm.
+Start with the types and contracts below; implementations are in thd_simmatrix.c.
+Check matrix layout, metric conventions, and whether values encode distance.
+*/
 #ifndef _THD_SIMMATRIX_HEADER_
 #define _THD_SIMMATRIX_HEADER_
 

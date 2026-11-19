@@ -16,7 +16,7 @@
 #define THD_CV_FIXED            3
 #define THD_CV_TRAIN_ONLY       4
 
-typedef struct {
+typedef struct THD_foldplan {
    int kind , nsample , nfold , nstratum ;
    char *group_column , *within_column ;
 
@@ -157,5 +157,32 @@ typedef struct { int block, kind; } THD_cv_block_conflict;
 extern int THD_foldplan_check_permutation_blocks(const THD_foldplan *plan,
    const int *blocks,int nblock,const int *strata,THD_cv_block_conflict *conflict,
    char *err,int nerr);
+
+/* Numeric time-series folds. All inputs are copied; row IDs are strictly
+   increasing ORIGINAL time coordinates. run_id indexes run_start[nrun].
+   groups[n] explicitly assigns test folds (nonnegative IDs), or NULL selects
+   whole runs (block_size=0) or run-local temporal blocks (block_size>0).
+   Blocks start at run_start, not the first uncensored row. gap>=0 excludes
+   training rows within that many original time steps of any test row in the
+   same run. Every retained row is tested once; empty training folds fail. */
+extern THD_foldplan *THD_foldplan_time_series(
+   int n, const int *row_id, const int *run_id, int nrun,
+   const int *run_start, const int *groups, int block_size, int gap,
+   char *err, int nerr);
+extern THD_foldplan *THD_foldplan_copy(const THD_foldplan *p,
+                                      char *err, int nerr);
+
+/* Allocation-free traversal of an already validated immutable plan.
+   prepare handles one fold's response batch; path evaluates all candidates
+   for that batch; finish pools/selects in the caller context. Designs may be
+   prepared once beforehand and shared across batches/workers. Callback
+   failure aborts immediately; callers invalidate their borrowed results. */
+typedef struct {
+   int (*prepare)(void *, int, const int *, int, const int *, int, char *, int);
+   int (*path)(void *, int, char *, int);
+   int (*finish)(void *, char *, int);
+} THD_cv_path_ops;
+extern int THD_cv_path_search(const THD_foldplan *plan,
+   const THD_cv_path_ops *ops, void *context, char *err, int nerr);
 
 #endif /* _THD_CROSSVAL_HEADER_ */

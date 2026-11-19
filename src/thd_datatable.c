@@ -1,7 +1,18 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Read and validate AFNI-style tables, access columns, select rows, and
+read labeled matrices. Program-specific interpretation stays with callers.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dXmatTool, 1dTrdm.
+Start with the contracts in thd_datatable.h, then the implementation below.
+Check ownership and row/column identity before transforming a table.
+*/
 #include "mrilib.h"
 #include "thd_datatable.h"
 #include <limits.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 /*----------------------------------------------------------------------------
   Reading '-dataTable' options in C.  See thd_datatable.h for the format.
@@ -9,6 +20,15 @@
 ------------------------------------------------------------------------------*/
 
 #define DT_SEP " \t\n\r"
+
+static int dt_error( char *err, int nerr, const char *fmt, ... )
+{
+   va_list ap ;
+   if( err!=NULL && nerr>0 ){
+     va_start(ap,fmt) ; vsnprintf(err,(size_t)nerr,fmt,ap) ; va_end(ap) ;
+   }
+   return 0 ;
+}
 
 /*============================================================================*/
 /*  Tokenizing                                                                */
@@ -368,52 +388,61 @@ float * THD_datatable_values( THD_datatable *dt , char *name )
    return dt->val[jj] ;
 }
 
+/* The caller owns the returned storage, including a partially filled matrix. */
+static int dt_extract_numeric_columns( const THD_datatable *dt,
+                                      const char * const *columns, int ncolumn,
+                                      const int *rows, int nrow,
+                                      float **values, char *err, int nerr )
+{
+   float *out=NULL ; int ii,jj,kk,cc,rr ;
+   if( dt==NULL || dt->nrow<1 || dt->ncol<1 || dt->cname==NULL ||
+       dt->isnum==NULL || dt->val==NULL )
+     return dt_error(err,nerr,"numeric extraction requires a nonempty table with numeric metadata") ;
+   if( columns==NULL || ncolumn<1 || nrow<1 )
+     return dt_error(err,nerr,"numeric extraction requires columns and positive row/column counts") ;
+   if( rows==NULL && nrow!=dt->nrow )
+     return dt_error(err,nerr,"numeric extraction without a row map requires all %d table rows",dt->nrow) ;
+   if( (size_t)nrow>SIZE_MAX/sizeof(float)/(size_t)ncolumn )
+     return dt_error(err,nerr,"numeric column matrix is too large") ;
+   for( cc=0 ; cc<dt->ncol ; cc++ )
+     if( dt->cname[cc]==NULL ) return dt_error(err,nerr,"table column %d has no name",cc+1) ;
+   for( ii=0 ; ii<nrow ; ii++ ){
+     rr=rows?rows[ii]:ii ;
+     if( rr<0 || rr>=dt->nrow )
+       return dt_error(err,nerr,"numeric extraction: output row %d has invalid table row index %d",ii+1,rr) ;
+   }
+   *values=out=(float *)malloc(sizeof(float)*(size_t)nrow*ncolumn) ;
+   if( out==NULL ) return dt_error(err,nerr,"cannot allocate numeric column matrix") ;
+   for( jj=0 ; jj<ncolumn ; jj++ ){
+     if( columns[jj]==NULL || columns[jj][0]=='\0' )
+       return dt_error(err,nerr,"numeric column name at position %d is empty",jj+1) ;
+     cc=THD_datatable_column((THD_datatable *)dt,(char *)columns[jj]) ;
+     if( cc<0 || !dt->isnum[cc] || dt->val[cc]==NULL )
+       return dt_error(err,nerr,"column '%s' must contain finite numeric values",columns[jj]) ;
+     for( kk=0 ; kk<jj ; kk++ )
+       if( !strcasecmp(columns[jj],columns[kk]) )
+         return dt_error(err,nerr,"duplicate numeric column '%s'",columns[jj]) ;
+     for( ii=0 ; ii<nrow ; ii++ ){
+       float value ; rr=rows?rows[ii]:ii ; value=dt->val[cc][rr] ;
+       if( !isfinite(value) )
+         return dt_error(err,nerr,"column '%s', output row %d (table row %d) is not finite",columns[jj],ii+1,rr+1) ;
+       out[(size_t)ii*ncolumn+jj]=value ;
+     }
+   }
+   return 1 ;
+}
+
 float * THD_datatable_numeric_columns( const THD_datatable *dt,
                                       const char * const *columns, int ncolumn,
                                       const int *rows, int nrow,
                                       char *err, int nerr )
 {
-   float *out=NULL ; int ii,jj,kk,cc,rr ;
-#define NUMERIC_FAIL(...) do{ if(err && nerr>0)snprintf(err,(size_t)nerr,__VA_ARGS__); goto fail; }while(0)
+   float *out=NULL ;
    if( err!=NULL && nerr>0 ) err[0]='\0' ;
-   if( dt==NULL || dt->nrow<1 || dt->ncol<1 || dt->cname==NULL ||
-       dt->isnum==NULL || dt->val==NULL )
-     NUMERIC_FAIL("numeric extraction requires a nonempty table with numeric metadata") ;
-   if( columns==NULL || ncolumn<1 || nrow<1 )
-     NUMERIC_FAIL("numeric extraction requires columns and positive row/column counts") ;
-   if( rows==NULL && nrow!=dt->nrow )
-     NUMERIC_FAIL("numeric extraction without a row map requires all %d table rows",dt->nrow) ;
-   if( (size_t)nrow>SIZE_MAX/sizeof(float)/(size_t)ncolumn )
-     NUMERIC_FAIL("numeric column matrix is too large") ;
-   for( cc=0 ; cc<dt->ncol ; cc++ )
-     if( dt->cname[cc]==NULL ) NUMERIC_FAIL("table column %d has no name",cc+1) ;
-   for( ii=0 ; ii<nrow ; ii++ ){
-     rr=rows?rows[ii]:ii ;
-     if( rr<0 || rr>=dt->nrow )
-       NUMERIC_FAIL("numeric extraction: output row %d has invalid table row index %d",ii+1,rr) ;
-   }
-   out=(float *)malloc(sizeof(float)*(size_t)nrow*ncolumn) ;
-   if( out==NULL ) NUMERIC_FAIL("cannot allocate numeric column matrix") ;
-   for( jj=0 ; jj<ncolumn ; jj++ ){
-     if( columns[jj]==NULL || columns[jj][0]=='\0' )
-       NUMERIC_FAIL("numeric column name at position %d is empty",jj+1) ;
-     cc=THD_datatable_column((THD_datatable *)dt,(char *)columns[jj]) ;
-     if( cc<0 || !dt->isnum[cc] || dt->val[cc]==NULL )
-       NUMERIC_FAIL("column '%s' must contain finite numeric values",columns[jj]) ;
-     for( kk=0 ; kk<jj ; kk++ )
-       if( !strcasecmp(columns[jj],columns[kk]) )
-         NUMERIC_FAIL("duplicate numeric column '%s'",columns[jj]) ;
-     for( ii=0 ; ii<nrow ; ii++ ){
-       float value ; rr=rows?rows[ii]:ii ; value=dt->val[cc][rr] ;
-       if( !isfinite(value) )
-         NUMERIC_FAIL("column '%s', output row %d (table row %d) is not finite",columns[jj],ii+1,rr+1) ;
-       out[(size_t)ii*ncolumn+jj]=value ;
-     }
+   if( !dt_extract_numeric_columns(dt,columns,ncolumn,rows,nrow,&out,err,nerr) ){
+     free(out) ; return NULL ;
    }
    return out ;
-fail:
-   free(out) ; return NULL ;
-#undef NUMERIC_FAIL
 }
 
 static int dt_level_index( char **level , int nlevel , const char *value )
@@ -573,64 +602,73 @@ THD_datatable * THD_datatable_select_rows( THD_datatable *dt ,
    return out ;
 }
 
-THD_datatable * THD_datatable_concat_rows( const THD_datatable *first,
+/* Attach allocations immediately so the caller can release partial results. */
+static int dt_build_concat_rows( const THD_datatable *first,
                                             const THD_datatable *second,
+                                            THD_datatable **result, int **column_map,
                                             char *err, int nerr )
 {
    const THD_datatable *tables[2]={first,second};
    THD_datatable *out=NULL;int *map=NULL,s,c,j,r,nrow,ncol;
-#define CONCAT_FAIL(...) do{ if(err && nerr>0)snprintf(err,(size_t)nerr,__VA_ARGS__); goto fail; }while(0)
-   if(err && nerr>0)err[0]='\0';
    for(s=0;s<2;s++)if(!tables[s] || tables[s]->nrow<1 || tables[s]->ncol<1)
-      CONCAT_FAIL("row concatenation requires two nonempty tables");
+      return dt_error(err,nerr,"row concatenation requires two nonempty tables");
    if(first->ncol!=second->ncol)
-      CONCAT_FAIL("tables must have the same column names (%d versus %d columns)",first->ncol,second->ncol);
+      return dt_error(err,nerr,"tables must have the same column names (%d versus %d columns)",first->ncol,second->ncol);
    ncol=first->ncol;
    /* DT_CELL and legacy table consumers use int row/column products. */
    if(first->nrow>INT_MAX-second->nrow ||
       first->nrow+second->nrow>INT_MAX/ncol)
-      CONCAT_FAIL("concatenated table has too many rows or cells");
+      return dt_error(err,nerr,"concatenated table has too many rows or cells");
    nrow=first->nrow+second->nrow;
    if((size_t)nrow*ncol>SIZE_MAX/sizeof(char *) ||
       (size_t)ncol>SIZE_MAX/sizeof(int) ||
       (size_t)nrow>SIZE_MAX/sizeof(float))
-      CONCAT_FAIL("concatenated table allocation is too large");
+      return dt_error(err,nerr,"concatenated table allocation is too large");
    for(s=0;s<2;s++){
       const THD_datatable *dt=tables[s];
-      if(!dt->cname || !dt->cell)CONCAT_FAIL("table %d has no column names or cells",s+1);
+      if(!dt->cname || !dt->cell)return dt_error(err,nerr,"table %d has no column names or cells",s+1);
       for(c=0;c<ncol;c++){
-         if(!dt->cname[c] || !dt->cname[c][0])CONCAT_FAIL("table %d has an empty column name",s+1);
+         if(!dt->cname[c] || !dt->cname[c][0])return dt_error(err,nerr,"table %d has an empty column name",s+1);
          for(j=0;j<c;j++)if(!strcasecmp(dt->cname[c],dt->cname[j]))
-            CONCAT_FAIL("table %d has duplicate column '%s'",s+1,dt->cname[c]);
+            return dt_error(err,nerr,"table %d has duplicate column '%s'",s+1,dt->cname[c]);
       }
    }
-   map=malloc(sizeof(int)*(size_t)ncol);
-   if(!map)CONCAT_FAIL("cannot allocate concatenation column map");
+   *column_map=map=malloc(sizeof(int)*(size_t)ncol);
+   if(!map)return dt_error(err,nerr,"cannot allocate concatenation column map");
    for(c=0;c<ncol;c++){
       for(j=0;j<ncol;j++)if(!strcasecmp(first->cname[c],second->cname[j]))break;
-      if(j==ncol)CONCAT_FAIL("second table is missing column '%s'; both tables must have the same column names",first->cname[c]);
+      if(j==ncol)return dt_error(err,nerr,"second table is missing column '%s'; both tables must have the same column names",first->cname[c]);
       map[c]=j;
    }
-   out=calloc(1,sizeof(*out));
-   if(!out)CONCAT_FAIL("cannot allocate concatenated table");
+   *result=out=calloc(1,sizeof(*out));
+   if(!out)return dt_error(err,nerr,"cannot allocate concatenated table");
    out->nrow=nrow;out->ncol=ncol;
    out->source=strdup("concatenated table rows");
    out->cname=calloc((size_t)ncol,sizeof(char *));
    out->cell=calloc((size_t)nrow*ncol,sizeof(char *));
-   if(!out->source || !out->cname || !out->cell)CONCAT_FAIL("cannot allocate concatenated table storage");
+   if(!out->source || !out->cname || !out->cell)return dt_error(err,nerr,"cannot allocate concatenated table storage");
    for(c=0;c<ncol;c++)if(!(out->cname[c]=strdup(first->cname[c])))
-      CONCAT_FAIL("cannot copy concatenated column names");
+      return dt_error(err,nerr,"cannot copy concatenated column names");
    for(s=0;s<2;s++)for(r=0;r<tables[s]->nrow;r++)for(c=0;c<ncol;c++){
       const char *value=DT_CELL(tables[s],r,s?map[c]:c);
       int row=s?first->nrow+r:r;
-      if(!value)CONCAT_FAIL("table %d has a missing cell at row %d, column '%s'",s+1,r+1,first->cname[c]);
-      if(!(DT_CELL(out,row,c)=strdup(value)))CONCAT_FAIL("cannot copy concatenated table cells");
+      if(!value)return dt_error(err,nerr,"table %d has a missing cell at row %d, column '%s'",s+1,r+1,first->cname[c]);
+      if(!(DT_CELL(out,row,c)=strdup(value)))return dt_error(err,nerr,"cannot copy concatenated table cells");
    }
-   if(!dt_finish(out))CONCAT_FAIL("cannot allocate concatenated table metadata");
-   free(map);return out;
-fail:
-   free(map);THD_free_datatable(out);return NULL;
-#undef CONCAT_FAIL
+   if(!dt_finish(out))return dt_error(err,nerr,"cannot allocate concatenated table metadata");
+   return 1;
+}
+
+THD_datatable * THD_datatable_concat_rows( const THD_datatable *first,
+                                            const THD_datatable *second,
+                                            char *err, int nerr )
+{
+   THD_datatable *out=NULL ; int *map=NULL,ok ;
+   if( err!=NULL && nerr>0 ) err[0]='\0' ;
+   ok=dt_build_concat_rows(first,second,&out,&map,err,nerr) ;
+   free(map) ;
+   if( !ok ){ THD_free_datatable(out) ; return NULL ; }
+   return out ;
 }
 
 /*! A cell as it must be written to read back: quoted if it is empty, holds
@@ -715,69 +753,65 @@ void THD_free_labeled_matrix(THD_labeled_matrix *matrix)
    free(matrix->axis);free(matrix->kind);free(matrix->mat);free(matrix);
 }
 
-THD_labeled_matrix *THD_read_labeled_matrix(
-   char *filename,const char *axis,int norder,const char * const *order,
-   char *err,int nerr)
+/* The reader owns the matrix and both alignment maps, even on failure. */
+static int dt_build_labeled_matrix(
+   THD_datatable *dt, char *filename, const char *axis,
+   int norder, const char * const *order, THD_labeled_matrix **result,
+   int **row_map, int **col_map, char *err, int nerr)
 {
-   THD_datatable *dt=NULL;
-   THD_labeled_matrix *out=NULL;
-   int *rows=NULL,*cols=NULL,n=0,i,j,k;
-   FILE *fp=NULL;char buf[16384];
-#define MATRIX_FAIL(...) do{if(err && nerr>0)snprintf(err,nerr,__VA_ARGS__);goto fail;}while(0)
-   if(err && nerr>0)err[0]='\0';
-   if(!filename || !axis || !*axis || norder<0 || (order==NULL)!=(norder==0))
-     MATRIX_FAIL("invalid labeled-matrix arguments");
-   /* Matrix labels may literally be Subj or InputFile. Read the same syntax
-      without attaching observation-table semantics to those labels. */
-   dt=dt_read_table_file(filename,0);
+   THD_labeled_matrix *out ; int *rows,*cols,n,i,j ;
    if(!dt || dt->nrow<1 || dt->ncol!=dt->nrow+1)
-     MATRIX_FAIL("'%s': labeled matrix must be square with one row-label column",filename);
+     return dt_error(err,nerr,"'%s': labeled matrix must be square with one row-label column",filename);
    if(strcmp(dt->cname[0],axis))
-     MATRIX_FAIL("'%s': first column must be '%s', got '%s'",filename,axis,dt->cname[0]);
+     return dt_error(err,nerr,"'%s': first column must be '%s', got '%s'",filename,axis,dt->cname[0]);
    n=dt->nrow;
    if(n>INT_MAX/n || (size_t)n*n>SIZE_MAX/sizeof(float))
-     MATRIX_FAIL("'%s': labeled matrix is too large",filename);
+     return dt_error(err,nerr,"'%s': labeled matrix is too large",filename);
    if(order && n!=norder)
-     MATRIX_FAIL("'%s': has %d labels; expected %d",filename,n,norder);
-   out=(THD_labeled_matrix *)calloc(1,sizeof(*out));
-   rows=(int *)malloc(sizeof(int)*n);cols=(int *)malloc(sizeof(int)*n);
-   if(!out || !rows || !cols)MATRIX_FAIL("cannot allocate labeled matrix");
+     return dt_error(err,nerr,"'%s': has %d labels; expected %d",filename,n,norder);
+   *result=out=(THD_labeled_matrix *)calloc(1,sizeof(*out));
+   *row_map=rows=(int *)malloc(sizeof(int)*n);
+   *col_map=cols=(int *)malloc(sizeof(int)*n);
+   if(!out || !rows || !cols)return dt_error(err,nerr,"cannot allocate labeled matrix");
    out->n=n;out->axis=strdup(axis);
    out->label=(char **)calloc(n,sizeof(char *));
    out->mat=(float *)malloc(sizeof(float)*(size_t)n*n);
-   if(!out->axis || !out->label || !out->mat)MATRIX_FAIL("cannot allocate labeled matrix");
+   if(!out->axis || !out->label || !out->mat)return dt_error(err,nerr,"cannot allocate labeled matrix");
    for(i=0;i<n;i++){
      const char *label=order?order[i]:dt->cname[i+1];
-     if(!label || !*label)MATRIX_FAIL("'%s': empty matrix label",filename);
+     if(!label || !*label)return dt_error(err,nerr,"'%s': empty matrix label",filename);
      for(j=0;j<i;j++)if(!strcmp(out->label[j],label))
-       MATRIX_FAIL("'%s': duplicate matrix label '%s'",filename,label);
+       return dt_error(err,nerr,"'%s': duplicate matrix label '%s'",filename,label);
      out->label[i]=strdup(label);
-     if(!out->label[i])MATRIX_FAIL("cannot allocate matrix label");
+     if(!out->label[i])return dt_error(err,nerr,"cannot allocate matrix label");
      rows[i]=cols[i]=-1;
      for(j=0;j<n;j++){
        if(!strcmp(label,DT_CELL(dt,j,0))){
-         if(rows[i]>=0)MATRIX_FAIL("'%s': duplicate row label '%s'",filename,label);
+         if(rows[i]>=0)return dt_error(err,nerr,"'%s': duplicate row label '%s'",filename,label);
          rows[i]=j;
        }
        if(!strcmp(label,dt->cname[j+1])){
-         if(cols[i]>=0)MATRIX_FAIL("'%s': duplicate column label '%s'",filename,label);
+         if(cols[i]>=0)return dt_error(err,nerr,"'%s': duplicate column label '%s'",filename,label);
          cols[i]=j+1;
        }
      }
      if(rows[i]<0 || cols[i]<0)
-       MATRIX_FAIL("'%s': label '%s' must occur exactly once on both axes",filename,label);
+       return dt_error(err,nerr,"'%s': label '%s' must occur exactly once on both axes",filename,label);
    }
    for(i=0;i<n;i++)for(j=0;j<n;j++){
      char *end,*cell=DT_CELL(dt,rows[i],cols[j]);double value=strtod(cell,&end);
      if(end==cell || *end || !isfinite(value) || !isfinite((float)value))
-       MATRIX_FAIL("'%s': nonfinite or nonnumeric matrix cell at '%s', '%s'",filename,out->label[i],out->label[j]);
+       return dt_error(err,nerr,"'%s': nonfinite or nonnumeric matrix cell at '%s', '%s'",filename,out->label[i],out->label[j]);
      out->mat[(size_t)i*n+j]=(float)value;
    }
-   /* The table tokenizer owns all label/value parsing. Retain this optional
-      semantic annotation as well, so callers cannot confuse dynamics
-      similarities with condition dissimilarities. */
-   fp=fopen(filename,"r");
-   if(!fp)MATRIX_FAIL("cannot reopen labeled matrix '%s'",filename);
+   return 1;
+}
+
+/* Read the optional semantic annotation with the caller's open stream. */
+static int dt_read_matrix_kind(FILE *fp, char *filename,
+                               THD_labeled_matrix *out, char *err, int nerr)
+{
+   char buf[16384];int k;
    while(fgets(buf,sizeof(buf),fp)){
      char *p=buf,**tokens=NULL;int nt=0,rc;
      while(isspace((unsigned char)*p))p++;
@@ -786,16 +820,40 @@ THD_labeled_matrix *THD_read_labeled_matrix(
      if(rc || nt!=1 || out->kind ||
         (strcmp(tokens[0],"similarity") && strcmp(tokens[0],"dissimilarity"))){
        for(k=0;k<nt;k++)free(tokens[k]);free(tokens);
-       MATRIX_FAIL("'%s': invalid or repeated matrix_kind metadata",filename);
+       return dt_error(err,nerr,"'%s': invalid or repeated matrix_kind metadata",filename);
      }
      out->kind=strdup(tokens[0]);free(tokens[0]);free(tokens);
-     if(!out->kind)MATRIX_FAIL("cannot allocate matrix metadata");
+     if(!out->kind)return dt_error(err,nerr,"cannot allocate matrix metadata");
    }
-   if(ferror(fp))MATRIX_FAIL("cannot read labeled matrix metadata '%s'",filename);
-   fclose(fp);fp=NULL;
-   free(rows);free(cols);THD_free_datatable(dt);return out;
-fail:
+   if(ferror(fp))return dt_error(err,nerr,"cannot read labeled matrix metadata '%s'",filename);
+   return 1;
+}
+
+THD_labeled_matrix *THD_read_labeled_matrix(
+   char *filename,const char *axis,int norder,const char * const *order,
+   char *err,int nerr)
+{
+   THD_datatable *dt;
+   THD_labeled_matrix *out=NULL;
+   int *rows=NULL,*cols=NULL,ok;
+   FILE *fp=NULL;
+   if(err && nerr>0)err[0]='\0';
+   if(!filename || !axis || !*axis || norder<0 || (order==NULL)!=(norder==0)){
+     dt_error(err,nerr,"invalid labeled-matrix arguments");return NULL;
+   }
+   /* Matrix labels may literally be Subj or InputFile. Read the same syntax
+      without attaching observation-table semantics to those labels. */
+   dt=dt_read_table_file(filename,0);
+   ok=dt_build_labeled_matrix(dt,filename,axis,norder,order,&out,&rows,&cols,err,nerr);
+   /* Retain the optional semantic annotation so callers can distinguish
+      dynamics similarities from condition dissimilarities. */
+   if(ok){
+     fp=fopen(filename,"r");
+     if(!fp)ok=dt_error(err,nerr,"cannot reopen labeled matrix '%s'",filename);
+     else ok=dt_read_matrix_kind(fp,filename,out,err,nerr);
+   }
    if(fp)fclose(fp);
-   free(rows);free(cols);THD_free_datatable(dt);THD_free_labeled_matrix(out);return NULL;
-#undef MATRIX_FAIL
+   free(rows);free(cols);THD_free_datatable(dt);
+   if(!ok){THD_free_labeled_matrix(out);return NULL;}
+   return out;
 }

@@ -314,11 +314,13 @@ add_afni_executable(
   thd_patterns.c
   thd_permute.c
   thd_mvpa.c
+  thd_regression.c
 )
 target_link_libraries(
   3dMVPA
   PRIVATE
     AFNI::mri
+    eispack
     NIFTI::nifti2
     NIFTI::nifticdf
     $<TARGET_NAME_IF_EXISTS:OpenMP::OpenMP_C>

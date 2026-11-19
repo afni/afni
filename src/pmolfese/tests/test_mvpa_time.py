@@ -164,7 +164,9 @@ with tempfile.TemporaryDirectory(prefix='mvpa_time_') as directory:
                         assert nv == 3
                         maps = struct.unpack_from('<12f',raw,offset)
                 elif converter:
-                    text = subprocess.check_output([converter,'-o_1Dp_stdout','-input',str(out),'-prepend_node_index_1D'],text=True)
+                    # Comment-header output avoids the empty -o_1Dp_stdout
+                    # stream in some ConvertDset versions; keep numeric checks.
+                    text = subprocess.check_output([converter,'-o_1D_stdout','-input',str(out),'-prepend_node_index_1D'],text=True)
                     rows = [[float(v) for v in line.split()] for line in text.splitlines() if line and not line.startswith('#')]
                     assert [int(r[0]) for r in rows] == [0,2,5,9]
                     assert all(len(r)==4 for r in rows)

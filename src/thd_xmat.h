@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Read AFNI design matrices and their metadata, inspect original-time
+support, extract run-local designs, and write matrices with column mappings.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync, 3dSRM, 1dXmatTool.
+Start with the types and contracts below; implementations are in thd_xmat.c.
+Keep retained rows, original TRs, and original column identities distinct.
+*/
 #ifndef _THD_XMAT_HEADER_
 #define _THD_XMAT_HEADER_
 /*----------------------------------------------------------------------------
@@ -131,6 +141,14 @@ typedef struct {
    until written and reread. NULL on error. */
 extern THD_xmat *THD_xmat_extract_run(const THD_xmat *source,
    const THD_xmat *uncensored, int run, double zero_tol,
+   THD_xmat_run_map **map, char *err, int nerr);
+/* As above, but nonzero drop_censored allows IM columns with exactly zero
+   retained support to be omitted. Requires a matching uncensored reference;
+   empty original/cross-run IM columns and partially retained failures remain
+   errors, as does losing every IM trial in a run. inverse is -1 for excluded
+   columns. Ownership is unchanged. */
+extern THD_xmat *THD_xmat_extract_run_censored(const THD_xmat *source,
+   const THD_xmat *uncensored, int run, double zero_tol, int drop_censored,
    THD_xmat_run_map **map, char *err, int nerr);
 extern void THD_xmat_run_map_free(THD_xmat_run_map *map);
 

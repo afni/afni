@@ -1,4 +1,5 @@
 #include "thd_mvpa.h"
+#include "thd_regression_internal.h"
 
 #include <float.h>
 #include <errno.h>
@@ -395,14 +396,118 @@ static int mvpa_pair_same_group(const mvpa_pair_index *a,const mvpa_pair_index *
 void THD_mvpa_pair_result_free(THD_mvpa_pair_result *r)
 {if(r){free(r->row_a);free(r->row_b);free(r->score);free(r);}}
 
+typedef struct {
+   THD_mvpa_pair_result *r;
+   mvpa_pair_index *ia,*ib;
+   float *y,*p,*base;
+   double *rank,*recall;
+   int *order,*truth,*pred,*conf;
+} mvpa_pair_work;
+
+/* Both stages borrow a workspace released by the public comparison owner. */
+static int mvpa_pair_match(const THD_mvpa_pair_row *a,int na,
+ const THD_mvpa_pair_row *b,int classification,int nclass,
+ mvpa_pair_work *work,char *err,int nerr)
+{
+   int i,j,side,nt=0;
+   work->r=calloc(1,sizeof(*work->r));work->ia=malloc(sizeof(*work->ia)*(size_t)na);work->ib=malloc(sizeof(*work->ib)*(size_t)na);
+   if(!work->r || !work->ia || !work->ib)return pp_error(err,nerr,"cannot allocate paired comparison workspace");
+   work->r->nrow=na;work->r->row_a=malloc(sizeof(int)*(size_t)na);work->r->row_b=malloc(sizeof(int)*(size_t)na);
+   if(!work->r->row_a || !work->r->row_b)return pp_error(err,nerr,"cannot allocate paired comparison workspace");
+   for(side=0;side<2;side++)for(i=0;i<na;i++){
+      const THD_mvpa_pair_row *v=(side?b:a)+i;
+      mvpa_pair_index *ix=(side?work->ib:work->ia)+i;
+      const char *s[]={v->unit_type,v->unit,v->response,v->sample,v->subject,v->run,v->item,v->input_fold,v->fold,v->stratum};
+      for(j=0;j<10;j++)if(!s[j] || !*s[j]){pp_error(err,nerr,"model %c row %d has an empty identity field",'A'+side,i+1);return 0;}
+      if(v->tested!=0 && v->tested!=1){pp_error(err,nerr,"invalid tested status at model %c row %d",'A'+side,i+1);return 0;}
+      if(classification){
+         if(v->truth_class<0 || v->truth_class>=nclass || (v->tested && (v->prediction_class<0 || v->prediction_class>=nclass))){
+            pp_error(err,nerr,"invalid class at model %c row %d",'A'+side,i+1);return 0;
+         }
+      }else if(!isfinite(v->observed) || (v->tested && (!isfinite(v->predicted) || !isfinite(v->baseline)))){
+         pp_error(err,nerr,"nonfinite continuous value at model %c row %d",'A'+side,i+1);return 0;
+      }
+      ix->row=v;ix->index=i;
+   }
+   qsort(work->ia,(size_t)na,sizeof(*work->ia),mvpa_pair_key_order);qsort(work->ib,(size_t)na,sizeof(*work->ib),mvpa_pair_key_order);
+   for(i=0;i<na;i++){
+      const THD_mvpa_pair_row *u=work->ia[i].row,*v=work->ib[i].row;
+      if(i && (!mvpa_pair_key_order(work->ia+i-1,work->ia+i) || !mvpa_pair_key_order(work->ib+i-1,work->ib+i))){
+         pp_error(err,nerr,"duplicate unit/response/sample key in prediction input");return 0;
+      }
+      if(mvpa_pair_key_order(work->ia+i,work->ib+i)){pp_error(err,nerr,"sample/unit/response domains differ near sample '%s'",u->sample);return 0;}
+#define PAIR_MATCH(field) if(strcmp(u->field,v->field)){pp_error(err,nerr,"paired %s mismatch at sample '%s'",#field,u->sample);return 0;}
+      PAIR_MATCH(subject);PAIR_MATCH(run);PAIR_MATCH(item);PAIR_MATCH(input_fold);PAIR_MATCH(fold);PAIR_MATCH(stratum);
+#undef PAIR_MATCH
+      if(u->tested!=v->tested){pp_error(err,nerr,"tested/training status mismatch at sample '%s'",u->sample);return 0;}
+      if(classification?u->truth_class!=v->truth_class:u->observed!=v->observed){pp_error(err,nerr,"observed outcome mismatch at sample '%s'",u->sample);return 0;}
+      if(!classification && u->tested && u->baseline!=v->baseline){pp_error(err,nerr,"training-mean baseline mismatch at sample '%s'; CV-R2 requires a common baseline",u->sample);return 0;}
+      work->r->row_a[i]=work->ia[i].index;work->r->row_b[i]=work->ib[i].index;work->ia[i].other=work->ib[i].index;
+      if(u->tested)nt++;
+   }
+   if(!nt){pp_error(err,nerr,"paired comparison has no held-out predictions");return 0;}
+   return nt;
+}
+
+static int mvpa_pair_score(const THD_mvpa_pair_row *b,int na,int nt,
+ int classification,int nclass,mvpa_pair_work *work,char *err,int nerr)
+{
+   int i,j,k,side,scope,capacity=0;
+   /* Reuse ib as a held-out grouping index. No training row enters a score. */
+   work->y=malloc(sizeof(float)*(size_t)nt);work->p=malloc(sizeof(float)*(size_t)nt);work->base=malloc(sizeof(float)*(size_t)nt);
+   work->rank=malloc(sizeof(double)*2*(size_t)nt);work->order=malloc(sizeof(int)*2*(size_t)nt);
+   work->truth=malloc(sizeof(int)*(size_t)nt);work->pred=malloc(sizeof(int)*(size_t)nt);
+   if(classification){work->conf=malloc(sizeof(int)*(size_t)nclass*nclass);work->recall=malloc(sizeof(double)*(size_t)nclass);}
+   if(!work->y || !work->p || !work->base || !work->rank || !work->order || !work->truth || !work->pred || (classification && (!work->conf || !work->recall)))return pp_error(err,nerr,"cannot allocate paired comparison workspace");
+   for(scope=0;scope<4;scope++){
+      for(i=0,j=0;i<na;i++)if(work->ia[i].row->tested){
+         const THD_mvpa_pair_row *v=work->ia[i].row;work->ib[j]=work->ia[i];
+         work->ib[j].group=scope==1?v->fold:scope==2?v->subject:scope==3?v->stratum:"All";
+         work->ib[j].stratum=scope==1?v->stratum:scope==3?v->stratum:"NA";j++;
+      }
+      qsort(work->ib,(size_t)nt,sizeof(*work->ib),mvpa_pair_group_order);
+      for(i=0;i<nt;i=j){
+         THD_mvpa_pair_score *s;
+         for(j=i+1;j<nt && mvpa_pair_same_group(work->ib+i,work->ib+j);j++);
+         if(work->r->nscore==capacity){
+            THD_mvpa_pair_score *tmp;int cap;
+            if(capacity>INT_MAX/2){pp_error(err,nerr,"too many paired score groups");return 0;}
+            cap=capacity?2*capacity:32;
+            if((size_t)cap>SIZE_MAX/sizeof(*tmp))return pp_error(err,nerr,"cannot allocate paired comparison workspace");
+            tmp=realloc(work->r->score,sizeof(*tmp)*(size_t)cap);if(!tmp)return pp_error(err,nerr,"cannot allocate paired comparison workspace");
+            work->r->score=tmp;capacity=cap;
+         }
+         s=work->r->score+work->r->nscore++;s->unit_type=work->ib[i].row->unit_type;s->unit=work->ib[i].row->unit;s->response=work->ib[i].row->response;
+         s->scope=scope;s->group=work->ib[i].group;s->stratum=work->ib[i].stratum;s->nsample=j-i;
+         for(k=0;k<7;k++)s->a[k]=s->b[k]=NAN;
+         for(side=0;side<2;side++){
+            double *out=side?s->b:s->a;
+            for(k=i;k<j;k++){
+               const THD_mvpa_pair_row *v=side?b+work->ib[k].other:work->ib[k].row;
+               if(classification){work->truth[k-i]=v->truth_class;work->pred[k-i]=v->prediction_class;}
+               else{work->y[k-i]=v->observed;work->p[k-i]=v->predicted;work->base[k-i]=v->baseline;}
+            }
+            if(classification){
+               THD_mvpa_class_score sc;
+               if(!THD_mvpa_score_classification(work->truth,work->pred,j-i,nclass,work->conf,work->recall,&sc,err,nerr))return 0;
+               out[THD_METRIC_ACCURACY]=sc.accuracy;out[THD_METRIC_BALANCED_ACCURACY]=sc.balanced_accuracy;
+            }else{
+               THD_mvpa_continuous_score sc;
+               if(!THD_mvpa_score_continuous(work->y,work->p,work->base,j-i,work->rank,work->order,&sc,err,nerr))return 0;
+               out[THD_METRIC_PEARSON]=sc.pearson;out[THD_METRIC_SPEARMAN]=sc.spearman;
+               out[THD_METRIC_CROSS_VALIDATED_R2]=sc.cv_r2;out[THD_METRIC_MAE]=sc.mae;out[THD_METRIC_RMSE]=sc.rmse;
+            }
+         }
+      }
+   }
+   return 1;
+}
+
 THD_mvpa_pair_result *THD_mvpa_compare_predictions(
  const THD_mvpa_pair_row *a,int na,const THD_mvpa_pair_row *b,int nb,
  int classification,int nclass,char *err,int nerr)
 {
-   THD_mvpa_pair_result *r=NULL;mvpa_pair_index *ia=NULL,*ib=NULL;
-   float *y=NULL,*p=NULL,*base=NULL;double *rank=NULL,*recall=NULL;
-   int *order=NULL,*truth=NULL,*pred=NULL,*conf=NULL;
-   int i,j,k,side,scope,nt=0,capacity=0;
+   mvpa_pair_work work={0};int nt,ok;
    if(err && nerr>0)err[0]='\0';
    if(!a || !b || na<1 || na!=nb || (classification!=0 && classification!=1) ||
       (classification && (nclass<2 || (size_t)nclass>SIZE_MAX/sizeof(int)/(size_t)nclass))){
@@ -411,93 +516,12 @@ THD_mvpa_pair_result *THD_mvpa_compare_predictions(
    if((size_t)na>SIZE_MAX/sizeof(mvpa_pair_index) || (size_t)na>SIZE_MAX/sizeof(double)/2){
       pp_error(err,nerr,"paired prediction domain is too large");return NULL;
    }
-   r=calloc(1,sizeof(*r));ia=malloc(sizeof(*ia)*(size_t)na);ib=malloc(sizeof(*ib)*(size_t)na);
-   if(!r || !ia || !ib)goto nomem;
-   r->nrow=na;r->row_a=malloc(sizeof(int)*(size_t)na);r->row_b=malloc(sizeof(int)*(size_t)na);
-   if(!r->row_a || !r->row_b)goto nomem;
-   for(side=0;side<2;side++)for(i=0;i<na;i++){
-      const THD_mvpa_pair_row *v=(side?b:a)+i;
-      mvpa_pair_index *ix=(side?ib:ia)+i;
-      const char *s[]={v->unit_type,v->unit,v->response,v->sample,v->subject,v->run,v->item,v->input_fold,v->fold,v->stratum};
-      for(j=0;j<10;j++)if(!s[j] || !*s[j]){pp_error(err,nerr,"model %c row %d has an empty identity field",'A'+side,i+1);goto fail;}
-      if(v->tested!=0 && v->tested!=1){pp_error(err,nerr,"invalid tested status at model %c row %d",'A'+side,i+1);goto fail;}
-      if(classification){
-         if(v->truth_class<0 || v->truth_class>=nclass || (v->tested && (v->prediction_class<0 || v->prediction_class>=nclass))){
-            pp_error(err,nerr,"invalid class at model %c row %d",'A'+side,i+1);goto fail;
-         }
-      }else if(!isfinite(v->observed) || (v->tested && (!isfinite(v->predicted) || !isfinite(v->baseline)))){
-         pp_error(err,nerr,"nonfinite continuous value at model %c row %d",'A'+side,i+1);goto fail;
-      }
-      ix->row=v;ix->index=i;
-   }
-   qsort(ia,(size_t)na,sizeof(*ia),mvpa_pair_key_order);qsort(ib,(size_t)na,sizeof(*ib),mvpa_pair_key_order);
-   for(i=0;i<na;i++){
-      const THD_mvpa_pair_row *u=ia[i].row,*v=ib[i].row;
-      if(i && (!mvpa_pair_key_order(ia+i-1,ia+i) || !mvpa_pair_key_order(ib+i-1,ib+i))){
-         pp_error(err,nerr,"duplicate unit/response/sample key in prediction input");goto fail;
-      }
-      if(mvpa_pair_key_order(ia+i,ib+i)){pp_error(err,nerr,"sample/unit/response domains differ near sample '%s'",u->sample);goto fail;}
-#define PAIR_MATCH(field) if(strcmp(u->field,v->field)){pp_error(err,nerr,"paired %s mismatch at sample '%s'",#field,u->sample);goto fail;}
-      PAIR_MATCH(subject);PAIR_MATCH(run);PAIR_MATCH(item);PAIR_MATCH(input_fold);PAIR_MATCH(fold);PAIR_MATCH(stratum);
-#undef PAIR_MATCH
-      if(u->tested!=v->tested){pp_error(err,nerr,"tested/training status mismatch at sample '%s'",u->sample);goto fail;}
-      if(classification?u->truth_class!=v->truth_class:u->observed!=v->observed){pp_error(err,nerr,"observed outcome mismatch at sample '%s'",u->sample);goto fail;}
-      if(!classification && u->tested && u->baseline!=v->baseline){pp_error(err,nerr,"training-mean baseline mismatch at sample '%s'; CV-R2 requires a common baseline",u->sample);goto fail;}
-      r->row_a[i]=ia[i].index;r->row_b[i]=ib[i].index;ia[i].other=ib[i].index;
-      if(u->tested)nt++;
-   }
-   if(!nt){pp_error(err,nerr,"paired comparison has no held-out predictions");goto fail;}
-   /* Reuse ib as a held-out grouping index. No training row enters a score. */
-   y=malloc(sizeof(float)*(size_t)nt);p=malloc(sizeof(float)*(size_t)nt);base=malloc(sizeof(float)*(size_t)nt);
-   rank=malloc(sizeof(double)*2*(size_t)nt);order=malloc(sizeof(int)*2*(size_t)nt);
-   truth=malloc(sizeof(int)*(size_t)nt);pred=malloc(sizeof(int)*(size_t)nt);
-   if(classification){conf=malloc(sizeof(int)*(size_t)nclass*nclass);recall=malloc(sizeof(double)*(size_t)nclass);}
-   if(!y || !p || !base || !rank || !order || !truth || !pred || (classification && (!conf || !recall)))goto nomem;
-   for(scope=0;scope<4;scope++){
-      for(i=0,j=0;i<na;i++)if(ia[i].row->tested){
-         const THD_mvpa_pair_row *v=ia[i].row;ib[j]=ia[i];
-         ib[j].group=scope==1?v->fold:scope==2?v->subject:scope==3?v->stratum:"All";
-         ib[j].stratum=scope==1?v->stratum:scope==3?v->stratum:"NA";j++;
-      }
-      qsort(ib,(size_t)nt,sizeof(*ib),mvpa_pair_group_order);
-      for(i=0;i<nt;i=j){
-         THD_mvpa_pair_score *s;
-         for(j=i+1;j<nt && mvpa_pair_same_group(ib+i,ib+j);j++);
-         if(r->nscore==capacity){
-            THD_mvpa_pair_score *tmp;int cap;
-            if(capacity>INT_MAX/2){pp_error(err,nerr,"too many paired score groups");goto fail;}
-            cap=capacity?2*capacity:32;
-            if((size_t)cap>SIZE_MAX/sizeof(*tmp))goto nomem;
-            tmp=realloc(r->score,sizeof(*tmp)*(size_t)cap);if(!tmp)goto nomem;
-            r->score=tmp;capacity=cap;
-         }
-         s=r->score+r->nscore++;s->unit_type=ib[i].row->unit_type;s->unit=ib[i].row->unit;s->response=ib[i].row->response;
-         s->scope=scope;s->group=ib[i].group;s->stratum=ib[i].stratum;s->nsample=j-i;
-         for(k=0;k<7;k++)s->a[k]=s->b[k]=NAN;
-         for(side=0;side<2;side++){
-            double *out=side?s->b:s->a;
-            for(k=i;k<j;k++){
-               const THD_mvpa_pair_row *v=side?b+ib[k].other:ib[k].row;
-               if(classification){truth[k-i]=v->truth_class;pred[k-i]=v->prediction_class;}
-               else{y[k-i]=v->observed;p[k-i]=v->predicted;base[k-i]=v->baseline;}
-            }
-            if(classification){
-               THD_mvpa_class_score sc;
-               if(!THD_mvpa_score_classification(truth,pred,j-i,nclass,conf,recall,&sc,err,nerr))goto fail;
-               out[THD_METRIC_ACCURACY]=sc.accuracy;out[THD_METRIC_BALANCED_ACCURACY]=sc.balanced_accuracy;
-            }else{
-               THD_mvpa_continuous_score sc;
-               if(!THD_mvpa_score_continuous(y,p,base,j-i,rank,order,&sc,err,nerr))goto fail;
-               out[THD_METRIC_PEARSON]=sc.pearson;out[THD_METRIC_SPEARMAN]=sc.spearman;
-               out[THD_METRIC_CROSS_VALIDATED_R2]=sc.cv_r2;out[THD_METRIC_MAE]=sc.mae;out[THD_METRIC_RMSE]=sc.rmse;
-            }
-         }
-      }
-   }
-   goto done;
-nomem: pp_error(err,nerr,"cannot allocate paired comparison workspace");
-fail: THD_mvpa_pair_result_free(r);r=NULL;
-done: free(ia);free(ib);free(y);free(p);free(base);free(rank);free(order);free(truth);free(pred);free(conf);free(recall);return r;
+   nt=mvpa_pair_match(a,na,b,classification,nclass,&work,err,nerr);
+   ok=nt>0 && mvpa_pair_score(b,na,nt,classification,nclass,&work,err,nerr);
+   if(!ok){THD_mvpa_pair_result_free(work.r);work.r=NULL;}
+   free(work.ia);free(work.ib);free(work.y);free(work.p);free(work.base);free(work.rank);
+   free(work.order);free(work.truth);free(work.pred);free(work.conf);free(work.recall);
+   return work.r;
 }
 
 /* Training-only OLS in a centered/scaled nuisance design. Twice-reorthogonalized
@@ -767,34 +791,41 @@ static int pp_refit( THD_preprocessor *p, int method, const float *x,
    return 1 ;
 }
 
-int THD_mvpa_check_nuisance(const THD_foldplan *plan,
-   const THD_nested_foldplan *nested,const float *z,int k,char *err,int nerr)
+static int mvpa_nuisance_check_folds(const THD_foldplan *plan,
+ const THD_nested_foldplan *nested,const float *z,int k,
+ THD_preprocessor *p,float *dummy,int *rows,char *err,int nerr)
 {
-   THD_preprocessor *p=NULL;float *dummy=NULL;int *rows=NULL,f,g,i,ok=0;char why[512];
-   if(!THD_foldplan_validate(plan,err,nerr))return 0;
-   if(nested && (nested->outer!=plan || !nested->inner))return pp_error(err,nerr,"nuisance nested plan does not match outer plan");
-   p=pp_alloc(1,1,err,nerr);if(!p)return 0;
-   dummy=calloc((size_t)plan->nsample,sizeof(float));rows=malloc(sizeof(int)*(size_t)plan->nsample);
-   if(!dummy || !rows){pp_error(err,nerr,"cannot allocate nuisance fold validation");goto done;}
-   if(!THD_preprocess_set_nuisance(p,z,plan->nsample,k,err,nerr))goto done;
+   int f,g,i;char why[512];
+   if(!THD_preprocess_set_nuisance(p,z,plan->nsample,k,err,nerr))return 0;
    for(f=0;f<plan->nfold;f++){
       if(!pp_refit(p,THD_PREP_NONE,dummy,plan->nsample,1,plan->train[f],plan->ntrain[f],NULL,0,why,sizeof(why))){
-         pp_error(err,nerr,"outer fold %s: %s",plan->name[f],why);goto done;
+         pp_error(err,nerr,"outer fold %s: %s",plan->name[f],why);return 0;
       }
       if(nested){
          const THD_foldplan *in=nested->inner[f];
-         if(!THD_foldplan_validate(in,err,nerr))goto done;
-         if(in->nsample!=plan->ntrain[f]){pp_error(err,nerr,"nuisance inner fold size mismatch");goto done;}
+         if(!THD_foldplan_validate(in,err,nerr))return 0;
+         if(in->nsample!=plan->ntrain[f]){pp_error(err,nerr,"nuisance inner fold size mismatch");return 0;}
          for(g=0;g<in->nfold;g++){
             for(i=0;i<in->ntrain[g];i++)rows[i]=plan->train[f][in->train[g][i]];
             if(!pp_refit(p,THD_PREP_NONE,dummy,plan->nsample,1,rows,in->ntrain[g],NULL,0,why,sizeof(why))){
-               pp_error(err,nerr,"outer fold %s, inner fold %s: %s",plan->name[f],in->name[g],why);goto done;
+               pp_error(err,nerr,"outer fold %s, inner fold %s: %s",plan->name[f],in->name[g],why);return 0;
             }
          }
       }
    }
-   ok=1;
-done:
+   return 1;
+}
+
+int THD_mvpa_check_nuisance(const THD_foldplan *plan,
+   const THD_nested_foldplan *nested,const float *z,int k,char *err,int nerr)
+{
+   THD_preprocessor *p=NULL;float *dummy=NULL;int *rows=NULL,ok=0;
+   if(!THD_foldplan_validate(plan,err,nerr))return 0;
+   if(nested && (nested->outer!=plan || !nested->inner))return pp_error(err,nerr,"nuisance nested plan does not match outer plan");
+   p=pp_alloc(1,1,err,nerr);if(!p)return 0;
+   dummy=calloc((size_t)plan->nsample,sizeof(float));rows=malloc(sizeof(int)*(size_t)plan->nsample);
+   if(!dummy || !rows)pp_error(err,nerr,"cannot allocate nuisance fold validation");
+   else ok=mvpa_nuisance_check_folds(plan,nested,z,k,p,dummy,rows,err,nerr);
    free(rows);free(dummy);THD_preprocess_free(p);return ok;
 }
 
@@ -958,25 +989,7 @@ THD_lda_model *THD_lda_alloc(int mode,int n,int p,int nc,char *err,int nerr)
 
 static int lda_solve(double *a,double *b,int d,int q,char *err,int nerr)
 {
-   int i,j,k,o;
-   for(i=0;i<d;i++)for(j=0;j<=i;j++){
-      double v=a[(size_t)i*d+j];
-      for(k=0;k<j;k++)v-=a[(size_t)i*d+k]*a[(size_t)j*d+k];
-      if(i==j){
-         if(!isfinite(v) || v<=0)return pp_error(err,nerr,"LDA factorization failed; increase shrinkage or variance floor");
-         a[(size_t)i*d+j]=sqrt(v);
-      }else a[(size_t)i*d+j]=v/a[(size_t)j*d+j];
-   }
-   for(i=0;i<d;i++)for(o=0;o<q;o++){
-      double v=b[(size_t)i*q+o];
-      for(k=0;k<i;k++)v-=a[(size_t)i*d+k]*b[(size_t)k*q+o];
-      b[(size_t)i*q+o]=v/a[(size_t)i*d+i];
-   }
-   for(i=d-1;i>=0;i--)for(o=0;o<q;o++){
-      double v=b[(size_t)i*q+o];
-      for(k=i+1;k<d;k++)v-=a[(size_t)k*d+i]*b[(size_t)k*q+o];
-      b[(size_t)i*q+o]=v/a[(size_t)i*d+i];
-   }
+   if(!THD_regression_spd_solve(a,b,d,q))return pp_error(err,nerr,"LDA factorization failed; increase shrinkage or variance floor");
    return 1;
 }
 
@@ -1086,443 +1099,6 @@ int THD_lda_predict(const THD_lda_model *m,const float *x,int n,int p,int *predi
    }
    return 1;
 }
-
-struct THD_ridge_workspace {
-   int maxn,maxp,maxq,n,p,q,fitted;
-   double *factor,*rhs,*coef,*xm,*ym;
-};
-
-void THD_ridge_free(THD_ridge_workspace *w)
-{
-   if(!w) return;
-   free(w->factor); free(w->rhs); free(w->coef); free(w->xm); free(w->ym); free(w);
-}
-
-THD_ridge_workspace *THD_ridge_alloc(int n,int p,int q,char *err,int nerr)
-{
-   THD_ridge_workspace *w; int d;
-   if(n<1 || p<1 || q<1){pp_error(err,nerr,"ridge dimensions must be positive");return NULL;}
-   d=n<p?n:p;
-   if((size_t)d>SIZE_MAX/sizeof(double)/(size_t)d ||
-      (size_t)p>SIZE_MAX/sizeof(double)/(size_t)q){
-      pp_error(err,nerr,"ridge dimensions are too large");return NULL;
-   }
-   w=calloc(1,sizeof(*w));
-   if(!w){pp_error(err,nerr,"out of memory allocating ridge");return NULL;}
-   w->maxn=n;w->maxp=p;w->maxq=q;
-   w->factor=malloc(sizeof(double)*(size_t)d*d);
-   w->rhs=malloc(sizeof(double)*(size_t)d*q);
-   w->coef=malloc(sizeof(double)*(size_t)p*q);
-   w->xm=malloc(sizeof(double)*(size_t)p);w->ym=malloc(sizeof(double)*(size_t)q);
-   if(!w->factor || !w->rhs || !w->coef || !w->xm || !w->ym){
-      THD_ridge_free(w);pp_error(err,nerr,"out of memory allocating ridge");return NULL;
-   }
-   return w;
-}
-
-static int ridge_fit_penalties(THD_ridge_workspace *w,const float *x,const float *y,
- int n,int p,int q,double lambda,const double *penalties,int form,char *err,int nerr)
-{
-   int i,j,k,t,o,d,dual,g; double *a,*b;
-   if(w) w->fitted=0;
-   if(!w || !x || !y || n<1 || n>w->maxn || p<1 || p>w->maxp ||
-      q<1 || q>w->maxq || !isfinite(lambda) || lambda<=0 || form<0 || form>2)
-      return pp_error(err,nerr,"invalid ridge dimensions, form, or positive lambda");
-   if(penalties)for(o=0;o<q;o++)if(!isfinite(penalties[o]) || penalties[o]<=0)
-      return pp_error(err,nerr,"response ridge penalties must be finite and positive");
-   dual=form==THD_RIDGE_DUAL || (form==THD_RIDGE_AUTO && p>n);
-   d=dual?n:p;
-   if(d>(w->maxn<w->maxp?w->maxn:w->maxp))
-      return pp_error(err,nerr,"forced ridge form exceeds the allocated factor capacity");
-   a=w->factor;b=w->rhs;
-   for(j=0;j<p;j++){
-      double s=0;for(i=0;i<n;i++){
-         double v=x[(size_t)i*p+j];if(!isfinite(v)) return pp_error(err,nerr,"ridge predictor is not finite");s+=v;
-      }w->xm[j]=s/n;
-   }
-   for(o=0;o<q;o++){
-      double s=0;for(i=0;i<n;i++){
-         double v=y[(size_t)i*q+o];if(!isfinite(v)) return pp_error(err,nerr,"ridge response is not finite");s+=v;
-      }w->ym[o]=s/n;
-   }
-   for(g=0;g<(penalties?q:1);g++){
-      if(penalties){
-         for(o=0;o<g;o++)if(penalties[o]==penalties[g])break;
-         if(o<g)continue;
-         lambda=penalties[g];
-      }
-   for(i=0;i<d;i++) for(j=0;j<=i;j++){
-      double s=0;
-      for(t=0;t<(dual?p:n);t++){
-         double u=dual?x[(size_t)i*p+t]-w->xm[t]:x[(size_t)t*p+i]-w->xm[i];
-         double v=dual?x[(size_t)j*p+t]-w->xm[t]:x[(size_t)t*p+j]-w->xm[j];
-         s+=u*v;
-      }
-      a[(size_t)i*d+j]=s+(i==j?lambda:0);
-   }
-   /* Cholesky factorization and triangular solves share one factor for all responses. */
-   for(i=0;i<d;i++) for(j=0;j<=i;j++){
-      double s=a[(size_t)i*d+j];
-      for(k=0;k<j;k++) s-=a[(size_t)i*d+k]*a[(size_t)j*d+k];
-      if(i==j){
-         if(!isfinite(s) || s<=0) return pp_error(err,nerr,"ridge factorization failed; increase lambda or rescale predictors");
-         a[(size_t)i*d+j]=sqrt(s);
-      }else a[(size_t)i*d+j]=s/a[(size_t)j*d+j];
-   }
-   for(i=0;i<d;i++) for(o=0;o<q;o++){
-      double s=0;if(penalties && penalties[o]!=lambda)continue;
-      if(dual) s=y[(size_t)i*q+o]-w->ym[o];
-      else for(t=0;t<n;t++) s+=(x[(size_t)t*p+i]-w->xm[i])*(y[(size_t)t*q+o]-w->ym[o]);
-      for(k=0;k<i;k++) s-=a[(size_t)i*d+k]*b[(size_t)k*q+o];
-      b[(size_t)i*q+o]=s/a[(size_t)i*d+i];
-   }
-   for(i=d-1;i>=0;i--) for(o=0;o<q;o++){
-      double s;if(penalties && penalties[o]!=lambda)continue;s=b[(size_t)i*q+o];
-      for(k=i+1;k<d;k++) s-=a[(size_t)k*d+i]*b[(size_t)k*q+o];
-      b[(size_t)i*q+o]=s/a[(size_t)i*d+i];
-   }
-   for(j=0;j<p;j++) for(o=0;o<q;o++){
-      double s=0;if(penalties && penalties[o]!=lambda)continue;
-      if(dual) for(i=0;i<n;i++) s+=(x[(size_t)i*p+j]-w->xm[j])*b[(size_t)i*q+o];
-      else s=b[(size_t)j*q+o];
-      if(!isfinite(s)) return pp_error(err,nerr,"ridge coefficient is not finite");
-      w->coef[(size_t)j*q+o]=s;
-   }
-   } /* distinct response penalties */
-   w->n=n;w->p=p;w->q=q;w->fitted=1;return 1;
-}
-
-int THD_ridge_fit(THD_ridge_workspace *w,const float *x,const float *y,
- int n,int p,int q,double lambda,int form,char *err,int nerr)
-{return ridge_fit_penalties(w,x,y,n,p,q,lambda,NULL,form,err,nerr);}
-int THD_ridge_fit_response_lambda(THD_ridge_workspace *w,const float *x,const float *y,
- int n,int p,int q,const double *lambda,int form,char *err,int nerr)
-{
-   if(!lambda){if(w)w->fitted=0;return pp_error(err,nerr,"response ridge needs a penalty vector");}
-   return ridge_fit_penalties(w,x,y,n,p,q,1,lambda,form,err,nerr);
-}
-
-int THD_ridge_coefficients(const THD_ridge_workspace *w,double *coef,
- double *intercept,char *err,int nerr)
-{
-   int j,o;
-   if(!w || !w->fitted || !coef || !intercept)
-      return pp_error(err,nerr,"ridge coefficient export needs a fitted model and output buffers");
-   for(o=0;o<w->q;o++){
-      double v=w->ym[o];
-      for(j=0;j<w->p;j++)v-=w->xm[j]*w->coef[(size_t)j*w->q+o];
-      if(!isfinite(v))return pp_error(err,nerr,"ridge intercept is not finite");
-      intercept[o]=v;
-   }
-   memcpy(coef,w->coef,sizeof(double)*(size_t)w->p*w->q);
-   return 1;
-}
-
-int THD_ridge_predict(const THD_ridge_workspace *w,const float *x,int n,
-                      float *out,char *err,int nerr)
-{
-   int i,j,o;
-   if(!w || !w->fitted || !x || !out || n<1) return pp_error(err,nerr,"ridge prediction needs a fitted model and rows");
-   for(i=0;i<n;i++) for(o=0;o<w->q;o++){
-      double s=w->ym[o];
-      for(j=0;j<w->p;j++){
-         double v=x[(size_t)i*w->p+j];
-         if(!isfinite(v)) return pp_error(err,nerr,"ridge prediction input is not finite");
-         s+=(v-w->xm[j])*w->coef[(size_t)j*w->q+o];
-      }
-      if(!isfinite(s) || fabs(s)>FLT_MAX) return pp_error(err,nerr,"ridge prediction exceeds float range");
-      out[(size_t)i*w->q+o]=(float)s;
-   }return 1;
-}
-
-/* Reusable continuous estimators. Spatial extraction and fold construction
-   remain in their existing callers; no model sees rows outside its fit. */
-struct THD_regression {
-   THD_regression_config config;
-   int maxn,maxp,maxq,n,p,q,fitted;
-   double *parameter,*penalty;int *group;
-   double *coef,*intercept,*xm,*ym,*xx,*yy,*residual,*norm,*dual;
-   double *weight,*old,*score,*loading,*response,*rotation,*loadings;
-   THD_ridge_workspace *linear;
-   THD_regression_diagnostic *diagnostic;
-};
-void THD_regression_free(THD_regression *m)
-{
-   if(!m)return;
-   free(m->parameter);free(m->penalty);free(m->group);free(m->coef);free(m->intercept);
-   free(m->xm);free(m->ym);free(m->xx);free(m->yy);free(m->residual);free(m->norm);free(m->dual);
-   free(m->weight);free(m->old);free(m->score);free(m->loading);free(m->response);
-   free(m->rotation);free(m->loadings);free(m->diagnostic);THD_ridge_free(m->linear);free(m);
-}
-THD_regression *THD_regression_alloc(int n,int p,int q,
- const THD_regression_config *cfg,char *err,int nerr)
-{
-   THD_regression *m=NULL;int i,j,d=n<p?n:p;
-   if(!cfg || n<2 || p<1 || q<1 || cfg->method<1 || cfg->method>4 || cfg->ncandidate<1 ||
-      !cfg->parameter || !isfinite(cfg->tolerance) || cfg->tolerance<1e-12 || cfg->tolerance>1e-2 || cfg->max_iterations<1){
-      pp_error(err,nerr,"invalid continuous estimator configuration/capacity");return NULL;}
-   if((size_t)n>SIZE_MAX/sizeof(double)/(size_t)(p>q?p:q) ||
-      (size_t)p>SIZE_MAX/sizeof(double)/(size_t)q ||
-      (size_t)cfg->ncandidate>SIZE_MAX/sizeof(double)/2){pp_error(err,nerr,"continuous estimator too large");return NULL;}
-   for(i=0;i<cfg->ncandidate;i++){
-      double a=cfg->parameter[2*i],b=cfg->parameter[2*i+1];
-      if(!isfinite(a) || !isfinite(b) || a<=0 ||
-         (cfg->method==THD_REG_ELASTIC_NET && (b<0 || b>1)) ||
-         (cfg->method==THD_REG_SVR && b<0) ||
-         (cfg->method==THD_REG_PLS && (a!=floor(a) || a>INT_MAX))){
-         pp_error(err,nerr,"invalid regression candidate parameters");return NULL;}
-   }
-   if(cfg->method==THD_REG_BANDED_RIDGE){
-      if(cfg->nfeature!=p || cfg->ngroup<1 || cfg->ngroup>p || !cfg->feature_group || !cfg->group_penalty ||
-         (size_t)cfg->ncandidate>SIZE_MAX/sizeof(double)/(size_t)cfg->ngroup){
-         pp_error(err,nerr,"banded ridge needs complete design-column groups and penalty vectors");return NULL;}
-      for(j=0;j<p;j++)if(cfg->feature_group[j]<0 || cfg->feature_group[j]>=cfg->ngroup){pp_error(err,nerr,"invalid predictor group ID");return NULL;}
-      for(i=0;i<cfg->ngroup;i++){
-         for(j=0;j<p && cfg->feature_group[j]!=i;j++);
-         if(j==p){pp_error(err,nerr,"empty predictor group");return NULL;}
-      }
-      for(i=0;i<cfg->ncandidate;i++)for(j=0;j<cfg->ngroup;j++)if(!isfinite(cfg->group_penalty[(size_t)i*cfg->ngroup+j]) || cfg->group_penalty[(size_t)i*cfg->ngroup+j]<=0){pp_error(err,nerr,"group penalties must be finite and positive");return NULL;}
-   }
-   m=calloc(1,sizeof(*m));if(!m)goto fail;
-   m->config=*cfg;m->maxn=n;m->maxp=p;m->maxq=q;
-#define REG_ALLOC(field,count) do{m->field=calloc((size_t)(count),sizeof(*m->field));if(!m->field)goto fail;}while(0)
-   REG_ALLOC(parameter,(size_t)cfg->ncandidate*2);memcpy(m->parameter,cfg->parameter,sizeof(double)*(size_t)cfg->ncandidate*2);m->config.parameter=m->parameter;
-   if(cfg->method==THD_REG_BANDED_RIDGE){
-      REG_ALLOC(group,p);REG_ALLOC(penalty,(size_t)cfg->ncandidate*cfg->ngroup);
-      memcpy(m->group,cfg->feature_group,sizeof(int)*(size_t)p);
-      memcpy(m->penalty,cfg->group_penalty,sizeof(double)*(size_t)cfg->ncandidate*cfg->ngroup);
-      m->config.feature_group=m->group;m->config.group_penalty=m->penalty;
-      m->linear=THD_ridge_alloc(n,p,q,err,nerr);if(!m->linear)goto fail;
-   }
-   REG_ALLOC(coef,(size_t)p*q);REG_ALLOC(intercept,q);REG_ALLOC(xm,p);REG_ALLOC(ym,q);
-   REG_ALLOC(xx,(size_t)n*p);REG_ALLOC(yy,(size_t)n*q);REG_ALLOC(diagnostic,q);
-   REG_ALLOC(residual,n);REG_ALLOC(norm,p>n?p:n);REG_ALLOC(dual,n);
-   if(cfg->method==THD_REG_PLS){
-      REG_ALLOC(weight,p);REG_ALLOC(old,p);REG_ALLOC(score,n);REG_ALLOC(loading,p);REG_ALLOC(response,q);
-      REG_ALLOC(rotation,(size_t)d*p);REG_ALLOC(loadings,(size_t)d*p);
-   }
-#undef REG_ALLOC
-   return m;
-fail:THD_regression_free(m);pp_error(err,nerr,"out of memory allocating continuous estimator");return NULL;
-}
-static double reg_soft(double v,double threshold)
-{return v>threshold?v-threshold:v< -threshold?v+threshold:0;}
-static double reg_kkt(double gradient,double beta,double l1)
-{return beta>0?fabs(gradient+l1):beta<0?fabs(gradient-l1):fmax(0,fabs(gradient)-l1);}
-static int reg_elastic(THD_regression *m,int candidate,char *err,int nerr)
-{
-   int n=m->n,p=m->p,q=m->q,i,j,o,it;double a=m->parameter[2*candidate],rho=m->parameter[2*candidate+1];
-   double l1=a*rho,l2=a*(1-rho),tol=m->config.tolerance;
-   for(j=0;j<p;j++){double sum=0;for(i=0;i<n;i++)sum+=m->xx[(size_t)i*p+j]*m->xx[(size_t)i*p+j];m->norm[j]=sum/n;}
-   for(o=0;o<q;o++){
-      THD_regression_diagnostic *dg=m->diagnostic+o;
-      for(i=0;i<n;i++)m->residual[i]=m->yy[(size_t)i*q+o];
-      for(it=1;it<=m->config.max_iterations;it++){
-         for(j=0;j<p;j++){
-            double old=m->coef[(size_t)j*q+o],v=0,b,den=m->norm[j]+l2;
-            for(i=0;i<n;i++)v+=m->xx[(size_t)i*p+j]*m->residual[i];
-            b=den>0?reg_soft(v/n+m->norm[j]*old,l1)/den:0;
-            m->coef[(size_t)j*q+o]=b;
-            for(i=0;i<n;i++)m->residual[i]-=m->xx[(size_t)i*p+j]*(b-old);
-         }
-         /* Recompute residual and every KKT component together; small updates
-            alone are insufficient on nearly collinear designs. */
-         for(i=0;i<n;i++){double r=m->yy[(size_t)i*q+o];for(j=0;j<p;j++)r-=m->xx[(size_t)i*p+j]*m->coef[(size_t)j*q+o];m->residual[i]=r;}
-         dg->residual=0;
-         for(j=0;j<p;j++){
-            double g=l2*m->coef[(size_t)j*q+o];
-            for(i=0;i<n;i++)g-=m->xx[(size_t)i*p+j]*m->residual[i]/n;
-            dg->residual=fmax(dg->residual,reg_kkt(g,m->coef[(size_t)j*q+o],l1));
-         }
-         if(!isfinite(dg->residual))return pp_error(err,nerr,"elastic-net nonfinite KKT residual");
-         if(dg->residual<=tol)break;
-      }
-      if(it>m->config.max_iterations)return pp_error(err,nerr,"elastic-net did not converge: response %d KKT %.9g exceeds %.9g after %d sweeps",o+1,dg->residual,tol,m->config.max_iterations);
-      dg->iterations=it;
-      for(i=0;i<n;i++)dg->objective+=m->residual[i]*m->residual[i]/(2*n);
-      for(j=0;j<p;j++){double b=m->coef[(size_t)j*q+o];dg->objective+=l1*fabs(b)+l2*b*b/2;dg->nonzero+=b!=0;}
-   }
-   return 1;
-}
-static int reg_banded(THD_regression *m,int candidate,char *err,int nerr)
-{
-   int n=m->n,p=m->p,q=m->q,dual=p>n,d=dual?n:p,i,j,k,o;
-   double *a=m->linear->factor,*b=m->linear->rhs,*pen=m->penalty+(size_t)candidate*m->config.ngroup;
-   for(i=0;i<d;i++)for(j=0;j<=i;j++){
-      double sum=0;
-      for(k=0;k<(dual?p:n);k++)sum+=dual?
-         m->xx[(size_t)i*p+k]*m->xx[(size_t)j*p+k]/pen[m->group[k]]:
-         m->xx[(size_t)k*p+i]*m->xx[(size_t)k*p+j];
-      a[(size_t)i*d+j]=sum+(i==j?(dual?1:pen[m->group[i]]):0);
-   }
-   for(i=0;i<d;i++)for(o=0;o<q;o++){
-      double sum=0;
-      if(dual)sum=m->yy[(size_t)i*q+o];
-      else for(k=0;k<n;k++)sum+=m->xx[(size_t)k*p+i]*m->yy[(size_t)k*q+o];
-      b[(size_t)i*q+o]=sum;
-   }
-   if(!lda_solve(a,b,d,q,err,nerr))return 0;
-   for(j=0;j<p;j++)for(o=0;o<q;o++){
-      double v=0;
-      if(dual){for(i=0;i<n;i++)v+=m->xx[(size_t)i*p+j]*b[(size_t)i*q+o];v/=pen[m->group[j]];}
-      else v=b[(size_t)j*q+o];
-      m->coef[(size_t)j*q+o]=v;
-   }
-   for(o=0;o<q;o++){
-      THD_regression_diagnostic *dg=m->diagnostic+o;dg->iterations=1;
-      for(i=0;i<n;i++){double r=m->yy[(size_t)i*q+o];for(j=0;j<p;j++)r-=m->xx[(size_t)i*p+j]*m->coef[(size_t)j*q+o];m->residual[i]=r;dg->objective+=r*r;}
-      for(j=0;j<p;j++){
-         double beta=m->coef[(size_t)j*q+o],g=pen[m->group[j]]*beta;
-         for(i=0;i<n;i++)g-=m->xx[(size_t)i*p+j]*m->residual[i];
-         dg->residual=fmax(dg->residual,fabs(g));dg->objective+=pen[m->group[j]]*beta*beta;dg->nonzero+=beta!=0;
-      }
-   }
-   return 1;
-}
-static int reg_svr(THD_regression *m,int candidate,char *err,int nerr)
-{
-   int n=m->n,p=m->p,q=m->q,i,j,o,it;double c=m->parameter[2*candidate],eps=m->parameter[2*candidate+1],diag=1/(2*c);
-   for(i=0;i<n;i++){double v=1+diag;for(j=0;j<p;j++)v+=m->xx[(size_t)i*p+j]*m->xx[(size_t)i*p+j];m->norm[i]=v;}
-   for(o=0;o<q;o++){
-      THD_regression_diagnostic *dg=m->diagnostic+o;
-      memset(m->dual,0,sizeof(double)*(size_t)n);m->intercept[o]=0;
-      for(it=1;it<=m->config.max_iterations;it++){
-         for(i=0;i<n;i++){
-            double pred=m->intercept[o],g,old=m->dual[i],v,delta;
-            for(j=0;j<p;j++)pred+=m->xx[(size_t)i*p+j]*m->coef[(size_t)j*q+o];
-            g=pred-m->yy[(size_t)i*q+o]+diag*old;
-            v=reg_soft(old-g/m->norm[i],eps/m->norm[i]);delta=v-old;m->dual[i]=v;
-            m->intercept[o]+=delta;
-            for(j=0;j<p;j++)m->coef[(size_t)j*q+o]+=delta*m->xx[(size_t)i*p+j];
-         }
-         /* Reconstruct primal variables to prevent coordinate-update drift. */
-         m->intercept[o]=0;for(j=0;j<p;j++)m->coef[(size_t)j*q+o]=0;
-         for(i=0;i<n;i++){m->intercept[o]+=m->dual[i];for(j=0;j<p;j++)m->coef[(size_t)j*q+o]+=m->dual[i]*m->xx[(size_t)i*p+j];}
-         dg->residual=0;
-         for(i=0;i<n;i++){
-            double g=m->intercept[o]-m->yy[(size_t)i*q+o]+diag*m->dual[i];
-            for(j=0;j<p;j++)g+=m->xx[(size_t)i*p+j]*m->coef[(size_t)j*q+o];
-            dg->residual=fmax(dg->residual,reg_kkt(g,m->dual[i],eps));
-         }
-         if(!isfinite(dg->residual))return pp_error(err,nerr,"SVR nonfinite dual KKT residual");
-         if(dg->residual<=m->config.tolerance)break;
-      }
-      if(it>m->config.max_iterations)return pp_error(err,nerr,"SVR did not converge: response %d dual KKT %.9g exceeds %.9g after %d sweeps",o+1,dg->residual,m->config.tolerance,m->config.max_iterations);
-      dg->iterations=it;dg->objective=m->intercept[o]*m->intercept[o]/2;
-      for(j=0;j<p;j++){double b=m->coef[(size_t)j*q+o];dg->objective+=b*b/2;dg->nonzero+=b!=0;}
-      for(i=0;i<n;i++){double r=m->yy[(size_t)i*q+o]-m->intercept[o];for(j=0;j<p;j++)r-=m->xx[(size_t)i*p+j]*m->coef[(size_t)j*q+o];r=fmax(0,fabs(r)-eps);dg->objective+=c*r*r;}
-   }
-   return 1;
-}
-static int reg_pls(THD_regression *m,int candidate,char *err,int nerr)
-{
-   int n=m->n,p=m->p,q=m->q,limit=(int)m->parameter[2*candidate],i,j,o,k,h,it,used=0,maxit=0;
-   double initial=0,last=0,cutoff;
-   if(limit>p)limit=p;
-   if(limit>n-1)limit=n-1;
-   for(i=0;i<n;i++)for(j=0;j<p;j++)initial+=m->xx[(size_t)i*p+j]*m->xx[(size_t)i*p+j];
-   cutoff=initial*64*DBL_EPSILON*(n>p?n:p);
-   for(k=0;k<limit;k++){
-      int col=0;double largest=0,tt=0;
-      for(o=0;o<q;o++){double sum=0;for(i=0;i<n;i++)sum+=m->yy[(size_t)i*q+o]*m->yy[(size_t)i*q+o];if(sum>largest){largest=sum;col=o;}}
-      if(largest<=DBL_MIN)break;
-      for(i=0;i<n;i++)m->residual[i]=m->yy[(size_t)i*q+col];
-      memset(m->old,0,sizeof(double)*(size_t)p);
-      for(it=1;it<=m->config.max_iterations;it++){
-         double norm=0,cc=0,diff=0;
-         for(j=0;j<p;j++){double sum=0;for(i=0;i<n;i++)sum+=m->xx[(size_t)i*p+j]*m->residual[i];m->weight[j]=sum;norm+=sum*sum;}
-         if(norm<=DBL_MIN){tt=0;break;}
-         norm=sqrt(norm);for(j=0;j<p;j++)m->weight[j]/=norm;
-         /* Fix each iterate's sign, including repeated singular-value cases. */
-         {int pivot=0;for(j=1;j<p;j++)if(fabs(m->weight[j])>fabs(m->weight[pivot]))pivot=j;
-          if(m->weight[pivot]<0)for(j=0;j<p;j++)m->weight[j]=-m->weight[j];}
-         tt=0;for(i=0;i<n;i++){double sum=0;for(j=0;j<p;j++)sum+=m->xx[(size_t)i*p+j]*m->weight[j];m->score[i]=sum;tt+=sum*sum;}
-         if(tt<=cutoff)break;
-         for(o=0;o<q;o++){double sum=0;for(i=0;i<n;i++)sum+=m->yy[(size_t)i*q+o]*m->score[i];m->response[o]=sum/tt;cc+=m->response[o]*m->response[o];}
-         if(cc<=DBL_MIN){tt=0;break;}
-         for(j=0;j<p;j++){double d=m->weight[j]-m->old[j];diff+=d*d;m->old[j]=m->weight[j];}
-         last=sqrt(diff);
-         if(q==1 || last<=m->config.tolerance){if(q==1)last=0;break;}
-         for(i=0;i<n;i++){double sum=0;for(o=0;o<q;o++)sum+=m->yy[(size_t)i*q+o]*m->response[o];m->residual[i]=sum/cc;}
-      }
-      if(it>m->config.max_iterations)return pp_error(err,nerr,"PLS power iteration did not converge at component %d (change %.9g)",k+1,last);
-      if(tt<=cutoff)break;
-      if(it>maxit)maxit=it;
-      for(j=0;j<p;j++){
-         double sum=0;for(i=0;i<n;i++)sum+=m->xx[(size_t)i*p+j]*m->score[i];
-         m->loading[j]=sum/tt;m->loadings[(size_t)k*p+j]=m->loading[j];m->rotation[(size_t)k*p+j]=m->weight[j];
-      }
-      for(h=0;h<k;h++){
-         double cross=0;for(j=0;j<p;j++)cross+=m->loadings[(size_t)h*p+j]*m->weight[j];
-         for(j=0;j<p;j++)m->rotation[(size_t)k*p+j]-=m->rotation[(size_t)h*p+j]*cross;
-      }
-      for(j=0;j<p;j++)for(o=0;o<q;o++)m->coef[(size_t)j*q+o]+=m->rotation[(size_t)k*p+j]*m->response[o];
-      for(i=0;i<n;i++){
-         for(j=0;j<p;j++)m->xx[(size_t)i*p+j]-=m->score[i]*m->loading[j];
-         for(o=0;o<q;o++)m->yy[(size_t)i*q+o]-=m->score[i]*m->response[o];
-      }
-      used++;
-   }
-   for(o=0;o<q;o++){
-      THD_regression_diagnostic *dg=m->diagnostic+o;dg->components=used;dg->iterations=maxit;dg->residual=used?last:0;
-      for(i=0;i<n;i++)dg->objective+=m->yy[(size_t)i*q+o]*m->yy[(size_t)i*q+o]/n;
-      for(j=0;j<p;j++)dg->nonzero+=m->coef[(size_t)j*q+o]!=0;
-   }
-   return 1;
-}
-int THD_regression_fit(THD_regression *m,const float *x,const float *y,
- int n,int p,int q,int candidate,char *err,int nerr)
-{
-   int i,j,o,ok=0,center;
-   if(m)m->fitted=0;
-   if(!m || !x || !y || n<2 || n>m->maxn || p<1 || p>m->maxp || q<1 || q>m->maxq || candidate<0 || candidate>=m->config.ncandidate ||
-      (m->config.method==THD_REG_BANDED_RIDGE && p!=m->config.nfeature))return pp_error(err,nerr,"invalid continuous estimator fit dimensions/candidate");
-   m->n=n;m->p=p;m->q=q;center=m->config.method!=THD_REG_SVR;
-   memset(m->coef,0,sizeof(double)*(size_t)p*q);memset(m->diagnostic,0,sizeof(*m->diagnostic)*(size_t)q);
-   for(j=0;j<p;j++){
-      double sum=0;for(i=0;i<n;i++){double v=x[(size_t)i*p+j];if(!isfinite(v))return pp_error(err,nerr,"nonfinite regression predictor");sum+=v;}
-      m->xm[j]=center?sum/n:0;
-      for(i=0;i<n;i++)m->xx[(size_t)i*p+j]=x[(size_t)i*p+j]-m->xm[j];
-   }
-   for(o=0;o<q;o++){
-      double sum=0;for(i=0;i<n;i++){double v=y[(size_t)i*q+o];if(!isfinite(v))return pp_error(err,nerr,"nonfinite regression response");sum+=v;}
-      m->ym[o]=sum/n;m->intercept[o]=center?m->ym[o]:0;
-      for(i=0;i<n;i++)m->yy[(size_t)i*q+o]=y[(size_t)i*q+o]-(center?m->ym[o]:0);
-   }
-   switch(m->config.method){
-      case THD_REG_ELASTIC_NET:ok=reg_elastic(m,candidate,err,nerr);break;
-      case THD_REG_BANDED_RIDGE:ok=reg_banded(m,candidate,err,nerr);break;
-      case THD_REG_PLS:ok=reg_pls(m,candidate,err,nerr);break;
-      case THD_REG_SVR:ok=reg_svr(m,candidate,err,nerr);break;
-   }
-   if(!ok)return 0;
-   for(o=0;o<q;o++){
-      for(j=0;j<p;j++){
-         double b=m->coef[(size_t)j*q+o];if(!isfinite(b))return pp_error(err,nerr,"nonfinite regression coefficient");
-         m->intercept[o]-=m->xm[j]*b;
-      }
-      if(!isfinite(m->intercept[o]) || !isfinite(m->diagnostic[o].objective) || !isfinite(m->diagnostic[o].residual))return pp_error(err,nerr,"nonfinite regression fit diagnostics");
-   }
-   m->fitted=1;return 1;
-}
-int THD_regression_predict(const THD_regression *m,const float *x,int n,float *out,char *err,int nerr)
-{
-   int i,j,o;
-   if(!m || !m->fitted || !x || !out || n<1)return pp_error(err,nerr,"regression prediction requires a fitted model");
-   for(i=0;i<n;i++)for(o=0;o<m->q;o++){
-      double v=m->intercept[o];
-      for(j=0;j<m->p;j++){double z=x[(size_t)i*m->p+j];if(!isfinite(z))return pp_error(err,nerr,"nonfinite regression prediction input");v+=z*m->coef[(size_t)j*m->q+o];}
-      if(!isfinite(v) || fabs(v)>FLT_MAX)return pp_error(err,nerr,"regression prediction exceeds float range");
-      out[(size_t)i*m->q+o]=(float)v;
-   }return 1;
-}
-int THD_regression_coefficients(const THD_regression *m,double *coef,double *intercept,char *err,int nerr)
-{
-   if(!m || !m->fitted || !coef || !intercept)return pp_error(err,nerr,"regression coefficients require a fitted model");
-   memcpy(coef,m->coef,sizeof(double)*(size_t)m->p*m->q);memcpy(intercept,m->intercept,sizeof(double)*(size_t)m->q);return 1;
-}
-const THD_regression_diagnostic *THD_regression_diagnostics(const THD_regression *m)
-{return m && m->fitted?m->diagnostic:NULL;}
 
 const char *THD_mvpa_tune_objective_name(int objective)
 {
@@ -2079,8 +1655,9 @@ int THD_mvpa_ridge_enable_patterns(THD_mvpa_ridge_workspace *w,char *err,int ner
 }
 static int ridge_record_patterns(THD_mvpa_ridge_workspace *w,int fold,int n,int p,int q,char *err,int nerr)
 {
-   THD_activation_patterns *pat=w->patterns;THD_ridge_workspace *r=w->ridge;int i,j,o;
+   THD_activation_patterns *pat=w->patterns;THD_regression_state state;const THD_regression_state *r=&state;int i,j,o;
    if(!pat)return 1;
+   if(!THD_ridge_get_state(w->ridge,&state,err,nerr))return 0;
    /* Centered scores in double precision avoid losing the score subspace to
       float rounding (especially the constant sum of class indicator fits). */
    for(i=0;i<n;i++)for(o=0;o<q;o++){
@@ -2106,13 +1683,12 @@ int THD_mvpa_ridge_enable_response_lambda(THD_mvpa_ridge_workspace *w,char *err,
    nc=(size_t)(w->selection?w->selection->ngrid:1)*pca_ngrid(w->pca);
    if(!nc || nc>INT_MAX || nf>SIZE_MAX/nc || nf*nc>SIZE_MAX/nl || nf*nc*nl>SIZE_MAX/nq ||
       nf*nc*nl*nq>SIZE_MAX/sizeof(double))return pp_error(err,nerr,"per-response ridge audit dimensions are too large");
-   cells=nf*nc*nl*nq;a=calloc(1,sizeof(*a));if(!a)goto nomem;
+   cells=nf*nc*nl*nq;a=calloc(1,sizeof(*a));if(!a)return pp_error(err,nerr,"cannot allocate per-response ridge audits");
    a->nconfig=(int)nc;a->selected=malloc(sizeof(double)*nf*nq);
    a->loss=malloc(sizeof(double)*cells);a->config_loss=malloc(sizeof(double)*nf*nc);
    a->best=malloc(sizeof(int)*nf*nc*nq);a->nvalid=malloc(sizeof(int)*nf*nc);
-   if(!a->selected || !a->loss || !a->config_loss || !a->best || !a->nvalid){response_ridge_free(a);goto nomem;}
+   if(!a->selected || !a->loss || !a->config_loss || !a->best || !a->nvalid){response_ridge_free(a);return pp_error(err,nerr,"cannot allocate per-response ridge audits");}
    w->response_ridge=a;return 1;
-nomem:return pp_error(err,nerr,"cannot allocate per-response ridge audits");
 }
 
 void THD_mvpa_ridge_workspace_free(THD_mvpa_ridge_workspace *w)
@@ -2238,13 +1814,20 @@ static int regression_cv_predict(THD_mvpa_ridge_workspace *w,int ne,char *err,in
    if(w->regression)return THD_regression_predict(w->regression,w->test_x,ne,w->test_y,err,nerr);
    return THD_ridge_predict(w->ridge,w->test_x,ne,w->test_y,err,nerr);
 }
-static double regression_cv_mean(const THD_mvpa_ridge_workspace *w,int o)
-{return w->regression?w->regression->ym[o]:w->ridge->ym[o];}
-static void regression_cv_record(THD_mvpa_ridge_workspace *w,int fold,int nt,int p,int width,int q)
+static int regression_cv_state(const THD_mvpa_ridge_workspace *w,
+ THD_regression_state *state,char *err,int nerr)
 {
-   THD_regression *m=w->regression;int j,o,g,i;
-   if(!m)return;
-   memcpy(w->reg_diagnostic+(size_t)fold*w->max_output,m->diagnostic,sizeof(*m->diagnostic)*(size_t)q);
+   return w->regression?THD_regression_get_state(w->regression,state,err,nerr):
+      THD_ridge_get_state(w->ridge,state,err,nerr);
+}
+static void regression_cv_record(THD_mvpa_ridge_workspace *w,int fold,int nt,int p,int width,int q,
+ const THD_regression_state *m)
+{
+   int j,o,g,i;
+   const THD_regression_diagnostic *diagnostic;
+   if(!w->regression)return;
+   diagnostic=THD_regression_diagnostics(w->regression);
+   memcpy(w->reg_diagnostic+(size_t)fold*w->max_output,diagnostic,sizeof(*diagnostic)*(size_t)q);
    if(w->reg_coef){
       double *coef=w->reg_coef+(size_t)fold*w->max_feature*w->max_output;
       memset(coef,0,sizeof(double)*(size_t)w->max_feature*w->max_output);
@@ -2253,8 +1836,8 @@ static void regression_cv_record(THD_mvpa_ridge_workspace *w,int fold,int nt,int
          for(o=0;o<q;o++)coef[(size_t)id*w->max_output+o]=m->coef[(size_t)j*q+o];
       }
    }
-   if(w->reg_group)for(g=0;g<m->config.ngroup;g++)for(o=0;o<q;o++){
-      double var=0,cov=0,*out=w->reg_group+(((size_t)fold*m->config.ngroup+g)*w->max_output+o)*2;
+   if(w->reg_group)for(g=0;g<m->ngroup;g++)for(o=0;o<q;o++){
+      double var=0,cov=0,*out=w->reg_group+(((size_t)fold*m->ngroup+g)*w->max_output+o)*2;
       for(i=0;i<nt;i++){
          double part=0,total=0;
          for(j=0;j<p;j++){
@@ -2314,14 +1897,15 @@ static int ridge_candidate_evaluate(void *data,int batch,int candidate,
  const int *train,int nt,const int *test,int ne,char *err,int nerr)
 {
    Ridge_tuning *t=data;THD_mvpa_ridge_workspace *w=t->w;int i,o,q=t->q;
-   int width=t->width;(void)train;(void)batch;
+   int width=t->width;THD_regression_state state;(void)train;(void)batch;
    if(!regression_cv_fit(w,nt,width,q,w->lambda_grid[candidate],err,nerr) ||
-      !regression_cv_predict(w,ne,err,nerr))return 0;
+      !regression_cv_predict(w,ne,err,nerr) ||
+      !regression_cv_state(w,&state,err,nerr))return 0;
    if(w->regression){
       int nc=(w->selection?w->selection->ngrid:1)*pca_ngrid(w->pca);
       THD_regression_diagnostic *dg=w->reg_inner+((size_t)t->outer*nc+batch)*w->nlambda+candidate;
       for(o=0;o<q;o++){
-         const THD_regression_diagnostic *fit=w->regression->diagnostic+o;
+         const THD_regression_diagnostic *fit=THD_regression_diagnostics(w->regression)+o;
          if(fit->iterations>dg->iterations)dg->iterations=fit->iterations;
          dg->residual=fmax(dg->residual,fit->residual);
          if(fit->components<dg->components)dg->components=fit->components;
@@ -2341,7 +1925,7 @@ static int ridge_candidate_evaluate(void *data,int batch,int candidate,
          if(!isfinite(e))return pp_error(err,nerr,"nonfinite inner prediction error");
          if(t->objective==THD_TUNE_MAE)w->inner_sse[(size_t)candidate*q+o]+=fabs(e);
          else w->inner_sse[(size_t)candidate*q+o]+=e*e;
-         if(candidate==0){double d=truth-regression_cv_mean(w,o);w->inner_baseline[o]+=d*d;}
+         if(candidate==0){double d=truth-state.ym[o];w->inner_baseline[o]+=d*d;}
       }
    }
    return 1;
@@ -2415,7 +1999,7 @@ static int ridge_tune_fold(THD_mvpa_ridge_workspace *w,int outer,
 int THD_mvpa_run_ridge_cv(THD_mvpa_ridge_workspace *w,const float *x,int p,
  const float *y,int q,const int *group,double lambda,char *err,int nerr)
 {
-   int f,i,o,n,total;const THD_foldplan *plan;
+   int f,i,o,n,total;const THD_foldplan *plan;THD_regression_state state;
    if(!w || !x || !y || p<1 || p>w->max_feature || q<1 || q>w->max_output)
       return pp_error(err,nerr,"ridge CV inputs exceed workspace capacity");
    plan=w->plan;n=plan->nsample;
@@ -2448,15 +2032,16 @@ int THD_mvpa_run_ridge_cv(THD_mvpa_ridge_workspace *w,const float *x,int p,
       if(!(w->response_ridge?
          THD_ridge_fit_response_lambda(w->ridge,w->train_x,w->train_y,nt,width,q,w->response_ridge->selected+(size_t)f*w->max_output,THD_RIDGE_AUTO,err,nerr):
          regression_cv_fit(w,nt,width,q,w->selected_lambda[f],err,nerr)) ||
-         (ne>0 && !regression_cv_predict(w,ne,err,nerr)))return 0;
-      regression_cv_record(w,f,nt,p,width,q);
+         (ne>0 && !regression_cv_predict(w,ne,err,nerr)) ||
+         !regression_cv_state(w,&state,err,nerr))return 0;
+      regression_cv_record(w,f,nt,p,width,q,&state);
       if(!ridge_record_patterns(w,f,nt,p,q,err,nerr))return 0;
       if(plan->kind==THD_CV_TRAIN_ONLY)return 1; /* Fit only: never score training rows. */
       for(o=0;o<q;o++){
          for(i=0;i<ne;i++){
             int s=plan->test[f][i];
             w->prediction[(size_t)s*q+o]=w->test_y[(size_t)i*q+o];
-            w->baseline[(size_t)s*q+o]=(float)regression_cv_mean(w,o);
+            w->baseline[(size_t)s*q+o]=(float)state.ym[o];
             w->truth_scratch[i]=y[(size_t)s*q+o];w->pred_scratch[i]=w->prediction[(size_t)s*q+o];
             w->base_scratch[i]=w->baseline[(size_t)s*q+o];
          }
@@ -2487,6 +2072,18 @@ void THD_mvpa_frozen_free(THD_mvpa_frozen_ridge *m)
    free(m->index);free(m->constant);free(m->center);free(m->sd);free(m->zmean);free(m->zsd);
    free(m->zbeta);free(m->xmean);free(m->pcmean);free(m->loading);free(m->xm);free(m->ym);free(m->coef);free(m->lambda);free(m);
 }
+static int frozen_alloc_fields(THD_mvpa_frozen_ridge *m)
+{
+   int p=m->p,q=m->q,k=m->k,ns=m->ns,ncomp=m->ncomp;
+   size_t width=(size_t)m->width;
+#define FALLOC(field,type,n) m->field=calloc((size_t)(n)?(size_t)(n):1,sizeof(type));if(!m->field)return 0
+   FALLOC(index,int,ns);FALLOC(constant,int,p);FALLOC(center,double,p);FALLOC(sd,double,p);
+   FALLOC(zmean,double,k);FALLOC(zsd,double,k);FALLOC(zbeta,double,(size_t)k*p);FALLOC(xmean,double,p);
+   FALLOC(pcmean,double,ns);FALLOC(loading,double,(size_t)ncomp*ns);
+   FALLOC(xm,double,width);FALLOC(ym,double,q);FALLOC(coef,double,width*q);FALLOC(lambda,double,q);
+#undef FALLOC
+   return 1;
+}
 static THD_mvpa_frozen_ridge *frozen_alloc(int p,int q,int k,int scale,int ns,int pc,int ncomp)
 {
    THD_mvpa_frozen_ridge *m;size_t width=pc?(ncomp?ncomp:1):ns;
@@ -2494,15 +2091,11 @@ static THD_mvpa_frozen_ridge *frozen_alloc(int p,int q,int k,int scale,int ns,in
       (size_t)p>SIZE_MAX/sizeof(double)/(size_t)(k?k:1) || (size_t)ns>SIZE_MAX/sizeof(double)/(size_t)(ncomp?ncomp:1) || width>SIZE_MAX/sizeof(double)/(size_t)q)return NULL;
    m=calloc(1,sizeof(*m));if(!m)return NULL;
    m->p=p;m->q=q;m->k=k;m->scale=scale;m->ns=ns;m->pc=pc;m->ncomp=ncomp;m->width=(int)width;
-#define FALLOC(field,type,n) m->field=calloc((size_t)(n)?(size_t)(n):1,sizeof(type));if(!m->field)goto bad
-   FALLOC(index,int,ns);FALLOC(constant,int,p);FALLOC(center,double,p);FALLOC(sd,double,p);
-   FALLOC(zmean,double,k);FALLOC(zsd,double,k);FALLOC(zbeta,double,(size_t)k*p);FALLOC(xmean,double,p);
-   FALLOC(pcmean,double,ns);FALLOC(loading,double,(size_t)ncomp*ns);
-   FALLOC(xm,double,width);FALLOC(ym,double,q);FALLOC(coef,double,width*q);FALLOC(lambda,double,q);
-#undef FALLOC
-   return m;
-bad:THD_mvpa_frozen_free(m);return NULL;
+   if(frozen_alloc_fields(m))return m;
+   THD_mvpa_frozen_free(m);return NULL;
 }
+/* Copy fitted preprocessing, selection and PCA into caller-owned storage.
+   Estimator coefficients are filled by the caller; NULL reports allocation failure. */
 static THD_mvpa_frozen_ridge *freeze_pipeline(const THD_preprocessor *prep,
  const THD_feature_selection *selection,const THD_mvpa_pca *pca,int q,char *err,int nerr)
 {
@@ -2524,35 +2117,31 @@ static THD_mvpa_frozen_ridge *freeze_pipeline(const THD_preprocessor *prep,
 }
 THD_mvpa_frozen_ridge *THD_mvpa_ridge_freeze(const THD_mvpa_ridge_workspace *w,char *err,int nerr)
 {
-   THD_mvpa_frozen_ridge *m;int q,i;
-   if(!w || w->regression || !w->plan || (w->plan->kind!=THD_CV_FIXED && w->plan->kind!=THD_CV_TRAIN_ONLY) || w->plan->nfold!=1 || !w->ridge || !w->ridge->fitted || w->prep->method==THD_PREP_RUN_CENTER){
+   THD_mvpa_frozen_ridge *m;THD_regression_state state;int q,i;
+   if(!w || w->regression || !w->plan || (w->plan->kind!=THD_CV_FIXED && w->plan->kind!=THD_CV_TRAIN_ONLY) || w->plan->nfold!=1 || !THD_ridge_get_state(w->ridge,&state,err,nerr) || w->prep->method==THD_PREP_RUN_CENTER){
       pp_error(err,nerr,"frozen ridge needs one fitted fixed partition or training-only plan");return NULL;}
-   q=w->ridge->q;m=freeze_pipeline(w->prep,w->selection,w->pca,q,err,nerr);if(!m)return NULL;
-   if(m->width!=w->ridge->p){THD_mvpa_frozen_free(m);pp_error(err,nerr,"frozen ridge pipeline dimensions disagree");return NULL;}
-   memcpy(m->xm,w->ridge->xm,sizeof(double)*m->width);memcpy(m->ym,w->ridge->ym,sizeof(double)*q);
-   memcpy(m->coef,w->ridge->coef,sizeof(double)*(size_t)m->width*q);
+   q=state.q;m=freeze_pipeline(w->prep,w->selection,w->pca,q,err,nerr);if(!m)return NULL;
+   if(m->width!=state.p){THD_mvpa_frozen_free(m);pp_error(err,nerr,"frozen ridge pipeline dimensions disagree");return NULL;}
+   memcpy(m->xm,state.xm,sizeof(double)*m->width);memcpy(m->ym,state.ym,sizeof(double)*q);
+   memcpy(m->coef,state.coef,sizeof(double)*(size_t)m->width*q);
    for(i=0;i<q;i++)m->lambda[i]=w->response_ridge?w->response_ridge->selected[i]:w->selected_lambda[0];
    return m;
 }
-int THD_mvpa_frozen_predict(const THD_mvpa_frozen_ridge *m,const float *x,int n,int p,
- const float *z,int k,float *out,char *err,int nerr)
+static int frozen_predict_rows(const THD_mvpa_frozen_ridge *m,const float *x,int n,int p,
+ const float *z,int k,float *out,float *row,float *sel,float *model,char *err,int nerr)
 {
-   float *row=NULL,*sel=NULL,*model=NULL;int i,j,c,o;double mean;
-   if(!m || !x || !out || n<1 || p!=m->p || k!=m->k || (k && !z) || out==x || (z && out==z) ||
-      (size_t)n>SIZE_MAX/sizeof(float)/(size_t)(p>m->q?p:m->q))return pp_error(err,nerr,"saved model input/covariate dimensions do not match");
-   row=malloc(sizeof(float)*(size_t)p);sel=malloc(sizeof(float)*(size_t)m->ns);model=malloc(sizeof(float)*(size_t)m->width);
-   if(!row || !sel || !model){pp_error(err,nerr,"cannot allocate saved-model prediction scratch");goto bad;}
+   int i,j,c,o;double mean;
    for(i=0;i<n;i++){
-      for(c=0;c<k;c++)if(!isfinite(z[(size_t)i*k+c])){pp_error(err,nerr,"nonfinite saved-model nuisance input");goto bad;}
+      for(c=0;c<k;c++)if(!isfinite(z[(size_t)i*k+c])){pp_error(err,nerr,"nonfinite saved-model nuisance input");return 0;}
       mean=0;
       for(j=0;j<p;j++){
          double raw=x[(size_t)i*p+j],value=raw,fit=m->xmean[j],mag=fabs(raw)+fabs(fit);
-         if(!isfinite(raw)){pp_error(err,nerr,"nonfinite saved-model neural input");goto bad;}
+         if(!isfinite(raw)){pp_error(err,nerr,"nonfinite saved-model neural input");return 0;}
          if(k){
             for(c=0;c<k;c++){double term=((double)z[(size_t)i*k+c]-m->zmean[c])/m->zsd[c]*m->zbeta[(size_t)c*p+j];fit+=term;mag+=fabs(term);}
             value=fabs(raw-fit)<=64*DBL_EPSILON*fmax(1,mag)?0:raw-fit;
          }
-         if(!isfinite(value) || fabs(value)>FLT_MAX){pp_error(err,nerr,"saved-model nuisance residual exceeds float range");goto bad;}
+         if(!isfinite(value) || fabs(value)>FLT_MAX){pp_error(err,nerr,"saved-model nuisance residual exceeds float range");return 0;}
          row[j]=(float)value;mean+=row[j];
       }
       mean/=p;
@@ -2560,7 +2149,7 @@ int THD_mvpa_frozen_predict(const THD_mvpa_frozen_ridge *m,const float *x,int n,
          double v=row[j];
          if(m->scale==THD_PREP_FEATURE_ZSCORE)v=m->constant[j]?0:((double)row[j]-m->center[j])/m->sd[j];
          else if(m->scale==THD_PREP_SAMPLE_CENTER)v-=mean;
-         if(!isfinite(v) || fabs(v)>FLT_MAX){pp_error(err,nerr,"saved-model scaling exceeds float range");goto bad;}
+         if(!isfinite(v) || fabs(v)>FLT_MAX){pp_error(err,nerr,"saved-model scaling exceeds float range");return 0;}
          row[j]=(float)v;
       }
       for(j=0;j<m->ns;j++)sel[j]=row[m->index[j]];
@@ -2568,17 +2157,28 @@ int THD_mvpa_frozen_predict(const THD_mvpa_frozen_ridge *m,const float *x,int n,
       else if(!m->ncomp)model[0]=0;
       else for(c=0;c<m->ncomp;c++){
          double v=0;for(j=0;j<m->ns;j++)v+=((double)sel[j]-m->pcmean[j])*m->loading[(size_t)c*m->ns+j];
-         if(!isfinite(v) || fabs(v)>FLT_MAX){pp_error(err,nerr,"saved-model PCA projection exceeds float range");goto bad;}
+         if(!isfinite(v) || fabs(v)>FLT_MAX){pp_error(err,nerr,"saved-model PCA projection exceeds float range");return 0;}
          model[c]=(float)v;
       }
       for(o=0;o<m->q;o++){
          double v=m->ym[o];for(j=0;j<m->width;j++)v+=((double)model[j]-m->xm[j])*m->coef[(size_t)j*m->q+o];
-         if(!isfinite(v) || fabs(v)>FLT_MAX){pp_error(err,nerr,"saved-model prediction exceeds float range");goto bad;}
+         if(!isfinite(v) || fabs(v)>FLT_MAX){pp_error(err,nerr,"saved-model prediction exceeds float range");return 0;}
          out[(size_t)i*m->q+o]=(float)v;
       }
    }
-   free(row);free(sel);free(model);return 1;
-bad:free(row);free(sel);free(model);return 0;
+   return 1;
+}
+
+int THD_mvpa_frozen_predict(const THD_mvpa_frozen_ridge *m,const float *x,int n,int p,
+ const float *z,int k,float *out,char *err,int nerr)
+{
+   float *row=NULL,*sel=NULL,*model=NULL;int ok=0;
+   if(!m || !x || !out || n<1 || p!=m->p || k!=m->k || (k && !z) || out==x || (z && out==z) ||
+      (size_t)n>SIZE_MAX/sizeof(float)/(size_t)(p>m->q?p:m->q))return pp_error(err,nerr,"saved model input/covariate dimensions do not match");
+   row=malloc(sizeof(float)*(size_t)p);sel=malloc(sizeof(float)*(size_t)m->ns);model=malloc(sizeof(float)*(size_t)m->width);
+   if(!row || !sel || !model)pp_error(err,nerr,"cannot allocate saved-model prediction scratch");
+   else ok=frozen_predict_rows(m,x,n,p,z,k,out,row,sel,model,err,nerr);
+   free(row);free(sel);free(model);return ok;
 }
 
 /* Strict, portable model data. Strings are byte-counted hex tokens; doubles
@@ -2721,43 +2321,51 @@ int THD_mvpa_model_write(const char *path,const THD_mvpa_model *m,int overwrite,
    unlink(temp);free(temp);
    return ok?1:pp_error(err,nerr,"cannot write/publish saved model (existing destination without overwrite, or I/O error)");
 }
-THD_mvpa_model *THD_mvpa_model_read(const char *path,char *err,int nerr)
+/* Read either supported format into an owned, zero-initialized model.
+   Return zero on invalid input; the caller releases partially read fields. */
+static int model_read_body(FILE *fp,THD_mvpa_model *m,int version)
 {
-   FILE *fp=fopen(path,"r");THD_mvpa_model *m=NULL;int v,i,j,ok=0;
-   if(!fp){pp_error(err,nerr,"cannot open saved model '%s'",path);return NULL;}
-   if(!model_tag(fp,"AFNI_MVPA_MODEL") || !model_int(fp,&v) || (v!=1 && v!=2)){pp_error(err,nerr,"unsupported saved-model format/version");fclose(fp);return NULL;}
-   m=calloc(1,sizeof(*m));if(!m)goto done;
-   if(v==2 && (!model_tag(fp,"ESTIMATOR") || !model_int(fp,&m->estimator) || m->estimator!=1))goto done;
+   int i,j;
+   if(version==2 && (!model_tag(fp,"ESTIMATOR") || !model_int(fp,&m->estimator) || m->estimator!=1))return 0;
    if(!model_tag(fp,"META") || !model_int(fp,&m->classification) || !model_int(fp,&m->searchlight) || !model_int(fp,&m->nunit) ||
       !model_int(fp,&m->nresponse) || !model_int(fp,&m->ncovariate) || !model_int(fp,&m->ntrain) ||
-      m->nunit<1 || m->nresponse<1 || !model_room(fp,(size_t)m->nunit*10+(size_t)m->nresponse+m->ncovariate))goto done;
-   if(!model_tag(fp,"GRID"))goto done;
-   for(i=0;i<3;i++)if(!model_int(fp,m->dim+i))goto done;
+      m->nunit<1 || m->nresponse<1 || !model_room(fp,(size_t)m->nunit*10+(size_t)m->nresponse+m->ncovariate))return 0;
+   if(!model_tag(fp,"GRID"))return 0;
+   for(i=0;i<3;i++)if(!model_int(fp,m->dim+i))return 0;
    if(!model_int(fp,&m->view) || !model_array(fp,"AFFINE",m->affine,12,0) || !model_tag(fp,"SPACE") || !(m->space=model_string(fp)) ||
-      !model_tag(fp,"TARGET") || !(m->target=model_string(fp)))goto done;
+      !model_tag(fp,"TARGET") || !(m->target=model_string(fp)))return 0;
    m->response=calloc((size_t)m->nresponse,sizeof(char *));m->covariate=calloc(m->ncovariate?(size_t)m->ncovariate:1,sizeof(char *));m->unit=calloc((size_t)m->nunit,sizeof(*m->unit));
-   if(!m->response || !m->covariate || !m->unit || !model_tag(fp,"RESPONSES"))goto done;
-   for(i=0;i<m->nresponse;i++)if(!(m->response[i]=model_string(fp)))goto done;
-   if(!model_tag(fp,"COVARIATES"))goto done;
-   for(i=0;i<m->ncovariate;i++)if(!(m->covariate[i]=model_string(fp)))goto done;
+   if(!m->response || !m->covariate || !m->unit || !model_tag(fp,"RESPONSES"))return 0;
+   for(i=0;i<m->nresponse;i++)if(!(m->response[i]=model_string(fp)))return 0;
+   if(!model_tag(fp,"COVARIATES"))return 0;
+   for(i=0;i<m->ncovariate;i++)if(!(m->covariate[i]=model_string(fp)))return 0;
    for(i=0;i<m->nunit;i++){
       THD_mvpa_model_unit *u=m->unit+i;int d[7];size_t cells,width;
-      if(!model_tag(fp,"UNIT") || !model_int(fp,&u->id) || !model_int(fp,&u->nfeature) || u->nfeature<1 || !model_room(fp,u->nfeature) || !(u->label=model_string(fp)))goto done;
-      u->feature=malloc(sizeof(int)*(size_t)u->nfeature);if(!u->feature || !model_int_array(fp,"FEATURES",u->feature,u->nfeature,0) || !model_tag(fp,"PIPELINE"))goto done;
-      for(j=0;j<7;j++)if(!model_int(fp,d+j))goto done;
-      if(d[0]!=u->nfeature || d[1]!=m->nresponse || d[2]!=m->ncovariate || d[3]>THD_PREP_SAMPLE_CENTER || d[4]<1 || d[4]>d[0] || d[5]>1 || d[6]>d[4] || (!d[5] && d[6]))goto done;
+      if(!model_tag(fp,"UNIT") || !model_int(fp,&u->id) || !model_int(fp,&u->nfeature) || u->nfeature<1 || !model_room(fp,u->nfeature) || !(u->label=model_string(fp)))return 0;
+      u->feature=malloc(sizeof(int)*(size_t)u->nfeature);if(!u->feature || !model_int_array(fp,"FEATURES",u->feature,u->nfeature,0) || !model_tag(fp,"PIPELINE"))return 0;
+      for(j=0;j<7;j++)if(!model_int(fp,d+j))return 0;
+      if(d[0]!=u->nfeature || d[1]!=m->nresponse || d[2]!=m->ncovariate || d[3]>THD_PREP_SAMPLE_CENTER || d[4]<1 || d[4]>d[0] || d[5]>1 || d[6]>d[4] || (!d[5] && d[6]))return 0;
       width=d[5]?(d[6]?d[6]:1):d[4];
       /* Check each product against available file bytes before any large allocation. */
-      if(!model_room(fp,(size_t)d[0]*d[2]) || !model_room(fp,(size_t)d[4]*d[6]) || !model_room(fp,width*d[1]))goto done;
+      if(!model_room(fp,(size_t)d[0]*d[2]) || !model_room(fp,(size_t)d[4]*d[6]) || !model_room(fp,width*d[1]))return 0;
       cells=(size_t)d[0]*4+(size_t)d[2]*2+(size_t)d[0]*d[2]+(size_t)d[4]*2+(size_t)d[4]*d[6]+width+2*(size_t)d[1]+width*d[1];
-      if(!model_room(fp,cells) || !(u->fit=frozen_alloc(d[0],d[1],d[2],d[3],d[4],d[5],d[6])) || !frozen_arrays(fp,u->fit,0) || !model_tag(fp,"END_UNIT"))goto done;
+      if(!model_room(fp,cells) || !(u->fit=frozen_alloc(d[0],d[1],d[2],d[3],d[4],d[5],d[6])) || !frozen_arrays(fp,u->fit,0) || !model_tag(fp,"END_UNIT"))return 0;
    }
-   if(!model_tag(fp,"END_MODEL"))goto done;
+   if(!model_tag(fp,"END_MODEL"))return 0;
    /* Whitespace only after the final sentinel; reject even an overlong token. */
    do{j=fgetc(fp);}while(j!=EOF && isspace((unsigned char)j));
-   if(j!=EOF || ferror(fp) || !model_validate(m))goto done;
-   ok=1;
-done:if(fclose(fp))ok=0;
+   if(j!=EOF || ferror(fp) || !model_validate(m))return 0;
+   return 1;
+}
+
+THD_mvpa_model *THD_mvpa_model_read(const char *path,char *err,int nerr)
+{
+   FILE *fp=fopen(path,"r");THD_mvpa_model *m=NULL;int v,ok;
+   if(!fp){pp_error(err,nerr,"cannot open saved model '%s'",path);return NULL;}
+   if(!model_tag(fp,"AFNI_MVPA_MODEL") || !model_int(fp,&v) || (v!=1 && v!=2)){pp_error(err,nerr,"unsupported saved-model format/version");fclose(fp);return NULL;}
+   m=calloc(1,sizeof(*m));
+   ok=m!=NULL && model_read_body(fp,m,v);
+   if(fclose(fp))ok=0;
    if(!ok){THD_mvpa_model_free(m);pp_error(err,nerr,"malformed/truncated saved model, invalid feature/label/pipeline domain, or allocation failure");return NULL;}
    return m;
 }
@@ -3728,12 +3336,11 @@ THD_mvpa_refit_workspace *THD_mvpa_refit_alloc(int n,int p,int q,char *err,int n
    w->coef=malloc(sizeof(double)*(size_t)p*q);
    w->intercept=malloc(sizeof(double)*(size_t)q);
    if(!w->rows || !w->transformed || !w->coef || !w->intercept){
-      pp_error(err,nerr,"cannot allocate descriptive refit buffers");goto bad;
-   }
-   w->ridge=THD_ridge_alloc(n,p,q,err,nerr);if(!w->ridge)goto bad;
+      pp_error(err,nerr,"cannot allocate descriptive refit buffers");
+   }else w->ridge=THD_ridge_alloc(n,p,q,err,nerr);
+   if(!w->ridge){THD_mvpa_refit_free(w);return NULL;}
    for(i=0;i<n;i++)w->rows[i]=i;
    return w;
-bad:THD_mvpa_refit_free(w);return NULL;
 }
 
 const THD_mvpa_refit_result *THD_mvpa_refit_ridge(

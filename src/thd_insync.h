@@ -1,3 +1,10 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Public options and dataset-independent numerical contracts. Start with
+INSYNC_options, INSYNC_run, then the kernel declarations;
+implementations are split between thd_insync.c and thd_insync_stats.c.
+*/
 #ifndef _THD_INSYNC_HEADER_
 #define _THD_INSYNC_HEADER_
 
@@ -31,6 +38,9 @@ extern "C" {
 #define INSYNC_TNULL_PHASE     2
 #define INSYNC_MISSING_ERROR   0
 #define INSYNC_MISSING_COMMON  1
+#define INSYNC_MISSING_PAIRWISE 2
+#define INSYNC_MISSING_INTERP 3
+#define INSYNC_MISSING_LOCAL(p) ((p)==INSYNC_MISSING_PAIRWISE || (p)==INSYNC_MISSING_INTERP)
 #define INSYNC_PROGRESS_AUTO   0
 #define INSYNC_PROGRESS_BAR    1
 #define INSYNC_PROGRESS_LINE   2
@@ -54,14 +64,20 @@ typedef struct {
    int summary ;
    int show_table ;
    int corr_metric ;
+   int interp_maxgap;             /* explicit maximum internal gap, in TRs */
    int missing_policy ;
+   int between_groups; /* opt-in descriptive cross-group pair summaries */
    int quiet ;
+   int verb ;          /* stream original-time missing-subject counts to stderr */
+   int loo_min_others, loo_min_others_given;
+   char *counts_name;   /* optional per-component coverage/correlation TSV */
+   char *missing_name; /* optional TSV of the same coverage diagnostics */
    int progress_mode ;
    int memory_override ;
    int memory_limit_given ;
    double memory_limit_gib ;
 
-   /* M1/M2 selection preflight; estimation is enabled in later milestones. */
+   /* Original-time selection, coverage gates, and block aggregation. */
    int check_table, window, step, step_given, tr_given, whole_summary ;
    double selection_tr ;
    char *run_starts ;
@@ -73,6 +89,8 @@ typedef struct {
    int combine_pool, combine_given, segment_center, segment_center_given;
    int block_summary, block_summary_given, block_drop_common, block_missing_given;
    int min_blocks, min_blocks_given, min_block_frac_given, block_weight_given;
+   int diagnostic_draws; /* -missing_diagnostics: source-mask tests, identity included */
+   int block_weight, summary_weight, summary_weight_given; /* 0 equal, 1 used TRs */
    double min_block_frac;
 
    /* Resampling and inference options. */
@@ -193,6 +211,70 @@ extern const float *INSYNC_kernel_loo(const INSYNC_kernel *);
 extern void INSYNC_kernel_aggregate(INSYNC_kernel *,int,const float *,const unsigned char *,
    int,int,int,int,const int *,int **,float *,int *,int *);
 extern void INSYNC_kernel_fisher_matrix(const INSYNC_kernel *,float *);
+
+/* Pairwise-missing estimator. A component stores raw overlap even when its
+   correlation is invalid. used/blocks are zero on failure; eligible counts
+   blocks with finite correlations before aggregate gates. min_others is the
+   minimum LOO contributor count on raw usable TRs (zero when none exist).
+   Arrays contain an nsub*nsub symmetric pair matrix followed by nsub LOO
+   components; diagonals have no correlation. overlap/used are real observations;
+   samples/used_samples include fills (raw/admitted respectively). Counts are
+   never independent degrees of freedom. */
+typedef struct {
+   float r;
+   int overlap, used, eligible, blocks, min_others;
+   int samples, used_samples; /* augmented overlap; never used as real coverage */
+} INSYNC_component;
+typedef struct INSYNC_missing INSYNC_missing;
+/* Allocate worker-private storage; return NULL on invalid size/allocation. */
+extern INSYNC_missing *INSYNC_missing_new(int nsub,int capacity);
+extern void INSYNC_missing_free(INSYNC_missing *work);
+/* data is subject-major with nt samples, already source-censored to NaN.
+   piece optionally identifies contiguous segments for overlap-specific mean
+   centering. The nominal denominator includes censored/nonfinite TRs.
+   Group membership may repeat original indices for subject bootstrap. LOO
+   excludes ALL copies of the held original subject, retains other multiplicities,
+   and gates on the count of distinct valid other people.
+   Input arrays/options are borrowed. No evaluation-time allocation occurs. */
+/* Fill only internal gaps <= maxgap, independently within each run. keep is
+   optional original-time validity; censored/nonfinite samples become NaN.
+   filled[nt] is cleared then marks synthetic values. Validate before mutation;
+   return filled count, or -1 for invalid arguments. No extrapolation occurs. */
+extern int INSYNC_interp_linear(int nt,float *data,const unsigned char *keep,
+   int nrun,const int *runstart,int maxgap,unsigned char *filled);
+/* As eval below, with subject-major original-observation flags. NULL means
+   every finite value is observed. Gates/weights count real samples; r includes
+   fills. A LOO TR is real only when held value AND all mean contributors are
+   observed. samples/used_samples retain augmented coverage separately. */
+extern void INSYNC_missing_eval_observed(INSYNC_missing *work,int nt,const float *data,
+   const unsigned char *observed,const int *piece,int nominal,
+   const INSYNC_options *options,int ngroup,const int *gcount,int **gmember);
+extern void INSYNC_missing_eval(INSYNC_missing *work,int nt,const float *data,
+   const int *piece,int nominal,const INSYNC_options *options,int ngroup,
+   const int *gcount,int **gmember);
+/* Aggregate block-major component arrays, applying the selected block policy
+   and gates per component. Subject availability counts remain caller-owned. */
+extern void INSYNC_missing_aggregate(INSYNC_missing *work,int nblock,
+   const INSYNC_component *block,const INSYNC_options *options,int ngroup,
+   const int *gcount,int **gmember);
+/* Borrowed results valid until the next evaluation/aggregation/free. */
+extern const INSYNC_component *INSYNC_missing_components(const INSYNC_missing *work);
+extern const int *INSYNC_missing_subjects(const INSYNC_missing *work);
+/* -between_groups: summarize the rectangular A x B portion of the existing
+   pair matrix, even when within-group summaries use LOO. Groups must be
+   nonempty/disjoint, with valid original-subject indices. Borrowed arrays;
+   worker scratch is overwritten, component estimates remain unchanged.
+   out = {r, finite_pairs, valid, complete, min_raw_overlap, min_used_overlap}.
+   Minima include failed pairs; r is NaN when no pair qualifies. Counts are
+   real observations, not independent df. Block admission is inherited from
+   the existing components, including within-group drop_common requirements. */
+extern void INSYNC_missing_between(INSYNC_missing *work,int na,const int *a,
+   int nb,const int *b,int summary,float out[6]);
+/* Summarize finite components; complete always describes the pair graph.
+   summary_weight is taken from the options used by the last eval/aggregate.
+   Repeated memberships preserve multiplicity, omitting dyadic self-pairs. */
+extern void INSYNC_missing_summary(INSYNC_missing *work,int method,int summary,
+   int ngroup,const int *gcount,int **gmember,float *stat,int *nvalid,int *complete);
 
 /*! Linear-interpolated percentile.  x is scratch and is sorted in place. */
 extern float INSYNC_percentile( float *x, int n, float probability ) ;

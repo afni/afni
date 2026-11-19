@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Build ROI/searchlight units and extract spatial patterns from datasets;
+also organize condition, trial, and runwise inputs for pattern analyses.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync.
+Start with the types and contracts below; implementations are in thd_patterns.c.
+Keep dataset rows, voxel or node IDs, and analysis-unit indices distinct.
+*/
 #ifndef _THD_PATTERNS_HEADER_
 #define _THD_PATTERNS_HEADER_
 

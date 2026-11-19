@@ -1807,11 +1807,11 @@ $(filter-out thd_xmat.o,$(RSA_OBJS)): $(RSA_HDRS)
 	$(CCOMP) -o 3dRSA $(RSA_OBJS) $(LFLAGS) $(LLIBS)
 
 MVPA_OBJS = 3dMVPA.o thd_datatable.o thd_xmat.o thd_sampleset.o \
-            thd_crossval.o thd_mapinfer.o thd_patterns.o thd_permute.o thd_mvpa.o
-MVPA_NEW_OBJS = 3dMVPA.o thd_sampleset.o thd_crossval.o thd_mvpa.o
+            thd_crossval.o thd_mapinfer.o thd_patterns.o thd_permute.o thd_mvpa.o thd_regression.o
+MVPA_NEW_OBJS = 3dMVPA.o thd_sampleset.o thd_crossval.o thd_mvpa.o thd_regression.o
 MVPA_SHARED_OBJS = thd_datatable.o thd_mapinfer.o thd_patterns.o thd_permute.o
 MVPA_HDRS = thd_datatable.h thd_xmat.h thd_sampleset.h thd_crossval.h \
-            thd_mapinfer.h thd_patterns.h thd_permute.h thd_mvpa.h \
+            thd_mapinfer.h thd_patterns.h thd_permute.h thd_mvpa.h thd_regression.h thd_regression_internal.h \
             niml.h AFNI_version.h
 
 $(MVPA_NEW_OBJS): %.o: %.c $(MVPA_HDRS)
@@ -1823,6 +1823,9 @@ $(MVPA_SHARED_OBJS): %.o: %.c
 	$(RM) $@
 	$(CCOMP) -o 3dMVPA $(MVPA_OBJS) $(LFLAGS) $(LLIBS)
 
+# Shared regression uses the MVPA compilation rule above.
+thd_regression.o: eispack.h f2c/f2c.h
+
 INSYNC_OBJS = 3dInSync.o thd_insync.o thd_insync_stats.o thd_insync_select.o thd_insync_model.o thd_insync_infer.o thd_datatable.o thd_xmat.o thd_simmatrix.o \
               thd_permute.o thd_mapinfer.o thd_phasefft.o thd_patterns.o
 
@@ -1831,7 +1834,7 @@ INSYNC_OBJS = 3dInSync.o thd_insync.o thd_insync_stats.o thd_insync_select.o thd
 	$(RM) $@
 	$(CCOMP) -c 3dInSync.c $(INFLAGS)
 
-thd_insync.o: thd_insync.c thd_insync_infer.h thd_insync_model.h thd_insync_select.h thd_insync.h thd_datatable.h thd_simmatrix.h \
+thd_insync.o: thd_insync.c thd_xmat.h thd_insync_infer.h thd_insync_model.h thd_insync_select.h thd_insync.h thd_datatable.h thd_simmatrix.h \
               thd_permute.h thd_mapinfer.h thd_phasefft.h thd_patterns.h \
               niml.h AFNI_version.h
 	$(RM) $@

@@ -1,3 +1,13 @@
+/*
+PJM Wants you to know && How to read this file:
+
+Build ROI/searchlight units and extract spatial patterns from datasets;
+also organize condition, trial, and runwise inputs for pattern analyses.
+
+Current program consumers: 3dRSA, 3dMVPA, 3dInSync.
+Start with the contracts in thd_patterns.h, then the implementation below.
+Keep dataset rows, voxel or node IDs, and analysis-unit indices distinct.
+*/
 #include "mrilib.h"
 #include "thd_patterns.h"
 #include "thd_xmat.h"
@@ -817,7 +827,7 @@ static int condlab_cmp( const void *a, const void *b )
     and comments.  The caller owns the returned strings and vector. */
 static char ** read_condition_file( char *fname, int want )
 {
-   FILE *fp ; char **lab ; char line[4096],tok[512],extra[2] ; int n=0,ii ;
+   FILE *fp ; char **lab ; char line[4096],tok[512],extra[2] ; int n=0,ii,ok=1 ;
    if( fname==NULL || want<1 ) return NULL ;
    fp=fopen(fname,"r") ;
    if( fp==NULL ){
@@ -833,24 +843,22 @@ static char ** read_condition_file( char *fname, int want )
      hash=strchr(p,'#') ; if( hash!=NULL ) *hash='\0' ;
      if( sscanf(p,"%511s %1s",tok,extra)!=1 ){
        ERROR_message("runwiseTable: ConditionFile '%s' needs one label per line",fname) ;
-       goto bad ;
+       ok=0 ; break ;
      }
      if( n>=want ){
        ERROR_message("runwiseTable: ConditionFile '%s' has more labels than its %d InputFile bricks",
                      fname,want) ;
-       goto bad ;
+       ok=0 ; break ;
      }
-     lab[n]=strdup(tok) ; if( lab[n]==NULL ) goto bad ; n++ ;
+     lab[n]=strdup(tok) ; if( lab[n]==NULL ){ ok=0 ; break ; } n++ ;
    }
-   fclose(fp) ; fp=NULL ;
-   if( n!=want ){
+   fclose(fp) ;
+   if( ok && n!=want ){
      ERROR_message("runwiseTable: ConditionFile '%s' has %d labels; its InputFile has %d bricks",
                    fname,n,want) ;
-     goto bad ;
+     ok=0 ;
    }
-   return lab ;
-bad:
-   if( fp!=NULL ) fclose(fp) ;
+   if( ok ) return lab ;
    for( ii=0 ; ii<want ; ii++ ) free(lab[ii]) ;
    free(lab) ;
    return NULL ;
@@ -914,19 +922,18 @@ static int read_trial_file( char *fname, int want,
 /*! Split an internal comma-separated Xmat condition list. */
 static char ** read_inline_conditions( const char *text, int want )
 {
-   char **lab,*copy,*tok ; int n=0,ii ;
+   char **lab,*copy,*tok ; int n=0,ii,ok=1 ;
    if( text==NULL || want<1 ) return NULL ;
    lab=(char **)calloc(want,sizeof(char *)) ; copy=strdup(text) ;
    if( lab==NULL || copy==NULL ){ free(lab) ; free(copy) ; return NULL ; }
    for( tok=strtok(copy,",") ; tok!=NULL ; tok=strtok(NULL,",") ){
-     if( n>=want || *tok=='\0' ) goto bad ;
+     if( n>=want || *tok=='\0' ){ ok=0 ; break ; }
      lab[n++]=strdup(tok) ;
    }
    free(copy) ;
-   copy=NULL ;
-   if( n==want ) return lab ;
-bad:
-   free(copy) ; for( ii=0 ; ii<want ; ii++ ) free(lab[ii]) ; free(lab) ;
+   if( ok && n==want ) return lab ;
+   for( ii=0 ; ii<want ; ii++ ) free(lab[ii]) ;
+   free(lab) ;
    return NULL ;
 }
 
@@ -1370,22 +1377,131 @@ static void runset_tok_free( runset_tokens *t )
    free(t->v) ; t->v=NULL ; t->n=t->cap=0 ;
 }
 
-THD_runset * THD_runset_read_xmat( char *fname, char *stims )
+typedef struct {
+   THD_xmat *xm ;
+   THD_xmat_item *it ;
+   THD_3dim_dataset *ds ;
+   unsigned char *want ;
+   int nitem, *brick ;
+   char *order ;
+} runset_xmat_row ;
+
+/* Append one subject's runs, borrowing all resources from the row owner. */
+static int runset_xmat_row_fill( THD_datatable *src, int ii, int ix, int ir,
+   char *stims, int nrequested, runset_tokens *t, runset_xmat_row *row )
 {
-   THD_datatable *src=NULL,*expanded=NULL ; THD_runset *out=NULL ;
-   runset_tokens t={0,0,NULL} ; int ix,ir,ii,jj,rr,has_resid,ok=1,nrequested=0 ;
+   const char *bucket=DT_CELL(src,ii,src->icol_input) ;
+   int jj,rr,nfound=0,ok=1,has_resid=(ir>=0) ;
    char err[512] ;
-   if( fname==NULL ) return NULL ;
-   src=THD_read_datatable_file(fname) ;
-   if( src==NULL ) return NULL ;
+
+   if( strchr(bucket,'[')!=NULL ){
+     ERROR_message("Subj %s: xmatTable InputFile must be the whole stats bucket,\n"
+                   "       without a selector ('%s')",src->subj[ii],bucket) ; return 0 ;
+   }
+   row->xm=THD_xmat_read(DT_CELL(src,ii,ix),err,sizeof(err)) ;
+   if( row->xm==NULL ){
+     ERROR_message("Subj %s: %s",src->subj[ii],err) ; return 0 ;
+   }
+   row->want=THD_xmat_stims_wanted(row->xm,stims,&nfound) ;
+   if( nfound<1 || (nrequested>0 && nfound!=nrequested) ){
+     ERROR_message("Subj %s: Xmat '%s' contains %d of %d requested stimuli (%s)",
+                   src->subj[ii],row->xm->fname,nfound,nrequested,
+                   (stims!=NULL)?stims:"all") ; return 0 ;
+   }
+   { size_t nn=1,pp=0 ;
+     for( jj=0 ; jj<row->xm->nstim ; jj++ ) if( row->want[jj] ) nn+=strlen(row->xm->stim[jj].label)+1 ;
+     row->order=(char *)malloc(nn) ;
+     if( row->order==NULL ) return 0 ;
+     for( jj=0 ; jj<row->xm->nstim ; jj++ ) if( row->want[jj] ){
+       if( pp>0 ) row->order[pp++]=',' ;
+       pp+=(size_t)snprintf(row->order+pp,nn-pp,"%s",row->xm->stim[jj].label) ;
+     }
+   }
+   row->it=THD_xmat_items(row->xm,row->want,&row->nitem) ;
+   if( row->it==NULL || row->nitem<1 ){
+     ERROR_message("Subj %s: cannot derive stimulus beta items from Xmat '%s'",
+                   src->subj[ii],row->xm->fname) ; return 0 ;
+   }
+   row->ds=THD_open_dataset((char *)bucket) ;
+   if( row->ds==NULL ){
+     ERROR_message("Subj %s: cannot open whole InputFile '%s'",src->subj[ii],bucket) ;
+     return 0 ;
+   }
+   row->brick=(int *)malloc(sizeof(int)*(size_t)row->nitem) ;
+   if( row->brick==NULL ) return 0 ;
+   for( jj=0 ; jj<row->nitem ; jj++ ){
+     int bb ;
+     if( row->it[jj].run<0 ){
+       ERROR_message("Subj %s: Xmat regressor '%s' is not confined to one run;\n"
+                     "       use an explicit -runwiseTable for this design",
+                     src->subj[ii],row->it[jj].key) ; ok=0 ; break ;
+     }
+     if( strchr(row->it[jj].condition,',')!=NULL || strpbrk(row->it[jj].condition," \t\r\n")!=NULL ){
+       ERROR_message("Subj %s: condition label '%s' cannot contain commas or whitespace",
+                     src->subj[ii],row->it[jj].condition) ; ok=0 ; break ;
+     }
+     for( bb=0 ; bb<DSET_NVALS(row->ds) ; bb++ )
+       if( DSET_BRICK_LABEL(row->ds,bb)!=NULL &&
+           !strcmp(DSET_BRICK_LABEL(row->ds,bb),row->it[jj].coef_label) ) break ;
+     if( bb==DSET_NVALS(row->ds) ){
+       ERROR_message("Subj %s: InputFile '%s' has no brick labelled %s",
+                     src->subj[ii],bucket,row->it[jj].coef_label) ; ok=0 ; break ;
+     }
+     row->brick[jj]=bb ;
+   }
+   for( rr=0 ; rr<row->xm->nrun && ok ; rr++ ){
+     char rn[24],*sel,*conds ; size_t sc=strlen(bucket)+(size_t)row->nitem*24+4,cc=1,sp,cp ; int nrunitem=0 ;
+     for( jj=0 ; jj<row->nitem ; jj++ ) if( row->it[jj].run==rr ){
+       nrunitem++ ; cc+=strlen(row->it[jj].condition)+1 ;
+     }
+     if( nrunitem<1 ){
+       ERROR_message("Subj %s: Xmat '%s' run %d has no selected stimulus beta",
+                     src->subj[ii],row->xm->fname,rr+1) ; ok=0 ; break ;
+     }
+     sel=(char *)malloc(sc) ; conds=(char *)malloc(cc) ;
+     if( sel==NULL || conds==NULL ){ free(sel) ; free(conds) ; ok=0 ; break ; }
+     sp=(size_t)snprintf(sel,sc,"%s[",bucket) ; cp=0 ;
+     for( jj=0 ; jj<row->nitem ; jj++ ) if( row->it[jj].run==rr ){
+       if( cp>0 ){ sel[sp++]=',' ; conds[cp++]=',' ; }
+       sp+=(size_t)snprintf(sel+sp,sc-sp,"%d",row->brick[jj]) ;
+       cp+=(size_t)snprintf(conds+cp,cc-cp,"%s",row->it[jj].condition) ;
+     }
+     snprintf(sel+sp,sc-sp,"]") ; snprintf(rn,sizeof(rn),"%d",rr+1) ;
+     ok &= runset_tok_add(t,src->subj[ii]) ; ok &= runset_tok_add(t,rn) ;
+     ok &= runset_tok_add(t,DT_CELL(src,ii,ix)) ;
+     if( has_resid ) ok &= runset_tok_add(t,DT_CELL(src,ii,ir)) ;
+     ok &= runset_tok_add(t,conds) ; ok &= runset_tok_add(t,row->order) ;
+     ok &= runset_tok_add(t,sel) ;
+     free(conds) ; free(sel) ;
+   }
+   return ok ;
+}
+
+static int runset_xmat_row_add( THD_datatable *src, int ii, int ix, int ir,
+                                char *stims, int nrequested, runset_tokens *t )
+{
+   runset_xmat_row row={0} ;
+   int ok=runset_xmat_row_fill(src,ii,ix,ir,stims,nrequested,t,&row) ;
+
+   free(row.order) ; free(row.brick) ; if( row.ds!=NULL ) DSET_delete(row.ds) ;
+   THD_xmat_items_free(row.it,row.nitem) ; free(row.want) ; THD_xmat_free(row.xm) ;
+   return ok ;
+}
+
+/* Validate the compact table and build the expanded table's tokens. */
+static int runset_xmat_expand( THD_datatable *src, char *fname, char *stims,
+                               runset_tokens *t )
+{
+   int ix,ir,ii,jj,has_resid,ok=1,nrequested=0 ;
+
    ix=THD_datatable_column(src,"Xmat") ; ir=THD_datatable_column(src,"ResidFile") ;
    if( src->icol_subj<0 || src->icol_input<0 || ix<0 ){
      ERROR_message("xmatTable '%s' needs Subj, Xmat and InputFile columns",fname) ;
-     ok=0 ; goto done ;
+     return 0 ;
    }
    if( THD_datatable_column(src,"Run")>=0 ){
      ERROR_message("xmatTable '%s' is one row per subject; remove its Run column",fname) ;
-     ok=0 ; goto done ;
+     return 0 ;
    }
    for( ii=0 ; ii<src->ncol ; ii++ ){
      const char *c=src->cname[ii] ;
@@ -1393,13 +1509,13 @@ THD_runset * THD_runset_read_xmat( char *fname, char *stims )
          strcasecmp(c,"InputFile") && strcasecmp(c,"ResidFile") ){
        ERROR_message("xmatTable '%s': unsupported column '%s'; the compact table uses\n"
                      "       only Subj, Xmat, InputFile and optional ResidFile",fname,c) ;
-       ok=0 ; goto done ;
+       return 0 ;
      }
    }
    for( ii=0 ; ii<src->nrow ; ii++ ) for( jj=ii+1 ; jj<src->nrow ; jj++ )
      if( !strcmp(src->subj[ii],src->subj[jj]) ){
        ERROR_message("xmatTable '%s' has two rows for Subj %s",fname,src->subj[ii]) ;
-       ok=0 ; goto done ;
+       return 0 ;
      }
 
    has_resid=(ir>=0) ;
@@ -1407,114 +1523,34 @@ THD_runset * THD_runset_read_xmat( char *fname, char *stims )
      const char *pp ; nrequested=1 ;
      for( pp=stims ; *pp ; pp++ ) if( *pp==',' ) nrequested++ ;
    }
-   ok &= runset_tok_add(&t,"Subj") ; ok &= runset_tok_add(&t,"Run") ;
-   ok &= runset_tok_add(&t,"Xmat") ;
-   if( has_resid ) ok &= runset_tok_add(&t,"ResidFile") ;
-   ok &= runset_tok_add(&t,"_XmatConditions") ;
-   ok &= runset_tok_add(&t,"_XmatConditionOrder") ;
-   ok &= runset_tok_add(&t,"InputFile") ;
-   if( !ok ) goto done ;
+   ok &= runset_tok_add(t,"Subj") ; ok &= runset_tok_add(t,"Run") ;
+   ok &= runset_tok_add(t,"Xmat") ;
+   if( has_resid ) ok &= runset_tok_add(t,"ResidFile") ;
+   ok &= runset_tok_add(t,"_XmatConditions") ;
+   ok &= runset_tok_add(t,"_XmatConditionOrder") ;
+   ok &= runset_tok_add(t,"InputFile") ;
+   if( !ok ) return 0 ;
 
-   for( ii=0 ; ii<src->nrow && ok ; ii++ ){
-     const char *bucket=DT_CELL(src,ii,src->icol_input) ;
-     THD_xmat *xm=NULL ; THD_xmat_item *it=NULL ; THD_3dim_dataset *ds=NULL ;
-     unsigned char *want=NULL ; int nitem=0,nfound=0,*brick=NULL ; char *order=NULL ;
-     if( strchr(bucket,'[')!=NULL ){
-       ERROR_message("Subj %s: xmatTable InputFile must be the whole stats bucket,\n"
-                     "       without a selector ('%s')",src->subj[ii],bucket) ; ok=0 ;
-       continue ;
-     }
-     xm=THD_xmat_read(DT_CELL(src,ii,ix),err,sizeof(err)) ;
-     if( xm==NULL ){
-       ERROR_message("Subj %s: %s",src->subj[ii],err) ; ok=0 ; continue ;
-     }
-     want=THD_xmat_stims_wanted(xm,stims,&nfound) ;
-     if( nfound<1 || (nrequested>0 && nfound!=nrequested) ){
-       ERROR_message("Subj %s: Xmat '%s' contains %d of %d requested stimuli (%s)",
-                     src->subj[ii],xm->fname,nfound,nrequested,
-                     (stims!=NULL)?stims:"all") ; ok=0 ; goto row_done ;
-     }
-     { size_t nn=1,pp=0 ;
-       for( jj=0 ; jj<xm->nstim ; jj++ ) if( want[jj] ) nn+=strlen(xm->stim[jj].label)+1 ;
-       order=(char *)malloc(nn) ;
-       if( order==NULL ){ ok=0 ; goto row_done ; }
-       for( jj=0 ; jj<xm->nstim ; jj++ ) if( want[jj] ){
-         if( pp>0 ) order[pp++]=',' ;
-         pp+=(size_t)snprintf(order+pp,nn-pp,"%s",xm->stim[jj].label) ;
-       }
-     }
-     it=THD_xmat_items(xm,want,&nitem) ;
-     if( it==NULL || nitem<1 ){
-       ERROR_message("Subj %s: cannot derive stimulus beta items from Xmat '%s'",
-                     src->subj[ii],xm->fname) ; ok=0 ; goto row_done ;
-     }
-     ds=THD_open_dataset((char *)bucket) ;
-     if( ds==NULL ){
-       ERROR_message("Subj %s: cannot open whole InputFile '%s'",src->subj[ii],bucket) ;
-       ok=0 ; goto row_done ;
-     }
-     brick=(int *)malloc(sizeof(int)*(size_t)nitem) ;
-     if( brick==NULL ){ ok=0 ; goto row_done ; }
-     for( jj=0 ; jj<nitem ; jj++ ){
-       int bb ;
-       if( it[jj].run<0 ){
-         ERROR_message("Subj %s: Xmat regressor '%s' is not confined to one run;\n"
-                       "       use an explicit -runwiseTable for this design",
-                       src->subj[ii],it[jj].key) ; ok=0 ; break ;
-       }
-       if( strchr(it[jj].condition,',')!=NULL || strpbrk(it[jj].condition," \t\r\n")!=NULL ){
-         ERROR_message("Subj %s: condition label '%s' cannot contain commas or whitespace",
-                       src->subj[ii],it[jj].condition) ; ok=0 ; break ;
-       }
-       for( bb=0 ; bb<DSET_NVALS(ds) ; bb++ )
-         if( DSET_BRICK_LABEL(ds,bb)!=NULL &&
-             !strcmp(DSET_BRICK_LABEL(ds,bb),it[jj].coef_label) ) break ;
-       if( bb==DSET_NVALS(ds) ){
-         ERROR_message("Subj %s: InputFile '%s' has no brick labelled %s",
-                       src->subj[ii],bucket,it[jj].coef_label) ; ok=0 ; break ;
-       }
-       brick[jj]=bb ;
-     }
-     for( rr=0 ; rr<xm->nrun && ok ; rr++ ){
-       char rn[24],*sel,*conds ; size_t sc=strlen(bucket)+(size_t)nitem*24+4,cc=1,sp,cp ; int nrunitem=0 ;
-       for( jj=0 ; jj<nitem ; jj++ ) if( it[jj].run==rr ){
-         nrunitem++ ; cc+=strlen(it[jj].condition)+1 ;
-       }
-       if( nrunitem<1 ){
-         ERROR_message("Subj %s: Xmat '%s' run %d has no selected stimulus beta",
-                       src->subj[ii],xm->fname,rr+1) ; ok=0 ; break ;
-       }
-       sel=(char *)malloc(sc) ; conds=(char *)malloc(cc) ;
-       if( sel==NULL || conds==NULL ){ free(sel) ; free(conds) ; ok=0 ; break ; }
-       sp=(size_t)snprintf(sel,sc,"%s[",bucket) ; cp=0 ;
-       for( jj=0 ; jj<nitem ; jj++ ) if( it[jj].run==rr ){
-         if( cp>0 ){ sel[sp++]=',' ; conds[cp++]=',' ; }
-         sp+=(size_t)snprintf(sel+sp,sc-sp,"%d",brick[jj]) ;
-         cp+=(size_t)snprintf(conds+cp,cc-cp,"%s",it[jj].condition) ;
-       }
-       snprintf(sel+sp,sc-sp,"]") ; snprintf(rn,sizeof(rn),"%d",rr+1) ;
-       ok &= runset_tok_add(&t,src->subj[ii]) ; ok &= runset_tok_add(&t,rn) ;
-       ok &= runset_tok_add(&t,DT_CELL(src,ii,ix)) ;
-       if( has_resid ) ok &= runset_tok_add(&t,DT_CELL(src,ii,ir)) ;
-       ok &= runset_tok_add(&t,conds) ; ok &= runset_tok_add(&t,order) ;
-       ok &= runset_tok_add(&t,sel) ;
-       free(conds) ; free(sel) ;
-     }
-row_done:
-     free(order) ; free(brick) ; if( ds!=NULL ) DSET_delete(ds) ;
-     THD_xmat_items_free(it,nitem) ; free(want) ; THD_xmat_free(xm) ;
-   }
-   if( !ok ) goto done ;
-   expanded=THD_parse_datatable(t.v,t.n,"expanded from xmatTable") ;
-   if( expanded==NULL ){ ok=0 ; goto done ; }
+   for( ii=0 ; ii<src->nrow && ok ; ii++ )
+      ok=runset_xmat_row_add(src,ii,ix,ir,stims,nrequested,t) ;
+   return ok ;
+}
+
+THD_runset * THD_runset_read_xmat( char *fname, char *stims )
+{
+   THD_datatable *src,*expanded=NULL ;
+   runset_tokens t={0,0,NULL} ;
+
+   if( fname==NULL ) return NULL ;
+   src=THD_read_datatable_file(fname) ;
+   if( src==NULL ) return NULL ;
+   if( runset_xmat_expand(src,fname,stims,&t) )
+      expanded=THD_parse_datatable(t.v,t.n,"expanded from xmatTable") ;
    runset_tok_free(&t) ;
-   THD_free_datatable(src) ; src=NULL ;
-   out=runset_read_table(expanded,fname) ; expanded=NULL ;
-done:
-   runset_tok_free(&t) ;
-   if( src!=NULL ) THD_free_datatable(src) ;
-   if( expanded!=NULL ) THD_free_datatable(expanded) ;
-   return ok ? out : NULL ;
+   THD_free_datatable(src) ;
+   if( expanded==NULL ) return NULL ;
+   /* runset_read_table consumes the expanded table on success or failure. */
+   return runset_read_table(expanded,fname) ;
 }
 
 int THD_runset_plan_store( THD_runset *rs, THD_roilist *primary,
