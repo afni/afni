@@ -1093,7 +1093,7 @@ intervals to estimate 'instantaneous period'.
 
     return 0
 
-def calc_time_series_hr(pcobj, label=None, win=6, verb=0):
+def calc_time_series_hr(pcobj, label=None, win=6, verb=0, mode="full"):
     """Calculate average heart rate (HR), as described in:
 
     ``Influence of heart rate on the BOLD signal: The cardiac response
@@ -1108,12 +1108,22 @@ inter-peak intervals to estimate 'heart rate'.  We calculate the mean
 interpeak interval in a win of time (units: s) around a given TR. The
 result is multiplied by 60, to have units of beats per minute.
 
+mode='full' includes fractional intervals crossing the window boundaries
+(what seems to be most reasonable, and hence default behavior). 
+mode='no_frac' uses only intervals with both peaks inside the window, 
+returning failure if fewer than two peaks are present.
+
     """
 
     if verb : ab.IP("Start HR regressor calc for {} data".format(label))
 
     check_label_all(label)
     check_label_hr(label)       # a practical HR reality, at present
+
+    if mode not in ['full', 'no_frac'] :
+        ab.EP1("HR estimation mode must be 'full' or 'no_frac', not: {}"
+               "".format(mode))
+        return 1
 
     # the specific card/resp/etc. obj we use here (NB: not copying
     # obj, just dual-labelling for simplifying function calls while
@@ -1192,6 +1202,12 @@ result is multiplied by 60, to have units of beats per minute.
         while max_p < npeaks-1 and peaks[max_p + 1] < top :
             max_p+= 1
 
+        if mode == 'no_frac' and max_p == min_p :
+            ab.EP1("HR mode 'no_frac' requires at least two peaks in "
+                   "window at TR {} (indices {}..{})"
+                   "".format(ii, bot, top))
+            return 1
+
         # Part 1 of average: count num of peaks in this interval, and
         # their first peak-to-last peak time duration; time_ival will
         # be scaled by delt below, when we are done
@@ -1202,7 +1218,7 @@ result is multiplied by 60, to have units of beats per minute.
         # interval on left side of window; this means stepping back
         # one index in peaks, and calculating relative fraction of
         # peak-to-peak interval within the current window
-        if min_p > 0 and peaks[min_p] > bot :
+        if mode == 'full' and min_p > 0 and peaks[min_p] > bot :
             numer = float(peaks[min_p] - bot)
             denom = float(peaks[min_p] - peaks[min_p - 1])
             if denom <= 0 or numer <= 0:
@@ -1222,7 +1238,7 @@ result is multiplied by 60, to have units of beats per minute.
         # interval on right side of window; this means stepping
         # forward one index in peaks, and calculating relative
         # fraction of peak-to-peak interval within the current window
-        if max_p < npeaks-1 and peaks[max_p] < top :
+        if mode == 'full' and max_p < npeaks-1 and peaks[max_p] < top :
             numer = float(top - peaks[max_p])
             denom = float(peaks[max_p + 1] - peaks[max_p])
             if denom <= 0 or numer <= 0:

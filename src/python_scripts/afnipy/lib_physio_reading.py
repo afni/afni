@@ -40,7 +40,7 @@ derived data.
                  do_slibase_out=False,
                  duration_vol = None, vol_tr = None,
                  bp_sig_fac=1.0,
-                 verb=0):
+                 verb=0, hrcrf_mode="full"):
         """Create object holding a physio time series data.
         
         """
@@ -91,6 +91,7 @@ derived data.
         # hr stuff (for card only)
         self.hr_ts     = np.zeros(0, dtype=float) # arr, 'raw' HR time series
         self.hr_win    = 6.0             # flt, window with for HR est (in s)
+        self.hrcrf_mode = hrcrf_mode      # str, HR boundary interval mode
 
         # regressor stuff: lists of labels and the actual values
         # NB: at present, rvt likely only for resp (but doesn't matter deeply)
@@ -425,6 +426,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         self.extra_fix_list  = []      # list of to-be-bad values (-> interp)
         self.remove_val_list = []      # list of values to be purged
         self.rvt_shift_list  = []      # list of RVT shift values
+        self.hrcrf_mode = DEF.DEF_hrcrf_mode # str, HR boundary interval mode
 
         # physio info (-> some now in data['resp'] and data['card'] objs)
         self.start_time   = None       # float, time offset (<=0, in s) from 
@@ -708,6 +710,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
                                      duration_vol = self.duration_vol,
                                      vol_tr = self.vol_tr,
                                      bp_sig_fac = self.bp_sig_fac['card'],
+                                     hrcrf_mode = self.hrcrf_mode,
                                      verb=self.verb)
         return 0
 
@@ -749,6 +752,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_rvt          = AD['do_out_rvt']
         self.do_out_rvtrrf       = AD['do_out_rvtrrf']
         self.do_calc_hr          = AD['do_calc_hr']
+        self.hrcrf_mode          = AD['hrcrf_mode']
         self.do_calc_hrcrf       = AD['do_calc_hrcrf']
         self.do_out_hr           = AD['do_out_hr']
         self.do_out_hrcrf        = AD['do_out_hrcrf']

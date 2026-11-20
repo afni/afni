@@ -40,6 +40,7 @@ DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
 DEF_regress_types_card = 'retro'
 DEF_regress_types_resp = 'retro rvt'
+DEF_hrcrf_mode = 'full'
 
 # ---------------------------------------------------------------------------
 
@@ -237,6 +238,7 @@ DOPTS = {
     'rvt_shift_linspace': DEF_rvt_shift_linspace, # (str) pars for RVT shift
     'regress_types_resp': DEF_regress_types_resp, # (str) if resp, which regr?
     'regress_types_card': DEF_regress_types_card, # (str) if card, which regr?
+    'hrcrf_mode'        : DEF_hrcrf_mode,    # (str) HR boundary interval mode
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs

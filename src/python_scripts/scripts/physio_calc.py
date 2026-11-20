@@ -174,7 +174,9 @@ if __name__ == "__main__":
     # HR time series estimation (just for card; and on EPI ts grid)
     label = 'card'
     if pcobj.data[label] and pcobj.do_calc_hr :
-        is_fail = lpf.calc_time_series_hr( pcobj, label=label, verb=verb )
+        is_fail = lpf.calc_time_series_hr( pcobj, label=label,
+                                           mode=pcobj.data[label].hrcrf_mode,
+                                           verb=verb )
         if is_fail :
             ab.EP("HR estimation failure: {}".format(label))
 
