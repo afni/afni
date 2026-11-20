@@ -56,6 +56,9 @@ int INSYNC_selection_requested(const INSYNC_options *o, THD_datatable *t)
 {
    const char *cols[]={"Selection","Segment","StartTR","StopTR","Xmat","XmatFull"};
    int i;
+   /* Added 2026-11-3 for E. Myers: route pairwise missingness through the
+      original-time selection driver even without explicit windows, so source
+      masks remain separate until the relevant pair/LOO overlap is known. */
    if(INSYNC_MISSING_LOCAL(o->missing_policy) || o->diagnostic_draws || o->summary_weight_given) return 1;
    if(o->window_taper_given || o->temporal_censor || o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given || o->min_valid_given || o->min_valid_frac_given || o->combine_given || o->segment_center_given || o->window || o->step_given || o->run_starts || o->tr_given || o->xmat_blocks || o->xmat_stims || o->xmat_runs || o->xmat_threshold_given || o->xmat_across_runs) return 1;
    if(t) for(i=0;i<6;i++) if(THD_datatable_column(t,(char *)cols[i])>=0) return 1;

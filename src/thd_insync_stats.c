@@ -471,6 +471,9 @@ void INSYNC_kernel_fisher_matrix(const INSYNC_kernel *w,float *z)
    }
 }
 
+/* Added 2026-11-3 for E. Myers: provide a worker-private numerical path
+   for pairwise missingness, with overlap-specific scratch and component
+   results instead of one shared complete-case timeline for all subjects. */
 /* Missing-data workers keep packed overlap/rank scratch separate from outputs.
    Common-timeline kernels above use separate storage. This separation makes
    support-dependent ranking and centering explicit and prevents stale counts. */
@@ -523,6 +526,8 @@ void INSYNC_missing_set_weight(INSYNC_missing *w,int index,double weight)
    if(w && index>=0 && index<w->capacity){ w->weighted=1; w->timeweight[index]=weight; }
 }
 
+/* Added 2026-11-3 for E. Myers: recompute Spearman ranks on each actual
+   overlap so missing samples outside a pair cannot affect its correlation. */
 /* Rank only the packed finite overlap; ranking each original series first
    would change Spearman r whenever the two subjects have different masks. */
 static void insync_missing_rank(INSYNC_missing *w,int n,const float *x,float *rank)
@@ -561,6 +566,9 @@ static float insync_missing_weighted(INSYNC_missing *w,int n,const float *v,
    return w->order[k-1].value;
 }
 
+/* Added 2026-11-3 for E. Myers: apply minimum-count/fraction gates and
+   centering to the samples shared by this component. The fraction uses
+   nominal selection length, so censoring cannot inflate reported coverage. */
 /* Compute r after REAL overlap gates. n includes fills, real excludes them.
    For pooled, mean-centered segments, center
    BOTH signals on the SAME retained samples of each segment. Single-sample
@@ -583,6 +591,10 @@ static float insync_missing_corr(INSYNC_missing *w,int n,int real,int nominal,co
    return insync_weighted_pearson(n,w->x,w->y,w->weighted?w->packedweight:NULL);
 }
 
+/* Added 2026-11-3 for E. Myers: estimate each dyad using only samples
+   finite in both members, without checking availability in other subjects.
+   Keep raw overlap even when a correlation fails its gates so support can
+   be distinguished from the samples admitted to a valid result. */
 /* Evaluate source-local masks encoded as NaN, retaining each pair's actual
    real overlap independently of eligibility; samples includes fills. LOO
    counts a real TR only if every contributing value is observed. References
@@ -611,6 +623,10 @@ void INSYNC_missing_eval_observed(INSYNC_missing *w,int nt,const float *data,
       if(isfinite(result.r)){ result.used=real; result.used_samples=n; result.eligible=result.blocks=1; }
       w->component[(size_t)i*ns+j]=w->component[(size_t)j*ns+i]=result;
    }
+   /* Added 2026-11-3 for E. Myers: form each LOO reference from the other
+      subjects available at that TR, then intersect it with the held subject.
+      Count distinct contributors for the minimum-others gate and exclude all
+      copies of the held subject during bootstrap resampling to avoid leakage. */
    if(o->method==INSYNC_METHOD_LOO) for(g=0;g<ngroup;g++) for(k=0;k<gcount[g];k++){
       INSYNC_component *result=w->component+(size_t)ns*ns+gmember[g][k]; int n=0,real=0;
       i=gmember[g][k];
@@ -653,6 +669,10 @@ static int insync_missing_block_complete(const INSYNC_component *b,int ns,
    return 1;
 }
 
+/* Added 2026-11-3 for E. Myers: determine block support and aggregation
+   for each pair/LOO component before summarizing across subjects. This lets
+   component-specific admission retain usable pairs when another component
+   fails, while honoring explicitly requested common-block admission. */
 /* Aggregate component correlations, not group maps. overlap sums raw overlap
    across all nominal nonoverlapping blocks; used sums only admitted samples.
    UsedTR weights are optional, and membership may be resampled. Common-mode kernels keep
@@ -690,6 +710,9 @@ const INSYNC_component *INSYNC_missing_components(const INSYNC_missing *w){ retu
 /* Borrowed per-subject finite counts from the last eval, before pair gates. */
 const int *INSYNC_missing_subjects(const INSYNC_missing *w){ return w->subjects; }
 
+/* Added 2026-11-3 for E. Myers: summarize the available component
+   correlations even when the group has incomplete support; report pair-graph
+   completeness separately so a valid summary does not imply every dyad exists. */
 /* Summarize finite dyads or LOO subjects without requiring a complete group.
    PairComplete is separate, and remains a pair-graph diagnostic in LOO mode. */
 void INSYNC_missing_summary(INSYNC_missing *w,int method,int summary,int ngroup,

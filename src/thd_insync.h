@@ -224,6 +224,9 @@ extern void INSYNC_kernel_aggregate(INSYNC_kernel *,int,const float *,const unsi
    int,int,int,int,const int *,int **,float *,int *,int *);
 extern void INSYNC_kernel_fisher_matrix(const INSYNC_kernel *,float *);
 
+/* Added 2026-11-3 for E. Myers: represent availability and eligibility per
+   pair or LOO component because a single global retained-TR count cannot
+   describe correlations computed from different subject overlaps. */
 /* Pairwise-missing estimator. A component stores raw overlap even when its
    correlation is invalid. used/blocks are zero on failure; eligible counts
    blocks with finite correlations before aggregate gates. min_others is the

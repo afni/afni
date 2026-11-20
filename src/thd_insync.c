@@ -1766,6 +1766,9 @@ static void insync_missing_destination(const INSYNC_options *o,const INSYNC_sche
    }
 }
 
+/* Added 2026-11-3 for E. Myers: export pair correlations estimated on
+   their own overlaps, together with per-pair coverage. Requiring finite
+   modeled edges does not require those edges to share identical TRs. */
 /* Missing-policy model exports retain a complete modeled-edge mask, but each
    edge is estimated on its own overlap. Support bricks carry each edge's raw
    and used real TR counts followed by each source's own availability. interp
@@ -1969,6 +1972,10 @@ static void insync_selection_models(INSYNC_model *model,const INSYNC_options *o,
    free(kernel); free(data); free(values); free(scratch); free(kept); free(members); free(rows);
 }
 
+/* Added 2026-11-3 for E. Myers: pack the nominal selection with each
+   source's excluded values marked missing, rather than compressing every
+   subject onto a global intersection. The kernel can then choose separate
+   pair/LOO overlaps and retain their distinct support counts. */
 /* Source-local selection evaluation: pack original nominal coordinates and
    mark only this subject's excluded samples NaN. The numerical layer chooses
    pair/LOO overlaps, ranks, centering, and component-specific block admission.
@@ -2457,6 +2464,10 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
    }
    if((size_t)nwork>SIZE_MAX/(size_t)nt/sizeof(float)) ERROR_exit("3dInSync: source store size overflow");
    src.ndset=ns; src.ntime_input=nt; src.nwork=nwork; src.half=o->use_half;
+   /* Added 2026-11-3 for E. Myers: retain each subject/condition's censor
+      mask in the source store. Pairwise analysis reads this local mask;
+      the common mask below remains available for complete-case paths but
+      must not discard a TR from unrelated pairs. */
    src.keep=pairwise?s->keep:NULL;
    if(src.half){ src.hst=insync_select_alloc(ns,sizeof(*src.hst)); src.hpar=insync_select_alloc(ns,sizeof(*src.hpar)); }
    else src.fst=insync_select_alloc(ns,sizeof(*src.fst));

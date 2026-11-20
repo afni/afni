@@ -1279,6 +1279,9 @@ int main( int argc, char **argv )
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a percentage after -zcensor_warn") ;
        opts.zcensor_warn=(float)strtod(argv[nopt++],NULL) ; opts.zcensor_warn_given=1 ; continue ;
      }
+     /* Added 2026-11-3 for E. Myers: expose -missing pairwise as an opt-in
+        alternative to common filtering. Each pair uses its own overlap;
+        missing data in another subject need not remove that pair's TR. */
      if( strcasecmp(argv[nopt],"-missing")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need error, common, pairwise, or interp after -missing") ;
        if( strcasecmp(argv[nopt],"error")==0 ) opts.missing_policy=INSYNC_MISSING_ERROR ;

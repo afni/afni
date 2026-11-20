@@ -386,6 +386,9 @@ static int pack_data(INSYNC_infer *x,infer_worker *w,int id,int c,int d,int unit
       const INSYNC_segment *e=x->s->segment+w->rows[i]; int begin=aggregate?0:len;
       if(aggregate) len=0;
       nominal+=e->original_stop-e->original_start+1;
+      /* Added 2026-11-3 for E. Myers: preserve nominal TRs for the local
+         missing-data estimator instead of applying the global censor mask
+         before resampling. Each draw must retain access to source-local masks. */
       for(t=e->original_start;t<=e->original_stop;t++) if(INSYNC_MISSING_LOCAL(x->o->missing_policy) || common[t]){
          int good=1;
          if(x->o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<x->s->nsource;si++) if(!isfinite(get(src,si,unit,t))){ good=0; break; }
@@ -433,6 +436,10 @@ static void identity_members(INSYNC_infer *x,infer_worker *w,int paired)
       for(i=0;i<h->gcount[g];i++) w->sample[pos++]=h->gmember[g][i]+k*h->nsub;
    }
 }
+/* Added 2026-11-3 for E. Myers: rebuild component support for every
+   resampling draw rather than freezing the observed complete-case subset.
+   Changed membership or shifted data can change pair overlaps, reference
+   contributors, and which blocks satisfy the requested coverage gates. */
 /* Recompute overlaps, LOO references, block admission and coverage weights
    for every subject/group/condition/temporal draw. Group memberships contain
    original source indices, including multiplicities in the subject bootstrap.
