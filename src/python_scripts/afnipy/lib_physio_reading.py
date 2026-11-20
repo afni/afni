@@ -29,6 +29,13 @@ class ts_obj:
     """An object for holding physio time series (e.g., card and resp) and
 derived data.
 
+This object now includes some record of where TRs would have been before the
+actual EPI dataset was acquired ("pre-scan" items). This is to help with 
+estimation of regressors that use convolution in their estimation: having 
+physio data before the EPI's t=0 is useful for not needing to interpolate 
+data, which will have a strong effect on outcomes. Thus, having the "*_pre"
+times can be useful in those calculations.
+
     """
 
     def __init__(self, ts_orig, samp_freq = 0.0, 
@@ -74,6 +81,7 @@ derived data.
         # esp. self.phases and self.rvt_ts
         self.list_slice_sel_phys    = []        # list, lab+ind for ts_orig sel
         self.list_slice_sel_volbase = []        # list, lab+ind for ts_orig sel
+        self.list_slice_sel_volbase_pre = []    # list, pre-scan TR indices
 
         # peak/trough stuff
         self.peaks     = []                      # list, for indices of peaks
@@ -90,6 +98,7 @@ derived data.
 
         # hr stuff (for card only)
         self.hr_ts     = np.zeros(0, dtype=float) # arr, 'raw' HR time series
+        self.hr_ts_pre = np.zeros(0, dtype=float) # arr, pre-scan HR time series
         self.hr_win    = 6.0             # flt, window with for HR est (in s)
         self.hrcrf_mode = hrcrf_mode      # str, HR boundary interval mode
 
