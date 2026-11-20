@@ -56,8 +56,11 @@ int INSYNC_selection_requested(const INSYNC_options *o, THD_datatable *t)
 {
    const char *cols[]={"Selection","Segment","StartTR","StopTR","Xmat","XmatFull"};
    int i;
+   /* Added 2026-11-3 for E. Myers: route pairwise missingness through the
+      original-time selection driver even without explicit windows, so source
+      masks remain separate until the relevant pair/LOO overlap is known. */
    if(INSYNC_MISSING_LOCAL(o->missing_policy) || o->diagnostic_draws || o->summary_weight_given) return 1;
-   if(o->temporal_censor || o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given || o->min_valid_given || o->min_valid_frac_given || o->combine_given || o->segment_center_given || o->window || o->step_given || o->run_starts || o->tr_given || o->xmat_blocks || o->xmat_stims || o->xmat_runs || o->xmat_threshold_given || o->xmat_across_runs) return 1;
+   if(o->window_taper_given || o->temporal_censor || o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given || o->min_valid_given || o->min_valid_frac_given || o->combine_given || o->segment_center_given || o->window || o->step_given || o->run_starts || o->tr_given || o->xmat_blocks || o->xmat_stims || o->xmat_runs || o->xmat_threshold_given || o->xmat_across_runs) return 1;
    if(t) for(i=0;i<6;i++) if(THD_datatable_column(t,(char *)cols[i])>=0) return 1;
    return 0;
 }
@@ -629,6 +632,13 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
    if(o->diagnostic_draws && o->check_table) SEL_FAIL("-missing_diagnostics requires sample loading, not -check_table");
    if(o->combine_pool && (o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given)) SEL_FAIL("block-summary options cannot be combined with -combine_blocks pool");
    if(o->segment_center_given && !o->combine_pool) SEL_FAIL("-segment_center requires -combine_blocks pool");
+   /* Added 2026-11-20 for Dan Handwerker: validate tapering before loading
+      data. Symmetric Hann has two zero endpoints, so W>=5 is needed for
+      three positive-weight samples. Restrict it to the implemented weighted
+      Pearson estimator rather than silently defining a weighted Spearman. */
+   if(o->window_taper_given && !o->window) SEL_FAIL("-window_taper requires -window");
+   if(o->window_taper && o->window<5) SEL_FAIL("Hann taper requires -window >=5");
+   if(o->window_taper && o->corr_metric!=INSYNC_CORR_PEARSON) SEL_FAIL("Hann taper requires Pearson correlation");
    if(o->step_given && !o->window) SEL_FAIL("-step requires -window");
    if(o->window && (o->window<3 || o->step<1)) SEL_FAIL("invalid window/step");
    if(!THD_filename_ok(o->prefix)) SEL_FAIL("illegal prefix '%s'",o->prefix);
@@ -875,6 +885,7 @@ int INSYNC_schedule_report(const INSYNC_options *o, THD_datatable *t, INSYNC_sch
    if(!THD_ok_overwrite() && (THD_is_file(manifest) || THD_is_file(summary))) SEL_FAIL("preflight output already exists for prefix '%s'",o->prefix);
    fp=fopen(manifest,"w"); if(!fp) SEL_FAIL("cannot write '%s'",manifest);
    report=fopen(summary,"w"); if(!report){ fclose(fp); remove(manifest); SEL_FAIL("cannot write '%s'",summary); }
+   if(o->window_taper_given) fprintf(fp,"# WindowTaper: %s (window selections only)\n",o->window_taper?"hann":"boxcar");
    fprintf(fp,"# 3dInSync selection schema 3; TSV escapes: backslash, tab, newline, CR\n");
    fprintf(fp,"# BlockSummary: %s; BlockMissing: %s; BlockWeight: equal; MinBlocks: %d; MinBlockFraction: %.17g\n",o->block_summary==INSYNC_SUMMARY_MEDIAN?"median":"fisher_mean",o->block_drop_common==2?"drop_component":o->block_drop_common?"drop_common":"require_all",o->min_blocks,o->min_block_frac);
    fprintf(fp,"# GlobalCensor: "); token(fp,o->censor_name?o->censor_name:"NA"); fputc('\n',fp);

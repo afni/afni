@@ -48,7 +48,7 @@ def main():
             nonlocal checked
             checked+=1
             assert abs(a-b)<=tol,(a,b,tol)
-        def check(prefix,method='pairwise',metric='pearson',blocks=None,blockkind='median',tail='two',censor=False):
+        def check(prefix,method='pairwise',metric='pearson',blocks=None,blockkind='median',tail='two',censor=False,taper=False):
             out=outputs(prefix); selections=sorted({k[0] for k in out}); windows=blocks or [[[t for t in range(start,start+12)]] for start in (0,24)]
             if censor:
                 keep=[int(x) for x in (root/'common.censor.1D').read_text().split()]
@@ -62,11 +62,12 @@ def main():
                 if len(set(members))<2: return math.nan
                 components=[]
                 for block in windows[si]:
+                    weights=[.5*(1-math.cos(2*math.pi*(t-(0 if si==0 else 24))/11)) for t in block] if taper else None
                     series=[[source[s][v][t] for t in block] for s in members]
                     if method=='pairwise':
-                        vals=[correlation(series[a],series[b],metric) for a,b in itertools.combinations(range(len(members)),2) if members[a]!=members[b]]
+                        vals=[correlation(series[a],series[b],metric,weights) for a,b in itertools.combinations(range(len(members)),2) if members[a]!=members[b]]
                     else:
-                        vals=[correlation(series[a],[f32(statistics.mean(series[b][t] for b in range(len(members)) if b!=a)) for t in range(len(block))],metric) for a in range(len(members))]
+                        vals=[correlation(series[a],[f32(statistics.mean(series[b][t] for b in range(len(members)) if b!=a)) for t in range(len(block))],metric,weights) for a in range(len(members))]
                     components.append(vals)
                 return f32(summary([f32(summary(list(vs),blockkind)) for vs in zip(*components)],'median'))
             families=[{},{}]
@@ -125,6 +126,11 @@ def main():
             q=run(opts,threads=2); assert a==outputs(q)
             assert (root/(p+'.inference_draws.tsv')).read_bytes()==(root/(q+'.inference_draws.tsv')).read_bytes()
         check(run(base+['-censor','common.censor.1D']),censor=True)
+        for method,censor in itertools.product(('pairwise','loo'),(False,True)):
+            opts=base+['-isc_method',method,'-window_taper','hann']
+            if censor: opts+=['-censor','common.censor.1D']
+            p=run(opts); a=check(p,method,censor=censor,taper=True)
+            assert a==outputs(run(opts,threads=2))
         for tail in ('one','bisided'): check(run(base+['-tail',tail]),tail=tail)
         # Component-first block aggregation, including bootstrap and swaps.
         lines=['Subj Group Condition Selection Segment Run StartTR StopTR InputFile']

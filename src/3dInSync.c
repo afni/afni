@@ -34,7 +34,7 @@ static char *insync_options[] = {
    "-correlation", "-censor", "-censor_column", "-zcensor", "-zcensor_warn", "-missing", "-interp_maxgap", "-atlas", "-roi_sel", "-roi_only", "-float16",
    "-between_groups", "-save_counts", "-loo_min_others", "-save_matrix", "-edges", "-edges_matrix", "-edges_rss", "-edges_events", "-edges_nnull",
    "-memory_limit", "-memory_override", "-quiet", "-progress", "-verb", "-save_missing",
-   "-check_table", "-whole_summary", "-window", "-step", "-run_starts", "-tr",
+   "-check_table", "-whole_summary", "-window_taper", "-window", "-step", "-run_starts", "-tr",
    "-block_summary", "-block_missing", "-min_blocks", "-min_block_frac", "-block_weight", "-summary_weight", "-missing_diagnostics",
    "-min_valid", "-min_valid_frac", "-combine_blocks", "-segment_center",
    "-xmat_stims", "-xmat_blocks", "-xmat_threshold", "-xmat_across_runs", "-xmat_runs",
@@ -760,6 +760,18 @@ static void usage_3dInSync(void)
 "                       censor mask. Separate whole_input role; not a window mean.\n"
 "  -window W            Complete sliding windows of W TRs (integer >=3).\n"
 "  -step S              Window step in TRs [1]; requires -window.\n"
+"  -window_taper boxcar|hann  Temporal correlation weights [boxcar].\n"
+"                       Hann requires -window >=5 and Pearson correlation.\n"
+"                       w(t)=0.5*(1-cos(2*pi*t/(W-1))), t=0,...,W-1.\n"
+"                       Uses weighted means, covariance and variances; at least\n"
+"                       3 positive-weight retained samples are required. Weights\n"
+"                       stay at original window positions after censoring.\n"
+"                       Applies to pairwise/LOO, exports and resampling. Whole\n"
+"                       summaries remain untapered. Coverage counts remain raw\n"
+"                       TR counts, not effective sample sizes or degrees of freedom.\n"
+"                       Tapering reduces boundary influence and sample support;\n"
+"                       it does not eliminate spurious short-window fluctuations.\n"
+"                       Example: -window 30 -step 1 -window_taper hann\n"
 "  -run_starts LIST      Zero-based run starts, e.g. 0,100; first must be 0.\n"
 "  -tr SEC              Supply missing TR in seconds; reject header conflicts.\n"
 "  -min_valid N         Minimum retained samples per estimate [3], integer >=3.\n"
@@ -1198,6 +1210,13 @@ int main( int argc, char **argv )
        else { opts.step=INSYNC_selection_int(argv[nopt++],1,name); opts.step_given=1; }
        continue;
      }
+     if( !strcasecmp(argv[nopt],"-window_taper") ){
+       if(opts.window_taper_given) ERROR_exit("3dInSync: -window_taper given twice");
+       if(++nopt>=argc || (strcmp(argv[nopt],"boxcar") && strcmp(argv[nopt],"hann")))
+         ERROR_exit("3dInSync: -window_taper requires boxcar or hann");
+       opts.window_taper=!strcmp(argv[nopt++],"hann"); opts.window_taper_given=1;
+       continue;
+     }
      if( !strcasecmp(argv[nopt],"-run_starts") ){
        if(opts.run_starts) ERROR_exit("3dInSync: -run_starts given twice");
        if(++nopt>=argc) ERROR_exit("3dInSync: need a comma list after -run_starts");
@@ -1260,6 +1279,9 @@ int main( int argc, char **argv )
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need a percentage after -zcensor_warn") ;
        opts.zcensor_warn=(float)strtod(argv[nopt++],NULL) ; opts.zcensor_warn_given=1 ; continue ;
      }
+     /* Added 2026-11-3 for E. Myers: expose -missing pairwise as an opt-in
+        alternative to common filtering. Each pair uses its own overlap;
+        missing data in another subject need not remove that pair's TR. */
      if( strcasecmp(argv[nopt],"-missing")==0 ){
        if( ++nopt>=argc ) ERROR_exit(PROGRAM_NAME ": need error, common, pairwise, or interp after -missing") ;
        if( strcasecmp(argv[nopt],"error")==0 ) opts.missing_policy=INSYNC_MISSING_ERROR ;

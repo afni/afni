@@ -53,7 +53,7 @@ def main():
     def close(a,b,tol=3e-6):
         nonlocal checks
         checks+=1; assert abs(a-b)<=tol,(a,b,tol)
-    def oracle(prefix,mode,method='pairwise',metric='pearson',kind='median',pool=False,center=False,tail='one',input_data=None):
+    def oracle(prefix,mode,method='pairwise',metric='pearson',kind='median',pool=False,center=False,tail='one',input_data=None,taper=False):
         data=input_data or source; out=outputs(prefix)
         provenance=rows(root/(prefix+'.temporal_draws.tsv')); nd=1+max(int(r['Draw']) for r in provenance)
         meta={int(r['Run']):(int(r['StartTR']),int(r['NTR']),int(r['RunSeed'])) for r in provenance}
@@ -102,8 +102,9 @@ def main():
                             if pool: blocks=[[[x for b in blocks for x in b[sub]] for sub in range(3)]]
                             comps=[]
                             for block in blocks:
-                                if method=='pairwise': values=[correlation(block[a],block[b],metric) for a,b in itertools.combinations(range(3),2)]
-                                else: values=[correlation(block[a],[f32(statistics.mean(block[b][t] for b in range(3) if b!=a)) for t in range(len(block[0]))],metric) for a in range(3)]
+                                weights=[.5*(1-math.cos(2*math.pi*t/(len(block[0])-1))) for t in range(len(block[0]))] if taper else None
+                                if method=='pairwise': values=[correlation(block[a],block[b],metric,weights) for a,b in itertools.combinations(range(3),2)]
+                                else: values=[correlation(block[a],[f32(statistics.mean(block[b][t] for b in range(3) if b!=a)) for t in range(len(block[0]))],metric,weights) for a in range(3)]
                                 comps.append(values)
                             null.append(f32(summary([f32(summary(list(vals),kind)) for vals in zip(*comps)],'median')))
                         family[sid,f'C{c+1}_{"AB"[g]}',v]=null
@@ -129,6 +130,10 @@ def main():
                 for v in MASK: close(cache[fn][int(row['Brick'])*24+v],out[row['SelectionID'],'TemporalISC_'+label[4:]][v])
         return out
     base=['-window','12','-step','6','-run_starts','0,24','-nnull','20']
+    for mode,method in itertools.product(('timeshift','phase'),('pairwise','loo')):
+        opts=base+['-temporal_null',mode,'-isc_method',method,'-window_taper','hann']
+        p=run(opts); expected=oracle(p,mode,method,taper=True)
+        assert expected==outputs(run(opts,threads=2))
     for mode,method,metric in itertools.product(('timeshift','phase'),('pairwise','loo'),('pearson','spearman')):
         opts=base+['-temporal_null',mode,'-isc_method',method,'-correlation',metric]
         p=run(opts); expected=oracle(p,mode,method,metric)

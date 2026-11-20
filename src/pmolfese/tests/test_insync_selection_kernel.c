@@ -164,5 +164,33 @@ int main(void)
       CHECK(INSYNC_missing_components(m)[1].r==-1);
       INSYNC_missing_free(m);
    }
+   {
+      /* Zero endpoints cannot affect r; censoring leaves nominal weights in
+         place. Three positive samples are the minimum, even with five TRs. */
+      INSYNC_kernel *k=INSYNC_kernel_new(3,5);
+      INSYNC_missing *m=INSYNC_missing_new(3,5);
+      INSYNC_options o={.method=INSYNC_METHOD_PAIRWISE,.min_valid=3,.corr_metric=INSYNC_CORR_PEARSON};
+      float x[]={1000,1,2,3,-1000, -2000,1,3,2,2000, 0,3,2,1,0};
+      int t;
+      CHECK(k && m);
+      for(t=0;t<5;t++){
+         double weight=INSYNC_window_weight(1,t,5);
+         INSYNC_kernel_set_weight(k,t,weight); INSYNC_missing_set_weight(m,t,weight);
+      }
+      CHECK(INSYNC_window_weight(1,0,5)==0 && INSYNC_window_weight(1,4,5)==0);
+      INSYNC_kernel_eval(k,5,x,INSYNC_CORR_PEARSON,INSYNC_METHOD_PAIRWISE,INSYNC_SUMMARY_MEDIAN,1,size,member,stat,n,complete);
+      /* Interior weights .5,1,.5 give covariance .5, variances 1 and 1.375. */
+      CHECK(fabs(INSYNC_kernel_matrix(k)[1]-.5/sqrt(1.375))<1.e-6);
+      INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,member);
+      CHECK(fabs(INSYNC_missing_components(m)[1].r-INSYNC_kernel_matrix(k)[1])<1.e-6);
+      x[1]=x[2]=x[3]=7;
+      INSYNC_kernel_eval(k,5,x,INSYNC_CORR_PEARSON,INSYNC_METHOD_PAIRWISE,INSYNC_SUMMARY_MEDIAN,1,size,member,stat,n,complete);
+      CHECK(isnan(INSYNC_kernel_matrix(k)[1]));
+      x[2]=NAN;
+      INSYNC_missing_eval(m,5,x,NULL,5,&o,1,size,member);
+      CHECK(isnan(INSYNC_missing_components(m)[1].r));
+      CHECK(INSYNC_missing_components(m)[1].overlap==4);
+      INSYNC_kernel_free(k); INSYNC_missing_free(m);
+   }
    puts("PASS: selection/block kernel state, validity, aggregation order, Fisher export and pairwise-missing support"); return 0;
 }
