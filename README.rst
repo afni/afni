@@ -103,7 +103,7 @@ The following software are distributed within AFNI directly:
   included as ``dcm2niix_afni``
   
 * `NiiVue <https://github.com/niivue/niivue>`_,
-  included as ``niivue_afni.umd.js``
+  included as the ``niivue`` directory
   
 AFNI also has several programs and features that 
 complement directly with the following projects:

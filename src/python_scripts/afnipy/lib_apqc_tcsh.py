@@ -262,8 +262,11 @@ auth = 'PA Taylor'
 #ver = '6.2' ; date = 'Sep 18, 2025'
 # [PT] fix vstat_seedcorr when processing has not included blurring
 #
-ver = '6.3' ; date = 'Oct 27, 2026'
+#ver = '6.3' ; date = 'Oct 27, 2026'
 # [PT] warns section for vlines now gets IC+GV buttons
+#
+ver = '6.4' ; date = 'Nov 13, 2026'
+# [TH] NV button now uses NiiVue 1.0 (ES modules, from the abin niivue dir)
 #
 #########################################################################
 
