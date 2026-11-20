@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Nov, 2026, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
+   "compute more reliable variance; minor cleanup",
+   NULL
+ } ,
+
  { 20, Nov, 2026, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
    "fix a couple of warnings and an error return value",
    NULL

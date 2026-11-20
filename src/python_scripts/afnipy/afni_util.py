@@ -163,9 +163,10 @@ def read_text_file(fname='stdin', lines=1, strip=1, nonl=0, noblank=0, verb=1):
       if noblank: tdata = [td for td in tdata if td != '']
    else:
       tdata = fp.read()
-      if strip: tdata.strip()
+      if strip: tdata = tdata.strip()
 
-   fp.close()
+   if fp is not sys.stdin:
+      fp.close()
 
    return tdata
 
@@ -203,6 +204,7 @@ def read_tsv_file(fname='stdin', strip=0, verb=1):
      if matches:
         # declare a winner
         sep = tsep
+        break
 
    if verb > 1:
       print("-- read_tsv_file: have sep '%s'" % sep)
@@ -3041,6 +3043,8 @@ def get_list_mat_dims(L, lengths=[]) :
     if type(L) == list:
         a = copy.deepcopy(lengths)
         a.append(len(L))
+        if not L:
+           return a
         return get_list_mat_dims(L[0], lengths=a)
     else:
         return lengths
@@ -3786,7 +3790,7 @@ def vals_are_multiples(num, vals, digits=4):
 
     for val in vlist:
         rat = val/num
-        rem = rat - int(rat)
+        rem = abs(rat - round(rat))
 
         if round(rem,digits) != 0.0: return 0
 
@@ -3905,9 +3909,9 @@ def lists_are_same(list1, list2, epsilon=0, doabs=0):
       else:
          v1 = list1[ind]
          v2 = list2[ind]
-      if v1 != v2: return 0
       if epsilon:
          if abs(v1-v2) > epsilon: return 0
+      elif v1 != v2: return 0
 
    return 1
 
@@ -5055,15 +5059,16 @@ def mean(vec, ibot=-1, itop=-1):
         if itop == -1, itop will be len-1"""
 
     if not vec: return 0.0
+
+    vlen = len(vec)
+    if ibot < 0: ibot = 0
+    if itop < 0: itop = vlen-1
+
     if ibot > itop:
         print('** afni_util.mean: ibot (%d) > itop (%d)' % (ibot, itop))
         return 0.0
 
-    vlen = len(vec)
-
-    if ibot < 0: ibot = 0
     if ibot > vlen-1: ibot = vlen-1
-    if itop < 0: itop = vlen-1
     if itop > vlen-1: itop = vlen-1
 
     tot = 0.0
@@ -5090,6 +5095,10 @@ def GCD(a, b):
    else:
       L = b
       S = a
+
+   # just be sure
+   if S == 0:
+      return L
 
    r = L % S
    while r > 0:
@@ -5149,15 +5158,16 @@ def demean(vec, ibot=-1, itop=-1):
        return 0 on success, 1 on error"""
 
     if not vec: return 0
+
+    vlen = len(vec)
+    if ibot < 0: ibot = 0
+    if itop < 0: itop = vlen-1
+
     if ibot > itop:
         print('** afni_util.demean: ibot (%d) > itop (%d)' % (ibot, itop))
         return 1
 
-    vlen = len(vec)
-
-    if ibot < 0: ibot = 0
     if ibot > vlen-1: ibot = vlen-1
-    if itop < 0: itop = vlen-1
     if itop > vlen-1: itop = vlen-1
 
     # first compute the mean
@@ -5196,7 +5206,7 @@ def proj_onto_vec(v1, v2, unit_v2=0):
 
    if unit_v2: scalar = dotprod(v1,v2)
    else:
-      len2 = L2_norm(v2,v2)
+      len2 = dotprod(v2,v2)
       if len2 == 0:
          print('** cannot project onto <0> vector')
          return []
@@ -5325,7 +5335,7 @@ def variance_ub(data):
 
      * unbiased variance
                 = sum(x-mean)^2 / (N-1)
-                = (sumsq - N*mean^2)/(N-1)
+                = (sumsq - N*mean^2)/(N-1)  <- do not use, as less reliable
     """
 
     length = len(data)
@@ -5334,8 +5344,10 @@ def variance_ub(data):
     meanval = loc_sum(data)/float(length)
     # compute variance
     ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/(length-1.0)
+    for val in data:
+      diff = val-meanval
+      ssq += diff*diff
+    val = ssq/(length-1.0)
 
     # watch for truncation artifact
     if val < 0.0 : return 0.0
@@ -5346,7 +5358,7 @@ def variance(data):
 
        variance = mean squared difference from the mean
                 = sum(x-mean)^2 / N
-                = (sumsq - N*mean^2)/N
+                = (sumsq - N*mean^2)/N  <- do not use, as less reliable
     """
 
     length = len(data)
@@ -5355,8 +5367,10 @@ def variance(data):
     meanval = loc_sum(data)/float(length)
     # compute variance
     ssq = 0.0
-    for val in data: ssq += val*val
-    val = (ssq - length*meanval*meanval)/length
+    for val in data:
+      diff = val-meanval
+      ssq += diff*diff
+    val = ssq/length
 
     # watch for truncation artifact
     if val < 0.0 : return 0.0
@@ -5636,7 +5650,7 @@ def argmax(vlist, absval=0):
 
    mval = vcopy[0]
    mind = 0
-   for ind, val in enumerate(vlist):
+   for ind, val in enumerate(vcopy):
       if val > mval:
          mval = val
          mind = ind
@@ -5650,7 +5664,7 @@ def argmin(vlist, absval=0):
 
    mval = vcopy[0]
    mind = 0
-   for ind, val in enumerate(vlist):
+   for ind, val in enumerate(vcopy):
       if val < mval:
          mval = val
          mind = ind
@@ -5723,7 +5737,7 @@ def gaussian_at_fwhm(x, fwhm):
       print("** gaussian_at_fwhm: illegal fwhm <= 0 of %s", fwhm)
       return 0
 
-   return gaussian_at_hwhm_frac(2.0*x/fwhm)
+   return gaussian_at_hwhm_frac(2.0*abs(x)/fwhm)
 
 def convolve(data, kernel, length=0):
    """simple convolution of data with a kernel
