@@ -1500,9 +1500,41 @@ int view_web_link(char *link, char *browser)
    return(1);
 }
 
+/* return whether this viewer should open in foreground
+ * - most should not, they should open in the background
+ * - a local function to be used with ao_with_editor
+ *
+ * foreground viewers:
+ *   vi, vim, nano
+ * anything else is background
+ */
+int open_viewer_in_foreground(char * viewer)
+{
+   int len;
+
+   if( !viewer ) return 1;
+
+   len = strlen(viewer);
+
+   /* check both vi and vim */
+   if ( len <= 2 && !strcmp(viewer, "vi") )
+      return 1;
+
+   if ( len >= 3 && ( !strcmp(viewer+len-3, "vim")
+                   || !strcmp(viewer+len-2, "vi") ) )
+      return 1;
+
+   if ( len >=4 && !strcmp(viewer+len-4, "nano") )
+      return 1;
+
+   /* anything else runs in the background */
+   return 0;
+}
+
 int view_text_file(char *progname) 
 {
    char *viewer=NULL, cmd[256];
+   char *bkgrd=NULL;
    
    if (!progname) {
       ERROR_message("No input!");
@@ -1517,8 +1549,15 @@ int view_text_file(char *progname)
               "Set AFNI_GUI_EDITOR in your .afnirc for this option to work.\n"); 
       return(0);
    }
+
+   /* some viewers should be opened in the foreground */
+   if ( open_viewer_in_foreground(viewer) )
+      bkgrd = "";
+   else
+      bkgrd = " &";
+
    /* open help file in editor*/
-   snprintf(cmd,250*sizeof(char),"%s %s &", viewer, progname);
+   snprintf(cmd,250*sizeof(char),"%s %s%s", viewer, progname, bkgrd);
    system(cmd);
    return(1);
 }
