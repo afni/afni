@@ -5,6 +5,15 @@ xim.c display.c and pbar.c*/
 #include "SUMA_suma.h"
 #include "SUMA_plot.h"
 
+static void SUMA_cmap_wid_handle_input(SUMA_ALL_DO *ado, Widget w,
+                                       XKeyEvent *Kev, XButtonEvent *Bev,
+                                       XMotionEvent *Mev, int evtype);
+static void SUMA_PBAR_bigfocus_EV(Widget w, XtPointer cd,
+                           XEvent *ev, Boolean *continue_to_dispatch);
+
+static void SUMA_PBAR_bigexpose_CB(Widget wiw, XtPointer clientData, 
+            XtPointer calliw);
+
 /*!
    \brief Reads a ppm image and turns i into an rgba vector for ease of
    use with OpenGL.
@@ -262,6 +271,11 @@ void SUMA_cmap_wid_display(SUMA_ALL_DO *ado)
    SurfCont = SUMA_ADO_Cont(ado);
    curColPlane = SUMA_ADO_CurColPlane(ado);
 
+   if (SUMAg_CF->Fake_Cmap || !SurfCont || !SurfCont->cmp_ren ||
+       !SurfCont->cmp_ren->cmap_wid) {
+      SUMA_RETURNe;
+   }
+
    /* is surface controller closed? */
    if (!SurfCont->Open) {
       SUMA_LHv("SurfCont closed for %s, trying to open it\n",
@@ -368,6 +382,14 @@ Boolean SUMA_cmap_wid_handleRedisplay(XtPointer clientData)
    if (!ado) { SUMA_SL_Err("NULL DO"); SUMA_RETURN(NOPE); }
 
    SurfCont = SUMA_ADO_Cont(ado);
+   if (!SurfCont) { SUMA_SL_Err("NULL SurfCont"); SUMA_RETURN(NOPE); }
+
+   if (SUMAg_CF->Fake_Cmap) {
+      SUMA_LH("Fake cmap: refreshing Motif colorbar");
+      SUMA_PBAR_bigexpose_CB(NULL, (XtPointer)ado, NULL);
+      SUMA_RETURN(YUP);
+   }
+
    SUMA_LHv("Called with ado %s, SurfCont->Open: %d\n",
             SUMA_ADO_Label(ado), SurfCont->Open);
    if (SurfCont->Open) { /* Otherwise it causes a crash on linux
@@ -407,6 +429,12 @@ void SUMA_cmap_wid_postRedisplay(Widget w, XtPointer clientData, XtPointer call)
    ado = (SUMA_ALL_DO *)clientData;
    if (!ado) { SUMA_SL_Err("NULL DO"); SUMA_RETURNe; }
 
+   if (SUMAg_CF->Fake_Cmap) {
+      SUMA_LH("Fake cmap: refreshing Motif colorbar");
+      SUMA_PBAR_bigexpose_CB(NULL, (XtPointer)ado, NULL);
+      SUMA_RETURNe;
+   }
+
    SUMA_register_workproc(SUMA_cmap_wid_handleRedisplay , (XtPointer)ado );
 
    SUMA_RETURNe;
@@ -432,7 +460,7 @@ void SUMA_cmap_wid_expose(Widget w, XtPointer clientData, XtPointer call)
 /* An attempt to render colormap using X11 and Motif rather than openGL.
 This is only for the purpose of taking an autosnapshot of the whole widget
 Based on AFNI's PBAR_bigexpose_CB()*/
-void SUMA_PBAR_bigexpose_CB(Widget wiw, XtPointer clientData, XtPointer calliw)
+static void SUMA_PBAR_bigexpose_CB(Widget wiw, XtPointer clientData, XtPointer calliw)
 {
    static char FuncName[]={"SUMA_PBAR_bigexpose_CB"};
    SUMA_ALL_DO *ado=NULL;
@@ -448,6 +476,7 @@ void SUMA_PBAR_bigexpose_CB(Widget wiw, XtPointer clientData, XtPointer calliw)
    SUMA_COLOR_MAP *CM=NULL;
    SUMA_OVERLAYS *curColPlane=NULL;
    SUMA_Boolean LocalHead = NOPE;
+   static float CMd_sig = -1.0;   /* signature to detect in-place changes */
 
    SUMA_ENTRY;
 
@@ -469,12 +498,17 @@ void SUMA_PBAR_bigexpose_CB(Widget wiw, XtPointer clientData, XtPointer calliw)
       }
    }
 
-   if (!CMd || CM != CMd) {
-      SUMA_LH("Setting CMd");
-      CMd = CM;
-      if (bigxim) {
-         SUMA_LH("Killing bigxim");
-         MCW_kill_XImage( bigxim ); bigxim = NULL;
+   /* after CM is resolved, before the "if (!bigxim)" block: */
+   {
+      float sig = CM->M[0][0] + 1000.0*CM->M[0][1] + 1000000.0*CM->M[0][2]
+                  + (float)CM->N_M[0];
+      if (!CMd || CM != CMd || sig != CMd_sig) {
+         SUMA_LH("Setting/refreshing CMd");
+         CMd = CM;
+         CMd_sig = sig;
+         if (bigxim) {
+            MCW_kill_XImage( bigxim ); bigxim = NULL;
+         }
       }
    }
 
@@ -518,11 +552,21 @@ void SUMA_PBAR_bigexpose_CB(Widget wiw, XtPointer clientData, XtPointer calliw)
    SUMA_RETURNe;
 }
 
+static void SUMA_PBAR_bigfocus_EV(Widget w, XtPointer cd,
+                           XEvent *ev, Boolean *continue_to_dispatch)
+{
+   XmProcessTraversal(w, XmTRAVERSE_CURRENT);
+}
+
 void SUMA_PBAR_biginput_CB(Widget w, XtPointer clientData, XtPointer call)
 {
    static char FuncName[]={"SUMA_PBAR_biginput_CB"};
    SUMA_ALL_DO *ado=NULL;
    SUMA_X_SurfCont *SurfCont = NULL;
+   XmDrawingAreaCallbackStruct *cbs = (XmDrawingAreaCallbackStruct *)call;
+   XKeyEvent Kev;
+   XButtonEvent Bev;
+   XMotionEvent Mev;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
@@ -532,6 +576,14 @@ void SUMA_PBAR_biginput_CB(Widget w, XtPointer clientData, XtPointer call)
    if (!ado || !(SurfCont = SUMA_ADO_Cont(ado))) {
       SUMA_SL_Err("NULL DO or Cont"); SUMA_RETURNe;
    }
+   if (!cbs || !cbs->event) SUMA_RETURNe;
+
+   Kev = *(XKeyEvent *)    &cbs->event->xkey;
+   Bev = *(XButtonEvent *) &cbs->event->xbutton;
+   Mev = *(XMotionEvent *) &cbs->event->xmotion;
+
+   SUMA_cmap_wid_handle_input(ado, w, &Kev, &Bev, &Mev, cbs->event->type);
+
    SUMA_RETURNe;
 }
 
@@ -568,6 +620,318 @@ void SUMA_cmap_wid_resize(Widget w, XtPointer clientData, XtPointer call)
    SUMA_RETURNe;
 }
 
+/* Shared input logic for the colormap widget, used by both the GLXAREA
+   path (SUMA_cmap_wid_input) and the Motif Fake_pbar path
+   (SUMA_PBAR_biginput_CB). Events are already decoded by the caller.
+   evtype is the X event type (KeyPress, ButtonPress, etc.).
+   w is the widget that received the event; it is compared against
+   cmp_ren->cmap_wid to decide whether a GL context must be made current. */
+static void SUMA_cmap_wid_handle_input(SUMA_ALL_DO *ado, Widget w,
+                                       XKeyEvent *Kev, XButtonEvent *Bev,
+                                       XMotionEvent *Mev, int evtype)
+{
+   static char FuncName[]={"SUMA_cmap_wid_handle_input"};
+   KeySym keysym;
+   char buffer[10];
+   int xls;
+   static Time B1time = 0;
+   static int pButton, mButton, rButton;
+   static SUMA_Boolean DoubleClick = NOPE;
+   DList *list = NULL;
+   SUMA_EngineData *ED = NULL;
+   static float height_two_col, width;
+   int ncol;
+   SUMA_COLOR_MAP *ColMap = NULL;
+   static float fov_lim = -1.0;
+   static SUMA_SurfaceObject *SOcmap=NULL;
+   SUMA_X_SurfCont *SurfCont=NULL;
+   SUMA_OVERLAYS *curColPlane=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   SUMA_LH("called");
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+
+   SurfCont = SUMA_ADO_Cont(ado);
+   curColPlane = SUMA_ADO_CurColPlane(ado);
+
+   ColMap = SUMA_CmapOfPlane (curColPlane );
+   if (!ColMap) { SUMA_SL_Err("No Cmap"); SUMA_RETURNe; };
+   if (ColMap->SO != SOcmap) {
+      SUMA_LH("New colormap SO");
+      /* calculate FOV limit for zooming in */
+      SOcmap = ColMap->SO;
+      ncol = SOcmap->N_FaceSet / 2;
+      height_two_col =  (SOcmap->MaxDims[1] - SOcmap->MinDims[1]) /
+                        (float)ncol * 2.0;
+                        /* no need to show more than 2 cols */
+      width = (SOcmap->MaxDims[0] - SOcmap->MinDims[0]);
+      fov_lim = 2.0 * atan( (double)height_two_col /
+               ( 2.0 * (double)SUMA_CMAP_VIEW_FROM ) ) * 180 / SUMA_PI;
+   }
+
+   /* Make the colormap the current GL context only if we are actually
+      dealing with the GL widget. For the Motif Fake_pbar there is no GL
+      rendering to do here, so skip the make-current entirely. */
+   if (SurfCont->cmp_ren && w == SurfCont->cmp_ren->cmap_wid) {
+      if (!SUMA_glXMakeCurrent( XtDisplay(w), XtWindow(w),
+            SurfCont->cmp_ren->cmap_context, FuncName, "some cmap input", 1)) {
+         SUMA_S_Err("Failed in SUMA_glXMakeCurrent.\n ");
+         SUMA_RETURNe;
+      }
+   }
+
+   switch (evtype) { /* switch event type */
+   case KeyPress:
+      xls = XLookupString(Kev, buffer, 8, &keysym, NULL);
+
+      /* XK_* are found in keysymdef.h */
+      switch (keysym) { /* keysym */
+         case XK_h:
+            if (Kev->state & ControlMask){
+              if (!list) list = SUMA_CreateList();
+              ED = SUMA_InitializeEngineListData (SE_Help_Cmap);
+              SUMA_RegisterEngineListCommand ( list, ED,
+                                         SEF_vp, (void *)ColMap,
+                                         SES_SumaWidget, NULL, NOPE,
+                                         SEI_Head, NULL);
+              if (!SUMA_Engine (&list)) {
+                  fprintf(stderr,
+                           "Error %s: SUMA_Engine call failed.\n", FuncName);
+              }
+            }
+            break;
+         case XK_f:
+            {
+               if (1) {
+                  SUMA_LH("Flipping colormap");
+                  SUMA_Flip_Color_Map(
+                     SUMA_CmapOfPlane(curColPlane));
+                  SUMA_LH("Switching colormap");
+                  SUMA_SwitchCmap(ado,
+                         SUMA_CmapOfPlane(curColPlane), 0);
+               }
+            }
+            break;
+         case XK_r:
+            {
+               GLvoid *pixels;
+               SUMA_LH("Recording");
+               if (!SurfCont->cmp_ren || !SurfCont->cmp_ren->cmap_wid) {
+                  SUMA_S_Note("No GL colorbar to record from");
+                  break;
+               }
+               if (SUMAg_SVv[0].X->DOUBLEBUFFER)
+                  glXSwapBuffers(XtDisplay(SurfCont->cmp_ren->cmap_wid),
+                                 XtWindow(SurfCont->cmp_ren->cmap_wid));
+               pixels = SUMA_grabPixels(3, SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT);
+               if (SUMAg_SVv[0].X->DOUBLEBUFFER)
+                  glXSwapBuffers(XtDisplay(SurfCont->cmp_ren->cmap_wid),
+                                 XtWindow(SurfCont->cmp_ren->cmap_wid));
+               if (pixels) {
+                 ISQ_snapsave (SUMA_CMAP_WIDTH, -SUMA_CMAP_HEIGHT,
+                              (unsigned char *)pixels,
+                              SurfCont->cmp_ren->cmap_wid );
+                 SUMA_free(pixels);
+               }else {
+                  SUMA_SLP_Err("Failed to record image.");
+               }
+            }
+            break;
+         case XK_w:
+            {
+               char *sss=NULL;
+               SUMA_COLOR_MAP * ColMap =
+                     SUMA_CmapOfPlane(curColPlane);
+               if (LocalHead) {
+                  if ((sss = SUMA_ColorMapVec_Info(&ColMap, 1, 1))) {
+                     SUMA_LHv("To be written:\n%s\n", sss);
+                     SUMA_free(sss); sss = NULL;
+                  }
+               }
+               if (!SUMA_Write_Color_Map_1D(ColMap, NULL)) {
+                  SUMA_S_Errv("Failed to write colmap %s\n",
+                           curColPlane->Name);
+               }else {
+                  SUMA_S_Notev("Wrote colormap %s to file.\n",
+                           curColPlane->Name);
+               }
+            }
+            break;
+         case XK_Home:
+            SurfCont->cmp_ren->FOV = SUMA_CMAP_FOV_INITIAL;
+            SurfCont->cmp_ren->translateVec[0] =
+            SurfCont->cmp_ren->translateVec[1] =
+            SurfCont->cmp_ren->translateVec[2] = 0.0;
+            {
+               SUMA_COLOR_MAP *CM = SUMA_CmapOfPlane(curColPlane);
+               if (SUMA_Rotate_Color_Map(CM, 0) % CM->N_M[0]) {
+                  SUMA_SwitchCmap(ado,
+                         SUMA_CmapOfPlane(curColPlane), 0);
+               } else {
+                  SUMA_cmap_wid_postRedisplay(w, (XtPointer)ado, NULL);
+               }
+            }
+            break;
+         case XK_Up:   /*KEY_UP:*/
+            {
+               /* Zoom/translate (Shift) branch removed: GL-only, not needed
+                  for the Motif bar. Plain and Ctrl rotate remain. */
+               float frac = 0.0;
+               if (Kev->state & ShiftMask) {
+                  /* was a GL-only translate; ignore for now */
+                  break;
+               }
+               if (Kev->state & ControlMask) {
+                  frac = 1;
+               } else {
+                  frac = SUMAg_CF->CmapRotaFrac;
+               }
+               SUMA_LH("Rotating colormap");
+               SUMA_Rotate_Color_Map(
+                  SUMA_CmapOfPlane(curColPlane), frac);
+               SUMA_LH("Switching colormap");
+               SUMA_SwitchCmap(ado,
+                      SUMA_CmapOfPlane(curColPlane), 0);
+            }
+            break;
+         case XK_Down:   /*KEY_DOWN:*/
+            {
+               float frac = 0.0;
+               if (Kev->state & ShiftMask) {
+                  /* was a GL-only translate; ignore for now */
+                  break;
+               }
+               if (Kev->state & ControlMask) {
+                  frac = 1;
+               } else {
+                  frac = SUMAg_CF->CmapRotaFrac;
+               }
+               SUMA_Rotate_Color_Map(
+                  SUMA_CmapOfPlane(curColPlane), -frac);
+               SUMA_SwitchCmap(ado,
+                      SUMA_CmapOfPlane(curColPlane), 0);
+            }
+            break;
+
+      } /* keysym */
+   break;
+
+   case ButtonPress:
+      if (LocalHead) fprintf(stdout,"In ButtonPress\n");
+      pButton = Bev->button;
+      if (SUMAg_CF->SwapButtons_1_3 ||
+          (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+         if (pButton == Button1) pButton = Button3;
+         else if (pButton == Button3) pButton = Button1;
+      }
+
+     /* trap for double click */
+      if (Bev->time - B1time < SUMA_DOUBLE_CLICK_MAX_DELAY) {
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Double click.\n", FuncName);
+         DoubleClick = YUP;
+      } else {
+         DoubleClick = NOPE;
+      }
+      B1time = Bev->time;
+
+      switch (pButton) { /* switch type of button Press */
+         case Button1:
+            break;
+         default:
+            break;
+      } /* switch type of button Press */
+      break;
+
+   case ButtonRelease:
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName);
+      rButton = Bev->button;
+      if (SUMAg_CF->SwapButtons_1_3 ||
+          (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode) ) {
+         if (rButton == Button1) rButton = Button3;
+         else if (rButton == Button3) rButton = Button1;
+      }
+      switch (rButton) { /* switch type of button Press */
+         case Button3:
+            break;
+         default:
+            break;
+      } /* switch type of button Press */
+      break;
+
+   case MotionNotify:
+      if (LocalHead) fprintf(stdout,"In MotionNotify\n");
+      if (SUMAg_CF->SwapButtons_1_3 ||
+          (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
+        if (((Mev->state & Button3MotionMask) && (Mev->state & Button2MotionMask))
+         || ((Mev->state & Button2MotionMask) && (Mev->state & ShiftMask))) {
+            mButton = SUMA_Button_12_Motion;
+         } else if(Mev->state & Button3MotionMask) {
+            mButton = SUMA_Button_1_Motion;
+         }else if(Mev->state & Button2MotionMask) {
+            mButton = SUMA_Button_2_Motion;
+         }else if(Mev->state & Button1MotionMask) {
+            mButton = SUMA_Button_3_Motion;
+         }else {
+            break;
+         }
+      } else {
+         if (((Mev->state & Button1MotionMask) && (Mev->state & Button2MotionMask)) || ((Mev->state & Button2MotionMask) && (Mev->state & ShiftMask))) {
+            mButton = SUMA_Button_12_Motion;
+         } else if(Mev->state & Button1MotionMask) {
+            mButton = SUMA_Button_1_Motion;
+         }else if(Mev->state & Button2MotionMask) {
+            mButton = SUMA_Button_2_Motion;
+         } else if(Mev->state & Button3MotionMask) {
+            mButton = SUMA_Button_3_Motion;
+         }else {
+            break;
+         }
+      }
+
+      switch (mButton) {
+         case SUMA_Button_12_Motion:
+         case SUMA_Button_2_Shift_Motion:
+            break;
+         default:
+            break;
+      }
+      break;
+  }/* switch event type */
+
+  /* set up flag to make sure sv regains context */
+  SUMA_SiSi_I_Insist();
+
+  SUMA_RETURNe;
+}
+
+void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
+{
+   static char FuncName[]={"SUMA_cmap_wid_input"};
+   GLwDrawingAreaCallbackStruct *cd;
+   XKeyEvent Kev;
+   XButtonEvent Bev;
+   XMotionEvent Mev;
+   SUMA_ALL_DO *ado=NULL;
+
+   SUMA_ENTRY;
+
+   ado = (SUMA_ALL_DO *)clientData;
+   if (!ado) { SUMA_SL_Err("NULL ado"); SUMA_RETURNe; }
+
+   cd = (GLwDrawingAreaCallbackStruct *) callData;
+   Kev = *(XKeyEvent *)    &cd->event->xkey;
+   Bev = *(XButtonEvent *) &cd->event->xbutton;
+   Mev = *(XMotionEvent *) &cd->event->xmotion;
+
+   SUMA_cmap_wid_handle_input(ado, w, &Kev, &Bev, &Mev, cd->event->type);
+
+   SUMA_RETURNe;
+}
+
+#if 0
+old input handling for colorbar
 void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
 {
    static char FuncName[]={"SUMA_cmap_wid_input"};
@@ -927,6 +1291,7 @@ void SUMA_cmap_wid_input(Widget w, XtPointer clientData, XtPointer callData)
 
   SUMA_RETURNe;
 }
+#endif
 
 int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2)
 {
@@ -11502,8 +11867,9 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
          NULL);
 
       /* open me a glxarea */
-      SUMA_LH("Forming glxarea");
-      {
+/* open me a glxarea OR a Motif fake colorbar */
+      SUMA_LH("Forming colorbar");
+      if (!SUMAg_CF->Fake_Cmap) {
          #ifdef SUMA_MOTIF_GLXAREA
             SurfCont->cmp_ren->cmap_wid = XtVaCreateManagedWidget("glxarea",
                 glwMDrawingAreaWidgetClass, rcc2,
@@ -11544,82 +11910,38 @@ void SUMA_CreateCmapWidgets(Widget parent, SUMA_ALL_DO *ado)
          XtAddCallback( SurfCont->cmp_ren->cmap_wid,
                         GLwNinputCallback, SUMA_cmap_wid_input,
                         (XtPointer )ado);
-      }
+      } else {
+         SUMA_S_Note("Creating Motif colorbar in place of GLXAREA");
 
-      if (SUMAg_CF->Fake_Cmap) {
-         #define NPANE_MIN        2
-         #define NPANE_MAX       20
-         #define PANE_WIDTH      15
-         #define PANE_MIN_HEIGHT  5
-         #define PANE_LOFF        6
-         #define PANE_SPACING     2
-
-         #define PANE_MAXMODE     2
-         #define SASH_HNO         1
-         Widget frm, pw;
-         SUMA_S_Warn("Creating X11 cmap for snapshot taking only!");
-
-         /*
-         frm = XtVaCreateManagedWidget( "pbar" , xmFrameWidgetClass , rcc2 ,
-                                     XmNshadowType , XmSHADOW_ETCHED_IN ,
-                                  NULL ) ;
-
-         pw = XtVaCreateManagedWidget( "pbar" , xmPanedWindowWidgetClass , frm ,
-                                      XmNsashWidth , PANE_WIDTH-2*PANE_SPACING,
-                                      XmNsashIndent , PANE_SPACING ,
-                                      XmNsashHeight , SASH_HNO ,
-                                      XmNmarginHeight , 0 ,
-                                      XmNmarginWidth , 0 ,
-                                      XmNspacing , PANE_SPACING ,
-                                      XmNx , 0 , XmNy , 0 ,
-                                      XmNtraversalOn, True  ,
-                                      XmNinitialResourcesPersistent , False ,
-                                   NULL ) ;
-         SurfCont->Fake_pbar = XtVaCreateWidget(
-                          "pbar" , xmDrawnButtonWidgetClass , pw ,
-                              XmNpaneMinimum , PANE_MIN_HEIGHT ,
-                              XmNallowResize , True ,
-                              XmNheight , SUMA_CMAP_HEIGHT ,
-                              XmNwidth , PANE_WIDTH,
-                              XmNborderWidth , 0 ,
-                              XmNmarginWidth , 0 ,
-                              XmNmarginHeight , 0 ,
-                              XmNhighlightThickness , 0 ,
-                              XmNpushButtonEnabled , True ,
-                              XmNuserData , (XtPointer)ado ,
-                              XmNtraversalOn , True ,
-                              XmNinitialResourcesPersistent , False ,
-                            NULL ) ;
-         */
          SurfCont->Fake_pbar = XmCreateDrawingArea(rcc2, "pbar", NULL, 0);
-         XtVaSetValues(SurfCont->Fake_pbar, XmNheight , SUMA_CMAP_HEIGHT ,
+         XtVaSetValues(SurfCont->Fake_pbar,
+                              XmNheight , SUMA_CMAP_HEIGHT ,
                               XmNwidth , SUMA_CMAP_WIDTH,
+                              XmNresizePolicy,   XmRESIZE_NONE,
                               XmNallowResize , False ,
+                              XmNtraversalOn, True, /* so it can get keys */
                               NULL);
+         snprintf(wname, 63, "%s->%s->Cmap->bar",
+                  SUMA_do_type_2_contwname(SurfCont->do_type), blk);
+         SUMA_Register_Widget_Help(SurfCont->Fake_pbar ,1,
+                                   wname,
+                                   "Colorbar for 'I' values",
+                                   SUMA_SurfContHelp_ColorBar);
          XtManageChild (SurfCont->Fake_pbar);
          XtManageChild (rcc2);
+
          XtAddCallback( SurfCont->Fake_pbar, XmNexposeCallback,
                         SUMA_PBAR_bigexpose_CB, (XtPointer )ado ) ;
-         /* The following commands were part of a failed attempt
-         at getting the rest of the widgets - sub-brick selectors
-         etc. to appear when the glxarea drawing widget was not
-         created. For some reason, little other than the X11 colormap
-         would show if I did not create SurfCont->cmp_ren->cmap_wid
-         above. Interestingly, commenting out the SurfCont->cmp_ren->cmap_wid
-         callbacks above also had the same effect.
-         So the solution is to render both and make one super thin. It is
-         rendered in black anyway when the picture is snapped so it makes
-         little difference in the end.                ZSS Nov 2014 */
          XtAddCallback( SurfCont->Fake_pbar,
                         XmNresizeCallback, SUMA_PBAR_bigresize_CB,
                         (XtPointer )ado);
          XtAddCallback( SurfCont->Fake_pbar,
                         XmNinputCallback, SUMA_PBAR_biginput_CB,
                         (XtPointer )ado);
-         XtVaSetValues( SurfCont->cmp_ren->cmap_wid,
-                        XmNheight , 1,
-                        XmNwidth , 1,
-                        NULL);
+
+         /* Grab keyboard focus on button press so key events arrive */
+         XtAddEventHandler(SurfCont->Fake_pbar, ButtonPressMask, False,
+                           SUMA_PBAR_bigfocus_EV, (XtPointer)ado);
       }
 
       XtManageChild (rcc);
