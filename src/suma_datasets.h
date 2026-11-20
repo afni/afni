@@ -1308,6 +1308,8 @@ If ind is NULL, then the index will be the line number.
       NI_stream_close( m_ns ) ; \
    }  \
 }
+/* Write all destinations through the same path; only files opened here are
+   owned here.  Closing stdout/stderr would break subsequent caller output. */
 #define DSET_WRITE_1D_PURE(dset, frm, suc, addindex) {               \
    FILE *m_fid = NULL;                                               \
    int m_ind, m_ival;                                                \
@@ -1320,41 +1322,39 @@ If ind is NULL, then the index will be the line number.
    } else {                                                          \
       if (!strcmp(frm,"stdout")) m_fid = stdout;                     \
       else if (!strcmp(frm,"stderr")) m_fid = stderr;                \
-      else {                                                         \
-        m_fid = fopen(frm,"w");                                      \
-        if( m_fid == NULL ) {                                        \
-           SUMA_SL_Err ("Failed to open file for output");           \
-           suc = 0;                                                  \
-        } else {                                                     \
-           if (addindex) {                                           \
-              if (!dset->inel) {                                     \
-                SUMA_SL_Err ("No inel in dset! "                     \
-                             "No node indices written!\n");          \
-                addindex = 0;                                        \
-              }                                                      \
-           }                                                         \
-           if (!addindex) {                                          \
-              for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
-                 for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) { \
-                    fprintf(m_fid,"%f   ",                           \
-                       SUMA_GetDsetValInCol2(dset, m_ind, m_ival));  \
-                 }                                                   \
-                 fprintf(m_fid,"\n");                                \
-              }                                                      \
-           } else {                                                  \
-              int *m_n=(int *)dset->inel->vec[0];                    \
-              for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
-                 fprintf(m_fid,"%d   ", m_n[m_ival]);                \
-                 for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) { \
-                    fprintf(m_fid,"%f   ",                           \
-                       SUMA_GetDsetValInCol2(dset, m_ind, m_ival));  \
-                 }                                                   \
-                 fprintf(m_fid,"\n");                                \
-              }                                                      \
-           }                                                         \
-           fclose(m_fid); m_fid = NULL;                              \
-        }                                                            \
-      }                                                              \
+      else m_fid = fopen(frm,"w");                                  \
+      if( m_fid == NULL ) {                                        \
+         SUMA_SL_Err ("Failed to open file for output");           \
+         suc = 0;                                                  \
+      } else {                                                     \
+         if (addindex) {                                           \
+            if (!dset->inel) {                                     \
+              SUMA_SL_Err ("No inel in dset! "                     \
+                           "No node indices written!\n");          \
+              addindex = 0;                                        \
+            }                                                      \
+         }                                                         \
+         if (!addindex) {                                          \
+            for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
+               for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) { \
+                  fprintf(m_fid,"%f   ",                           \
+                     SUMA_GetDsetValInCol2(dset, m_ind, m_ival));  \
+               }                                                   \
+               fprintf(m_fid,"\n");                                \
+            }                                                      \
+         } else {                                                  \
+            int *m_n=(int *)dset->inel->vec[0];                    \
+            for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
+               fprintf(m_fid,"%d   ", m_n[m_ival]);                \
+               for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) { \
+                  fprintf(m_fid,"%f   ",                           \
+                     SUMA_GetDsetValInCol2(dset, m_ind, m_ival));  \
+               }                                                   \
+               fprintf(m_fid,"\n");                                \
+            }                                                      \
+         }                                                         \
+         if (m_fid != stdout && m_fid != stderr) fclose(m_fid);    \
+      }                                                            \
    }                                                                 \
 }
 
@@ -1370,42 +1370,40 @@ If ind is NULL, then the index will be the line number.
    } else {                                                          \
       if (!strcmp(frm,"stdout")) m_fid = stdout;                     \
       else if (!strcmp(frm,"stderr")) m_fid = stderr;                \
-      else {                                                         \
-         m_fid = fopen(frm,"w");                                     \
-         if( m_fid == NULL ) {                                       \
-            SUMA_SL_Err ("Failed to open file for output");          \
-            suc = 0;                                                 \
-         } else {                                                    \
-            if (addindex) {                                          \
-               if (!dset->inel) {                                    \
-                  SUMA_SL_Err ("No inel in dset! "                   \
-                               "No node indices written!\n");        \
-                  addindex = 0;                                      \
-               }                                                     \
-            }                                                        \
-            if (!addindex) {                                         \
-               for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) {   \
-                  for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) \
-                  {                                                  \
-                     fprintf(m_fid,"%f   ",                          \
-                        SUMA_GetDsetValInCol2(dset, m_ind, m_ival)); \
-                  }                                                  \
-                  fprintf(m_fid,"\n");                               \
-               }                                                     \
-            } else {                                                 \
-               int *m_n=(int *)dset->inel->vec[0];                   \
-               for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) {   \
-                  for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
-                     fprintf(m_fid,"%d   ", m_n[m_ival]);                \
-                     fprintf(m_fid,"%f   ",                              \
-                          SUMA_GetDsetValInCol2(dset, m_ind, m_ival));   \
-                  }                                                  \
-                  fprintf(m_fid,"\n");                               \
-               }                                                     \
-            }                                                        \
-            fclose(m_fid); m_fid = NULL;                             \
-         }                                                           \
-      }                                                              \
+      else m_fid = fopen(frm,"w");                                  \
+      if( m_fid == NULL ) {                                       \
+         SUMA_SL_Err ("Failed to open file for output");          \
+         suc = 0;                                                 \
+      } else {                                                    \
+         if (addindex) {                                          \
+            if (!dset->inel) {                                    \
+               SUMA_SL_Err ("No inel in dset! "                   \
+                            "No node indices written!\n");        \
+               addindex = 0;                                      \
+            }                                                     \
+         }                                                        \
+         if (!addindex) {                                         \
+            for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) {   \
+               for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) \
+               {                                                  \
+                  fprintf(m_fid,"%f   ",                          \
+                     SUMA_GetDsetValInCol2(dset, m_ind, m_ival)); \
+               }                                                  \
+               fprintf(m_fid,"\n");                               \
+            }                                                     \
+         } else {                                                 \
+            int *m_n=(int *)dset->inel->vec[0];                   \
+            for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) {   \
+               for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
+                  fprintf(m_fid,"%d   ", m_n[m_ival]);                \
+                  fprintf(m_fid,"%f   ",                              \
+                       SUMA_GetDsetValInCol2(dset, m_ind, m_ival));   \
+               }                                                  \
+               fprintf(m_fid,"\n");                               \
+            }                                                     \
+         }                                                        \
+         if (m_fid != stdout && m_fid != stderr) fclose(m_fid);    \
+      }                                                           \
    }                                                                 \
 }
 
