@@ -113,6 +113,7 @@ MRI_IMARR * mri_read_dicom( char *fname )
    static int nzoff=0 ; /* set z-axis orientation/offset from multiple calls */
    int mosaic=0 , mos_nx=0,mos_ny=0;            /* 28 Oct 2002 */
    int mos_ix=0,mos_iy=0,mos_nz=0 ;
+   int enh = 0; /* Enhanced MR Image Storage */
    Siemens_extra_info sexinfo ;                 /* 31 Oct 2002 */
 /* #if DEBUG_ON */
    short sbot,stop ;
@@ -196,7 +197,20 @@ ENTRY("mri_read_dicom") ;
         "1.2.840.10008.1.2.1.99"  = 'deflate' compression
 
       Plus, 'private' transfer syntaxes are legal.  05 Jul 2006 - RWCox */
-
+  //0
+   
+      if( epos[E_ENHANCED] != NULL ){
+     ddd = strstr(epos[E_ENHANCED],"//") ;
+     if( ddd != NULL ){
+       char cenh[256]="\0" ;
+       sscanf(ddd+2,"%254s",cenh) ;
+       enh = 0 ;
+         if( strcmp(cenh,"1.2.840.10008.5.1.4.1.1.4.1") == 0 ) /* enhanced MR  */
+           enh = 1 ;
+     }
+   }
+   
+   
    if( epos[E_TRANSFER_SYNTAX] != NULL ){
      ddd = strstr(epos[E_TRANSFER_SYNTAX],"//") ;
      if( ddd != NULL ){
@@ -409,7 +423,6 @@ ENTRY("mri_read_dicom") ;
     if( rv  < 0 ) { free(ppp); RETURN(NULL); }   /* fatal */
     if( rv == 1 ) {
        /* have Siemens Mosaic, set follower variables */
-
        mosaic = 1;
        mos_ix = sexinfo.mos_ix;
        mos_iy = sexinfo.mos_ix;
@@ -602,7 +615,7 @@ ENTRY("mri_read_dicom") ;
      }
      if( g_dicom_ctrl.verb > 2 )
         fprintf(stderr,"-- DICOM FOV dx, dy = %f, %f\n", dx, dy);
-   }
+   } /* Enhanced DICOMs compute FOV from rows, columns and pixel spacing */
 
    /* get dz now*/
    dz = get_dz(epos);
@@ -679,7 +692,7 @@ ENTRY("mri_read_dicom") ;
    if( epos[E_RS_IMAGE_INDEX] != NULL ){
      ddd = strstr(epos[E_RS_IMAGE_INDEX],"//") ;
      if( ddd != NULL ) sscanf( ddd+2 , "%d" , &g_image_info.image_index);
-   }
+   } 
 
    if( epos[E_ID_ACQUISITION_TIME] != NULL ){
      ddd = strstr(epos[E_ID_ACQUISITION_TIME],"//") ;
@@ -696,7 +709,46 @@ ENTRY("mri_read_dicom") ;
       g_image_info.is_mosaic  = 1;
       g_image_info.mos_nslice = sexinfo.mosaic_num;
       g_image_info.mos_nx     = sexinfo.mos_nx;
-      g_image_info.mos_ny     = sexinfo.mos_ny;
+      g_image_info.mos_ny     = sexinfo.mos_ny; 	
+   }
+   
+   if (enh) {
+      sexinfo.mosaic_num = nz;
+      g_image_info.is_mosaic  = 1;
+      g_image_info.mos_nslice = nz;
+      g_image_info.mos_nx     = nx;
+      g_image_info.mos_ny     = ny;
+      ddd = strstr(epos[E_ACQUISITION_DATE_TIME],"//") ;
+      
+      if( ddd != NULL ){
+       char datetime[256]="\0" ;
+       sscanf(ddd+2,"%254s",datetime) ;
+
+       /* Extract seconds and fractional seconds from AcquisitionDateTime */
+       char seconds_str[3]; // Pour "23"
+       char microseconds_str[7]; // Pour "957832"
+
+       
+       seconds_str[0] = datetime[12]; // "2" of "23"
+       seconds_str[1] = datetime[13]; // "3" of "23"
+       seconds_str[2] = '\0'; // Terminaison
+
+       // microseconds after '.'
+       for (int i = 0; i < 6; i++) {
+           microseconds_str[i] = datetime[15 + i];
+       }
+       microseconds_str[6] = '\0'; // Terminaison
+
+       // Convert into numerical values
+       int seconds = atoi(seconds_str);
+       int microseconds = atoi(microseconds_str);
+
+       // total in seconds (float)
+       g_image_info.acq_time = seconds + microseconds / 1e6f;
+       }
+      
+      ddd = strstr(epos[E_IMAGE_POSITION],"//") ;
+      if( ddd != NULL ) sscanf( ddd+2 , "%f" , &g_image_info.slice_loc);
    }
 
    /*----------------------------------------------------------*/
@@ -895,6 +947,11 @@ ENTRY("mri_read_dicom") ;
    /* check for GE echo time */
    if( epos[E_GE_ECHO_TIME] ){
       ddd = strstr(epos[E_GE_ECHO_TIME],"//");
+      if( ddd ) g_ge_echo_time = SFLT(ddd+2);
+   }
+   
+   if( epos[E_EFFECTIVE_ECHO_TIME] ){
+      ddd = strstr(epos[E_EFFECTIVE_ECHO_TIME],"//");
       if( ddd ) g_ge_echo_time = SFLT(ddd+2);
    }
 
@@ -1101,7 +1158,7 @@ ENTRY("mri_read_dicom") ;
    /* 28 Oct 2002: must allow for 2D mosaic mode */
 
    if( !mosaic ){   /*-- 28 Oct 2002: old method, not a mosaic --*/
-
+     if( !enh ) {
     for( ii=0 ; ii < nz ; ii++ ){
       if( g_dicom_ctrl.verb > 2 )
          fprintf(stderr,"++ making image (read_data=%d)\n",
@@ -1154,8 +1211,54 @@ ENTRY("mri_read_dicom") ;
       if( dt > 0.0 ) im->dt = dt ;
 
       ADDTO_IMARR(imar,im) ;
-    }
+      }
+     } else {  /* if Enhanced DICOM */
+		mosaic = 1;
+		mos_nx = nx;
+		mos_ny = ny;
+		mos_nz = nz;
+		im = mri_new_7D_generic(nx,ny,nz,1,1,1,1, datum, g_dicom_ctrl.read_data);
+		iar = mri_data_pointer( im ) ;       /* data array in struct */
 
+		/* if we actually want the data, read it in and possibly swap */
+		if( g_dicom_ctrl.read_data ) {
+			fread( iar , bpp , nx*ny*nz , fp ) ;    /* read data directly into it */
+                        
+			if( swap ){                          /* swap bytes? */
+				switch( im->pixel_size ){
+					default: break ;
+					case 2: swap_twobytes (   im->nvox, iar ); break; /* short */
+					case 4: swap_fourbytes(   im->nvox, iar ); break; /* int, float */
+					case 8: swap_fourbytes( 2*im->nvox, iar ); break; /* complex */
+				}
+				im->was_swapped = 1 ;
+			}
+		}
+		#if 0
+		if( shift == 1 ){
+			switch( datum ){
+				case MRI_short:{
+					short * sar = (short *) iar ;
+					for( jj=0 ; jj < im->nvox ; jj++ ){
+						sbot = MIN( sar[jj] , sbot ) ;
+						stop = MAX( sar[jj] , stop ) ;
+					}
+				}	
+          			break ;
+        		}	
+      		}
+		#endif
+
+      		/* store auxiliary data in image struct */
+
+      		if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
+        		im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
+      		}
+      		if( dt > 0.0 ) im->dt = dt ;
+
+      		ADDTO_IMARR(imar,im) ;
+    		//}
+	} 
    }
    else {
       /* read images into the image array (fill im, imar, flip_slices) */
@@ -1174,10 +1277,12 @@ ENTRY("mri_read_dicom") ;
    im = IMARR_SUBIM(imar,0) ;
 
    if( un16 && g_dicom_ctrl.read_data && ov16_whine ){
+     int imarrc;
+     imarrc = IMARR_COUNT(imar);
      for( ov16=ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
        short *sar = MRI_SHORT_PTR( IMARR_SUBIM(imar,ii) ) ;
        for( jj=0 ; jj < im->nvox ; jj++ ) if( sar[jj] < 0 ) ov16++ ;
-     }
+     }  
      if( ov16 ) {
        MRILIB_dicom_s16_overflow = 1;  /* let calling function know */
        WARNING_message(
