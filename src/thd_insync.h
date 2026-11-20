@@ -79,6 +79,9 @@ typedef struct {
 
    /* Original-time selection, coverage gates, and block aggregation. */
    int check_table, window, step, step_given, tr_given, whole_summary ;
+   /* Added 2026-11-20 for Dan Handwerker: opt in to temporal tapering
+      without changing the default boxcar estimator; track explicit use
+      separately so even an explicit boxcar option requires -window. */
    int window_taper, window_taper_given; /* 0 boxcar, 1 symmetric Hann */
    double selection_tr ;
    char *run_starts ;

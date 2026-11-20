@@ -629,6 +629,10 @@ INSYNC_schedule *INSYNC_schedule_build(const INSYNC_options *o, THD_datatable *t
    if(o->diagnostic_draws && o->check_table) SEL_FAIL("-missing_diagnostics requires sample loading, not -check_table");
    if(o->combine_pool && (o->block_summary_given || o->block_missing_given || o->min_blocks_given || o->min_block_frac_given || o->block_weight_given)) SEL_FAIL("block-summary options cannot be combined with -combine_blocks pool");
    if(o->segment_center_given && !o->combine_pool) SEL_FAIL("-segment_center requires -combine_blocks pool");
+   /* Added 2026-11-20 for Dan Handwerker: validate tapering before loading
+      data. Symmetric Hann has two zero endpoints, so W>=5 is needed for
+      three positive-weight samples. Restrict it to the implemented weighted
+      Pearson estimator rather than silently defining a weighted Spearman. */
    if(o->window_taper_given && !o->window) SEL_FAIL("-window_taper requires -window");
    if(o->window_taper && o->window<5) SEL_FAIL("Hann taper requires -window >=5");
    if(o->window_taper && o->corr_metric!=INSYNC_CORR_PEARSON) SEL_FAIL("Hann taper requires Pearson correlation");

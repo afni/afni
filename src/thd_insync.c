@@ -1527,6 +1527,9 @@ static void insync_block_selection(const INSYNC_options *o,const INSYNC_schedule
          good=1;
          if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<ns;si++) if(!isfinite(insync_store_get(src,si,voxel,t))){ good=0; break; }
          if(!good) continue;
+         /* Added 2026-11-20 for Dan Handwerker: carry nominal-position
+            weights through common-sample filtering. Non-window components
+            receive unit weights so block summaries remain untapered. */
          if(o->window_taper) INSYNC_kernel_set_weight(kernel,nkeep,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
          for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(src,sources[si],voxel,t);
          nkeep++;
@@ -1803,6 +1806,9 @@ static void insync_missing_models(INSYNC_model *model,const INSYNC_options *o,
             if(aggregate) n=0;
             for(t=e->original_start;t<=e->original_stop;t++){
                piece[n]=b;
+               /* Added 2026-11-20 for Dan Handwerker: apply window weights
+                  to missing-data pair exports before overlap compression,
+                  keeping exported dyads consistent with descriptive ISC. */
                if(o->window_taper) INSYNC_missing_set_weight(eval,n,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
                for(i=0;i<ns;i++){
                   int source=sources[(i<nsub?c:d)*nsub+i%nsub];
@@ -1901,6 +1907,9 @@ static void insync_selection_models(INSYNC_model *model,const INSYNC_options *o,
                int finite=1;
                if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<s->nsource;si++) if(!isfinite(insync_store_get(src,si,unit,t))){ finite=0; break; }
                if(!finite) continue;
+               /* Added 2026-11-20 for Dan Handwerker: taper model-export
+                  correlations using the same retained original positions as
+                  the descriptive estimator, including cross-condition pairs. */
                if(o->window_taper) INSYNC_kernel_set_weight(kernel[th],nkeep,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
                for(si=0;si<nsub;si++){
                   data[th][(size_t)si*nt+nkeep]=insync_store_get(src,sources[c*nsub+si],unit,t);
@@ -1982,6 +1991,9 @@ static void insync_missing_selection(const INSYNC_options *o,const INSYNC_schedu
       segment++;
       for(t=e->original_start;t<=e->original_stop;t++){
          piece[n]=segment;
+         /* Added 2026-11-20 for Dan Handwerker: assign weights on the
+            nominal timeline before the kernel chooses subject-specific
+            overlaps; censoring must not recenter the window's taper. */
          if(o->window_taper) INSYNC_missing_set_weight(worker,n,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
          for(sub=0;sub<nsub;sub++){
             int source=sources[sub];
@@ -2639,6 +2651,9 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
          pieces++; nominal[c]+=e->stop-e->start+1;
          for(t=e->original_start;t<=e->original_stop;t++) if(common[t]){
             size_t pos=(size_t)c*nt+length[c]++; time_at[pos]=t; piece_at[pos]=pieces;
+            /* Added 2026-11-20 for Dan Handwerker: precompute temporal
+               weights shared across voxels. Only sliding windows receive
+               Hann weights; whole-input summaries retain unit weights. */
             weight_at[pos]=INSYNC_window_weight(o->window_taper && e->window,t-e->original_start,e->original_stop-e->original_start+1);
          }
       }
@@ -2718,6 +2733,9 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
                      }
                      previous=piece; pbegin=nkeep;
                   }
+                  /* Added 2026-11-20 for Dan Handwerker: pack the weight
+                     with its retained sample after voxel-specific filtering,
+                     preserving nominal positions in each private worker. */
                   if(o->window_taper) INSYNC_kernel_set_weight(worker[thread],nkeep,weight_at[(size_t)ci*nt+k]);
                   for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(&src,source_at[ci*nsub+si],w,original);
                   nkeep++;

@@ -399,6 +399,10 @@ static int pack_data(INSYNC_infer *x,infer_worker *w,int id,int c,int d,int unit
             }
          }
          if(w->piece) w->piece[total+len]=i;
+         /* Added 2026-11-20 for Dan Handwerker: attach the taper to the
+            destination window coordinates, not the surrogate's source TR.
+            Censoring may change retained positions on each draw, but the
+            nominal taper and observed/null estimator must stay the same. */
          if(w->timeweight) w->timeweight[total+len]=INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1);
          len++;
       }
@@ -438,6 +442,9 @@ static int estimate_missing(INSYNC_infer *x,infer_worker *w,int nb,int aggregate
    int b,g,valid=1,ns=2*x->grid.nsub;
    size_t nc=(size_t)ns*(ns+1);
    for(b=0;b<nb;b++){
+      /* Added 2026-11-20 for Dan Handwerker: restore this selection's
+         weights for every draw before recomputing pair/LOO overlap, so
+         missing-data inference uses the same taper as the observed estimate. */
       if(w->timeweight){
          int t; for(t=0;t<w->length[b];t++) INSYNC_missing_set_weight(w->missing,t,w->timeweight[w->offset[b]/ns+t]);
       }
@@ -480,6 +487,9 @@ static int estimate(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng,
       if(chosen) chosen[b]=0;
       if(fixed && !fixed[b]) continue;
       if(!w->coverage[b]){ if(fixed) valid=0; continue; }
+      /* Added 2026-11-20 for Dan Handwerker: use the packed temporal
+         weights for subject, condition and temporal resampling alike;
+         reusing an unweighted null would test a different estimator. */
       if(w->timeweight){
          int t; for(t=0;t<w->length[b];t++) INSYNC_kernel_set_weight(w->kernel,t,w->timeweight[w->offset[b]/ns+t]);
       }

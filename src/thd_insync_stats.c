@@ -93,7 +93,10 @@ static float insync_pearson( int n, const float *x, const float *y )
    return (float)r ;
 }
 
-/* Use original-time positions, never the compressed censor/overlap index. */
+/* Added 2026-11-20 for Dan Handwerker: construct symmetric Hann weights
+   to reduce the influence of samples at sliding-window boundaries. Use
+   original-time positions, never the compressed censor/overlap index, so
+   removing samples cannot shift or reshape the taper. */
 double INSYNC_window_weight(int taper,int offset,int length)
 {
    if(!taper) return 1.0;
@@ -101,7 +104,10 @@ double INSYNC_window_weight(int taper,int offset,int length)
    return 0.5*(1.0-cos(2.0*acos(-1.0)*offset/(length-1)));
 }
 
-/* Two-pass weighted Pearson: center with sum(w*x)/sum(w), then use
+/* Added 2026-11-20 for Dan Handwerker: compute weighted Pearson rather
+   than correlating signals multiplied by a taper, which changes centering
+   and defines a different estimator. Two-pass weighted Pearson centers
+   with sum(w*x)/sum(w), then uses
    sum(w*dx*dy)/sqrt(sum(w*dx^2)*sum(w*dy^2)). Zero weights have no
    influence. NULL preserves the historical unweighted arithmetic exactly. */
 static float insync_weighted_pearson(int n,const float *x,const float *y,const double *weight)
@@ -339,6 +345,10 @@ void INSYNC_kernel_free(INSYNC_kernel *w)
    free(w->values); free(w->scratch); free(w->order); free(w->loo); free(w);
 }
 
+/* Added 2026-11-20 for Dan Handwerker: retain temporal weights in each
+   worker's private workspace for both pairwise and LOO correlations. The
+   caller fills all packed positions before evaluation; the weighted flag
+   leaves the original arithmetic in use when tapering was not requested. */
 void INSYNC_kernel_set_weight(INSYNC_kernel *w,int index,double weight)
 {
    if(w && index>=0 && index<w->capacity){ w->weighted=1; w->timeweight[index]=weight; }
@@ -503,6 +513,11 @@ void INSYNC_missing_free(INSYNC_missing *w)
    free(w->piece); free(w->subjects); free(w->weight); free(w->order); free(w->component); free(w);
 }
 
+/* Added 2026-11-20 for Dan Handwerker: store weights before selecting
+   pair-specific or held-subject/reference overlap. Evaluation copies each
+   retained sample's weight into packedweight alongside x and y, preserving
+   its nominal window position despite subject-specific missingness. Raw
+   overlap and coverage counts still count observations, not taper weights. */
 void INSYNC_missing_set_weight(INSYNC_missing *w,int index,double weight)
 {
    if(w && index>=0 && index<w->capacity){ w->weighted=1; w->timeweight[index]=weight; }
