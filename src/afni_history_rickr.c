@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Nov, 2026, RCR, "make_random_timing.py", MICRO, TYPE_BUG_FIX,
+   "fix a couple of warnings and an error return value",
+   NULL
+ } ,
+
  { 19, Nov, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add help for -regress_per_run_ortvec",
    NULL

@@ -492,6 +492,14 @@ class TimingClass:
       if nevents == 1: return [tot_time]
 
       max_dur = tot_time * 2.0 / nevents
+      # if the event time does not match the specified range, warn
+      # - the current max_dur should equal event max-min
+      # - check for a 10% difference?
+      if ( self.max_dur > 0 and max_dur > 0 and
+         abs(max_dur - (self.max_dur - self.min_dur))/max_dur > 0.1 ):
+         print("** urand mismatch with available time for %d events\n"
+               " - class mean is %g, but available time implies %g\n"
+               % (nevents, self.mean_dur, max_dur/2.0 + self.min_dur))
 
       # maximum num t_gran possible (equates to 0..max_dur in time)
       # (+0.01 is to avoid a close truncation miss)
@@ -713,8 +721,7 @@ def random_duration_list(nevents, tclass, total_time=-1.0, force_total=0):
       ttime = float(tclass.mean_dur * nevents)
 
       if total_time > 0:
-         if (ttime - total_time)/total_time < 0.95 or \
-            (ttime - total_time)/total_time > 1.05:
+         if abs((ttime - total_time)/total_time) > 0.05:
             print('** warning: random_duration_list has conflicting total time')
             print('   from mean = %s, from param = %s, type = %s' \
                   % (ttime, total_time, tclass.name))

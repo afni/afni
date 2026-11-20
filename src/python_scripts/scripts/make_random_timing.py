@@ -2114,7 +2114,7 @@ class RandTiming:
            self.t_gran = gDEF_OLD_T_GRAN
 
         # t_digits must come after t_gran is set
-        self.t_digits, err = self.user_opts.get_type_opt(float,'-t_digits')
+        self.t_digits, err = self.user_opts.get_type_opt(int,'-t_digits')
         if self.t_digits == None:
             if self.t_gran == round(self.t_gran,1):
                 self.t_digits = gDEF_OLD_DEC_PLACES
@@ -2598,7 +2598,7 @@ class RandTiming:
                 # write out all times on one line
                 for ttime in stims:
                     # if t_digits is not specified, use general format
-                    if self.t_digits < 0:  fp.write('%.g ' % ttime)
+                    if self.t_digits < 0:  fp.write('%g ' % ttime)
                     else: fp.write('%.*f ' % (self.t_digits, ttime))
 
                     if ttime < mint: mint = ttime
@@ -4375,9 +4375,6 @@ class RandTiming:
        nevents = len(events)
        if nevents == 0:
           return 0, events
-       elif nevents == 1:
-          events[0].append(self.pre_stim_rest)
-          return 0, events
 
        # total stim time before pre-/post-stim rest events are included
        stime = sum([e[1] for e in events])
@@ -4453,7 +4450,7 @@ class RandTiming:
              event.append(rtime)
        except:
           print('** rest time extraction error')
-          return 0, events
+          return 1, events
 
        # replace rest time with event time
        ctime = 0
