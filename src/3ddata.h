@@ -4458,6 +4458,7 @@ void web_prog_help(char *prog, int style);
 char *web_prog_help_link(char *prog, int style);
 void web_class_docs(char *prog);
 int view_web_link(char *link, char *browser);
+int open_viewer_in_foreground(char * viewer);
 int view_text_file(char *progname) ;
 extern char * THD_find_executable( char * ) ;
 extern char * THD_find_regular_file( char * , char *) ;

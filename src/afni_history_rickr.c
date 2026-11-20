@@ -58,6 +58,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 20, Nov, 2026, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "have -hview respect vim/nano/VISUAL/EDITOR as well",
+   NULL
+ } ,
+
  { 19, Nov, 2026, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add help for -regress_per_run_ortvec",
    NULL
