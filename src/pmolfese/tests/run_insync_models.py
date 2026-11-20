@@ -57,7 +57,7 @@ def main():
         return prefix,bundle,result
     def table(bundle,job):
         return list(csv.DictReader((bundle/job['Table']).open(),delimiter=' '))
-    def oracle(bundle,segments,metric='pearson',bs='median',series=data,aggregate=False,drop=False,min_blocks=1,keep=None):
+    def oracle(bundle,segments,metric='pearson',bs='median',series=data,aggregate=False,drop=False,min_blocks=1,keep=None,taper=False):
         jobs=read_table(bundle/'jobs.tsv')
         for job in jobs:
             ci=0 if job['Condition1'] in ('All','C1') else 1
@@ -70,8 +70,10 @@ def main():
             for v in range(24):
                 admitted=[]; bv=[]
                 for bi,ts in enumerate(blocks):
+                    start,stop=ts[0],ts[-1]
                     ts=[t for t in ts if keep is None or keep[t]]
-                    vals=[correlation([series[ci][a][v][t] for t in ts],[series[cj][b][v][t] for t in ts],metric) for a,b in itertools.combinations(range(6),2)] if len(ts)>=3 else [float('nan')]*15
+                    weights=[.5*(1-math.cos(2*math.pi*(t-start)/(stop-start))) for t in ts] if taper else None
+                    vals=[correlation([series[ci][a][v][t] for t in ts],[series[cj][b][v][t] for t in ts],metric,weights) for a,b in itertools.combinations(range(6),2)] if len(ts)>=3 else [float('nan')]*15
                     good=all(math.isfinite(x) for x in vals)
                     if good: admitted.append(bi)
                     bv.append(vals)
@@ -88,6 +90,9 @@ def main():
                         expected=1/len(admitted) if valid and bi in admitted else 0
                         assert abs(support[(3*bi+2)*24+v]-expected)<1e-7
     windows=[list(range(12)),list(range(24,36))]
+    for missing in ('error','pairwise'):
+        _,b,_=run(['-window','12','-step','24','-window_taper','hann','-missing',missing],table='conditions.txt')
+        oracle(b,windows,taper=True)
     for metric,method in itertools.product(('pearson','spearman'),('pairwise','loo')):
         p,b,_=run(['-window','12','-step','24','-correlation',metric,'-isc_method',method],table='conditions.txt')
         oracle(b,windows,metric)
@@ -157,6 +162,7 @@ def main():
     # Censor support is original-time; Xmat controls never become covariates.
     keep=[int(t%7!=0) for t in range(48)]; (root/'keep.1D').write_text('\n'.join(map(str,keep))+'\n')
     _,b,_=run(['-window','12','-step','24','-censor','keep.1D']); oracle(b,windows,keep=keep)
+    _,b,_=run(['-window','12','-step','24','-censor','keep.1D','-window_taper','hann']); oracle(b,windows,keep=keep,taper=True)
     _,b,_=run(['-xmat_blocks','each','-xmat_stims','Aud','-xmat_threshold','.5'],table='xmat_subjects.txt')
     assert all(not any(x in table(b,j)[0] for x in ('Xmat1','XmatFull1','Censor1','Selection1','Run1')) for j in read_table(b/'jobs.tsv'))
     # Repeated-condition block aggregation preserves ordered cross-condition dyads.

@@ -45,6 +45,7 @@ typedef struct {
    INSYNC_component *missing_blocks;
    int *piece;
    unsigned char *observed,*observed_pack; /* real-sample provenance, packed like data */
+   double *timeweight; /* weights follow original window positions through packing */
    float *data,*pack,*component,*scratch,*st,*draw,*nulls,*maxg,*maxneg,*maxc;
    int *length,*offset,*rows,*nv,*pc,*sample,**member,*count,*component_count,*component_offset;
    unsigned char *coverage,*keep,*keep2;
@@ -240,7 +241,7 @@ INSYNC_infer *INSYNC_infer_plan(const INSYNC_options *o,const INSYNC_schedule *s
       x->memory+=ns*(o->nboot*4.+(gp+cp)*5.)+4.*(gp*3+cp);
       if(o->missing_policy==INSYNC_MISSING_INTERP) x->memory+=grid->nthread*4.*ns*nt;
       if(INSYNC_MISSING_LOCAL(o->missing_policy)) x->memory+=grid->nthread*(4.*nt+2.*ns*(2.*ns+1)*(48.+nb*sizeof(INSYNC_component)));
-      x->memory+=grid->nthread*(64.*ns*nt+64.*ns*ns+16.*nb*ns*ns+64.*nt+128.*grid->ngroup+64.*nb+4.*o->nboot+16.*gp+4.*cp*(x->neffect+1));
+      x->memory+=grid->nthread*(64.*ns*nt+64.*ns*ns+16.*nb*ns*ns+96.*nt+128.*grid->ngroup+64.*nb+4.*o->nboot+16.*gp+4.*cp*(x->neffect+1));
    }
    if(o->temporal_mode){
       double ns=grid->nsub,nt=s->ntime,nd=o->nnull;
@@ -354,6 +355,7 @@ void INSYNC_infer_begin(INSYNC_infer *x)
       if(x->o->missing_policy==INSYNC_MISSING_INTERP){
          w->observed=allocate(ns*x->s->ntime,1); w->observed_pack=allocate(ns*x->s->ntime,1);
       }
+      if(x->o->window_taper) w->timeweight=allocate(x->s->ntime,sizeof(double));
       w->data=allocate(ns*x->s->ntime,sizeof(float)); w->pack=allocate(ns*x->s->ntime,sizeof(float));
       w->component=allocate(nb*ns*ns,sizeof(float)); w->scratch=allocate(nb+ns*ns,sizeof(float));
       w->st=allocate(ng,sizeof(float)); w->nv=allocate(ng,sizeof(int)); w->pc=allocate(ng,sizeof(int));
@@ -397,6 +399,7 @@ static int pack_data(INSYNC_infer *x,infer_worker *w,int id,int c,int d,int unit
             }
          }
          if(w->piece) w->piece[total+len]=i;
+         if(w->timeweight) w->timeweight[total+len]=INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1);
          len++;
       }
       if(!w->missing && !aggregate && x->o->segment_center && len>begin) for(si=0;si<ns;si++){
@@ -435,6 +438,9 @@ static int estimate_missing(INSYNC_infer *x,infer_worker *w,int nb,int aggregate
    int b,g,valid=1,ns=2*x->grid.nsub;
    size_t nc=(size_t)ns*(ns+1);
    for(b=0;b<nb;b++){
+      if(w->timeweight){
+         int t; for(t=0;t<w->length[b];t++) INSYNC_missing_set_weight(w->missing,t,w->timeweight[w->offset[b]/ns+t]);
+      }
       INSYNC_missing_eval_observed(w->missing,w->length[b],w->data+w->offset[b],
          w->observed?w->observed+w->offset[b]:NULL,
          w->piece+w->offset[b]/ns,w->length[b],x->o,ng,w->count,w->member);
@@ -474,6 +480,9 @@ static int estimate(INSYNC_infer *x,infer_worker *w,int nb,int aggregate,int ng,
       if(chosen) chosen[b]=0;
       if(fixed && !fixed[b]) continue;
       if(!w->coverage[b]){ if(fixed) valid=0; continue; }
+      if(w->timeweight){
+         int t; for(t=0;t<w->length[b];t++) INSYNC_kernel_set_weight(w->kernel,t,w->timeweight[w->offset[b]/ns+t]);
+      }
       INSYNC_kernel_eval(w->kernel,w->length[b],w->data+w->offset[b],o->corr_metric,o->method,o->summary,ng,w->count,w->member,w->st,w->nv,w->pc);
       matrix=INSYNC_kernel_matrix(w->kernel); loo=INSYNC_kernel_loo(w->kernel);
       for(g=0;g<ng;g++) for(i=0;i<w->count[g];i++){
@@ -817,7 +826,7 @@ void INSYNC_infer_finish(INSYNC_infer *x,FILE *brick_index)
    close_checked(x->spool);
    fprintf(x->manifest,"# Status: complete\n"); close_checked(x->manifest); free(maps);
    for(i=0;i<h->nthread;i++){
-      infer_worker *w=x->workers+i; INSYNC_kernel_free(w->kernel); INSYNC_missing_free(w->missing); free(w->missing_blocks); free(w->piece); free(w->observed); free(w->observed_pack); free(w->data); free(w->pack); free(w->component); free(w->scratch); free(w->st); free(w->draw); free(w->nulls); free(w->maxg); free(w->maxneg); free(w->maxc); free(w->length); free(w->offset); free(w->rows); free(w->nv); free(w->pc); free(w->sample); free(w->member); free(w->count); free(w->component_count); free(w->component_offset); free(w->coverage); free(w->keep); free(w->keep2); free(w->original); free(w->surrogate); free(w->tnulls); free(w->maxt); free(w->spectrum); free(w->fftwork);
+      infer_worker *w=x->workers+i; INSYNC_kernel_free(w->kernel); INSYNC_missing_free(w->missing); free(w->missing_blocks); free(w->piece); free(w->observed); free(w->observed_pack); free(w->timeweight); free(w->data); free(w->pack); free(w->component); free(w->scratch); free(w->st); free(w->draw); free(w->nulls); free(w->maxg); free(w->maxneg); free(w->maxc); free(w->length); free(w->offset); free(w->rows); free(w->nv); free(w->pc); free(w->sample); free(w->member); free(w->count); free(w->component_count); free(w->component_offset); free(w->coverage); free(w->keep); free(w->keep2); free(w->original); free(w->surrogate); free(w->tnulls); free(w->maxt); free(w->spectrum); free(w->fftwork);
    }
    if(x->run_used) for(i=0;i<x->s->nrun;i++){ THD_timeshift_set_free(x->shift[i]); THD_phase_set_free(x->phase[i]); }
    free(x->shift); free(x->phase); free(x->run_used); free(x->run_seed); free(x->subject_at);

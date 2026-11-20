@@ -1527,6 +1527,7 @@ static void insync_block_selection(const INSYNC_options *o,const INSYNC_schedule
          good=1;
          if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<ns;si++) if(!isfinite(insync_store_get(src,si,voxel,t))){ good=0; break; }
          if(!good) continue;
+         if(o->window_taper) INSYNC_kernel_set_weight(kernel,nkeep,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
          for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(src,sources[si],voxel,t);
          nkeep++;
       }
@@ -1802,6 +1803,7 @@ static void insync_missing_models(INSYNC_model *model,const INSYNC_options *o,
             if(aggregate) n=0;
             for(t=e->original_start;t<=e->original_stop;t++){
                piece[n]=b;
+               if(o->window_taper) INSYNC_missing_set_weight(eval,n,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
                for(i=0;i<ns;i++){
                   int source=sources[(i<nsub?c:d)*nsub+i%nsub];
                   float v=insync_analysis_read(src,source,unit,t);
@@ -1899,6 +1901,7 @@ static void insync_selection_models(INSYNC_model *model,const INSYNC_options *o,
                int finite=1;
                if(o->missing_policy==INSYNC_MISSING_COMMON) for(si=0;si<s->nsource;si++) if(!isfinite(insync_store_get(src,si,unit,t))){ finite=0; break; }
                if(!finite) continue;
+               if(o->window_taper) INSYNC_kernel_set_weight(kernel[th],nkeep,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
                for(si=0;si<nsub;si++){
                   data[th][(size_t)si*nt+nkeep]=insync_store_get(src,sources[c*nsub+si],unit,t);
                   data[th][(size_t)(nsub+si)*nt+nkeep]=insync_store_get(src,sources[d*nsub+si],unit,t);
@@ -1979,6 +1982,7 @@ static void insync_missing_selection(const INSYNC_options *o,const INSYNC_schedu
       segment++;
       for(t=e->original_start;t<=e->original_stop;t++){
          piece[n]=segment;
+         if(o->window_taper) INSYNC_missing_set_weight(worker,n,INSYNC_window_weight(e->window,t-e->original_start,e->original_stop-e->original_start+1));
          for(sub=0;sub<nsub;sub++){
             int source=sources[sub];
             float x=insync_analysis_read(src,source,unit,t);
@@ -2202,6 +2206,7 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
    int ngroup=0,ncond=0,nsub,nvox,nwork=0,ns,nt,nthread=1,nout,oneD;
    int i,j,c,g,t,w,id,basecount,trslot,vslot,pslot,dslot=-1,dvslot=-1;
    int *widx,*vmap,*source_at,*gcount,**gmember,*time_at,*piece_at,*nominal,*length;
+   double *weight_at;
    byte *common,*used,*mask=NULL,*source_reason;
    float **packed,**stats; int **counts,**complete;
    FILE *index;
@@ -2390,9 +2395,9 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
    estimate=(double)ns*nwork*(nt*(o->use_half?2.:4.)+(o->use_half?8.:0.))
             +(double)nvox*nt*16+(double)nwork*nt*4
             +(double)nout*nmap*4+(double)nvox*8
-            +2.*(double)ns*nt+(double)ncond*nt*8
+            +2.*(double)ns*nt+(double)ncond*nt*16
             +((o->verb || o->missing_name)?(double)nwork*sizeof(int):0.)
-            +(double)nthread*(8.*nsub*nt+8.*nsub*nsub+32.*nt+20.*ngroup+8.*nsub)
+            +(double)nthread*(8.*nsub*nt+8.*nsub*nsub+40.*nt+20.*ngroup+8.*nsub)
             +(has_aggregates?((double)nthread*maxblocks*(component_stride*sizeof(float)+1.)+12.*nmap*ncond*(maxblocks+1)):0.)
             +(double)s->nsegment*sizeof(INSYNC_segment)+(double)s->nsource*sizeof(INSYNC_source)
             +(double)nwork*(sizeof(int *)+sizeof(int))
@@ -2414,12 +2419,12 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
    if(o->diagnostic_draws) estimate+=4.*o->diagnostic_draws*(nsub+s->nrun)+16.*nsub;
    if(pairwise){
       double nc=(double)nsub*(nsub+1);
-      estimate+=nthread*(64.*nt+nc*(sizeof(INSYNC_component)*(1.+(has_aggregates?maxblocks:0)+(o->counts_name?ncond:0))+16.)+4.*ncond*nsub);
+      estimate+=nthread*(80.*nt+nc*(sizeof(INSYNC_component)*(1.+(has_aggregates?maxblocks:0)+(o->counts_name?ncond:0))+16.)+4.*ncond*nsub);
    }
    if(model){
       double pairs=(double)nsub*(nsub-1)/2;
       double paircost=4.*(nvox+(o->roi_only?nroi:0))*(pairs+1.+3.*maxblocks)
-         +nthread*(16.*nsub*nt+32.*nsub*nsub+32.*nt+maxblocks*(4.*pairs+12.));
+         +nthread*(16.*nsub*nt+32.*nsub*nsub+56.*nt+maxblocks*(4.*pairs+12.));
       if(o->missing_policy==INSYNC_MISSING_INTERP) paircost+=2.*nsub*nt+8.*nsub+4.*(nvox+(o->roi_only?nroi:0))*(2.*pairs+2.*nsub);
       if(pairwise) paircost+=264.*nsub*nsub+4.*(nvox+(o->roi_only?nroi:0))*(2.*pairs+2.*nsub)+sizeof(INSYNC_component)*maxblocks*nsub*(nsub+1.);
       estimate+=paircost;
@@ -2549,6 +2554,7 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
       packed[i]=insync_select_alloc((size_t)nsub*nt,sizeof(float)); stats[i]=insync_select_alloc(ngroup,sizeof(float));
       counts[i]=insync_select_alloc(ngroup,sizeof(int)); complete[i]=insync_select_alloc(ngroup,sizeof(int));
    }
+   weight_at=insync_select_alloc((size_t)ncond*nt,sizeof(double));
    time_at=insync_select_alloc((size_t)ncond*nt,sizeof(int)); piece_at=insync_select_alloc((size_t)ncond*nt,sizeof(int));
    nominal=insync_select_alloc(ncond,sizeof(int)); length=insync_select_alloc(ncond,sizeof(int));
    block_rows=insync_select_alloc((size_t)ncond*maxblocks,sizeof(int));
@@ -2584,6 +2590,7 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
       fprintf(matrixfp,"SelectionID\tRun\tStimulus\tCondition\tROI\tROI_Label\tSubj1\tSubj2\tGroup1\tGroup2\tCorrelation\tValid\n");
    }
    if(o->between_groups) fprintf(index,"# Cross-group outputs: descriptive pair summaries; same component admission as -save_counts, including within-group drop_common. No added inference family.\n");
+   if(o->window_taper_given) fprintf(index,"# WindowTaper: %s (window selections only)\n",o->window_taper?"hann":"boxcar");
    fprintf(index,"# Method: %s; Metric: %s; Summary: %s; Combine: %s; SegmentCenter: %s\n",o->method==INSYNC_METHOD_PAIRWISE?"pairwise":"loo",o->corr_metric==SIM_SPEARMAN?"spearman":"pearson",o->summary==INSYNC_SUMMARY_MEDIAN?"median":"fisher_mean",o->combine_pool?"pool":"block_summary",o->segment_center?"mean":"none");
    fprintf(index,"# MinValid: %d; MinValidFraction: %.17g; fraction denominator: nominal selection length\n",o->min_valid,o->min_valid_frac);
    fprintf(index,"# Valid marks a finite descriptive group estimate; PairComplete marks a complete within-group pair graph, not cross-group export eligibility\n");
@@ -2632,6 +2639,7 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
          pieces++; nominal[c]+=e->stop-e->start+1;
          for(t=e->original_start;t<=e->original_stop;t++) if(common[t]){
             size_t pos=(size_t)c*nt+length[c]++; time_at[pos]=t; piece_at[pos]=pieces;
+            weight_at[pos]=INSYNC_window_weight(o->window_taper && e->window,t-e->original_start,e->original_stop-e->original_start+1);
          }
       }
 #ifdef USE_OMP
@@ -2710,6 +2718,7 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
                      }
                      previous=piece; pbegin=nkeep;
                   }
+                  if(o->window_taper) INSYNC_kernel_set_weight(worker[thread],nkeep,weight_at[(size_t)ci*nt+k]);
                   for(si=0;si<nsub;si++) data[(size_t)si*nt+nkeep]=insync_store_get(&src,source_at[ci*nsub+si],w,original);
                   nkeep++;
                }
@@ -2859,7 +2868,7 @@ static int insync_run_selections(const INSYNC_options *o,THD_datatable *tab,int 
    }
    free(block_worker); free(block_rows); free(block_count); free(block_offset); free(is_aggregate);
    free(worker); free(packed); free(stats); free(counts); free(complete); free(gmember); free(gcount); free(glabel); free(clabel);
-   free(time_at); free(piece_at); free(nominal); free(length); free(source_at); free(common); free(used); free(mask); free(vmap); free(widx);
+   free(weight_at); free(time_at); free(piece_at); free(nominal); free(length); free(source_at); free(common); free(used); free(mask); free(vmap); free(widx);
    free(source_reason); free(workvox); free(worknv); free(roi_ids); if(rois) THD_roilist_free(rois);
    if(src.filled){ for(i=0;i<ns;i++) free(src.filled[i]); free(src.filled); }
    insync_free_store(&src); DSET_delete(first); INSYNC_schedule_free(s); return 0;

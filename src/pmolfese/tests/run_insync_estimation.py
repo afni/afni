@@ -32,7 +32,15 @@ def f32(value):
     return struct.unpack('<f',struct.pack('<f',value))[0]
 
 
-def correlation(x,y,metric):
+def correlation(x,y,metric,weights=None):
+    if weights is not None:
+        kept=[(a,b,w) for a,b,w in zip(x,y,weights) if w>0]
+        if len(kept)<3: return math.nan
+        total=sum(w for a,b,w in kept)
+        mx=sum(w*a for a,b,w in kept)/total; my=sum(w*b for a,b,w in kept)/total
+        xx=sum(w*(a-mx)**2 for a,b,w in kept); yy=sum(w*(b-my)**2 for a,b,w in kept)
+        if not xx or not yy: return math.nan
+        return f32(max(-1,min(1,sum(w*(a-mx)*(b-my) for a,b,w in kept)/math.sqrt(xx*yy))))
     if metric=='spearman': x,y=ranks(x),ranks(y)
     mx,my=statistics.mean(x),statistics.mean(y)
     xx=sum((a-mx)**2 for a in x); yy=sum((a-my)**2 for a in y)
@@ -73,7 +81,7 @@ def main():
             assert len(a)==len(b)
             worst=max(abs(x-y) for x,y in zip(a,b))
             assert worst<=tol,worst
-        def oracle(selected,method,metric,kind,source=data,center=False):
+        def oracle(selected,method,metric,kind,source=data,center=False,weights=None):
             # selected is a list of disjoint lists of retained original TRs.
             nt=sum(map(len,selected)); maps=[[0.]*24 for _ in range(11)]
             for v in range(24):
@@ -89,14 +97,14 @@ def main():
                 maps[5][v]=nt
                 if nt<3: continue
                 for gi,group in enumerate((range(3),range(3,6))):
-                    edges=[correlation(series[a],series[b],metric) for a,b in itertools.combinations(group,2)]
+                    edges=[correlation(series[a],series[b],metric,weights) for a,b in itertools.combinations(group,2)]
                     values=edges
                     if method=='loo':
                         values=[]
                         for a in group:
                             others=[b for b in group if b!=a]
                             ref=[f32(statistics.mean(series[b][t] for b in others)) for t in range(nt)]
-                            values.append(correlation(series[a],ref,metric))
+                            values.append(correlation(series[a],ref,metric,weights))
                     valid=[x for x in values if math.isfinite(x)]
                     if valid:
                         maps[gi*2][v]=f32(summary(valid,kind)); maps[6+gi][v]=1
@@ -125,6 +133,30 @@ def main():
             # Ask the static command for NIfTI explicitly.
             subprocess.run([program,'-quiet','-prefix',static+'.nii']+opts+['-dataTableFile','subjects.txt'],cwd=root,env=dict(os.environ,OMP_NUM_THREADS='1',AFNI_NOMMAP='YES'),check=True,capture_output=True)
             close(values[:5*24],image(root/(static+'.nii'))[1])
+        # Hann weights use nominal positions even after censoring, and only
+        # windows are tapered when a whole-input summary is also requested.
+        for method,kind,censor in itertools.product(('pairwise','loo'),('median','fisher_mean'),(False,True)):
+            opts=['-window','8','-step','4','-run_starts','0,24','-window_taper','hann',
+                  '-whole_summary','-isc_method',method,'-summary',kind]
+            if censor: opts+=['-censor','common.censor.1D']
+            prefix=run(opts); rows=manifest(prefix)
+            keep=[int(x) for x in (root/'common.censor.1D').read_text().split()] if censor else [1]*48
+            for sid,values in results(prefix).items():
+                r=next(r for r in rows if r['SelectionID']==sid and r['Subject']=='s01')
+                start,stop=int(r['OriginalStartTR']),int(r['OriginalStopTR'])
+                selected=[t for t in range(start,stop+1) if keep[t]]
+                weights=[.5*(1-math.cos(2*math.pi*(t-start)/(stop-start))) for t in selected] if stop-start==7 else None
+                close(values,oracle([selected],method,'pearson',kind,weights=weights))
+            multi=run(opts,threads=2)
+            for a,b in zip(results(prefix).values(),results(multi).values()): close(a,b,0)
+        box=run(['-window','8','-window_taper','boxcar'])
+        plain=run(['-window','8'])
+        for a,b in zip(results(box).values(),results(plain).values()): close(a,b,0)
+        for opts,error in [(['-window_taper','hann'],'requires -window'),
+                           (['-window','4','-window_taper','hann'],'>=5'),
+                           (['-window','8','-window_taper','hann','-correlation','spearman'],'requires Pearson'),
+                           (['-window','8','-window_taper','bad'],'boxcar or hann')]:
+            run(opts,error=error)
         # Common censoring, boundary stability and subject masks.
         opts=['-window','8','-step','4','-run_starts','0,24']
         censored=run(opts,table='censor_subjects.txt')

@@ -93,6 +93,40 @@ static float insync_pearson( int n, const float *x, const float *y )
    return (float)r ;
 }
 
+/* Use original-time positions, never the compressed censor/overlap index. */
+double INSYNC_window_weight(int taper,int offset,int length)
+{
+   if(!taper) return 1.0;
+   if(length<2 || offset<=0 || offset>=length-1) return 0.0;
+   return 0.5*(1.0-cos(2.0*acos(-1.0)*offset/(length-1)));
+}
+
+/* Two-pass weighted Pearson: center with sum(w*x)/sum(w), then use
+   sum(w*dx*dy)/sqrt(sum(w*dx^2)*sum(w*dy^2)). Zero weights have no
+   influence. NULL preserves the historical unweighted arithmetic exactly. */
+static float insync_weighted_pearson(int n,const float *x,const float *y,const double *weight)
+{
+   int i,positive=0; double total=0,mx=0,my=0,xx=0,yy=0,xy=0,x0=0,y0=0;
+   if(!weight) return insync_pearson(n,x,y);
+   for(i=0;i<n;i++){
+      double w=weight[i];
+      if(!isfinite(w) || w<0) return NAN;
+      if(w==0) continue;
+      if(!isfinite(x[i]) || !isfinite(y[i])) return NAN;
+      /* Subtract an anchor first so constant series stay exactly constant. */
+      if(!positive){ x0=x[i]; y0=y[i]; }
+      positive++; total+=w; mx+=w*(x[i]-x0); my+=w*(y[i]-y0);
+   }
+   if(positive<3 || total<=0) return NAN;
+   mx/=total; my/=total;
+   for(i=0;i<n;i++) if(weight[i]>0){
+      double dx=(x[i]-x0)-mx,dy=(y[i]-y0)-my;
+      xx+=weight[i]*dx*dx; yy+=weight[i]*dy*dy; xy+=weight[i]*dx*dy;
+   }
+   if(xx<=0 || yy<=0) return NAN;
+   return (float)fmax(-1.0,fmin(1.0,xy/sqrt(xx*yy)));
+}
+
 /* Select Pearson or average-rank Spearman for one subject/reference pair;
    rank buffers have n entries. */
 static float insync_corr( int n, const float *x, const float *y, int metric,
@@ -273,7 +307,8 @@ float INSYNC_percentile( float *x, int n, float probability )
 /* Reusable selection workspace. Unlike the legacy similarity helper, constant
    series produce invalid correlations here, never artificial zero edges. */
 struct INSYNC_kernel {
-   int nsub, capacity;
+   int nsub, capacity, weighted;
+   double *timeweight;
    float *matrix, *ranked, *ref, *rankref, *values, *scratch, *loo;
    insync_rank_pair *order;
 };
@@ -287,11 +322,12 @@ INSYNC_kernel *INSYNC_kernel_new(int nsub,int capacity)
    if(nsub<3 || capacity<3 || ns>SIZE_MAX/ns/sizeof(float) || ns>SIZE_MAX/nt/sizeof(float)) return NULL;
    w=calloc(1,sizeof(*w)); if(!w) return NULL;
    w->nsub=nsub; w->capacity=capacity;
+   w->timeweight=calloc(nt,sizeof(double));
    w->matrix=malloc(ns*ns*sizeof(float)); w->ranked=malloc(ns*nt*sizeof(float));
    w->ref=malloc(nt*sizeof(float)); w->rankref=malloc(nt*sizeof(float));
    w->loo=malloc(ns*sizeof(float)); w->values=malloc(ns*sizeof(float)); w->scratch=malloc(ns*ns*sizeof(float));
    w->order=malloc(nt*sizeof(*w->order));
-   if(!w->matrix || !w->ranked || !w->ref || !w->rankref || !w->values || !w->scratch || !w->order || !w->loo){ INSYNC_kernel_free(w); return NULL; }
+   if(!w->timeweight || !w->matrix || !w->ranked || !w->ref || !w->rankref || !w->values || !w->scratch || !w->order || !w->loo){ INSYNC_kernel_free(w); return NULL; }
    return w;
 }
 
@@ -299,8 +335,13 @@ INSYNC_kernel *INSYNC_kernel_new(int nsub,int capacity)
 void INSYNC_kernel_free(INSYNC_kernel *w)
 {
    if(!w) return;
-   free(w->matrix); free(w->ranked); free(w->ref); free(w->rankref);
+   free(w->timeweight); free(w->matrix); free(w->ranked); free(w->ref); free(w->rankref);
    free(w->values); free(w->scratch); free(w->order); free(w->loo); free(w);
+}
+
+void INSYNC_kernel_set_weight(INSYNC_kernel *w,int index,double weight)
+{
+   if(w && index>=0 && index<w->capacity){ w->weighted=1; w->timeweight[index]=weight; }
 }
 
 /* Allocation-free Spearman ranking in private worker scratch; one nonfinite
@@ -336,7 +377,7 @@ void INSYNC_kernel_eval(INSYNC_kernel *w,int nt,const float *data,int metric,
       features=w->ranked;
    }
    for(i=0;i<ns;i++) for(j=i;j<ns;j++)
-      w->matrix[(size_t)i*ns+j]=w->matrix[(size_t)j*ns+i]=insync_pearson(nt,features+(size_t)i*nt,features+(size_t)j*nt);
+      w->matrix[(size_t)i*ns+j]=w->matrix[(size_t)j*ns+i]=insync_weighted_pearson(nt,features+(size_t)i*nt,features+(size_t)j*nt,w->weighted?w->timeweight:NULL);
    for(g=0;g<ngroup;g++){
       int nm=gcount[g],good=1;
       for(i=0;i<nm;i++) for(j=i+1;j<nm;j++)
@@ -355,7 +396,7 @@ void INSYNC_kernel_eval(INSYNC_kernel *w,int nt,const float *data,int metric,
             if(metric==INSYNC_CORR_SPEARMAN){
                insync_kernel_rank(w,nt,w->ref,w->rankref);
                w->values[i]=insync_pearson(nt,w->ranked+(size_t)subject*nt,w->rankref);
-            } else w->values[i]=insync_pearson(nt,data+(size_t)subject*nt,w->ref);
+            } else w->values[i]=insync_weighted_pearson(nt,data+(size_t)subject*nt,w->ref,w->weighted?w->timeweight:NULL);
             w->loo[subject]=w->values[i];
          }
          stat[g]=INSYNC_summary(nm,w->values,summary,w->scratch,nvalid+g);
@@ -421,10 +462,11 @@ void INSYNC_kernel_fisher_matrix(const INSYNC_kernel *w,float *z)
 }
 
 /* Missing-data workers keep packed overlap/rank scratch separate from outputs.
-   Legacy common-timeline kernels above are unchanged. This separation makes
+   Common-timeline kernels above use separate storage. This separation makes
    support-dependent ranking and centering explicit and prevents stale counts. */
 struct INSYNC_missing {
-   int nsub, capacity, summary_weight;
+   int nsub, capacity, summary_weight, weighted;
+   double *timeweight,*packedweight;
    size_t ncomponent;
    float *x,*y,*rx,*ry,*scratch;
    int *piece,*subjects,*weight;
@@ -441,13 +483,14 @@ INSYNC_missing *INSYNC_missing_new(int nsub,int capacity)
       nt>SIZE_MAX/sizeof(insync_rank_pair)) return NULL;
    nc=ns*(ns+1); w=calloc(1,sizeof(*w)); if(!w) return NULL;
    w->nsub=nsub; w->capacity=capacity; w->ncomponent=nc;
+   w->timeweight=calloc(nt,sizeof(double)); w->packedweight=malloc(nt*sizeof(double));
    w->x=malloc(nt*sizeof(float)); w->y=malloc(nt*sizeof(float));
    w->rx=malloc(nt*sizeof(float)); w->ry=malloc(nt*sizeof(float));
    w->scratch=malloc((nc>nt?nc:nt)*sizeof(float));
    w->piece=malloc(nt*sizeof(int)); w->subjects=calloc(ns,sizeof(int));
    w->weight=malloc((nc>nt?nc:nt)*sizeof(int));
    w->order=malloc((nc>nt?nc:nt)*sizeof(*w->order)); w->component=calloc(nc,sizeof(*w->component));
-   if(!w->x || !w->y || !w->rx || !w->ry || !w->scratch || !w->piece ||
+   if(!w->timeweight || !w->packedweight || !w->x || !w->y || !w->rx || !w->ry || !w->scratch || !w->piece ||
       !w->subjects || !w->weight || !w->order || !w->component){ INSYNC_missing_free(w); return NULL; }
    return w;
 }
@@ -456,8 +499,13 @@ INSYNC_missing *INSYNC_missing_new(int nsub,int capacity)
 void INSYNC_missing_free(INSYNC_missing *w)
 {
    if(!w) return;
-   free(w->x); free(w->y); free(w->rx); free(w->ry); free(w->scratch);
+   free(w->timeweight); free(w->packedweight); free(w->x); free(w->y); free(w->rx); free(w->ry); free(w->scratch);
    free(w->piece); free(w->subjects); free(w->weight); free(w->order); free(w->component); free(w);
+}
+
+void INSYNC_missing_set_weight(INSYNC_missing *w,int index,double weight)
+{
+   if(w && index>=0 && index<w->capacity){ w->weighted=1; w->timeweight[index]=weight; }
 }
 
 /* Rank only the packed finite overlap; ranking each original series first
@@ -517,7 +565,7 @@ static float insync_missing_corr(INSYNC_missing *w,int n,int real,int nominal,co
       insync_missing_rank(w,n,w->x,w->rx); insync_missing_rank(w,n,w->y,w->ry);
       return insync_pearson(n,w->rx,w->ry);
    }
-   return insync_pearson(n,w->x,w->y);
+   return insync_weighted_pearson(n,w->x,w->y,w->weighted?w->packedweight:NULL);
 }
 
 /* Evaluate source-local masks encoded as NaN, retaining each pair's actual
@@ -540,7 +588,9 @@ void INSYNC_missing_eval_observed(INSYNC_missing *w,int nt,const float *data,
          float a=data[(size_t)i*nt+t],b=data[(size_t)j*nt+t];
          if(!isfinite(a) || !isfinite(b)) continue;
          real+=!observed || (observed[(size_t)i*nt+t] && observed[(size_t)j*nt+t]);
-         w->x[n]=a; w->y[n]=b; w->piece[n]=piece?piece[t]:0; n++;
+         w->x[n]=a; w->y[n]=b; w->piece[n]=piece?piece[t]:0;
+         if(w->weighted) w->packedweight[n]=w->timeweight[t];
+         n++;
       }
       result.overlap=real; result.samples=n; result.r=insync_missing_corr(w,n,real,nominal,o);
       if(isfinite(result.r)){ result.used=real; result.used_samples=n; result.eligible=result.blocks=1; }
@@ -563,7 +613,9 @@ void INSYNC_missing_eval_observed(INSYNC_missing *w,int nt,const float *data,
          }
          if(distinct<o->loo_min_others) continue;
          real+=allreal;
-         w->x[n]=a; w->y[n]=(float)(sum/count); w->piece[n]=piece?piece[t]:0; n++;
+         w->x[n]=a; w->y[n]=(float)(sum/count); w->piece[n]=piece?piece[t]:0;
+         if(w->weighted) w->packedweight[n]=w->timeweight[t];
+         n++;
          if(!result->min_others || distinct<result->min_others) result->min_others=distinct;
       }
       result->overlap=real; result->samples=n; result->r=insync_missing_corr(w,n,real,nominal,o);
