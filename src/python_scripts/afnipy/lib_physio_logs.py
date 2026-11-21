@@ -296,7 +296,7 @@ opts and info stored there.
     # inability to estimate stats (warning added, Nans output)
     npeak = tsobj.stats_count_pt("peaks", min_idx=idxA, max_idx=idxB)
     if npeak < 2 :
-        ab.WP("Less than 2 troughs during EPI; no interval statistics.")
+        ab.WP("Less than 2 peaks during EPI; no interval statistics.")
 
     # info over subset of MRI dset duration
     D['peak num (dset span)'] = str(tsobj.stats_count_pt("peaks", 
