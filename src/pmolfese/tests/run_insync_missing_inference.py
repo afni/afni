@@ -9,7 +9,7 @@ import argparse, itertools, math, os, statistics, subprocess, tempfile
 from functools import lru_cache
 from pathlib import Path
 from insync_window_fixtures import write_fixture, nifti
-from run_insync_estimation import image, f32
+from run_insync_estimation import image, f32, correlation
 from run_insync_pairwise_missing import table, pearson, weighted, interpolate
 from run_insync_window_baseline import summary
 
@@ -60,7 +60,7 @@ def main():
             checks+=1
             assert abs(a-b)<4e-6,(context,a,b)
 
-        def check(p,method='pairwise',metric='pearson',kind='median',weight=False,minimum=3,block=False,policy='drop_component',tail='two'):
+        def check(p,method='pairwise',metric='pearson',kind='median',weight=False,minimum=3,block=False,policy='drop_component',tail='two',taper=False):
             out=output(p); sch=table(root/(p+'.selections.tsv')); selections=sorted({sid for sid,_ in out})
             parts={sid:[list(range(int(r['OriginalStartTR']),int(r['OriginalStopTR'])+1)) for r in sch if r['SelectionID']==sid and r['Subject']=='s01' and r['Condition']=='C1'] for sid in selections}
             aggregate={sid:block and any(r['Role']=='block_aggregate_component' for r in sch if r['SelectionID']==sid) for sid in selections}
@@ -91,7 +91,7 @@ def main():
                     for members,comps in zip(groups,components):
                         vals=[]
                         for a,b in comps:
-                            xs=[];ys=[];real=0
+                            xs=[];ys=[];real=0;weights=[]
                             for t in part:
                                 x=series[a][t]
                                 if not math.isfinite(x):continue
@@ -102,8 +102,11 @@ def main():
                                     if not others:continue
                                     y=f32(statistics.mean(others))
                                     genuine=observed[a][t] and all(observed[sub][t] for sub in members if sub!=a and math.isfinite(series[sub][t]))
-                                if math.isfinite(y):xs.append(x);ys.append(y);real+=genuine
+                                if math.isfinite(y):
+                                    xs.append(x);ys.append(y);real+=genuine
+                                    if taper: weights.append(.5*(1-math.cos(2*math.pi*(t-part[0])/(len(part)-1))))
                             r=f32(pearson(xs,ys,metric)) if real>=minimum else math.nan
+                            if taper and real>=minimum: r=correlation(xs,ys,metric,weights)
                             vals.append((r,real))
                         groupvals.append(vals)
                     perblock.append(groupvals)
@@ -176,6 +179,14 @@ def main():
             return out
 
         base=['-window','12','-step','24','-exact','-nboot','100','-condition_contrast','C1','C2','-condition_exact']
+        for method in ('pairwise','loo'):
+            opts=base+['-window_taper','hann','-isc_method',method]
+            p=run(opts); a=check(p,method,taper=True)
+            assert a==output(run(opts,threads=2))
+            opts=['-window','12','-step','24','-run_starts','0,24','-temporal_null','timeshift',
+                  '-temporal_censor','joint_shift','-nnull','40','-temporal_tail','two',
+                  '-min_shift','1','-isc_method',method,'-window_taper','hann']
+            check(run(opts),method,taper=True)
         for method,metric in itertools.product(('pairwise','loo'),('pearson','spearman')):
             opts=base+['-isc_method',method,'-correlation',metric]
             p=run(opts);a=check(p,method,metric)

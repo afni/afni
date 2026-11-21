@@ -281,6 +281,9 @@ void INSYNC_model_job(INSYNC_model *m,int id,int c,int d,THD_3dim_dataset *refer
          EDIT_substitute_brick(out,i,MRI_float,data); EDIT_BRICK_TO_NOSTAT(out,i);
          if(k==0) snprintf(base,sizeof(base),"Z_pair%06d",i+1);
          else if(k==1) strcpy(base,"ModelValid");
+         /* Added 2026-11-3 for E. Myers: label per-pair raw/used overlap
+            and per-source availability in model support maps, because one
+            global ValidTR value cannot describe pairwise-missing estimates. */
          else if(INSYNC_MISSING_LOCAL(m->options->missing_policy)){
             if(i<2*nedge) snprintf(base,sizeof(base),"Pair%d_%s",i/2+1,i%2?"UsedTR":"OverlapTR");
             else if(i<2*nedge+2*m->nsub) snprintf(base,sizeof(base),"ValidTR_C%d_Subj%d",(i-2*nedge)/m->nsub+1,(i-2*nedge)%m->nsub+1);

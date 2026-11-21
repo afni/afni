@@ -79,6 +79,10 @@ typedef struct {
 
    /* Original-time selection, coverage gates, and block aggregation. */
    int check_table, window, step, step_given, tr_given, whole_summary ;
+   /* Added 2026-11-20 for Dan Handwerker: opt in to temporal tapering
+      without changing the default boxcar estimator; track explicit use
+      separately so even an explicit boxcar option requires -window. */
+   int window_taper, window_taper_given; /* 0 boxcar, 1 symmetric Hann */
    double selection_tr ;
    char *run_starts ;
    int xmat_blocks, xmat_across_runs, xmat_threshold_given ;
@@ -202,6 +206,14 @@ extern float INSYNC_loo_indexed_metric( int nsub, int ntime, const float *data,
 typedef struct INSYNC_kernel INSYNC_kernel;
 extern INSYNC_kernel *INSYNC_kernel_new(int,int);
 extern void INSYNC_kernel_free(INSYNC_kernel *);
+/* Symmetric Hann weight at original window offset; taper=0 returns one.
+   Set every packed position before each tapered evaluation (including ones
+   for non-window selections). Weights persist in private worker storage.
+   Supported with Pearson only; weights must be finite and nonnegative.
+   Weighted Pearson requires >=3 positive-weight samples and nonzero variance.
+   Out-of-capacity setter indices are ignored. */
+extern double INSYNC_window_weight(int taper,int offset,int length);
+extern void INSYNC_kernel_set_weight(INSYNC_kernel *,int index,double weight);
 extern void INSYNC_kernel_eval(INSYNC_kernel *,int,const float *,int,int,int,
                                int,const int *,int **,float *,int *,int *);
 extern const float *INSYNC_kernel_matrix(const INSYNC_kernel *);
@@ -212,6 +224,9 @@ extern void INSYNC_kernel_aggregate(INSYNC_kernel *,int,const float *,const unsi
    int,int,int,int,const int *,int **,float *,int *,int *);
 extern void INSYNC_kernel_fisher_matrix(const INSYNC_kernel *,float *);
 
+/* Added 2026-11-3 for E. Myers: represent availability and eligibility per
+   pair or LOO component because a single global retained-TR count cannot
+   describe correlations computed from different subject overlaps. */
 /* Pairwise-missing estimator. A component stores raw overlap even when its
    correlation is invalid. used/blocks are zero on failure; eligible counts
    blocks with finite correlations before aggregate gates. min_others is the
@@ -246,6 +261,9 @@ extern int INSYNC_interp_linear(int nt,float *data,const unsigned char *keep,
    every finite value is observed. Gates/weights count real samples; r includes
    fills. A LOO TR is real only when held value AND all mean contributors are
    observed. samples/used_samples retain augmented coverage separately. */
+/* Same private, persistent temporal-weight contract as the kernel setter;
+   indices address input TRs before pair/LOO overlap compression. */
+extern void INSYNC_missing_set_weight(INSYNC_missing *,int index,double weight);
 extern void INSYNC_missing_eval_observed(INSYNC_missing *work,int nt,const float *data,
    const unsigned char *observed,const int *piece,int nominal,
    const INSYNC_options *options,int ngroup,const int *gcount,int **gmember);

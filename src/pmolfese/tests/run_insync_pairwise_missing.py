@@ -15,7 +15,7 @@ import statistics
 import subprocess
 import tempfile
 from insync_window_fixtures import write_fixture, nifti
-from run_insync_estimation import image, f32
+from run_insync_estimation import image, f32, correlation
 from run_insync_window_baseline import ranks, summary
 
 
@@ -204,7 +204,7 @@ def main():
                 if method=='loo': components += [('loo',a,'NA') for a in subjects]
                 def one(component,parts):
                     typ,a,b=component
-                    xs=[];ys=[];refs=[];real=0
+                    xs=[];ys=[];refs=[];real=0;weights=[]
                     for part in parts:
                         xx=[];yy=[]
                         for t in part:
@@ -217,13 +217,17 @@ def main():
                                 if len(others)<min_others: continue
                                 y=f32(statistics.mean(others)); refs.append(len(others))
                                 genuine=observed[a][t] and all(observed[sub][t] for sub in members[group[a]] if sub!=a and math.isfinite(series[sub][t]))
-                            if math.isfinite(y): xx.append(x); yy.append(y); real+=genuine
+                            if math.isfinite(y):
+                                xx.append(x); yy.append(y); real+=genuine
+                                if value('-window_taper','boxcar')=='hann': weights.append(.5*(1-math.cos(2*math.pi*(t-part[0])/(len(part)-1))))
                         if '-segment_center' in opts and xx:
                             mx,my=statistics.mean(xx),statistics.mean(yy)
                             xx=[f32(x-f32(mx)) for x in xx]; yy=[f32(y-f32(my)) for y in yy]
                         xs+=xx;ys+=yy
                     n=len(xs); nominal=sum(map(len,parts))
                     corr=pearson(xs,ys,metric) if real>=min_n and real/nominal>=fraction else math.nan
+                    if value('-window_taper','boxcar')=='hann' and real>=min_n and real/nominal>=fraction:
+                        corr=correlation(xs,ys,metric,weights)
                     return dict(r=f32(corr), overlap=real, used=real if math.isfinite(corr) else 0,
                                 samples=n,used_samples=n if math.isfinite(corr) else 0,
                                 eligible=int(math.isfinite(corr)), blocks=int(math.isfinite(corr)), others=min(refs,default=0))
@@ -321,6 +325,10 @@ def main():
             run(opts)
             run(opts, 'subjects.txt')
             run(opts, 'raw.txt')
+        for method in ('pairwise','loo'):
+            opts=['-window','12','-step','6','-window_taper','hann','-isc_method',method]
+            a=run(opts); assert a==run(opts,threads=2)
+            run(opts,'raw.txt')
         a=run(['-zcensor','-window','12','-step','12','-run_starts','0,24'])
         assert a==run(['-zcensor','-window','12','-step','12','-run_starts','0,24'],threads=2)
         run(['-isc_method','loo','-loo_min_others','2','-min_valid','10','-min_valid_frac','.8','-window','12','-step','12'], 'raw.txt')
