@@ -1118,7 +1118,8 @@ This is a fairly straightforward calc that doesn't require pre-calc on
 the card time series level.  It just uses the time series and card
 inter-peak intervals to estimate 'heart rate'.  We calculate the mean
 interpeak interval in a win of time (units: s) around a given TR. The
-result is multiplied by 60, to have units of beats per minute.
+peak count per time interval (in s) is multiplied by 60, to have result
+of beats per minute.
 
 mode='full' includes fractional intervals crossing the window boundaries
 (what seems to be most reasonable, and hence default behavior). 
@@ -1577,7 +1578,8 @@ This is a fairly straightforward calc that doesn't require pre-calc on
 the card time series level.  It just uses the time series and card
 inter-peak intervals to estimate 'heart rate'.  We calculate the mean
 interpeak interval in a win of time (units: s) around a given TR. The
-result is multiplied by 60, to have units of beats per minute.
+peak count per time interval (in s) is multiplied by 60, to have result
+of beats per minute.
 
     """
 

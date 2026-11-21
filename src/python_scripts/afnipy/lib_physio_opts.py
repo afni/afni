@@ -74,9 +74,9 @@ estimating physiological regressors to be applied in FMRI analysis:
   response function: the temporal dynamics of fMRI signal fluctuations
   related to changes in respiration. Neuroimage 40(2):644-654.
 
-  Chang C, Glover GH (2009). Relationship between respiration,
-  end-tidal CO2, and BOLD signals in resting-state fMRI. Neuroimage
-  47(4):1381-1393.
+  Chang C, Cunningham JP, Glover GH (2009). Influence of heart rate on
+  the BOLD signal: the cardiac response
+  function. Neuroimage. 44(3):857-69.
 
 This code has been informed by earlier programs that estimated
 RETROICOR and RVT regressors, namely 3dretroicor by Fred Tam,
