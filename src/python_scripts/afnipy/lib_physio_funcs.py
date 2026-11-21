@@ -751,7 +751,7 @@ is_ok : int
         lab_title+= ' and troughs'
         lab_short+= '_troughs'
         if verb :   ab.IP('({}) {}'.format(label, lab_title))
-        if pcobj.img_verb > 0 :
+        if pcobj.img_verb > 0 or tsobj.do_interact :
             # [PT] *** should we output to imdir here?
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short,
@@ -772,7 +772,7 @@ is_ok : int
             troughs = copy.deepcopy(tsobj.troughs)
     else:
         if verb :   ab.IP('({}) {}'.format(label, lab_title))
-        if pcobj.img_verb > 0 :
+        if pcobj.img_verb > 0 or tsobj.do_interact :
             fname, title = make_str_ts_peak_trough(label, count, 
                                                    lab_title, lab_short, 
                                                    prefix=prefix, 
