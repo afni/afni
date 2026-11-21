@@ -19,6 +19,12 @@ from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import copy
 import datetime
+from afnipy import lib_physio_opts    as lpo
+from afnipy import lib_physio_funcs   as lpf
+from afnipy import lib_physio_reading as lpr
+from afnipy import lib_physio_regress as lpreg
+
+
 
 MAX_ROWS_PER_IMAGE = 10
 
@@ -531,7 +537,7 @@ def outputRespiratoryPlots(respiratoryTimeSeries, respiratoryPeaks,
     troughVals = respiratoryTimeSeries[respiratoryTroughs.astype(int)] 
     
     if num_rows <= MAX_ROWS_PER_IMAGE:  # Whole time series in one image
-        plotRespiratoryImage(output_file_name, num_rows, points_per_row, x_scaled, 
+        plotRespiratoryImage(output_file_name, num_rows, x_scaled, 
                              y, respiratoryPeaks_scaled, respiratoryTroughs_scaled,
                              peakVals, troughVals, outlier_ts_ranges, samp_freq)
     else:   # Split time series among several images
@@ -1003,7 +1009,7 @@ def compareLECWwithMahalanobis(OutDir, respiratoryTimeSeries,
 def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
             outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
-            moveToLocalPeaks, als_baseline_display, append=None):
+            moveToLocalPeaks, als_baseline_display, append="LECW"):
     
     print('Write respiratory results to files')
 
@@ -1122,7 +1128,7 @@ def writeCardiacResultsToFiles(OutDir, cardiacTimeSeries, cardiacPeaks, samp_fre
     
     # Write corrected cardiac peaks to file.
     print('OutDir = '+OutDir)
-    np.savetxt(OutDir + '/correctedCardiacPeaks_1D.txt', cardiacPeaks, fmt="%.2f")
+    np.savetxt(OutDir + '/correctedCardiacPeaks_' + append + '_1D.txt', cardiacPeaks, fmt="%.2f")
             
     output_file_name = OutDir + '/cardiacOutliersWithPeaks_' + append + '.pdf'    
         
@@ -1225,7 +1231,7 @@ def find_anchor_cycle(clean_cycles, bad_region, side, ts, margin):
     
 def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks, 
             respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq,
-            moveToLocalPeaks, append=None):
+            moveToLocalPeaks, append="LECW"):
     
     # Keep separate list of new points to display added points in green.
     added_peaks = []
@@ -1438,7 +1444,7 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
 def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries, 
                 respiratoryPeaks, respiratoryTroughs, outlier_ts_ranges, 
                 added_peaks, added_troughs, OutDir, 
-                samp_freq, interpolatedPeaks, interpolatedTroughs, append=None):
+                samp_freq, interpolatedPeaks, interpolatedTroughs, append="LECW"):
     
     print('Write corrected respiratory results to files')
 
@@ -1449,7 +1455,7 @@ def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries,
     
     # Write corrected cardiac peaks to file.
     print('OutDir = '+OutDir)
-    np.savetxt(OutDir + '/correctedRespiratoryPeaks_1D.txt', respiratoryPeaks, 
+    np.savetxt(OutDir + '/correctedRespiratoryPeaks_' + append + '_1D.txt', respiratoryPeaks, 
                fmt="%.2f")
                 
     # append lets a caller (e.g. the Mahalanobis pipeline) route its output to
@@ -1483,38 +1489,36 @@ def writeRespiratoryLECWvMahalonobisToFile(respiratoryTimeSeries,
     num_rows = int(np.ceil(len(y) / points_per_row))
     LECW_peaks_scaled = np.array(LECW_peaks) / samp_freq
     LECW_troughs_scaled = np.array(LECW_troughs) / samp_freq
-    LECW_peakVals = respiratoryTimeSeries[LECW_peaks]
-    LECW_troughVals = respiratoryTimeSeries[LECW_troughs]
+    LECW_peakVals = respiratoryTimeSeries[np.round(LECW_peaks).astype(int)]
+    LECW_troughVals = respiratoryTimeSeries[np.round(LECW_troughs).astype(int)]
     Mahalanobis_peaks_scaled = np.array(Mahalanobis_peaks) / samp_freq
     Mahalanobis_troughs_scaled = np.array(Mahalanobis_troughs) / samp_freq
-    Mahalanobis_peakVals = respiratoryTimeSeries[Mahalanobis_peaks]
-    Mahalanobis_troughVals = respiratoryTimeSeries[Mahalanobis_troughs]
-    
-    fig, axes = plt.subplots(num_rows, 1, figsize=(12, 2.5*num_rows), sharex=False)
-    if num_rows == 1:
-        axes = [axes]
-    windowTitle = 'Corrected Respiratory Peaks ('+output_file_name+')'
-    fig.canvas.manager.set_window_title(windowTitle)
+    Mahalanobis_peakVals = respiratoryTimeSeries[np.round(Mahalanobis_peaks).astype(int)]
+    Mahalanobis_troughVals = respiratoryTimeSeries[np.round(Mahalanobis_troughs).astype(int)]
 
     # Evenly divide THIS frame's length into num_rows equal-width chunks,
     # so the frame's full range is used with no leftover/short row.
     boundaries = np.round(np.linspace(0, len(y), num_rows + 1)).astype(int)
-
-    for row in range(num_rows):
+    
+    if num_rows >= 100:
+        first_row = 50
+        rows_to_plot = num_rows - first_row
+    else:
+        first_row = 0
+        rows_to_plot = num_rows
+    
+    fig, axes = plt.subplots(rows_to_plot, 1, figsize=(12, 2.5*rows_to_plot), sharex=False)
+    if rows_to_plot == 1:
+        axes = [axes]
+    
+    # ...
+    
+    for row in range(first_row, num_rows):
         local_start = boundaries[row]
         local_end = boundaries[row + 1]
-        # global-index equivalents, for band comparisons/plotting
         start = local_start + offset
         end = local_end + offset
-        ax = axes[row]
-        # ax.plot(LECW_peaks_scaled[local_start:local_end], LECW_peaks[local_start:local_end],
-        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="magenta")
-        # ax.plot(LECW_troughs_scaled[local_start:local_end], LECW_troughs[local_start:local_end],
-        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="green")
-        # ax.plot(Mahalanobis_peaks_scaled[local_start:local_end], Mahalanobis_peaks[local_start:local_end],
-        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="red")
-        # ax.plot(Mahalanobis_troughs_scaled[local_start:local_end], Mahalanobis_troughs[local_start:local_end],
-        #         linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="blue")
+        ax = axes[row - first_row]   # <-- shifted index        
         ax.plot(x_scaled[local_start:local_end], y[local_start:local_end],
                 linewidth=0.5, solid_capstyle='butt', solid_joinstyle='miter', color="black")
         ax.plot(Mahalanobis_peaks_scaled, Mahalanobis_peakVals, "ro")
@@ -2359,7 +2363,7 @@ def extract_respiratory_metrics(peaks, troughs, signal, fs):
     Returns:
     - Y: numpy array of shape (M, 4) containing the 4 feature metrics
     """
-    N = len(peaks) - 1
+    N = min(len(peaks), len(troughs)) - 1
     features = []
     feature_peak_idx = []   # explicit row -> original peak index map (see cardiac fix)
     
@@ -2576,6 +2580,153 @@ def getDeepTroughOutliers(peak_outliers_list,
     
     return peak_outliers_list, mahal_ts_ranges
 
+# Options used only by findBadSegments.py (value = number of arguments
+# that follow the option).  lib_physio_opts doesn't know these and would
+# reject them, so they are removed before the argv is handed to it.
+FBS_ONLY_OPTS = {
+    '-directory'            : 1,
+    '-expand_factor'        : 1,
+    '-do_use_clustering'    : 0,
+    '-save_proc_peaks'      : 0,
+    '-save_proc_troughs'    : 0,
+    '-save_proc_filtered_ts': 0,
+    '-moveToLocalPeaks'     : 0,
+    '-als_baseline_display' : 0,
+}
+
+def filterArgvForPhysioOpts(argv):
+    """Return a copy of argv (program name kept at index 0) without the
+    findBadSegments-only options, suitable for
+    lpo.main_option_processing()."""
+    out = [argv[0]]
+    i = 1
+    while i < len(argv):
+        if argv[i] in FBS_ONLY_OPTS:
+            i += 1 + FBS_ONLY_OPTS[argv[i]]
+        else:
+            out.append(argv[i])
+            i += 1
+    return out
+
+def checkRequiredPhysioOpts(argv):
+    """Print a WARNING (never exit) if the command line lacks options that
+    some AFNI versions of lib_physio_opts need to build args_dict.  The
+    required set varies by AFNI version, so this is only a hint for
+    diagnosing a bare KeyError (e.g. 'dset_tr')."""
+    have = set(a for a in argv if a.startswith('-'))
+    missing = []
+    if '-dset_epi' not in have:
+        for o in ['-dset_tr', '-dset_nslice', '-dset_nt']:
+            if o not in have:
+                missing.append(o)
+    if '-dset_slice_times' not in have and '-dset_slice_pattern' not in have:
+        missing.append('-dset_slice_times or -dset_slice_pattern')
+    for o in ['-freq', '-out_dir']:
+        if o not in have:
+            missing.append(o)
+    if not (have & {'-card_file', '-resp_file', '-phys_file'}):
+        missing.append('-card_file/-resp_file (or -phys_file/-phys_json)')
+    if missing:
+        print("WARNING: these options are not on the command line and "
+              "may be needed by lib_physio_opts: " + ", ".join(missing))
+
+def outputRegressors(cardiacPeaks, respiratoryPeaks, OutDir, respiratoryTroughs, 
+                 cardiacTimeSeries, samp_freq, args_dict, tag=''):
+    # tag : short label (e.g. 'LECW', 'MAHALANOBIS') appended to the output
+    #       prefix, so regressors from different peak/trough corrections are
+    #       written to different files/dirs instead of overwriting each other
+    
+    verb = False
+    
+    # args_dict must be the dictionary produced by AFNI's option processing,
+    # NOT a raw argv list.  If a list (e.g. sys.argv) comes in, convert it,
+    # after removing options that belong only to findBadSegments.py
+    if isinstance(args_dict, (list, tuple)):
+        args_orig = copy.deepcopy(list(args_dict))
+        physio_argv = filterArgvForPhysioOpts(args_orig)
+        checkRequiredPhysioOpts(physio_argv)
+        args_dict = lpo.main_option_processing(physio_argv)
+    else:
+        args_orig = copy.deepcopy(sys.argv)
+    if tag:
+        args_dict = copy.deepcopy(args_dict)
+        args_dict['prefix'] = (args_dict.get('prefix') or 'physio') + '_' + tag
+    pcobj = lpr.pcalc_obj( args_dict, args_orig=args_orig )
+
+    # ------------- Use the corrected peaks/troughs -------------
+    # pcobj holds the physio data at its ORIGINAL sampling rate, and its
+    # peaks/troughs are indices into pcobj.data[label].ts_orig.  Our
+    # corrected extrema may be indices into the shrunken time series
+    # (see expand_factor), so convert them back to original-rate indices.
+    def toOrigIndices(ext, nts):
+        ext = np.unique(np.asarray(ext).astype(int))   # sorted + unique
+        if expand_factor > 1:
+            # each shrunken sample is the median of a block of
+            # expand_factor original samples; use the block centre
+            ext = ext * expand_factor + expand_factor // 2
+        return [int(x) for x in ext if 0 <= x < nts]
+
+    if pcobj.data['card']:
+        n = pcobj.data['card'].n_ts_orig
+        pcobj.data['card'].peaks = toOrigIndices(cardiacPeaks, n)
+    if pcobj.data['resp']:
+        n = pcobj.data['resp'].n_ts_orig
+        pcobj.data['resp'].peaks   = toOrigIndices(respiratoryPeaks, n)
+        pcobj.data['resp'].troughs = toOrigIndices(respiratoryTroughs, n)
+
+    # Run the steps physio_calc normally does between peak finding and
+    # regressor calculation, so phases/RVT/HR use the peaks set above.
+    # (getattr guards: skip any step your afnipy version does not have)
+    for label in lpf.PO_all_label:
+        if not (pcobj.data[label] and pcobj.do_calc_phys[label]):
+            continue
+        for fname in ['calc_timing_selection_phys',
+                      'calc_timing_selection_volbase',
+                      'calc_time_series_phases']:
+            func = getattr(lpf, fname, None)
+            if func is not None and func(pcobj, label=label, verb=verb):
+                print('** ERROR: {} failed for {}'.format(fname, label))
+                sys.exit(1)
+    if pcobj.data['resp'] and pcobj.do_calc_rvt:
+        lpf.calc_time_series_rvt(pcobj, label='resp', verb=verb)
+    if pcobj.data['card'] and pcobj.do_calc_hr:
+        lpf.calc_time_series_hr(pcobj, label='card', verb=verb)
+    
+    # ------------- Calculate regressors ------------------
+
+    # Regressors, for all physio inputs
+    for label in lpf.PO_all_label:
+        if pcobj.data[label] and pcobj.do_calc_phys[label] :
+            lpf.calc_regress_retroicor( pcobj, label=label)
+
+    # make a plot of the retroicor regressors
+    # tmp = lpplt.plot_regressors_retro(pcobj)
+
+    # Resp-derived volbase regressors (plot is made within this func)
+    label = 'resp'
+    if pcobj.data[label] :
+        # make RVT regressor 
+        if pcobj.do_calc_rvt :
+            lpf.calc_regress_rvt( pcobj, label=label, verb=verb )
+
+        # make RVTRRF regressor (can only be done after RVT one is made)
+        if pcobj.do_calc_rvtrrf :
+            lpf.calc_regress_rvtrrf( pcobj, label=label, verb=verb )
+
+    # Card-derived volbase regressors
+    label = 'card'
+    if pcobj.data[label] and pcobj.do_calc_hr :
+        lpf.calc_regress_hr( pcobj, label=label, verb=verb )
+
+    # ------------- Write out regressors ------------------
+
+    # optional (not recommended; testing only): older RetroTS.py format
+    if pcobj.do_slibase_out :
+        lpreg.write_regressor_file_OLD(pcobj)
+
+    # modern output format, separate slice-based and volume-wise regressors
+    lpreg.write_regressor_file_sli(pcobj)
+    lpreg.write_regressor_file_vol(pcobj)
 
     
 #################### MAIN  ##########################################
@@ -2727,6 +2878,7 @@ while i < len(sys.argv):
             
     elif (sys.argv[i]=="-moveToLocalPeaks"):
             moveToLocalPeaks = True
+            i += 1
             
     elif (sys.argv[i]=="-als_baseline_display"):
             als_baseline_display = True
@@ -2918,7 +3070,12 @@ else:
 # The multivariate score only sees a deep trough as half of relative_amplitude
 # or as a trough-to-trough difference, and in artifact-dense stretches the
 # windowed covariance absorbs it. This robust per-trough depth check does not.
-peak_outliers_list, outlier_ts_ranges = getDeepTroughOutliers(peak_outliers_list.tolist(), 
+if type(peak_outliers_list) == list:
+    peak_outliers_list, outlier_ts_ranges = getDeepTroughOutliers(peak_outliers_list, 
+                    outlier_ts_ranges, respiratoryTimeSeries, 
+                    half_window=15, kappa=4.0, min_excess_frac=0.5)
+else:
+    peak_outliers_list, outlier_ts_ranges = getDeepTroughOutliers(peak_outliers_list.tolist(), 
                     outlier_ts_ranges, respiratoryTimeSeries, 
                     half_window=15, kappa=4.0, min_excess_frac=0.5)
 
@@ -2937,6 +3094,10 @@ peak_outliers_list, outlier_ts_ranges = getDeepTroughOutliers(peak_outliers_list
 LECW_anomalyRanges = outlier_ts_ranges
 LECW_peaks = respiratoryPeaks
 LECW_troughs = respiratoryTroughs
+
+# 9. Output regressors using corrected peaks and troughs
+outputRegressors(cardiacPeaks, LECW_peaks, OutDir, LECW_troughs, 
+                 cardiacTimeSeries, samp_freq, sys.argv, tag='LECW')
 
 
 #################################################
@@ -3082,7 +3243,7 @@ cardiacPeaks = writeCardiacResultsToFiles(
     outlier_ts_ranges,  # Chronologically locked bounds passed cleanly
     moveToLocalPeaks, 
     als_baseline_display, 
-    "MAHALANOBIS"
+    append = "MAHALANOBIS"
 )
 
 # 8. Force close active layout windows
@@ -3275,10 +3436,8 @@ Mahalanobis_troughs = respiratoryTroughs
 compareLECWwithMahalanobis(OutDir, respiratoryTimeSeries,
        LECW_peaks, LECW_troughs, Mahalanobis_peaks, Mahalanobis_troughs, samp_freq, 
        LECW_anomalyRanges, Mahalanobis_anomalyRanges, als_baseline_display)
-# TODO: Add code
 
-
-
-
-
-
+# Output regressors using the Mahalanobis-corrected respiratory peaks and
+# troughs (cardiac peaks are the same as for LECW)
+outputRegressors(cardiacPeaks, Mahalanobis_peaks, OutDir, Mahalanobis_troughs, 
+                 cardiacTimeSeries, samp_freq, sys.argv, tag='MAHALANOBIS')
