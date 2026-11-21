@@ -219,8 +219,10 @@ off, if preferable.
   (NB: some of these are now ON by default, because they seem generally
   useful, but they could be turned off):
 
-  -do_fix_nan DFN     :Fix (= replace with interpolation) any NaN values in
-                       the physio time series.
+  -do_fix_nan DFN     :Fix (= replace with interpolation) any NaN (not-a-
+                       number) values in the physio time series. This now
+                       includes fixing +inf and -inf, if those happen to
+                       occur (which they assuredly should _not_).
                        Allowed values are: Yes, 1, No, 0 
                        (def: '{do_fix_nan}')
 
@@ -242,7 +244,7 @@ off, if preferable.
                        interpolated: the time series will be shorter, if any
                        are found) if they appear in the physio time series;
                        this is necessary with some manufacturers' outputs, see
-                       "Notes of input peculiarities," below
+                       "Notes on scanner-related peculiarities," below
 
   -prefilt_max_freq PMF  :Allow for downsampling of the input physio time
                        series, by providing a maximum sampling frequency
@@ -1460,7 +1462,7 @@ class InOpts:
                      'respiration prefilter window')
 
         self.add_opt('do_fix_nan', 1, 'yesno',
-                     'interpolate NaN values')
+                     'interpolate NaN (as well as +inf and -inf) values')
 
         self.add_opt('do_fix_null', 1, 'yesno',
                      'interpolate null values')

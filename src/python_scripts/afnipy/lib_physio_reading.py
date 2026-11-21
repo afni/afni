@@ -1159,7 +1159,7 @@ arr_bad : np.ndarray (1D)
 
     # 1) find nans
 
-    arr_bad = np.isnan(x)
+    arr_bad = np.logical_not(np.isfinite(x))
 
     if verb:
         nbadnan = np.sum(arr_bad)
@@ -1449,10 +1449,10 @@ consecutive bad elements to allow before just exiting.
 
 If all values are bad, exit regardless of anything else.
 
-By default, only NaN values are bad. The user can supply a list of
-elements that will be flagged as bad (e.g., 0), or can turn on the
-ability to flag outliers as bad (based on percentiles, which can also
-be controlled).
+By default, only NaN (and now actually +inf or -inf) values are
+bad. The user can supply a list of elements that will be flagged as
+bad (e.g., 0), or can turn on the ability to flag outliers as bad
+(based on percentiles, which can also be controlled).
 
 Parameters
 ----------
@@ -1631,10 +1631,10 @@ x_fixed : np.ndarray
 def find_arr_bad_and_out(x, bad_nums=[], outliers_bad=False,
                          out_perc=DEF_outlier_perc, verb=0):
     """Provide information (not decision making) about badness in a 1D
-array x. Check for NaNs as well as any list of possibly bad (finite)
-values to report, such as 0s.  The output list of bad indices will
-point to values that might be replaced later with interpolation or
-some other procedure.
+array x. Check for NaNs (including +inf and -inf) as well as any list
+of possibly bad (finite) values to report, such as 0s.  The output
+list of bad indices will point to values that might be replaced later
+with interpolation or some other procedure.
 
 Also check for outliers (estimated from arr elements that are not NaNs
 or bad_nums).
@@ -1939,7 +1939,7 @@ dict_of_len : dict
                 if '' == xfl :
                     bad_nulllist.append([idx, row])
                     all_lenlist.append( 0 )
-                elif np.isnan(xfl) :
+                elif np.logical_not(np.isfinite(xfl)) :
                     bad_nanlist.append([idx, row])
                     all_lenlist.append( 1 )
                     last_nonempty_row = idx
@@ -1953,7 +1953,7 @@ dict_of_len : dict
                 # one row can be in multiple bad lists
                 if '' in xfllist :
                     bad_nulllist.append([idx, row])
-                if np.sum([np.isnan(x) for x in xfllist \
+                if np.sum([np.logical_not(np.isfinite(x)) for x in xfllist \
                            if isinstance(x, float)]) :
                     bad_nanlist.append([idx, row])
                 all_lenlist.append( len_rowsp )
