@@ -292,21 +292,24 @@ opts and info stored there.
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
-    # extra check: having <2 peaks is _very_ unexpected, but would cause crash
-    # (warning added, but I don't feel like adding extra, ugly if conditions)
+    # extra check: having <2 peaks is _very_ unexpected, but would cause 
+    # inability to estimate stats (warning added, Nans output)
     npeak = tsobj.stats_count_pt("peaks", min_idx=idxA, max_idx=idxB)
     if npeak < 2 :
-        ab.WP("Less than 2 peaks, extreme case and may cause crashes.")
+        ab.WP("Less than 2 troughs during EPI; no interval statistics.")
 
     # info over subset of MRI dset duration
     D['peak num (dset span)'] = str(tsobj.stats_count_pt("peaks", 
                                                          min_idx=idxA,
                                                          max_idx=idxB))
-    minval, maxval, meanval, stdval = tsobj.stats_ival_mmms("peaks", 
-                                                            min_idx=idxA,
-                                                            max_idx=idxB)
-    q25, q50, q75 = tsobj.stats_ival_percentiles("peaks", min_idx=idxA,
-                                                 max_idx=idxB)
+    if npeak >= 2 :
+        minval, maxval, meanval, stdval = \
+            tsobj.stats_ival_mmms("peaks", min_idx=idxA, max_idx=idxB)
+        q25, q50, q75 = \
+            tsobj.stats_ival_percentiles("peaks", min_idx=idxA, max_idx=idxB)
+    else:
+        minval = maxval = meanval = stdval = float('nan')
+        q25 = q50 = q75 = float('nan')
     D['peak ival min max (dset span)'] = str("{:8.6f} {:8.6f}".format(minval, 
                                                                       maxval))
     D['peak ival mean std (dset span)'] = str("{:8.6f} {:8.6f}".format(meanval,
@@ -363,7 +366,7 @@ opts and info stored there.
         # extra check, as above for <2 peaks, here for <2 troughs
         ntroughs = tsobj.stats_count_pt("troughs", min_idx=idxA, max_idx=idxB)
         if ntroughs < 2 :
-            ab.WP("Less than 2 troughs, extreme case and may cause crashes.")
+            ab.WP("Less than 2 troughs during EPI; no interval statistics.")
 
 
         # info over subset of MRI dset duration
@@ -371,13 +374,16 @@ opts and info stored there.
                                                                min_idx=idxA,
                                                                max_idx=idxB))
         if tsobj.n_troughs :
-            minval, maxval, meanval, stdval = \
-                tsobj.stats_ival_mmms("troughs",
-                                      min_idx=idxA,
-                                      max_idx=idxB)
-            q25, q50, q75 = tsobj.stats_ival_percentiles("troughs", 
-                                                         min_idx=idxA,
-                                                         max_idx=idxB)
+            if ntroughs >= 2 :
+                minval, maxval, meanval, stdval = \
+                    tsobj.stats_ival_mmms("troughs",
+                                          min_idx=idxA, max_idx=idxB)
+                q25, q50, q75 = \
+                    tsobj.stats_ival_percentiles("troughs",
+                                                 min_idx=idxA, max_idx=idxB)
+            else:
+                minval = maxval = meanval = stdval = float('nan')
+                q25 = q50 = q75 = float('nan')
             D['trough ival min max (dset span)'] = \
                 str("{:8.6f} {:8.6f}".format(minval, 
                                              maxval))
