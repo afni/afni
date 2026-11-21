@@ -161,6 +161,10 @@ separate, to be more general.
 
 Used for RVT, HR, etc.
 
+Also store available pre-scan information (negative-time TR-grid indices)
+separately, for response-function convolution before cropping to the EPI
+time range in the final outputs.
+
 Parameters
 ----------
 pcobj : pcalc_obj class
@@ -203,8 +207,16 @@ is_ok : int
     all_ind = find_vol_slice_times(tvals, samp_delt, 0.0, 0,
                                    vol_nv, vol_tr, verb=verb)
 
-    # done, store
+    # keep pre-scan samples on the same TR grid, separately
+    npre = max(0, int(np.floor(-tvals[0] / vol_tr)))
+    pre_ind = []
+    if npre :
+        pre_ind = find_vol_slice_times(tvals, samp_delt, -npre*vol_tr, 0,
+                                       npre, vol_tr, verb=verb)
+
+    # done, store both EPI-time and pre-scan time indices
     tsobj.list_slice_sel_volbase = all_ind
+    tsobj.list_slice_sel_volbase_pre = pre_ind
 
     return 0
 
@@ -1093,7 +1105,7 @@ intervals to estimate 'instantaneous period'.
 
     return 0
 
-def calc_time_series_hr(pcobj, label=None, win=6, verb=0):
+def calc_time_series_hr(pcobj, label=None, win=6, verb=0, mode="full"):
     """Calculate average heart rate (HR), as described in:
 
     ``Influence of heart rate on the BOLD signal: The cardiac response
@@ -1106,7 +1118,17 @@ This is a fairly straightforward calc that doesn't require pre-calc on
 the card time series level.  It just uses the time series and card
 inter-peak intervals to estimate 'heart rate'.  We calculate the mean
 interpeak interval in a win of time (units: s) around a given TR. The
-result is multiplied by 60, to have units of beats per minute.
+peak count per time interval (in s) is multiplied by 60, to have result
+of beats per minute.
+
+mode='full' includes fractional intervals crossing the window boundaries
+(what seems to be most reasonable, and hence default behavior). 
+mode='no_frac' uses only intervals with both peaks inside the window, 
+returning failure if fewer than two peaks are present.
+
+Pre-scan HR is stored separately for convolution. Pre-scan windows that
+cannot be estimated use the MRI-range mean HR; MRI-range checks are 
+unchanged.
 
     """
 
@@ -1114,6 +1136,11 @@ result is multiplied by 60, to have units of beats per minute.
 
     check_label_all(label)
     check_label_hr(label)       # a practical HR reality, at present
+
+    if mode not in ['full', 'no_frac'] :
+        ab.EP1("HR estimation mode must be 'full' or 'no_frac', not: {}"
+               "".format(mode))
+        return 1
 
     # the specific card/resp/etc. obj we use here (NB: not copying
     # obj, just dual-labelling for simplifying function calls while
@@ -1138,7 +1165,8 @@ result is multiplied by 60, to have units of beats per minute.
     # lists of ints on the physio grid
     peaks  = tsobj.peaks                   # indices of peaks
     npeaks = len(peaks)
-    all_tr = tsobj.list_slice_sel_volbase  # indices of EPI TR locs
+    npre   = len(tsobj.list_slice_sel_volbase_pre)
+    all_tr = tsobj.list_slice_sel_volbase_pre + tsobj.list_slice_sel_volbase
     ntr    = len(all_tr)
 
     if verb > 1 :
@@ -1181,16 +1209,30 @@ result is multiplied by 60, to have units of beats per minute.
 
         # ... and verify that at least one peak exists in the current window.
         if min_p >= npeaks or peaks[min_p] >= top :
+            # the nan values are temporary markers (which are resolved later)
+            if ii < npre :
+                hr_ave.append(np.nan)
+                continue
             print("** ERROR: could not find a peak in HR window")
             print("   (bot, top) = ({}, {})".format(bot, top))
             print("   npeaks: {}, [{}]th TR, all_tr[ii]: {}"
-                  "".format(npeaks, ii, all_tr[ii]))
+                  "".format(npeaks, ii-npre, all_tr[ii]))
             sys.exit(3)
 
         # Find last peak in the [bot, top) window.
         max_p = min_p
         while max_p < npeaks-1 and peaks[max_p + 1] < top :
             max_p+= 1
+
+        if mode == 'no_frac' and max_p == min_p :
+            # again, the nan values are markers only (resolved later)
+            if ii < npre :
+                hr_ave.append(np.nan)
+                continue
+            ab.EP1("HR mode 'no_frac' requires at least two peaks in "
+                   "window at TR {} (indices {}..{})"
+                   "".format(ii-npre, bot, top))
+            return 1
 
         # Part 1 of average: count num of peaks in this interval, and
         # their first peak-to-last peak time duration; time_ival will
@@ -1202,7 +1244,7 @@ result is multiplied by 60, to have units of beats per minute.
         # interval on left side of window; this means stepping back
         # one index in peaks, and calculating relative fraction of
         # peak-to-peak interval within the current window
-        if min_p > 0 and peaks[min_p] > bot :
+        if mode == 'full' and min_p > 0 and peaks[min_p] > bot :
             numer = float(peaks[min_p] - bot)
             denom = float(peaks[min_p] - peaks[min_p - 1])
             if denom <= 0 or numer <= 0:
@@ -1222,7 +1264,7 @@ result is multiplied by 60, to have units of beats per minute.
         # interval on right side of window; this means stepping
         # forward one index in peaks, and calculating relative
         # fraction of peak-to-peak interval within the current window
-        if max_p < npeaks-1 and peaks[max_p] < top :
+        if mode == 'full' and max_p < npeaks-1 and peaks[max_p] < top :
             numer = float(top - peaks[max_p])
             denom = float(peaks[max_p + 1] - peaks[max_p])
             if denom <= 0 or numer <= 0:
@@ -1245,7 +1287,7 @@ result is multiplied by 60, to have units of beats per minute.
                   "".format(peak_count))
             if verb > 7 :
                 print("   [{}]th TR, win bot, top, time_ival are: {}, {}, {}"
-                      "".format(ii, bot, top, time_ival))
+                      "".format(ii-npre, bot, top, time_ival))
 
         # scale the time interval to have units of physical time
         time_ival*= delt
@@ -1260,7 +1302,7 @@ result is multiplied by 60, to have units of beats per minute.
             if ii == 0 :
                 ab.IP("(card) ave HR per TR")
             print("   [{:4d}] peak_count = {:0.3f}, time_ival = {:0.3f} "
-                  "hr = {:0.3f}".format(ii, peak_count, time_ival,
+                  "hr = {:0.3f}".format(ii-npre, peak_count, time_ival,
                                               hr))
 
         # append this average, and multiply by 60 to be beats per min
@@ -1268,6 +1310,17 @@ result is multiplied by 60, to have units of beats per minute.
 
     # after going through EPI time series, convert to array
     hr_ave = np.array(hr_ave, dtype=float)
+
+    # retain pre-scan HR separately; use mean HR for unavailable windows;
+    # resolve any nans from above pre-scan considerations
+    hr_pre = hr_ave[:npre].copy()
+    hr_ave = hr_ave[npre:]
+    valid_pre = np.isfinite(hr_pre)
+    if np.any(valid_pre) :
+        hr_pre[np.logical_not(valid_pre)] = np.mean(hr_ave)
+    else:
+        hr_pre = np.zeros(0, dtype=float)
+    tsobj.hr_ts_pre = hr_pre
 
     # actual RVT (only plotted as regressor, later)
     count    += 1
@@ -1486,15 +1539,19 @@ calculated...
 
     regress_dict_rvtrrf = {}
 
-    # the primary, unshifted RVT regressor
+    # include pre-scan RVT on the same TR grid
+    npre = len(tsobj.list_slice_sel_volbase_pre)
     rvt_regr = get_shifted_rvt(tsobj.rvt_ts,
                                tsobj.samp_freq,
+                               tsobj.list_slice_sel_volbase_pre +
                                tsobj.list_slice_sel_volbase,
                                0)
 
     # convolve RVT with RRF
     rvtrrf_reg = lpcon.convolve_with_kernel(rvt_regr, delt=pcobj.vol_tr,
                                             kernel='rrf_birn08')
+    # trim away the pre-scan time from the final regressor
+    rvtrrf_reg = rvtrrf_reg[npre:]
     
     # add to dict
     lab = 'rvtrrf'
@@ -1521,7 +1578,8 @@ This is a fairly straightforward calc that doesn't require pre-calc on
 the card time series level.  It just uses the time series and card
 inter-peak intervals to estimate 'heart rate'.  We calculate the mean
 interpeak interval in a win of time (units: s) around a given TR. The
-result is multiplied by 60, to have units of beats per minute.
+peak count per time interval (in s) is multiplied by 60, to have result
+of beats per minute.
 
     """
 
@@ -1539,12 +1597,15 @@ result is multiplied by 60, to have units of beats per minute.
 
     regress_dict_hrcrf = {}
 
-    # the average HR time series is already at the locations of EPI TRs
-    hr_regr = tsobj.hr_ts
+    # include pre-scan HR on the same TR grid
+    npre = len(tsobj.hr_ts_pre)
+    hr_regr = np.concatenate((tsobj.hr_ts_pre, tsobj.hr_ts))
 
     # convolve RVT with RRF
     hrcrf_reg = lpcon.convolve_with_kernel(hr_regr, delt=pcobj.vol_tr,
                                            kernel='crf_chang09')
+    # trim back pre-scan time points
+    hrcrf_reg = hrcrf_reg[npre:]
     
     # add to dict
     lab = 'hrcrf'

@@ -305,6 +305,16 @@ phases : np.ndarray (1D)
 
     # make signum of each phase value
     arr_sign = np.ones(Nts, dtype=int)
+
+    # [pt: 2026-11-20] comment on updating the next part of estimating
+    # arr_sign; this updates handles endpoints before first vertex and
+    # after last vertex better now, bc we consider case of having initial
+    # trough better, as well as final vertex being a peak
+
+    # handle initial partial segment, if we are starting by heading into a trough
+    if troughs[0] < peaks[0] :
+        arr_sign[:troughs[0]] *= -1
+
     min_tidx = 0                           # starting trough idx
     for ii in range(Npeaks-1):
         start = peaks[ii]
@@ -316,18 +326,21 @@ phases : np.ndarray (1D)
                 min_tidx = tidx
                 break
             tidx+=1
-    # carry on for special end case, if last extremum is a trough
+
+    # handle final partial cycle
     if troughs[-1] > peaks[-1] :
         start = peaks[-1]
-        end   = Nts - 1
+        end   = Nts
         tidx  = min_tidx
         while tidx < Ntroughs :
             if start < troughs[tidx] and troughs[tidx] < end :
-                arr_sign[start:troughs[tidx]]*= -1
+                arr_sign[start:troughs[tidx]] *= -1
                 min_tidx = tidx
                 break
             tidx+=1
-
+    else:
+        # no trough follows the final peak, means that the end is "falling"
+        arr_sign[peaks[-1]:]*= -1
 
 
 

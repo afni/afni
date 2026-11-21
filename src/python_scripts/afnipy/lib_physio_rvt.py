@@ -123,7 +123,8 @@ y : np.ndarray
     for jj in range(all_midext[0]):
         y[jj] = y[all_midext[0]]
     for jj in range(all_midext[-1], Ny):
-        y[jj] = y[all_midext[-1]-1]
+        # use final measured period through the remaining samples
+        y[jj] = intervals[-1]    # y[all_midext[-1]-1]
 
     # finally, apply units, so output period 
     y*= tsobj.samp_delt
