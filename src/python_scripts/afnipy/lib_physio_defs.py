@@ -193,8 +193,11 @@ all_volbase_card = ', '.join(list_volbase_card)
 
 # default outdir name
 now      = datetime.now() # current date and time
-now_str  = now.strftime("%Y-%m-%d at %H:%M:%S")
-odir_def = 'retro_' + now_str
+date_str = now.strftime("%Y-%m-%d")
+time_str = now.strftime("%H:%M:%S")
+now_str  = date_str + ' at ' + time_str
+now_dir  = date_str + '_' + time_str.replace(":", "-")
+odir_def = 'retro_' + now_dir
 
 # Each key here should have an option listing in lib_physio_opts.py, and
 # vice versa.
