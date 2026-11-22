@@ -1048,7 +1048,7 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
                            output_file_name)
     
     # Make corrected respiratory time series
-    makeCorrectedRespiratoryTimeSeries(displayTimeSeries, respiratoryPeaks, 
+    (correctedPeaks, correctedTroughs) = makeCorrectedRespiratoryTimeSeries(displayTimeSeries, respiratoryPeaks, 
                 respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq,
                 moveToLocalPeaks, append=append)
     
@@ -1057,7 +1057,9 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
      outlier_ts_ranges,
      respiratoryPeakVals, 
      respiratoryTroughs, 
-     respiratoryTroughVals
+     respiratoryTroughVals,
+     correctedPeaks,
+     correctedTroughs
      )
 
 def hpfTimeSeries(timeSeries, cutoff=99000, transitionWidth=2000):
@@ -1440,6 +1442,8 @@ def makeCorrectedRespiratoryTimeSeries(respiratoryTimeSeries, respiratoryPeaks,
                 respiratoryPeaks, respiratoryTroughs, outlier_ts_ranges, 
                 added_peaks, added_troughs, OutDir, samp_freq,
                 interpolatedPeaks, interpolatedTroughs, append=append)
+    
+    return respiratoryPeaks, respiratoryTroughs
     
 def writeCorrectedRespiratoryResultsToFiles(respiratoryTimeSeries, 
                 respiratoryPeaks, respiratoryTroughs, outlier_ts_ranges, 
@@ -2630,7 +2634,7 @@ def checkRequiredPhysioOpts(argv):
         print("WARNING: these options are not on the command line and "
               "may be needed by lib_physio_opts: " + ", ".join(missing))
 
-def outputRegressors(cardiacPeaks, respiratoryPeaks, OutDir, respiratoryTroughs, 
+def outputRegressors(cardiacPeaks, respiratoryPeaks, respiratoryTroughs, 
                  cardiacTimeSeries, samp_freq, args_dict, tag=''):
     # tag : short label (e.g. 'LECW', 'MAHALANOBIS') appended to the output
     #       prefix, so regressors from different peak/trough corrections are
@@ -3085,18 +3089,25 @@ else:
  respiratoryOutlier_ts_ranges,
  respiratoryPeakVals, 
  respiratoryTroughs, 
- respiratoryTroughVals
+ respiratoryTroughVals,
+ LECW_resp_peaks,
+ LECW_resp_troughs
  ) = writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries, 
             respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers, 
             outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
-            moveToLocalPeaks, als_baseline_display)
+            moveToLocalPeaks, als_baseline_display)   
                                     
 LECW_anomalyRanges = outlier_ts_ranges
-LECW_peaks = respiratoryPeaks
-LECW_troughs = respiratoryTroughs
+# LECW_resp_peaks = respiratoryPeaks
+# LECW_resp_troughs = respiratoryTroughs
 
-# 9. Output regressors using corrected peaks and troughs
-outputRegressors(cardiacPeaks, LECW_peaks, OutDir, LECW_troughs, 
+# 9. Output regressors using uncorrected peaks and troughs
+outputRegressors(originalCardiacPeaks, originalRespiratoryPeaks, 
+                 originalRespiratoryTroughs, cardiacTimeSeries, samp_freq, 
+                 sys.argv, tag='Uncorrected')
+
+# 10. Output regressors using LECW corrected peaks and troughs
+outputRegressors(cardiacPeaks, LECW_resp_peaks, LECW_resp_troughs, 
                  cardiacTimeSeries, samp_freq, sys.argv, tag='LECW')
 
 
@@ -3420,24 +3431,27 @@ for current_range in sorted_ts_ranges:
  respiratoryOutlier_ts_ranges,
  respiratoryPeakVals,
  respiratoryTroughs,
- respiratoryTroughVals
+ respiratoryTroughVals,
+ Mahalanobis_resp_peaks,
+ Mahalanobis_resp_troughs
  ) = writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
         respiratoryPeaks, respiratoryTroughs, samp_freq, peak_outliers,
         outlier_ts_ranges, troughPeakMismatchRanges, useClustering,
         moveToLocalPeaks, als_baseline_display, append="MAHALANOBIS")
-
+                                    
 plt.close('all')
 
 Mahalanobis_anomalyRanges = outlier_ts_ranges
-Mahalanobis_peaks = respiratoryPeaks
-Mahalanobis_troughs = respiratoryTroughs
+Mahalanobis_resp_peaks = respiratoryPeaks
+Mahalanobis_resp_troughs = respiratoryTroughs
 
 # Compare bad regions, found by Mahalonobis, with those found by LECW
 compareLECWwithMahalanobis(OutDir, respiratoryTimeSeries,
-       LECW_peaks, LECW_troughs, Mahalanobis_peaks, Mahalanobis_troughs, samp_freq, 
-       LECW_anomalyRanges, Mahalanobis_anomalyRanges, als_baseline_display)
+       LECW_resp_peaks, LECW_resp_troughs, Mahalanobis_resp_peaks, 
+       Mahalanobis_resp_troughs, samp_freq, LECW_anomalyRanges, 
+       Mahalanobis_anomalyRanges, als_baseline_display)
 
 # Output regressors using the Mahalanobis-corrected respiratory peaks and
 # troughs (cardiac peaks are the same as for LECW)
-outputRegressors(cardiacPeaks, Mahalanobis_peaks, OutDir, Mahalanobis_troughs, 
+outputRegressors(cardiacPeaks, Mahalanobis_resp_peaks, Mahalanobis_resp_troughs, 
                  cardiacTimeSeries, samp_freq, sys.argv, tag='MAHALANOBIS')
