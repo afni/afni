@@ -838,9 +838,10 @@ g_history = """
        - rename old (and less basic) rest examples demo 2a,2b to 2e,2d
     8.12 Nov  4, 2026: changed wildcard imports to aliases
     8.13 Nov 19, 2026: add help for -regress_per_run_ortvec
+    8.14 Nov 23, 2026: exit gracefully when output stream is closed early
 """
 
-g_version = "version 8.13, November 19, 2026"
+g_version = "version 8.14, November 23, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -5073,7 +5074,12 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 def run_proc():
 
     # create proc script
-    rv, proc = make_proc()
+    # - be graceful if someone close the output stream (e.g. help | less)
+    try:
+       rv, proc = make_proc()
+    except BrokenPipeError:
+       return 0
+
     if proc == None: return rv
 
     # maybe make PPI regression scripts

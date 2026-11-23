@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Nov, 2026, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "exit gracefully when output stream is closed",
+   NULL
+ } ,
+
  { 20, Nov, 2026, RCR, "afni_util.py", MINOR, TYPE_BUG_FIX,
    "compute more reliable variance; minor cleanup",
    NULL
