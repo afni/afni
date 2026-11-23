@@ -123,6 +123,10 @@ y : np.ndarray
         print("   N = {}, step = {}, winwid = {}".format(N, step, winwid))
         sys.exit(8)
 
+    # A one-sample window needs only downsampling, without filtering.
+    if winwid == 1 :
+        return x[::step]
+
     if verb :
         print("++ Prefilter info: winwid = {}, step = {}".format(winwid, step))
 

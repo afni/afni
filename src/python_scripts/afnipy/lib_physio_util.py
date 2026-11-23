@@ -178,6 +178,8 @@ mad_ival : float
         return BAD_RETURN
 
     try:
+        # make sure input values are ordered
+        values = np.sort(values)
         intervals = np.array([j-i for i, j in zip(values[:-1], values[1:])], 
                              dtype=float)
     except (TypeError, ValueError):

@@ -989,6 +989,13 @@ opeaks : list
             intervals[i-1] = intervals[i-1] + intervals[i]
             del intervals[i]
 
+    # Check the first interval separately, preserving the first peak
+    # if they are very close.
+    if intervals and intervals[0] < threshold:
+        if len(intervals) > 1:
+            intervals[1] += intervals[0]
+        del intervals[0]
+
     # Make peaks from intervals, recursively
     Nival  = len(intervals)
     opeaks = np.zeros(Nival+1, dtype=int)

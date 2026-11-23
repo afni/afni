@@ -41,11 +41,12 @@ peak or trough times in seconds.  Positions are sorted before
 calculating each successive interval; peak and trough collections
 are passed separately.
 
-Colors indicate interval length relative to the median and standard
-deviation of all intervals in x.  Shorter intervals trend blue,
-longer intervals trend red, and intervals near the median are white.
-The colormap coordinate is 0.5 + (width-median)/MAD/16.0, clipped to
-[0, 0.999].  If std is zero, all intervals are colored white.
+Colors indicate interval length relative to the median and scaled MAD
+(median absolute deviation) of all intervals in x.  Shorter intervals
+trend blue, longer intervals trend red, and intervals near the median
+are white.  The colormap coordinate is 0.5 + (width-median)/MAD/16.0,
+clipped to [0, 0.999].  If MAD is zero, all intervals are colored
+white.
 
 Parameters
 ----------

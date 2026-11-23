@@ -74,9 +74,9 @@ estimating physiological regressors to be applied in FMRI analysis:
   response function: the temporal dynamics of fMRI signal fluctuations
   related to changes in respiration. Neuroimage 40(2):644-654.
 
-  Chang C, Glover GH (2009). Relationship between respiration,
-  end-tidal CO2, and BOLD signals in resting-state fMRI. Neuroimage
-  47(4):1381-1393.
+  Chang C, Cunningham JP, Glover GH (2009). Influence of heart rate on
+  the BOLD signal: the cardiac response
+  function. Neuroimage. 44(3):857-69.
 
 This code has been informed by earlier programs that estimated
 RETROICOR and RVT regressors, namely 3dretroicor by Fred Tam,
@@ -178,6 +178,23 @@ off, if preferable.
                        following list:   {all_volbase_card} 
                        (def: {regress_types_card})
 
+  -retro_sign_mode RSM :Choose how phase direction is estimated for resp data
+                       during RETROICOR calcs.
+                       'extrema' uses peaks and troughs (previous behavior).
+                       'deriv' uses the sign of a sliding quadratic-fit
+                       derivative.
+                       (def: {retro_sign_mode})
+
+  -hrcrf_mode HM      :Choose how HR is estimated for HRCRF regressors.
+                       'full' includes fractional interpeak intervals at the
+                       window boundaries (previous behavior). 'no_frac' uses
+                       only intervals with both peaks inside the window and
+                       requires at least two peaks per window.
+                       While the original paper appears to suggest the no_frac
+                       approach, it seems to make sense to include fractional
+                       bits, too ('full')
+                       (def: {hrcrf_mode})
+
   -rvt_shift_list RSL :Provide one or more values to specify how many and what
                        kinds of shifted copies of RVT are output as
                        regressors. Units are seconds, and including 0 may be
@@ -209,8 +226,10 @@ off, if preferable.
   (NB: some of these are now ON by default, because they seem generally
   useful, but they could be turned off):
 
-  -do_fix_nan DFN     :Fix (= replace with interpolation) any NaN values in
-                       the physio time series.
+  -do_fix_nan DFN     :Fix (= replace with interpolation) any NaN (not-a-
+                       number) values in the physio time series. This now
+                       includes fixing +inf and -inf, if those happen to
+                       occur (which they assuredly should _not_).
                        Allowed values are: Yes, 1, No, 0 
                        (def: '{do_fix_nan}')
 
@@ -232,7 +251,7 @@ off, if preferable.
                        interpolated: the time series will be shorter, if any
                        are found) if they appear in the physio time series;
                        this is necessary with some manufacturers' outputs, see
-                       "Notes of input peculiarities," below
+                       "Notes on scanner-related peculiarities," below
 
   -prefilt_max_freq PMF  :Allow for downsampling of the input physio time
                        series, by providing a maximum sampling frequency
@@ -1450,7 +1469,7 @@ class InOpts:
                      'respiration prefilter window')
 
         self.add_opt('do_fix_nan', 1, 'yesno',
-                     'interpolate NaN values')
+                     'interpolate NaN (as well as +inf and -inf) values')
 
         self.add_opt('do_fix_null', 1, 'yesno',
                      'interpolate null values')
@@ -1475,6 +1494,12 @@ class InOpts:
 
         self.add_opt('regress_types_card', -1, 'list',
                      'cardiac regressor types')
+
+        self.add_opt('hrcrf_mode', 1, 'str',
+                     'HRCRF HR estimation mode: full or no_frac')
+
+        self.add_opt('retro_sign_mode', 1, 'str',
+                     'RETROICOR sign mode for phase dir: extrema or deriv')
 
         self.add_opt('rvt_shift_list', -1, 'list',
                      'RVT shift values')
@@ -2111,6 +2136,16 @@ args_dict2 : dict
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
+
+    if args_dict2['retro_sign_mode'] not in DEF.list_retro_sign_mode :
+        msg = "option '-retro_sign_mode' requires one of: "
+        msg+= "{}".format(DEF.all_retro_sign_mode)
+        ab.EP1(msg)
+        sys.exit(1)
+
+    if args_dict2['hrcrf_mode'] not in ['full', 'no_frac'] :
+        ab.EP1("option '-hrcrf_mode' requires one of: full, no_frac")
+        sys.exit(1)
 
     # for card inputs, which volume-based regressors will be created? 
     # There will always be at least one value in this list
