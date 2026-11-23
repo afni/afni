@@ -303,7 +303,7 @@ phases : np.ndarray (1D)
 
     # preliminary check about mode
     if sign_mode not in DEF.list_retro_sign_mode :
-        msg = "The chosen sign_mode must be one of: "
+        msg = "The chosen sign_mode '{}' must be one of: ".format(sign_mode)
         msg+= "{}".format(DEF.all_retro_sign_mode)
         ab.EP1(msg)
         sys.exit(1)
@@ -369,7 +369,7 @@ phases : np.ndarray (1D)
             # no trough follows the final peak, means that the end is "falling"
             arr_sign[peaks[-1]:]*= -1
 
-    elif sign_mode == 'derivative' :
+    elif sign_mode == 'deriv' :
         # Match the Glover et al. paper's 39 samples at 40 Hz; 
         # scale duration otherwise.
         nwin = max(3, int(round(39.0 * tsobj.samp_freq / 40.0)))
@@ -385,7 +385,8 @@ phases : np.ndarray (1D)
         arr_sign = np.sign(deriv)
 
     else:
-        msg = "sign_mode must be one of: {}".format(DEF.all_retro_sign_mode)
+        msg = "sign_mode '{}' ".format(sign_mode)
+        msg+= "must be one of: {}".format(DEF.all_retro_sign_mode)
         raise ValueError(msg)
 
     # get cumulative sum and denominator
