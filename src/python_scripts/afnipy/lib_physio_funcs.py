@@ -1643,10 +1643,13 @@ of beats per minute.
                                            kernel='crf_chang09')
     # trim back pre-scan time points
     hrcrf_reg = hrcrf_reg[npre:]
+    # center/scale regressor
+    hrcrf_sca = scale_regressor(tsobj, hrcrf_reg, 'hrcrf',
+                                do_scale=pcobj.do_scale_regress)
     
     # add to dict
     lab = 'hrcrf'
-    regress_dict_hrcrf[lab]  = hrcrf_reg
+    regress_dict_hrcrf[lab]  = hrcrf_sca
     tsobj.regress_dict_hrcrf = regress_dict_hrcrf
 
     # make lineplot image of the HRCRF regressors
