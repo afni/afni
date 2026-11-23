@@ -384,6 +384,14 @@ phases : np.ndarray (1D)
                                   deriv=1, delta=tsobj.samp_delt, mode='interp')
         arr_sign = np.sign(deriv)
 
+        # At ~zero derivs, use the following to help assign direction; this
+        # should stabilize things, and better matches extrema-based method
+        tol = 1.e-8 * np.max(np.abs(deriv))
+        arr_sign[np.abs(deriv) <= tol] = 0
+        for ii in range(Nts-2, -1, -1):
+            if arr_sign[ii] == 0 :
+                arr_sign[ii] = arr_sign[ii+1]
+
     else:
         msg = "sign_mode '{}' ".format(sign_mode)
         msg+= "must be one of: {}".format(DEF.all_retro_sign_mode)
