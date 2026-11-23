@@ -178,6 +178,13 @@ off, if preferable.
                        following list:   {all_volbase_card} 
                        (def: {regress_types_card})
 
+  -retro_sign_mode RSM :Choose how phase direction is estimated for resp data
+                       during RETROICOR calcs.
+                       'extrema' uses peaks and troughs (previous behavior).
+                       'deriv' uses the sign of a sliding quadratic-fit
+                       derivative.
+                       (def: {retro_sign_mode})
+
   -hrcrf_mode HM      :Choose how HR is estimated for HRCRF regressors.
                        'full' includes fractional interpeak intervals at the
                        window boundaries (previous behavior). 'no_frac' uses
@@ -1491,6 +1498,9 @@ class InOpts:
         self.add_opt('hrcrf_mode', 1, 'str',
                      'HRCRF HR estimation mode: full or no_frac')
 
+        self.add_opt('retro_sign_mode', 1, 'str',
+                     'RETROICOR sign mode for phase dir: extrema or deriv')
+
         self.add_opt('rvt_shift_list', -1, 'list',
                      'RVT shift values')
 
@@ -2126,6 +2136,12 @@ args_dict2 : dict
             IS_BAD = 1
 
         if IS_BAD :  sys.exit(1)
+
+    if args_dict2['retro_sign_mode'] not in DEF.list_retro_sign_mode :
+        msg = "option '-retro_sign_mode' requires one of: "
+        msg+= "{}".format(DEF.all_retro_sign_mode)
+        ab.EP1(msg)
+        sys.exit(1)
 
     if args_dict2['hrcrf_mode'] not in ['full', 'no_frac'] :
         ab.EP1("option '-hrcrf_mode' requires one of: full, no_frac")

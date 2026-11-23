@@ -3,6 +3,10 @@
 import sys, os
 import copy
 import numpy as np
+from scipy import signal as sps
+
+from afnipy import afni_base       as ab
+from afnipy import lib_physio_defs as DEF
 
 # ===========================================================================
 # params
@@ -251,7 +255,7 @@ phases : np.ndarray (1D)
 
     return phases
 
-def calc_phases_M3(tsobj, nbin=100, verb=0):
+def calc_phases_M3(tsobj, nbin=100, verb=0, sign_mode="extrema"):
     """Calculate phases of a time series, here using "Method 3", which
 should be a faster way to approximate the recipe/algorithm from
 Glover, Li and Riess (2000) for respiratory data; see calc_phases_M2()
@@ -264,6 +268,19 @@ susceptible to noisy/peak trough values, and we might have to
 percentile-ize cap them.  But I think we can do this directly, as
 here, without making a running sum over a histogram. 
 
+The sign_mode kwarg is a parameter to control how the phase direction
+is estimated for resp data.  One has to use an allowed keyword (see
+lib_physio_defs.py). Current values are:
+'extrema' (default) uses peak/trough segments, preserving previous
+    behavior. 
+'deriv' uses the sign of a sliding quadratic-fit
+    derivative. It uses the Glover et all ratio of points-to-Hz
+    of 39 points for 40 Hz, and scales to approximately the same with
+    the rate given in the input data here, rounded to an odd sample count. 
+    Short recordings use the largest available odd window. Endpoint 
+    derivatives use a quadratic fit over the first/last window 
+    (SciPy mode='interp')
+
 The phases are estimated within the interval [-Pi, Pi).  This applies
 to resp time series at present.
 
@@ -274,6 +291,8 @@ Parameters
 tsobj : ts_obj class
     object with all necessary input time series info; will also store
     the newly populated phases array when done here
+sign_mode : str
+    keyword arg for mode of sign/direction estimation for resp data
 
 Returns
 -------
@@ -281,6 +300,13 @@ phases : np.ndarray (1D)
     Phases estimated here, in range [-Pi, Pi)
 
     """
+
+    # preliminary check about mode
+    if sign_mode not in DEF.list_retro_sign_mode) :
+        msg = "The chosen sign_mode must be one of: "
+        msg+= "{}".format(DEF.all_retro_sign_mode)
+        ab.EP1(msg)
+        sys.exit(1)
 
     # some simpler definitions here (NB: not copying obj, just
     # dual-labelling for simplifying function calls while still
@@ -304,45 +330,63 @@ phases : np.ndarray (1D)
     counts, bin_edges = np.histogram(new_ts, bins=nbin, range=(0, max_ts)) 
 
     # make signum of each phase value
-    arr_sign = np.ones(Nts, dtype=int)
+    if sign_mode == 'extrema' :
+        arr_sign = np.ones(Nts, dtype=int)
 
-    # [pt: 2026-11-20] comment on updating the next part of estimating
-    # arr_sign; this updates handles endpoints before first vertex and
-    # after last vertex better now, bc we consider case of having initial
-    # trough better, as well as final vertex being a peak
+        # [pt: 2026-11-20] comment on updating the next part of estimating
+        # arr_sign; this updates handles endpoints before first vertex and
+        # after last vertex better now, bc we consider case of having initial
+        # trough better, as well as final vertex being a peak
 
-    # handle initial partial segment, if we are starting by heading into a trough
-    if troughs[0] < peaks[0] :
-        arr_sign[:troughs[0]] *= -1
+        # handle initial partial segment, if we are starting by heading into a trough
+        if troughs[0] < peaks[0] :
+            arr_sign[:troughs[0]] *= -1
 
-    min_tidx = 0                           # starting trough idx
-    for ii in range(Npeaks-1):
-        start = peaks[ii]
-        end   = peaks[ii+1]
-        tidx  = min_tidx
-        while tidx < Ntroughs :
-            if start < troughs[tidx] and troughs[tidx] < end :
-                arr_sign[start:troughs[tidx]]*= -1
-                min_tidx = tidx
-                break
-            tidx+=1
+        min_tidx = 0                           # starting trough idx
+        for ii in range(Npeaks-1):
+            start = peaks[ii]
+            end   = peaks[ii+1]
+            tidx  = min_tidx
+            while tidx < Ntroughs :
+                if start < troughs[tidx] and troughs[tidx] < end :
+                    arr_sign[start:troughs[tidx]]*= -1
+                    min_tidx = tidx
+                    break
+                tidx+=1
 
-    # handle final partial cycle
-    if troughs[-1] > peaks[-1] :
-        start = peaks[-1]
-        end   = Nts
-        tidx  = min_tidx
-        while tidx < Ntroughs :
-            if start < troughs[tidx] and troughs[tidx] < end :
-                arr_sign[start:troughs[tidx]] *= -1
-                min_tidx = tidx
-                break
-            tidx+=1
+        # handle final partial cycle
+        if troughs[-1] > peaks[-1] :
+            start = peaks[-1]
+            end   = Nts
+            tidx  = min_tidx
+            while tidx < Ntroughs :
+                if start < troughs[tidx] and troughs[tidx] < end :
+                    arr_sign[start:troughs[tidx]] *= -1
+                    min_tidx = tidx
+                    break
+                tidx+=1
+        else:
+            # no trough follows the final peak, means that the end is "falling"
+            arr_sign[peaks[-1]:]*= -1
+
+    elif sign_mode == 'derivative' :
+        # Match the Glover et al. paper's 39 samples at 40 Hz; 
+        # scale duration otherwise.
+        nwin = max(3, int(round(39.0 * tsobj.samp_freq / 40.0)))
+        if nwin % 2 == 0 :
+            nwin += 1
+        if nwin > Nts :
+            nwin = Nts if Nts % 2 else Nts-1
+        if nwin < 3 :
+            return np.array([], dtype=float)
+        # Quadratic-fit derivative; fit endpoint windows without padding.
+        deriv = sps.savgol_filter(ts_orig, window_length=nwin, polyorder=2,
+                                  deriv=1, delta=tsobj.samp_delt, mode='interp')
+        arr_sign = np.sign(deriv)
+
     else:
-        # no trough follows the final peak, means that the end is "falling"
-        arr_sign[peaks[-1]:]*= -1
-
-
+        msg = "sign_mode must be one of: {}".format(DEF.all_retro_sign_mode)
+        raise ValueError(msg)
 
     # get cumulative sum and denominator
     denom      = len(new_ts)

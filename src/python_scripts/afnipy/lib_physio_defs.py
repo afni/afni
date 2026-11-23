@@ -40,7 +40,8 @@ DEF_rvt_shift_linspace = None         # can be pars for NumPy linspace(A,B,C)
 
 DEF_regress_types_card = 'retro'
 DEF_regress_types_resp = 'retro rvt'
-DEF_hrcrf_mode = 'full'
+DEF_hrcrf_mode         = 'full'
+DEF_retro_sign_mode    = 'extrema'
 
 # ---------------------------------------------------------------------------
 
@@ -191,6 +192,14 @@ list_volbase_card = [
 # ... and as a comma-separated string list
 all_volbase_card = ', '.join(list_volbase_card)
 
+# list of modes for retroicor phase sign, for resp data
+list_retro_sign_mode = [
+    'extrema',
+    'deriv',
+]
+# ... and as a comma-separated string list
+all_retro_sign_mode =  ', '.join(list_retro_sign_mode)
+
 # default outdir name
 now      = datetime.now() # current date and time
 date_str = now.strftime("%Y-%m-%d")
@@ -242,6 +251,7 @@ DOPTS = {
     'regress_types_resp': DEF_regress_types_resp, # (str) if resp, which regr?
     'regress_types_card': DEF_regress_types_card, # (str) if card, which regr?
     'hrcrf_mode'        : DEF_hrcrf_mode,    # (str) HR boundary interval mode
+    'retro_sign_mode'   : DEF_retro_sign_mode, # (str) retro resp phase meth
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs

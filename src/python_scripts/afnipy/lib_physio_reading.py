@@ -47,7 +47,7 @@ times can be useful in those calculations.
                  do_slibase_out=False,
                  duration_vol = None, vol_tr = None,
                  bp_sig_fac=1.0,
-                 verb=0, hrcrf_mode="full"):
+                 verb=0, hrcrf_mode="full", retro_sign_mode="extrema"):
         """Create object holding a physio time series data.
         
         """
@@ -92,6 +92,7 @@ times can be useful in those calculations.
         # al. 2000, Eq. 1)
         self.phases    = np.zeros(0, dtype=int)  # arr, for phase info
         self.M         = 2                       # int, later can vary
+        self.retro_sign_mode = retro_sign_mode   # str, mode for resp phase dir
 
         # rvt stuff (for resp only)
         self.rvt_ts    = np.zeros(0, dtype=float) # arr, 'raw' rvt time series
@@ -436,6 +437,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         self.remove_val_list = []      # list of values to be purged
         self.rvt_shift_list  = []      # list of RVT shift values
         self.hrcrf_mode = DEF.DEF_hrcrf_mode # str, HR boundary interval mode
+        self.retro_sign_mode = DEF.DEF_retro_sign_mode  # str, RETROICOR param
 
         # physio info (-> some now in data['resp'] and data['card'] objs)
         self.start_time   = None       # float, time offset (<=0, in s) from 
@@ -702,6 +704,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
                                      duration_vol = self.duration_vol,
                                      vol_tr = self.vol_tr,
                                      bp_sig_fac = self.bp_sig_fac['resp'],
+                                     retro_sign_mode = self.retro_sign_mode,
                                      verb=self.verb)
             elif label == 'card' :
                 self.data['card'] = ts_obj(arr_fixed,
@@ -762,6 +765,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_out_rvtrrf       = AD['do_out_rvtrrf']
         self.do_calc_hr          = AD['do_calc_hr']
         self.hrcrf_mode          = AD['hrcrf_mode']
+        self.retro_sign_mode     = AD['retro_sign_mode']
         self.do_calc_hrcrf       = AD['do_calc_hrcrf']
         self.do_out_hr           = AD['do_out_hr']
         self.do_out_hrcrf        = AD['do_out_hrcrf']

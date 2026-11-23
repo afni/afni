@@ -954,7 +954,8 @@ is_ok : int
 
     elif label == 'resp' :
         #phases = lpph.calc_phases_M2(tsobj, verb=verb)  # older method
-        phases = lpph.calc_phases_M3(tsobj, verb=verb)
+        phases = lpph.calc_phases_M3(tsobj, verb=verb,
+                                     sign_mode=tsobj.retro_sign_mode)
         if check_empty_list(phases, count, lab_title, label) :  return 1
 
         if pcobj.img_verb > 1 :
