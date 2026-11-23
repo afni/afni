@@ -302,7 +302,7 @@ phases : np.ndarray (1D)
     """
 
     # preliminary check about mode
-    if sign_mode not in DEF.list_retro_sign_mode) :
+    if sign_mode not in DEF.list_retro_sign_mode :
         msg = "The chosen sign_mode must be one of: "
         msg+= "{}".format(DEF.all_retro_sign_mode)
         ab.EP1(msg)
