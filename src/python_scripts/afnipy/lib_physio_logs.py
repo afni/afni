@@ -264,6 +264,17 @@ opts and info stored there.
 
     D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
 
+    # info about scaling
+    D['do scale regressors'] = "{:d}".format(int(pcobj.do_scale_regress))
+    for reg, do_out in [('rvt', pcobj.do_out_rvt),
+                        ('rvtrrf', pcobj.do_out_rvtrrf),
+                        ('hrcrf', pcobj.do_out_hrcrf)]:
+        if do_out and reg in tsobj.regress_shift :
+            D[reg + ' shift'] = "{:.8g}".format(tsobj.regress_shift[reg])
+            D[reg + ' scale'] = "{:.8g}".format(tsobj.regress_scale[reg])
+
+    D[list(D.keys())[-1]] += '\n'  # insert space, attached to last value
+
     D['peak num'] = str(tsobj.n_peaks)
     minval, maxval, meanval, stdval = tsobj.stats_ival_mmms("peaks")
     q25, q50, q75 = tsobj.stats_ival_percentiles("peaks") # def: quartiles

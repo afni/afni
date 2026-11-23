@@ -111,6 +111,8 @@ times can be useful in those calculations.
         self.regress_dict_rvtrrf = {}    # dict of list, (lab, value)
         self.regress_dict_hr     = {}    # dict of list, (lab, value)
         self.regress_dict_hrcrf  = {}    # dict of list, (lab, value)
+        self.regress_shift = {}         # dict, scaling shift per regr type
+        self.regress_scale = {}         # dict, scaling scale per regr type
 
         # prefiltering related: not used in proc, just to be able to report
         self.prefilt_init_freq = prefilt_init_freq # flt, freq (Hz) before filt
@@ -438,6 +440,8 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         self.rvt_shift_list  = []      # list of RVT shift values
         self.hrcrf_mode = DEF.DEF_hrcrf_mode # str, HR boundary interval mode
         self.retro_sign_mode = DEF.DEF_retro_sign_mode  # str, RETROICOR param
+        self.do_scale_regress = True   # bool, center and MAD-scale output
+        self.do_scale_regress = True   # bool, center and MAD-scale output
 
         # physio info (-> some now in data['resp'] and data['card'] objs)
         self.start_time   = None       # float, time offset (<=0, in s) from 
@@ -766,6 +770,7 @@ Each ts_obj is now held as a value to the data[LABEL] dictionary here
         self.do_calc_hr          = AD['do_calc_hr']
         self.hrcrf_mode          = AD['hrcrf_mode']
         self.retro_sign_mode     = AD['retro_sign_mode']
+        self.do_scale_regress    = AD['do_scale_regress']
         self.do_calc_hrcrf       = AD['do_calc_hrcrf']
         self.do_out_hr           = AD['do_out_hr']
         self.do_out_hrcrf        = AD['do_out_hrcrf']

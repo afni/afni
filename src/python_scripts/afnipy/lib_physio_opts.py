@@ -178,6 +178,17 @@ off, if preferable.
                        following list:   {all_volbase_card} 
                        (def: {regress_types_card})
 
+  -do_scale_regress DSR :Center and scale any RVT, RVTRRF and HRCRF regressors
+                       by their median and 2*MAD, respectively. This stabilizes
+                       the regressors, since input units can vary a lot. 
+                       RETROICOR regressors are not changed, since they are 
+                       inherently scaled. The applied scale and shift factors
+                       are saved in review.txt. To unscale the data (i.e., have
+                       it in the original units), simply apply saved values:
+                         original = shift + scaled*scale.
+                       Allowed values are: Yes, 1, No, 0
+                       (def: '{do_scale_regress}')
+
   -retro_sign_mode RSM :Choose how phase direction is estimated for resp data
                        during RETROICOR calcs.
                        'extrema' uses peaks and troughs (previous behavior).
@@ -1500,6 +1511,9 @@ class InOpts:
 
         self.add_opt('retro_sign_mode', 1, 'str',
                      'RETROICOR sign mode for phase dir: extrema or deriv')
+
+        self.add_opt('do_scale_regress', 1, 'yesno',
+                     'center and MAD-scale RVT, RVTRRF and HRCRF regressors')
 
         self.add_opt('rvt_shift_list', -1, 'list',
                      'RVT shift values')

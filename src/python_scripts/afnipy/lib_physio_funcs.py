@@ -1395,6 +1395,37 @@ Eq. 1 of Glover et al., 2000.
     return 0
 
 
+def scale_regressor(tsobj, x, regress_type, do_scale=True, ref=None):
+    """Center and divide x by 2*MAD; original = shift + scaled*scale.
+
+Optional ref supplies the samples used to estimate the factors. For RVT,
+these are the unshifted EPI-time samples; x retains the full physio grid
+so subsequent shifts can use the original timing and padding behavior.
+    """
+
+    shift = 0.0
+    scale = 1.0
+    if do_scale :
+        if ref is None :
+            ref = x
+        shift = float(np.median(ref))
+        is_fail, scale = lpo.calc_MAD(ref)
+        if is_fail :
+            ab.EP("Could not calculate MAD for {} regressor".format(regress_type))
+        scale *= 2.0
+        if scale == 0.0 :
+            ab.WP("Zero MAD for {} regressor; using scale 1".format(regress_type))
+            scale = 1.0
+        y = (x - shift) / scale
+    else:
+        y = x
+
+    tsobj.regress_shift[regress_type] = shift
+    tsobj.regress_scale[regress_type] = scale
+
+    return y
+
+
 def calc_regress_rvt(pcobj, label=None, verb=0):
     """Calculate RVT regressors, as described in Birn et al.,
 2006.  Apply shifts here.
@@ -1423,14 +1454,16 @@ def calc_regress_rvt(pcobj, label=None, verb=0):
     # shifts here are made by shifting a copy of the underlying
     # tvalues array, and then selecting the same MRI-snapshot points.
 
-    # the primary, unshifted RVT regressor
-    ###rvt_regr = tsobj.rvt_ts[tsobj.list_slice_sel_volbase]
+    # scale a copy before shifts, retaining raw RVT for RRF convolution
+    rvt_sca = scale_regressor(tsobj, tsobj.rvt_ts, 'rvt',
+                              do_scale=pcobj.do_scale_regress,
+                              ref=tsobj.rvt_ts[tsobj.list_slice_sel_volbase])
 
     for ii in range(nshift):
         # make shifted regressors
         lab = 'rvt{:02d}'.format(ii)
         shift = shift_list[ii]
-        regress_dict_rvt[lab] = get_shifted_rvt(tsobj.rvt_ts,
+        regress_dict_rvt[lab] = get_shifted_rvt(rvt_sca,
                                                 tsobj.samp_freq,
                                                 tsobj.list_slice_sel_volbase,
                                                 shift)
@@ -1553,10 +1586,13 @@ calculated...
                                             kernel='rrf_birn08')
     # trim away the pre-scan time from the final regressor
     rvtrrf_reg = rvtrrf_reg[npre:]
+    # center/scale
+    rvtrrf_sca = scale_regressor(tsobj, rvtrrf_reg, 'rvtrrf',
+                                 do_scale=pcobj.do_scale_regress)
     
     # add to dict
     lab = 'rvtrrf'
-    regress_dict_rvtrrf[lab]  = rvtrrf_reg
+    regress_dict_rvtrrf[lab]  = rvtrrf_sca
     tsobj.regress_dict_rvtrrf = regress_dict_rvtrrf
 
     # make lineplot image of the RVTRRF regressors
