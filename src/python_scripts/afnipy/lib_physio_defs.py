@@ -252,6 +252,7 @@ DOPTS = {
     'regress_types_card': DEF_regress_types_card, # (str) if card, which regr?
     'hrcrf_mode'        : DEF_hrcrf_mode,    # (str) HR boundary interval mode
     'retro_sign_mode'   : DEF_retro_sign_mode, # (str) retro resp phase meth
+    'do_scale_regress'  : 'Yes',     # (str) Yes/1, No/0 -> bool after parsing
     'img_verb'          : 1,         # (int) amount of graphs to save
     'img_figsize'       : DEF_img_figsize,   # (tuple) figsize dims for QC imgs
     'img_fontsize'      : DEF_img_fontsize,  # (float) font size for QC imgs
