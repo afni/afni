@@ -839,9 +839,12 @@ g_history = """
     8.12 Nov  4, 2026: changed wildcard imports to aliases
     8.13 Nov 19, 2026: add help for -regress_per_run_ortvec
     8.14 Nov 23, 2026: exit gracefully when output stream is closed early
+    8.15 Nov 24, 2026:
+       - re-allow sub-brick selectors for EPI time series inputs
+       - allow $ in sub-brick selectors for blip dset inputs
 """
 
-g_version = "version 8.14, November 23, 2026"
+g_version = "version 8.15, November 23, 2026"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2969,14 +2972,16 @@ class SubjProcSream:
         # (use rpve to include NIfTI, etc.)
         dset = self.dsets[0].rpve(sel=1)
 
-        err, self.reps, self.tr = UTIL.get_dset_reps_tr(dset, verb=self.verb)
+        err, self.reps, self.tr = UTIL.get_dset_reps_tr(dset, qchar='',
+                                                        verb=self.verb)
         if err: return 1   # check for failure
 
         # set reps in each run
         self.reps_all = []
         self.reps_vary = 0
         for dr in self.dsets:
-            err, reps, tr = UTIL.get_dset_reps_tr(dr.rpve(sel=1), verb=self.verb)
+            err, reps, tr = UTIL.get_dset_reps_tr(dr.rpve(sel=1), qchar='',
+                                                  verb=self.verb)
             if err: return 1
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
@@ -2990,7 +2995,7 @@ class SubjProcSream:
            for eind, esets in enumerate(self.dsets_me):
                for rind, dset in enumerate(esets):
                   err, reps, tr = UTIL.get_dset_reps_tr(dset.rpve(sel=1),
-                                                   verb=self.verb)
+                                                   qchar='', verb=self.verb)
                   if err: return 1
                   if reps != self.reps_all[rind]:
                      print("** run %d reps differ between echo 1 (%d)" \
