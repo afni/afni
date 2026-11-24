@@ -1553,10 +1553,10 @@ async function toggle_niivue(is_served, id) {
 function niivue_ShowHideOlay(obj, bid) {
   let element = document.getElementById(bid);
   if (obj.volumes[1].opacity) {
-    obj.setOpacity(1, 0);
+    obj.setVolume(1, {opacity: 0});
     element.innerText = "View Olay";
   } else {
-    obj.setOpacity(1, 1);
+    obj.setVolume(1, {opacity: 1});
     element.innerText = "Hide Olay";
   }
 }

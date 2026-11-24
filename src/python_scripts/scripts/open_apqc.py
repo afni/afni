@@ -25,6 +25,7 @@ version = '3.3'  # remove unnec werkzeug WARNING @ production server.
 version = '3.4'  # add OS- and browser-specific funcs to open new window
 version = '3.5'  # add more macOS/Darwin-specific browser functionality
 version = '3.6'  # add Linux-specific browser functionality
+version = '3.7'  # NiiVue 1.0: serve its ES modules from the niivue dir
 
 # ==========================================================================
 
@@ -268,7 +269,7 @@ parser.add_argument('-host', nargs=1,
 parser.add_argument('-nv_dir', nargs=1,
                     default=[lao.DEF['nv_dir']],
                     help='(not typically needed) '
-                    'path to directory containing "niivue_afni.umd.js" '
+                    'path to directory containing the "niivue" directory '
                     '(def: {})'.format('use the location of "afni" program'))
 
 parser.add_argument('-use_webbrowser', action="store_true", 
@@ -447,8 +448,8 @@ if DO_HAVE_FLASK :
     werkzeug.serving._ansi_style = _quiet_ansi_style
 
     if not(nv_dir) :
-        # get location of AFNI binaries dir, which is where
-        # niivue_afni.umd.js will live by default; this info is needed
+        # get location of AFNI binaries dir, which is where the
+        # niivue directory will live by default; this info is needed
         # for NV button to work
         cmd = 'which afni'
         com = BASE.shell_com(cmd, capture=1)
@@ -458,7 +459,7 @@ if DO_HAVE_FLASK :
     else :
         # check user-entered NiiVue directory (must use abs path)
         nv_dir = os.path.abspath(os.path.expanduser(nv_dir))
-        nnn = nv_dir + '/' + 'niivue_afni.umd.js'
+        nnn = nv_dir + '/' + 'niivue/niivue.webgl2.js'
         if not(os.path.isfile(nnn)) :
             print("** ERROR: cannot find user-specified NiiVue, looking for:")
             print("  ", nnn)
@@ -580,7 +581,7 @@ if DO_HAVE_FLASK :
     def assets(path):
         '''This is used to help find NiiVue from outside the QC directory,
     namely from the AFNI binaries directory (e.g.,
-    somewhere/abin/niivue_afni.umd.js).
+    somewhere/abin/niivue/niivue.webgl2.js).
 
     Parameters
     ----------
