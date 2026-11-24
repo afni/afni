@@ -1443,26 +1443,29 @@ def parse_afni_version(av_str):
    try: return 0, [int(val) for val in rv]
    except: return 1, []
 
-def get_3dinfo(dname, lines=0, verb=0):
+def get_3dinfo(dname, lines=0, qchar='"', verb=0):
    """run 3dinfo, possibly -verb or -VERB
       if lines, splitlines
+      quote the input dset using qchar
       return text, or None on failure (applies to string or lines)
    """
    vstr = ' '
    if verb == 1: vstr = ' -verb'
    elif verb > 1: vstr = ' -VERB'
-   command = '3dinfo%s "%s"' % (vstr, dname)
+   command = '3dinfo%s %s%s%s' % (vstr, qchar, dname, qchar)
    status, output = exec_tcsh_command(command, lines=lines, noblank=1)
    if status: return None
 
    return output
 
-def get_3dinfo_nt(dname, verb=1):
+def get_3dinfo_nt(dname, qchar='"', verb=1):
    """run 3dinfo -nt
+
+      quote the input dset using qchar
 
       return 0 on failure (>= 0 on success)
    """
-   command = '3dinfo -nt "%s"' % dname
+   command = '3dinfo -nt %s%s%s' % (qchar, dname, qchar)
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb: print('** 3dinfo -nt failure: message is:\n%s%s\n' % (se,output))
@@ -1482,12 +1485,16 @@ def get_3dinfo_nt(dname, verb=1):
 
    return nt
 
-def get_3dinfo_val(dname, val, vtype, verb=1):
+def get_3dinfo_val(dname, val, vtype, qchar='"', verb=1):
    """run 3dinfo -val, and convert to vtype (also serves as a test)
 
-      return vtype(0) on failure
+      val   : specify the value to get from 3dinfo (3dinfo -val)
+      vtype : on success, try to convert the result to type vtype
+      qchar : use to quote the input dset name
+
+      return vtype(output value) on success
    """
-   command = '3dinfo -%s "%s"' % (val, dname)
+   command = '3dinfo -%s %s%s%s' % (val, qchar, dname, qchar)
    status, output, se = limited_shell_exec(command, nlines=1)
    if status or len(output) == 0:
       if verb:
@@ -1774,10 +1781,11 @@ def round_int_or_nsig(x, nsig=None, stringify=False):
     if stringify : return "{:.{:d}f}".format(y, nright)
     else:          return y
 
-def get_dset_reps_tr(dset, notr=0, verb=1):
+def get_dset_reps_tr(dset, notr=0, qchar='"', verb=1):
     """given an AFNI dataset, return err, reps, tr
 
        if notr: use 3dinfo -nt
+       qchar: pass along quoting character
 
        err  = error code (0 = success, else failure)
        reps = number of TRs in the dataset
@@ -1786,8 +1794,8 @@ def get_dset_reps_tr(dset, notr=0, verb=1):
 
     # use 3dinfo directly, instead of TAXIS attributes  30 Jun 2016
 
-    reps = get_3dinfo_val(dset, 'nt', int, verb=verb)
-    tr = get_3dinfo_val(dset, 'tr', float, verb=verb)
+    reps = get_3dinfo_val(dset, 'nt', int, qchar=qchar, verb=verb)
+    tr = get_3dinfo_val(dset, 'tr', float, qchar=qchar, verb=verb)
 
     # store timing info in a list (to get reps and timing units)
     if reps == 0:
