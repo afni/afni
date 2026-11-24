@@ -671,12 +671,26 @@ Outputs in: OUT_DIR/ ~2~
     PREFIX_physio_regress_slice.1D 
       :slice-based regressor file, which can be made up of any of the
        following card and/or resp regressors: retro.  This can be
-       provided to afni_proc.py via '-ricor_regs ..'.
+       provided to afni_proc.py via:
+         -ricor_regs PREFIX_physio_regress_slice.1D
+       NB: when applying these in AP, if you are removing initial time
+       points from the EPI data with '-tcat_remove_first_trs NUM', then
+       should should also remove time points from these slicewise regs
+       with 'ricor_regs_nfirst NUM'.
 
     PREFIX_physio_regress_volume.1D 
       :volume-based regressor file, which can be made up of any of the
        following card and/or resp regressors: rvt, rvtrrf, hrcrf.
-       This can be provided to afni_proc.py via '-********** ..'.
+       This can be provided to afni_proc.py via:
+         -regress_per_run_ortvec physio_vol PREFIX_physio_regress_volume.1D
+
+       Note that by default, these regressors get vertically centered
+       around zero and vertically scaled to around +/-1.  This does not
+       affect the regression results at all, besides helping ensure more
+       numerical stability (sometimes the original units on the physio data
+       are really big or really small). The shift+scale factors are
+       saved in the output *review.txt files (see below); see the 
+       '-do_scale_regress ..' option above for more information.
 
   The following subdirectories contain useful supplementary information:
 
@@ -754,7 +768,7 @@ Outputs in: OUT_DIR/PREFIX_physio_images/ ~2~
 
     PREFIX_card_20_*.svg
     PREFIX_resp_20_*.svg
-      :QC images of intermediate stages in either RVT- or CRF-based
+      :QC images of intermediate stages in either RVT- or HR-based
        estimations
 
 {ddashline}
