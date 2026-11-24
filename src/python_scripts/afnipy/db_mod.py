@@ -1180,6 +1180,10 @@ def db_mod_blip(block, proc, user_opts):
    bopt = block.opts.find_opt('-blip_reverse_dset')
    if bopt:
       proc.blip_in_rev = gen_afni_name(bopt.parlist[0])
+      # allow for $ in selectors
+      if proc.blip_in_rev.selectors() != '':
+          proc.blip_in_rev.selquote = "'"
+
       if proc.verb > 1:
          print('-- will compute blip up/down warp via %s' \
                % proc.blip_in_rev.shortinput(sel=1))
@@ -1189,6 +1193,10 @@ def db_mod_blip(block, proc, user_opts):
    bopt = block.opts.find_opt('-blip_forward_dset')
    if bopt:
       proc.blip_in_for = gen_afni_name(bopt.parlist[0])
+      # allow for $ in selectors
+      if proc.blip_in_for.selectors() != '':
+          proc.blip_in_for.selquote = "'"
+
       if proc.verb > 1:
          print('-- have blip forward dset %s' \
                % proc.blip_in_for.shortinput(sel=1))

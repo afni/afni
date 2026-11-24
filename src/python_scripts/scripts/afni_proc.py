@@ -839,7 +839,9 @@ g_history = """
     8.12 Nov  4, 2026: changed wildcard imports to aliases
     8.13 Nov 19, 2026: add help for -regress_per_run_ortvec
     8.14 Nov 23, 2026: exit gracefully when output stream is closed early
-    8.15 Nov 24, 2026: re-allow sub-brick selectors for EPI time series inputs
+    8.15 Nov 24, 2026:
+       - re-allow sub-brick selectors for EPI time series inputs
+       - allow $ in sub-brick selectors for blip dset inputs
 """
 
 g_version = "version 8.15, November 23, 2026"
