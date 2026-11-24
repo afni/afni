@@ -1017,11 +1017,6 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
     if OutDir[-1] == '/':
         OutDir = OutDir[:-1]
     Path(OutDir).mkdir(parents=True, exist_ok=True)
-    
-    # Write corrected cardiac peaks to file.
-    print('OutDir = '+OutDir)
-    np.savetxt(OutDir + '/correctedRespiratoryPeaks_1D.txt', respiratoryPeaks, 
-               fmt="%.2f")
                 
     # append lets a caller (e.g. the Mahalanobis pipeline) route its output to
     # its own file instead of overwriting the clustering/LECW results.
@@ -1051,6 +1046,11 @@ def writeRespiratoryResultsToFiles(OutDir, respiratoryTimeSeries,
     (correctedPeaks, correctedTroughs) = makeCorrectedRespiratoryTimeSeries(displayTimeSeries, respiratoryPeaks, 
                 respiratoryTroughs, outlier_ts_ranges, OutDir, samp_freq,
                 moveToLocalPeaks, append=append)
+    
+    # Write corrected cardiac peaks to file.
+    print('OutDir = '+OutDir)
+    np.savetxt(OutDir + '/correctedRespiratoryPeaks_1D.txt', respiratoryPeaks, 
+               fmt="%.2f")
     
     return (
      peak_outliers,
@@ -3442,8 +3442,8 @@ for current_range in sorted_ts_ranges:
 plt.close('all')
 
 Mahalanobis_anomalyRanges = outlier_ts_ranges
-Mahalanobis_resp_peaks = respiratoryPeaks
-Mahalanobis_resp_troughs = respiratoryTroughs
+# Mahalanobis_resp_peaks = respiratoryPeaks
+# Mahalanobis_resp_troughs = respiratoryTroughs
 
 # Compare bad regions, found by Mahalonobis, with those found by LECW
 compareLECWwithMahalanobis(OutDir, respiratoryTimeSeries,
