@@ -82,7 +82,7 @@ class afni_name(object):
       
       # if no selectors, do not include quotes    7 Apr 2015 [rickr]
 
-      # if no quotes, clear and reset internal selqute
+      # if no quotes, clear and reset internal selquote
       if not quotes:
          qstr = self.selquote
          self.selquote = ''
