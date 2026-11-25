@@ -16531,11 +16531,11 @@ OPTIONS:  ~2~
 
     -regress_per_run_ortvec LABEL R1 R2 ... : ortvec files per run
 
-        e.g. -regress_per_run_ortvec                                 \\
-                          physio_vol                                 \\
-                          physio/sub-005_r1_physio_regress_volume.1D \\
-                          physio/sub-005_r2_physio_regress_volume.1D \\
-                          physio/sub-005_r3_physio_regress_volume.1D \\
+        e.g. -regress_per_run_ortvec                                    \\
+                          physio_vol                                    \\
+                          physio/sub-005_run-1_physio_regress_volume.1D \\
+                          physio/sub-005_run-2_physio_regress_volume.1D \\
+                          physio/sub-005_run-3_physio_regress_volume.1D \\
 
         This option is to pass per-run volumetric orthogonalization regressors
         to afni_proc.py.  The number of time points per run should match the
