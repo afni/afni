@@ -459,7 +459,7 @@ def tcat_make_blip_in_for(proc, block):
     # populate proc.blip_in_for
     forinput = proc.prefix_form(block, 1, view=1)
     revinput = proc.blip_in_rev.nice_input(sel=1)
-    nt = UTIL.get_3dinfo_nt(revinput)
+    nt = UTIL.get_3dinfo_nt(revinput, qchar='')
     if nt == 0: return 1, ''
 
     if nt == 1:
