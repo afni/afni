@@ -93,21 +93,16 @@ ENTRY("AFNI_vedit") ;
         here. The original/simpler/more common application is in the 'else' */
      if( dim->kind == MRI_rgb ){
        MRI_IMAGE *sim, *sout, *rgbout ;
-       byte *sar ;
+       float *sar ;
        byte *rgb ;
        int ii ;
 
-       /* Cluster nonblack RGB voxels using the separate threshold. */
-       sim = mri_new_conforming(dim,MRI_byte) ;
+       /* Use AFNI brightness for clustering; preserve the RGB colors. */
+       sim = mri_to_float(dim) ;
        if( sim == NULL ) RETURN(0) ;
        sim->dx = dim->dx ;
        sim->dy = dim->dy ;
        sim->dz = dim->dz ;
-
-       sar = MRI_BYTE_PTR(sim) ;
-       rgb = MRI_RGB_PTR(dim) ;
-       for( ii=0 ; ii < dim->nvox ; ii++ )
-         sar[ii] = (rgb[3*ii] || rgb[3*ii+1] || rgb[3*ii+2]) ;
 
        if( bisid )
          sout = mri_bi_clusterize(
@@ -126,7 +121,7 @@ ENTRY("AFNI_vedit") ;
          RETURN(0) ;
        }
 
-       sar = MRI_BYTE_PTR(sout) ;
+       sar = MRI_FLOAT_PTR(sout) ;
        rgb = MRI_RGB_PTR(rgbout) ;
        for( ii=0 ; ii < rgbout->nvox ; ii++ ){
          if( sar[ii] == 0 )

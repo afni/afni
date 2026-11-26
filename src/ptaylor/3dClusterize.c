@@ -195,7 +195,9 @@ void usage_Clusterize(int detail)
 " \n"
 "     * CM values use the absolute value of the voxel values as weights.\n"
 " \n"
-"     * The program does not work on complex- or rgb-valued datasets!\n"
+"     * Complex-valued data are unsupported. RGB is supported for -idat\n"
+"       with a scalar -ithr volume. Non-000 RGB voxels define foreground.\n"
+"       RGB report intensities use AFNI scalar brightness (0..255).\n"
 " \n"
 "     * SEM values are not realistic for interpolated data sets!  A\n"
 "       ROUGH correction is to multiply the SEM of the interpolated data\n"
@@ -1193,6 +1195,14 @@ int main(int argc, char *argv[]) {
       CL_mritype = strdup(MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ival) ]);
       }
 
+   if( dim != NULL && dim->kind == MRI_rgb ) {
+      mri_free(cim);
+      cim = mri_to_float(dim);
+      if( cim == NULL ) 
+         ERROR_exit("Cannot convert RGB data to scalar brightness");
+      INFO_message("RGB clustering: report intensities as scalar.");
+   }
+
    car = mri_data_pointer(cim);
    if( car == NULL ){
       mri_free(cim) ;
@@ -1200,10 +1210,7 @@ int main(int argc, char *argv[]) {
    }
 
    if( thr_type == -2 ) { // in case of bisidedness
-      if( ival < 0 ) // i.e., no data set input: use only thr dset
-         cim2 = mri_copy(tim);
-      else // use extra dset
-         cim2 = mri_copy(dim);
+      cim2 = mri_copy(cim);
 
       car2 = mri_data_pointer(cim2);
       if( car2 == NULL ){
@@ -1672,6 +1679,7 @@ int main(int argc, char *argv[]) {
          // [PT: Apr 29, 2021] The Rickian solution for scaling not
          // being applied in the table, if present
          fimfac = DSET_BRICK_FACTOR(insetA, ival);
+         if( dim != NULL && dim->kind == MRI_rgb ) fimfac = 1.0f;
 
          if( fimfac != 0.0 ) {
             mean  *= fimfac;
