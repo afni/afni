@@ -89,10 +89,56 @@ ENTRY("AFNI_vedit") ;
 
      rmm  = vednew.param[2] ; vmul = vednew.param[3] ;
 
-     if( bisid )
-       dblk->vedim = mri_bi_clusterize( rmm,vmul,dim,thb,tht,tim,          mask );
-     else
-       dblk->vedim = mri_clusterize   ( rmm,vmul,dim,thb,tht,tim,posfunc , mask );
+     /* now check for whether the overlay is RGB, which has special behavior
+        here. The original/simpler/more common application is in the 'else' */
+     if( dim->kind == MRI_rgb ){
+       MRI_IMAGE *sim, *sout, *rgbout ;
+       float *sar ;
+       byte *rgb ;
+       int ii ;
+
+       /* Use AFNI brightness for clustering; preserve the RGB colors. */
+       sim = mri_to_float(dim) ;
+       if( sim == NULL ) RETURN(0) ;
+       sim->dx = dim->dx ;
+       sim->dy = dim->dy ;
+       sim->dz = dim->dz ;
+
+       if( bisid )
+         sout = mri_bi_clusterize(
+                  rmm,vmul,sim,thb,tht,tim,mask ) ;
+       else
+         sout = mri_clusterize(
+                  rmm,vmul,sim,thb,tht,tim,posfunc,mask ) ;
+
+       mri_free(sim) ;
+       if( sout == NULL ) RETURN(0) ;
+
+       /* Keep exact original RGB triplets only at surviving voxels. */
+       rgbout = mri_copy(dim) ;
+       if( rgbout == NULL ){
+         mri_free(sout) ;
+         RETURN(0) ;
+       }
+
+       sar = MRI_FLOAT_PTR(sout) ;
+       rgb = MRI_RGB_PTR(rgbout) ;
+       for( ii=0 ; ii < rgbout->nvox ; ii++ ){
+         if( sar[ii] == 0 )
+           rgb[3*ii] = rgb[3*ii+1] = rgb[3*ii+2] = 0 ;
+       }
+
+       mri_free(sout) ;
+       dblk->vedim = rgbout ;
+
+     } else {
+
+       /* Primary/original behavior for non-RGB overlays. */
+       if( bisid )
+         dblk->vedim = mri_bi_clusterize( rmm,vmul,dim,thb,tht,tim,          mask );
+       else
+         dblk->vedim = mri_clusterize   ( rmm,vmul,dim,thb,tht,tim,posfunc , mask );
+     }
 
    }
 

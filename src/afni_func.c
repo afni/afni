@@ -1882,6 +1882,15 @@ static int reject_zero = 0 ;
   (The underlay image may be any legal type; this image is not used here.)
 -------------------------------------------------------------------------*/
 
+/* Flags shared by RGB and scalar alpha rendering. 
+   From original creation in 2003, NFO = New Function Overlay */
+#define NFO_ZBELOW_MASK  1
+#define NFO_ZABOVE_MASK  2
+#define NFO_ALIN_MASK    4   /* alpha = linear fade */
+#define NFO_AQUA_MASK    8   /* alpha = quadratic fade */
+#define NFO_USE_BOXED   16   /* not Boxster */
+#define NFO_POS_MASK   256
+
 MRI_IMAGE * AFNI_func_overlay( int n , FD_brick *br_fim )
 {
    Three_D_View *im3d ;
@@ -1978,7 +1987,8 @@ ENTRY("AFNI_func_overlay") ;
 
      if( im_fim != NULL             &&
          VEDIT_good(im3d->vedset)   &&
-         im3d->vinfo->thr_use_alpha && pbar->bigmode ){
+         im3d->vinfo->thr_use_alpha &&
+         (pbar->bigmode || im_fim->kind == MRI_rgb) ){
 
        AFNI_set_ignore_vedit(1) ;
        STATUS("fetch im_noved") ;
@@ -2021,6 +2031,52 @@ ENTRY("AFNI_func_overlay") ;
    /* 20 Dec 2004: allow thresholding of RGB overlays */
 
    if( im_fim->kind == MRI_rgb ){                  /* 15 Apr 2002: RGB overlays */
+
+     /* [pt: 26 Nov 2026] add in functionality for RGB to be usable with
+        clusterizing and Alpha/Boxed (via chatgpt) */
+     if( im3d->vinfo->thr_use_alpha || im3d->vinfo->thr_use_boxed ){
+       MRI_IMAGE *src = (im_noved != NULL) ? im_noved : im_fim ;
+       MRI_IMAGE *cmask, *omask ;
+       byte *sr ;
+       rgba *ov ;
+       rgbyte white[2] = { {255,255,255}, {255,255,255} } ;
+       float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
+       int flags = 0 ;
+
+       if( im3d->vinfo->thr_use_alpha )
+         flags |= (im3d->vwid->func->thr_alpha_av->ival == 0)
+                  ? NFO_ALIN_MASK : NFO_AQUA_MASK ;
+       if( im3d->vinfo->thr_use_boxed ) flags |= NFO_USE_BOXED ;
+
+       /* Parallel scalar images supply AFNI alpha/boxed rendering. */
+       cmask = mri_to_float(im_fim) ;
+       omask = mri_to_float(src) ;
+       if( cmask == NULL || omask == NULL ){
+         mri_free(cmask) ; mri_free(omask) ;
+         im_ov = NULL ; goto CLEANUP ;
+       }
+       im_ov = AFNI_newnewfunc_overlay(
+                 im_thr,THBOT(thresh),THTOP(thresh),cmask,omask,
+                 0.0f,256.0f,2,white,flags,
+                 im3d->vinfo->thr_alpha_floor,im3d->dc ) ;
+       if( im_ov != NULL ){
+         mri_rgb_transform_nD(src,0,im3d->vwid->func->pbar_transform0D_func) ;
+         mri_rgb_transform_nD(src,2,im3d->vwid->func->pbar_transform2D_func) ;
+         ov = MRI_RGBA_PTR(im_ov) ;
+         sr = MRI_RGB_PTR(src) ;
+         for( ii=0 ; ii < src->nvox ; ii++ ){
+           /* Alpha 254 identifies box outlines; keep their chosen color. */
+           if( ov[ii].a != 254 ){
+             ov[ii].r = sr[3*ii] ;
+             ov[ii].g = sr[3*ii+1] ;
+             ov[ii].b = sr[3*ii+2] ;
+             if( MRI_FLOAT_PTR(omask)[ii] == 0.0f ) ov[ii].a = 0 ;
+           }
+         }
+       }
+       mri_free(cmask) ; mri_free(omask) ;
+       goto CLEANUP ;
+     }
 
      if( im_thr != NULL && im_thr != im_fim ){          /* 20 Dec 2004 */
        float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
@@ -2093,15 +2149,6 @@ ENTRY("AFNI_func_overlay") ;
    /**---------- 30 Jan 2003:
                  if the pbar is in "big" mode,
                  then create an RGB overlay in a separate function ----------**/
-
-   /* flag bits for using the newnew function (NFO = New Function Overlay?)  */
-
-#define NFO_ZBELOW_MASK  1
-#define NFO_ZABOVE_MASK  2
-#define NFO_ALIN_MASK    4   /* alpha = linear fade */
-#define NFO_AQUA_MASK    8   /* alpha = quadratic fade */
-#define NFO_USE_BOXED   16   /* not Boxster */
-#define NFO_POS_MASK   256
 
 #define ALWAYS_USE_BIGMODE 1  /* use the newnew function always [17 Jul 2019] */
 
