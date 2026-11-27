@@ -1902,7 +1902,8 @@ class ATInterface:
 
       if self.timing:
          if self.verb > 0:
-            print("-- replacing old timing with that from '%s'" % fname)
+            print("-- replacing old timing with that from: %s" \
+                  % ', '.join(flist))
          del(self.timing)
          del(self.fname)
          self.timing = None
@@ -2109,6 +2110,7 @@ class ATInterface:
       # nmods must be consistent per class, of course
       nmods = 0
       for rind, runevents in enumerate(allevents):
+         if len(runevents) == 0: continue
          maxmods = max(len(e[1]) for e in runevents)
          if maxmods > nmods: nmods = maxmods
 
@@ -2180,9 +2182,9 @@ class ATInterface:
          return []
       if nlab == 1:
          if prefix != '':
-            return prefix
+            return [prefix]
          else:
-            return self.m_timing[0].name
+            return [self.m_timing[0].name]
 
       # pp is either empty or a '_' padded suffix
       if prefix.endswith('_') or prefix.endswith('.') :
@@ -2450,7 +2452,8 @@ class ATInterface:
       oind = uopts.find_opt_index('-verb')
       if oind >= 0:
          val, err = uopts.get_type_opt(int, '-verb')
-         if val != None and not err: self.verb = val
+         if val is None or err: return 1
+         self.verb = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-force_write_type')
@@ -2463,8 +2466,8 @@ class ATInterface:
       oind = uopts.find_opt_index('-min_frac')
       if oind >= 0:
          val, err = uopts.get_type_opt(float, '-min_frac')
-         if val and not err:
-            self.min_frac = val
+         if val is None or err: return 1
+         self.min_frac = val
          if self.min_frac < 0.0 or self.min_frac > 1.0:
             print('** invalid -min_frac = %g' % self.min_frac)
             print('   (should be in [0,1])')
@@ -2474,15 +2477,21 @@ class ATInterface:
       oind = uopts.find_opt_index('-nplaces')
       if oind >= 0:
          val, err = uopts.get_type_opt(int, '-nplaces')
-         if val and not err:
-            self.nplaces = val
+         if val is None or err: return 1
+         if val < 0 and val != -1:
+            print("** cannot use negative -nplaces (aside from -1)")
+            return 1
+         self.nplaces = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-mplaces')
       if oind >= 0:
          val, err = uopts.get_type_opt(int, '-mplaces')
-         if val and not err:
-            self.mplaces = val
+         if val is None or err: return 1
+         if val < 0 and val != -1:
+            print("** cannot use negative -mplaces (aside from -1)")
+            return 1
+         self.mplaces = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-part_init')
@@ -2505,11 +2514,11 @@ class ATInterface:
       oind = uopts.find_opt_index('-tr')
       if oind >= 0:
          val, err = uopts.get_type_opt(float, '-tr')
-         if val and not err:
-            self.tr = val
-            if self.tr <= 0.0:
-               print('** invalid (non-positive) -tr = %g' % self.tr)
-               return 1
+         if val is None or err: return 1
+         self.tr = val
+         if self.tr <= 0.0:
+            print('** invalid (non-positive) -tr = %g' % self.tr)
+            return 1
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-tsv_def_dur_label')
@@ -2563,8 +2572,11 @@ class ATInterface:
       oind = uopts.find_opt_index('-stim_dur')
       if oind >= 0:
          val, err = uopts.get_type_opt(float, '-stim_dur')
-         if val and not err:
-            self.set_stim_dur(val)
+         if val is None or err: return 1
+         if val < 0:
+            print("** cannot use negative -stim_dur %g" % val)
+            return 1
+         self.set_stim_dur(val)
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-fsl_timing_files')
@@ -2686,7 +2698,7 @@ class ATInterface:
                print("** '%s' requires -timing" % opt.name)
                return 1
             val, err = uopts.get_type_opt(float, opt=opt)
-            if val != None and err: return 1
+            if val is None or err: return 1
             if self.timing.add_val(val): return 1
 
          elif opt.name == '-apply_end_times_as_durations':
@@ -2707,7 +2719,7 @@ class ATInterface:
                print("** '%s' requires -timing" % opt.name)
                return 1
             val, err = uopts.get_type_opt(float, opt=opt)
-            if val != None and err: return 1
+            if val is None or err: return 1
             if self.timing.scale_val(val): return 1
 
          elif opt.name == '-shift_to_run_offset':
@@ -2715,7 +2727,7 @@ class ATInterface:
                print("** '%s' requires -timing" % opt.name)
                return 1
             val, err = uopts.get_type_opt(float, opt=opt)
-            if val != None and err: return 1
+            if val is None or err: return 1
             if self.timing.shift_to_offset(val): return 1
 
          elif opt.name == '-select_runs':
@@ -2734,7 +2746,7 @@ class ATInterface:
                print("** '%s' requires -tr" % opt.name)
                return 1
             val, err = uopts.get_type_opt(float, opt=opt)
-            if val != None and err: return 1
+            if val is None or err: return 1
             if self.timing.round_times(self.tr, round_frac=val): return 1
 
          elif opt.name == '-truncate_times':
@@ -2843,7 +2855,7 @@ class ATInterface:
             if not self.timing and len(self.m_timing) == 0:
                print("** '%s' requires -timing or -multi_timing" % opt.name)
                return 1
-            self.test_local_timing()
+            if self.test_local_timing(): return 1
 
          elif opt.name == '-timing_to_1D':
             if not self.timing and len(self.m_timing) == 0:
@@ -2851,7 +2863,7 @@ class ATInterface:
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
-            self.write_timing_as_1D(val)
+            if self.write_timing_as_1D(val): return 1
 
          # pass event and ISI filenames
          elif opt.name == '-multi_timing_to_event_pair':
@@ -2860,7 +2872,7 @@ class ATInterface:
                return 1
             val, err = uopts.get_string_list('', opt=opt)
             if val != None and err: return 1
-            self.multi_timing_to_events(val[0], val[1])
+            if self.multi_timing_to_events(val[0], val[1]): return 1
 
          # just pass the event filename
          elif opt.name == '-multi_timing_to_events':
@@ -2869,7 +2881,7 @@ class ATInterface:
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
-            self.multi_timing_to_events(val)
+            if self.multi_timing_to_events(val): return 1
 
          # just pass the event filename
          elif opt.name == '-multi_timing_to_event_list':
@@ -2878,17 +2890,18 @@ class ATInterface:
                return 1
             val, err = uopts.get_string_list('', opt=opt)
             if val != None and err: return 1
-            self.multi_timing_to_event_list(val[1], style=val[0])
+            if self.multi_timing_to_event_list(val[1], style=val[0]): return 1
 
          # ** a convenience option, because the above is soooo useful
          elif opt.name == '-show_events':
             # if -timing, cheat and use multi_timing
             if self.timing and not self.m_timing:
-               if self.multi_set_timing([self.fname]): return 1
+               self.m_timing = [self.timing]
+               self.m_fnames = [self.timing.fname]
             if not self.m_timing:
                print("** '%s' requires -multi_timing" % opt.name)
                return 1
-            self.multi_timing_to_event_list('-', style='GE:ALL')
+            if self.multi_timing_to_event_list('-', style='GE:ALL'): return 1
             # terminal
             return 0
 
@@ -2920,7 +2933,7 @@ class ATInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
             if self.global_to_local(): return 1
-            self.write_timing(val)
+            if self.write_timing(val): return 1
 
          elif opt.name == '-local_to_global':
             if not self.timing:
@@ -2929,7 +2942,7 @@ class ATInterface:
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
             if self.local_to_global(): return 1
-            self.write_timing(val)
+            if self.write_timing(val): return 1
 
          elif opt.name == '-write_timing':
             if not self.timing:
@@ -2937,7 +2950,7 @@ class ATInterface:
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
-            self.write_timing(val)
+            if self.write_timing(val): return 1
 
          elif opt.name == '-write_multi_timing':
             if len(self.m_timing) <= 0:
@@ -2945,20 +2958,20 @@ class ATInterface:
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
-            self.write_multi_timing(val)
+            if self.write_multi_timing(val): return 1
 
          elif opt.name == '-write_simple_tsv':
             # allow for single timing input
             single2multi = 0
             if len(self.m_timing) == 0 and self.timing is not None:
                self.m_timing = [self.timing]
-               single2mluti = 1
+               single2multi = 1
             if len(self.m_timing) == 0:
                print("** '%s' requires -multi_timing*" % opt.name)
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
-            self.write_simple_tsv(val)
+            if self.write_simple_tsv(val): return 1
             if single2multi: self.m_timing = []
 
          else:
@@ -3059,6 +3072,14 @@ class ATInterface:
       if ncond < 1:
          if self.verb > 1: print("** complete_event_list, no conditions")
          return []
+
+      # verify lengths, just to be sure
+      rlens = [len(ll.mdata) for ll in tlist]
+      for rind, rr in enumerate(rlens):
+         if rr != rlens[0]:
+            print("** mismatch in run length %d,  %d != %d" \
+                  % (rind, rr, rlens[0]))
+            return []
 
       nruns = len(tlist[0].mdata)
       if nruns < 1:
@@ -3483,7 +3504,10 @@ class ATInterface:
       return combo
 
    def write_timing_as_1D(self, fname):
-      """convert stim_times to 0/1 format"""
+      """convert stim_times to 0/1 format
+
+         return 0 on success
+      """
 
       if not self.timing and len(self.m_timing) == 0:
          print('** no timing, cannot convert to 1D')
@@ -3541,9 +3565,12 @@ class ATInterface:
                 if val:
                     result[vind] += val
           else: # default of 'bool'
+             # values are already boolean unless showing mods
+             # - just save the last non-zero val (depends on order of inputs)
+             # - otherwise, it is not clear how to mix modulators
              for vind, val in enumerate(res):
                 if val:
-                    result[vind] += val
+                    result[vind] = val
           del(res)
 
           tind += 1
@@ -3559,10 +3586,10 @@ class ATInterface:
          if fname.endswith('.1D') and len(fname) > 3:
             prefix = fname[:fname.find('.1D')]
          for run, res in enumerate(result):
-            TD.write_1D_file(res, '%s_r%02d.1D'%(prefix,run+1))
-         return
+            if TD.write_1D_file(res, '%s_r%02d.1D'%(prefix,run+1)): return 1
+         return 0
 
-      TD.write_1D_file(result, fname, self.per_run)
+      return TD.write_1D_file(result, fname, self.per_run)
 
    def global_to_local(self):
       """convert global times to local, based in run_len array

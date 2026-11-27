@@ -53,6 +53,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Nov, 2026, RCR, "timing_tool.py", MINOR, TYPE_BUG_FIX,
+   "minor cleanups and length verification",
+   NULL
+ } ,
+
  { 23, Nov, 2026, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
    "fix afni_util.py: need to block extra quote usage",
    "This restores sub-brick selection in afni_proc.py input dsets.\n"
