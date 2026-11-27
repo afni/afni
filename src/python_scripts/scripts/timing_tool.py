@@ -3565,7 +3565,7 @@ class ATInterface:
                 if val:
                     result[vind] += val
           else: # default of 'bool'
-             # values are alredy boolean unless showing mods
+             # values are already boolean unless showing mods
              # - just save the last non-zero val (depends on order of inputs)
              # - otherwise, it is not clear how to mix modulators
              for vind, val in enumerate(res):
