@@ -23,7 +23,7 @@ help.GLMM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dGLMM ==================
           Program for Voxelwise Generalized Linear Mixed-Models (GLMMs) 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.1.2, Sept 24, 2026
+Version 0.1.3, Nov 14, 2026
 Author: Gang Chen (gangchen@mail.nih.gov)
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -42,7 +42,9 @@ Introduction
 
  The program **3dGLMM** builds on **3dLMEr**, adding support for Student\'s
  *t*-distribution for model residuals in addition to the standard normal
- distribution. This functionality requires the R packages **glmmTMB**,
+ distribution, and beta regression for continuous responses strictly between
+ 0 and 1. Beta regression models the conditional mean using a logit link.
+ This functionality requires the R packages **glmmTMB**,
  **car**, and **emmeans**.
 
  Like **3dLMEr**, 3dGLMM automatically provides outputs for all main effects
@@ -283,8 +285,21 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
    "          so that debugging can be performed.\n", sep='\n')),
    
        '-family' = apl(n=1, h = paste(
-   "-family: This option specifies the distribution of model residuals. Currently",
-   "         two families are supported: \"Gaussian\" (default) and \"student.t\".\n", sep='\n')),
+   "-family FAMILY: Specify the conditional response distribution. Supported values",
+   "         are Gaussian (default), student.t, and beta (case-insensitive).",
+   "         Gaussian and student.t use an identity link. beta uses",
+   "         glmmTMB::beta_family(link=\"logit\") with estimated precision.",
+   "         For beta, all non-missing responses at analyzed spatial elements must",
+   "         be finite and strictly between 0 and 1. Values are not clipped,",
+   "         rescaled, or automatically discarded. Zeros and ones are not valid",
+   "         beta responses. Use an explicit mask to identify the analysis region;",
+   "         without a mask, all-zero spatial elements are treated as background.",
+   "         Missing responses (NA/NaN) are allowed. -bounds is applied before",
+   "         checking the response range. Beta regression does not support -R2",
+   "         in this program. Estimates, contrasts, and slopes requested through",
+   "         -level/-slope are on the logit (linear-predictor) scale, not the",
+   "         response scale. Residuals are observed minus fitted response values.",
+   "         Example: -family beta -model \"task*age+(1|Subj)\" -qVars age\n", sep='\n')),
    
        '-R2' = apl(n=0, h = paste(
    "-R2: Enabling this option will prompt the program to provide both",
@@ -294,7 +309,7 @@ read.GLMM.opts.batch <- function (args=NULL, verb = 0) {
    "         model, while conditional R^2 represents the proportion of variance",
    "         explained by the entire model, encompassing both fixed and random",
    "         effects. Two sub-bricks labeled 'R2m' and 'R2c' will be provided",
-   "         in the output.\n", sep='\n')),
+   "         in the output. This option is not implemented for -family beta.\n", sep='\n')),
 
        '-bounds' = apl(n=2, h = paste(
    "-bounds lb ub: This option is for outlier removal. Two numbers are expected from",
@@ -522,6 +537,9 @@ glfConstr <- function(cStr, dataStr) {
 
 #Change options list to 3dGLMM variable list
 process.GLMM.opts <- function (lop, verb = 0) {
+   lop$family <- normalizeGLMMFamily(lop$family)
+   if(lop$family == 'beta' && isTRUE(lop$R2))
+      errex.AFNI("-R2 is not implemented for -family beta. Omit -R2 for beta regression.")
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    an <- parse.AFNI.name(lop$outFN)
    if(an$type == "NIML") {
@@ -820,40 +838,101 @@ process.GLMM.opts <- function (lop, verb = 0) {
 # runGLMM(inData[30,30,30,], lop$dataStr, 0)
 
 
+
+# Use the same family dispatch for the initial test fit, voxelwise fits, and
+# optimizer retries. Keep family names as strings so SOCK workers can recreate
+# family objects in their own glmmTMB namespace.
+normalizeGLMMFamily <- function(family) {
+   if(is.null(family)) return('gaussian')
+   family <- tolower(trimws(family))
+   if(length(family) != 1L || is.na(family) ||
+      !family %in% c('gaussian', 'student.t', 'beta'))
+      stop('Unsupported -family. Choose Gaussian, student.t, or beta.', call.=FALSE)
+   family
+}
+
+fitGLMM <- function(model, DM, family, control=glmmTMB::glmmTMBControl()) {
+   switch(family,
+      gaussian = glmmTMB::glmmTMB(model, data=DM,
+                                  family=stats::gaussian(), na.action=stats::na.exclude,
+                                  control=control),
+      student.t = glmmTMB_t(model, DM, c(9,30,50), control=control),
+      beta = glmmTMB::glmmTMB(model, data=DM,
+                              family=glmmTMB::beta_family(link='logit'),
+                              na.action=stats::na.exclude, control=control),
+      stop('Unsupported model family: ', family))
+}
+
+isGLMMFitOK <- function(fm) {
+   if(is.null(fm)) return(FALSE)
+   tryCatch({
+      ll <- suppressWarnings(logLik(fm))
+      coefs <- suppressWarnings(unlist(glmmTMB::fixef(fm)))
+      is.finite(ll) && all(is.finite(coefs))
+   }, error=function(e) FALSE)
+}
+
+# Missing/all-zero responses are skipped; covariate values do not determine
+# whether the response contains enough nonzero observations to analyze.
+hasGLMMData <- function(y) {
+   y <- y[!is.na(y)]
+   length(y) > 0L && mean(y != 0) >= 0.5
+}
+
+# Check beta responses once before voxelwise fitting. An explicit mask defines
+# the analysis region; otherwise only entirely zero/missing spatial elements
+# are background. Scan one input volume at a time to avoid a second 4D array.
+validateBetaData <- function(data, mask=NULL) {
+   dims <- dim(data)
+   if(length(dims) != 4L) stop('Beta response data must be a 4D array.')
+   nSpatial <- prod(dims[1:3])
+   if(is.null(mask)) {
+      active <- rep(FALSE, nSpatial)
+      for(j in seq_len(dims[4])) {
+         y <- as.vector(data[,,,j])
+         active <- active | (!is.na(y) & y != 0)
+      }
+   } else {
+      if(length(mask) != nSpatial) stop('Beta mask dimensions do not match response data.')
+      active <- !is.na(as.vector(mask)) & as.vector(mask) != 0
+   }
+   if(!any(active)) stop('No beta response data remain in the analysis region.', call.=FALSE)
+   for(j in seq_len(dims[4])) {
+      y <- as.vector(data[,,,j])
+      bad <- which(active & !is.na(y) & (!is.finite(y) | y <= 0 | y >= 1))
+      if(length(bad)) {
+         ijk <- arrayInd(bad[1], dims[1:3])
+         stop(sprintf(paste0('-family beta requires finite responses strictly between 0 and 1. ',
+                  'Found %s in data-table row %d at spatial array index (%d, %d, %d). ',
+                  'No boundary correction is applied; check the response scale and mask.'),
+              format(y[bad[1]]), j, ijk[1], ijk[2], ijk[3]), call.=FALSE)
+      }
+   }
+   invisible(TRUE)
+}
+
 runGLMM <- function(myData, DM, tag) {
    #browser()
    Stat <- NULL
    if(!is.null(lop$resid)) {
       resid <- rep(0, nrow(lop$dataStr))
-      res.na <- which(is.na(myData)) # indices for missing data
    }
    if(any(!is.na(lop$vQV))) {  # voxel-wise centering for voxel-wise covariate
       DM <- assVV2(DM, lop$vQV, myData[(length(myData)/2+1):length(myData)], all(is.na(lop$vVarCenters)))
    }
 
-   if(mean(na.omit(myData) != 0) >= 0.5) { # only analyze data with more than half nonzeros
+   if(hasGLMMData(myData[seq_len(nrow(DM))])) { # response only, excluding voxelwise covariates
       DM$yy <- myData[1:nrow(DM)]
       options(warn=-1)
       fm <- NULL
-      if(is.null(lop$family))
-         try(fm <- glmmTMB(lop$model, data=DM), silent=TRUE) else {
-         if(lop$family=='student.t') 
-            try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50)), silent=TRUE)
+      try(fm <- fitGLMM(lop$model, DM, lop$family), silent=TRUE)
+      if(!isGLMMFitOK(fm)) {
+         fm <- NULL
+         try(fm <- fitGLMM(lop$model, DM, lop$family,
+                control=glmmTMB::glmmTMBControl(optimizer=optim,
+                           optArgs=list(method="BFGS"))), silent=TRUE)
       }
-
-      is_model_ok <- function(fm) {
-        if (is.null(fm)) return(FALSE)
-        ll <- suppressWarnings(logLik(fm))
-        coefs <- suppressWarnings(unlist(coef(fm))) #coefs <- suppressWarnings(coef(fm)$cond[[1]])
-        is.finite(ll) && all(is.finite(coefs))
-      }
-      if(!is_model_ok(fm)) {
-        if(is.null(lop$family))
-          try(fm <- glmmTMB(lop$model, data=DM, control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE) else {
-         if(lop$family=='student.t') 
-            try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50), control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE)
-      }
-      }         
+      if(!isGLMMFitOK(fm)) fm <- NULL
       if(!is.null(fm)) {
          Stat <- Anova(fm, type=lop$SS_type)[,1]
          if(length(lop$level) > 0) for(ii in 1:length(lop$level)) {
@@ -879,8 +958,9 @@ runGLMM <- function(myData, DM, tag) {
          }
          if(lop$R2) Stat <- c(Stat, r.squaredGLMM(fm))
          if(!is.null(lop$resid)) {
-            resid <- unname(residuals(fm))
-            if(!is.null(res.na)) for(aa in res.na) resid <- append(resid, 0, after=aa-1) # fill in missing data with 0s 
+            # na.exclude restores rows omitted for missing responses/covariates.
+            resid <- unname(residuals(fm, type='response'))
+            resid[is.na(resid)] <- 0
          }
       }
    }
@@ -1029,6 +1109,13 @@ if(!is.na(lop$maskFN)) {
    #if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,nF))
 }
 
+if(lop$family == 'beta') {
+   betaMask <- if(is.na(lop$maskFN)) NULL else lop$maskData
+   validateBetaData(inData, betaMask)
+   rm(betaMask)
+   cat('Beta regression: logit link; -level/-slope estimates are on the logit scale.\n\n')
+}
+
 # voxel-wise covariate files
 if(!is.na(lop$vQV)) {
    tmpDat <- read.AFNI(as.character(unique(lop$dataStr[,lop$vQV[1]])[1]), verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
@@ -1100,6 +1187,7 @@ glmmTMB_t <- function(model, DM, start_DFs, control = glmmTMBControl()) {
           model,
           data = DM,
           family = t_family(),
+          na.action = stats::na.exclude,
           start = list(psi = log(psi_value)),
           map = list(psi = factor(NA)),
           control = control
@@ -1126,7 +1214,7 @@ if(!is.na(lop$maskFN)) {
   #   "If your mask has many non-zero values (e.g an atlas),\n",
   #   "Run: 3dcalc -m ",lop$maskFN," -expr 'step(m)'"))
 
-  idx <- idx[floor(dim(idx)[1]/2),1:3]
+  idx <- idx[max(1L, floor(dim(idx)[1]/2)),1:3]
   xinit <- idx[1]; yinit <- idx[2]; zinit <- idx[3]
   ii <- xinit; jj <- yinit; kk <- zinit
 } else {
@@ -1144,26 +1232,18 @@ if(any(!is.na(lop$vQV))) {
 }
 
 while(is.null(fm)) {
-  if(mean(na.omit(inData[ii, jj, kk,1:nrow(lop$dataStr)]) != 0) >= 0.5) {
+  if(hasGLMMData(inData[ii, jj, kk,seq_len(nrow(lop$dataStr))])) {
    lop$dataStr$yy <- inData[ii, jj, kk,1:nrow(lop$dataStr)]
    options(warn=-1)
-   if(is.null(lop$family)) try(fm <- glmmTMB(lop$model, data=lop$dataStr), silent=TRUE) else 
-      if(lop$family=='student.t') try(fm <- glmmTMB_t(lop$model, DM=lop$dataStr, c(9,30,50)), silent=TRUE)
+   try(fm <- fitGLMM(lop$model, lop$dataStr, lop$family), silent=TRUE)
+   if(!isGLMMFitOK(fm)) {
+      fm <- NULL
+      try(fm <- fitGLMM(lop$model, lop$dataStr, lop$family,
+             control=glmmTMB::glmmTMBControl(optimizer=optim,
+                        optArgs=list(method="BFGS"))), silent=TRUE)
+   }
+   if(!isGLMMFitOK(fm)) fm <- NULL
 
-   is_model_ok <- function(fm) {
-      if (is.null(fm)) return(FALSE)
-      ll <- suppressWarnings(logLik(fm))
-      coefs <- suppressWarnings(unlist(coef(fm))) #coefs <- suppressWarnings(coef(fm)$cond[[1]])
-      is.finite(ll) && all(is.finite(coefs))
-   }
-   if(!is_model_ok(fm)) {
-      if(is.null(lop$family))
-         try(fm <- glmmTMB(lop$model, data=DM, control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE) else {
-         if(lop$family=='student.t') 
-            try(fm <-glmmTMB_t(lop$model, DM, c(9,30,50), control = glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))), silent=TRUE)
-      }
-   }
-   
    if(!is.null(fm)) {    
       brickNames <- paste(row.names(Anova(fm, type=lop$SS_type)), 'chisq')
       lop$n.omni <- length(brickNames)
@@ -1260,7 +1340,8 @@ options(contrasts = c("contr.sum", "contr.poly"))
       if (lop$nNodes>1) {
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
-         clusterExport(cl, c("lop", "assVV2", "glmmTMB_t"), envir=environment())
+         clusterExport(cl, c("lop", "assVV2", "glmmTMB_t", "fitGLMM",
+                            "isGLMMFitOK", "hasGLMMData"), envir=environment())
          clusterEvalQ(cl, library(glmmTMB)); clusterEvalQ(cl, library(car)); clusterEvalQ(cl, library(emmeans))
          if(lop$R2) clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
@@ -1287,7 +1368,8 @@ options(contrasts = c("contr.sum", "contr.poly"))
       } else {
          pkgLoad('snow')
          cl <- makeCluster(lop$nNodes, type = "SOCK")
-         clusterExport(cl, c("lop", "assVV2", "glmmTMB_t"), envir=environment())
+         clusterExport(cl, c("lop", "assVV2", "glmmTMB_t", "fitGLMM",
+                            "isGLMMFitOK", "hasGLMMData"), envir=environment())
          clusterEvalQ(cl, library(glmmTMB)); clusterEvalQ(cl, library(car)); clusterEvalQ(cl, library(emmeans))
          if(lop$R2) clusterEvalQ(cl, library(MuMIn))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
@@ -1308,8 +1390,9 @@ if(lop$R2) {
    lop$NoBrick <- lop$NoBrick+2
 }   
 statsym <- NULL
-for(n in 1:lop$n.omni) statsym <- c(statsym, list(list(sb=n-1, typ="fict", par=chisq.df[n])))      
-for(n in 1:lop$n.t) if(lop$z)
+for(n in seq_len(lop$n.omni)) statsym <- c(statsym, list(list(sb=n-1, typ="fict", par=chisq.df[n])))      
+# n.t counts both estimate and statistic bricks: one statistic per pair.
+for(n in seq_len(lop$n.t %/% 2L)) if(lop$z)
     statsym <- c(statsym, list(list(sb=lop$n.omni+2*n-1, typ="fizt"))) else
     statsym <- c(statsym, list(list(sb=lop$n.omni+2*n-1, typ="fitt", par=t.df[n])))
 
